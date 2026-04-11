@@ -1,0 +1,277 @@
+#!/bin/bash
+# QABuddy — Claude Code Setup
+# Symlinks skills into ~/.claude/skills/ so Claude Code can discover them.
+
+set -e
+
+SCRIPT_DIR="$(cd "$(dirname "$0")" && pwd)"
+SKILLS_DIR="$HOME/.claude/skills"
+SDT_SKILLS="$SCRIPT_DIR/skills"
+SDT_REFS="$SCRIPT_DIR/references"
+
+SKILLS=(
+  "qa"
+  "verify-fix"
+  "test-plan"
+  "test-cases"
+  "review-ticket"
+  "sprint-status"
+  "exploratory"
+  "improve"
+  "setup"
+  "start"
+  "eval"
+)
+
+usage() {
+  echo "QABuddy — Claude Code Setup"
+  echo ""
+  echo "Usage: $0 [OPTIONS]"
+  echo ""
+  echo "Options:"
+  echo "  --no-prefix    Install without 'qa-' prefix (may conflict with other skills)"
+  echo "  --uninstall    Remove all QABuddy skill symlinks"
+  echo "  --status       Show current installation status"
+  echo "  --help         Show this help"
+}
+
+# Parse args
+PREFIX="qa-"
+ACTION="install"
+
+case "${1:-}" in
+  --no-prefix)  PREFIX="" ;;
+  --uninstall)  ACTION="uninstall" ;;
+  --status)     ACTION="status" ;;
+  --help|-h)    usage; exit 0 ;;
+  "")           ;; # default: install with prefix
+  *)            echo "Unknown option: $1"; usage; exit 1 ;;
+esac
+
+# ─── Uninstall ───────────────────────────────────────────────────────────────
+
+if [ "$ACTION" = "uninstall" ]; then
+  echo "QABuddy — Uninstall (Claude Code)"
+  echo "====================================="
+  echo ""
+  removed=0
+  for skill in "${SKILLS[@]}"; do
+    for target in "$SKILLS_DIR/qa-$skill" "$SKILLS_DIR/$skill"; do
+      if [ -L "$target" ]; then
+        link_target=$(readlink "$target" 2>/dev/null || true)
+        if [[ "$link_target" == *"$SDT_SKILLS"* ]] || [[ "$link_target" == *"qa-skills"* ]]; then
+          rm "$target"
+          echo "  REMOVED  $(basename "$target")"
+          removed=$((removed + 1))
+        fi
+      fi
+    done
+  done
+  # Remove references symlink (current + legacy names)
+  for target in "$SKILLS_DIR/qa-references" "$SKILLS_DIR/slowhama-references" "$SKILLS_DIR/slowhama-qa-references"; do
+    if [ -L "$target" ]; then
+      rm "$target"
+      echo "  REMOVED  $(basename "$target")"
+      removed=$((removed + 1))
+    fi
+  done
+  echo ""
+  echo "Removed: $removed symlinks"
+  exit 0
+fi
+
+# ─── Status ──────────────────────────────────────────────────────────────────
+
+if [ "$ACTION" = "status" ]; then
+  echo "QABuddy — Status (Claude Code)"
+  echo "=================================="
+  echo ""
+  echo "Skills directory: $SKILLS_DIR"
+  echo ""
+  for skill in "${SKILLS[@]}"; do
+    found=""
+    for target in "$SKILLS_DIR/qa-$skill" "$SKILLS_DIR/$skill"; do
+      if [ -L "$target" ]; then
+        echo "  OK      $(basename "$target") -> $(readlink "$target")"
+        found="yes"
+      fi
+    done
+    [ -z "$found" ] && echo "  MISSING $skill"
+  done
+  echo ""
+  if [ -L "$SKILLS_DIR/qa-references" ]; then
+    echo "  OK      qa-references -> $(readlink "$SKILLS_DIR/qa-references")"
+  else
+    echo "  MISSING qa-references (methodology docs won't be found by skills)"
+  fi
+  echo ""
+  if grep -rq "atlassian" "$HOME/.claude/settings.json" 2>/dev/null || \
+     grep -rq "atlassian" ".claude/settings.json" 2>/dev/null || \
+     grep -rq "atlassian" ".claude/settings.local.json" 2>/dev/null; then
+    echo "  OK      Atlassian MCP configured"
+  else
+    echo "  WARN    Atlassian MCP not detected in Claude settings"
+  fi
+  exit 0
+fi
+
+# ─── Install ─────────────────────────────────────────────────────────────────
+
+echo "QABuddy — Setup (Claude Code)"
+echo "================================="
+echo ""
+
+mkdir -p "$SKILLS_DIR"
+
+installed=0
+skipped=0
+
+for skill in "${SKILLS[@]}"; do
+  target="$SKILLS_DIR/${PREFIX}$skill"
+  source="$SDT_SKILLS/$skill"
+
+  if [ ! -d "$source" ]; then
+    echo "  SKIP    $skill (source not found)"
+    skipped=$((skipped + 1))
+    continue
+  fi
+
+  if [ -L "$target" ]; then
+    rm "$target"
+  elif [ -d "$target" ]; then
+    echo "  WARN    $target exists and is not a symlink. Skipping."
+    skipped=$((skipped + 1))
+    continue
+  fi
+
+  ln -s "$source" "$target"
+  echo "  OK      ${PREFIX}$skill -> $source"
+  installed=$((installed + 1))
+done
+
+# Install references symlink
+ref_target="$SKILLS_DIR/qa-references"
+if [ -d "$SDT_REFS" ]; then
+  [ -L "$ref_target" ] && rm "$ref_target"
+  ln -s "$SDT_REFS" "$ref_target"
+  echo "  OK      qa-references -> $SDT_REFS"
+  installed=$((installed + 1))
+fi
+
+echo ""
+echo "Installed: $installed items ($((installed - 1)) skills + references)"
+[ $skipped -gt 0 ] && echo "Skipped: $skipped skills"
+
+# ─── Atlassian MCP Check ────────────────────────────────────────────────────
+
+echo ""
+echo "Checking Atlassian MCP..."
+
+atlassian_found=false
+for config in "$HOME/.claude/settings.json" ".claude/settings.json" ".claude/settings.local.json"; do
+  if [ -f "$config" ] && grep -q "atlassian" "$config" 2>/dev/null; then
+    atlassian_found=true
+    break
+  fi
+done
+
+if $atlassian_found; then
+  echo "  OK      Atlassian MCP configured"
+else
+  echo "  WARN    Atlassian MCP not detected"
+  echo ""
+  echo "  Most QABuddy skills need Jira/Confluence access via Atlassian MCP."
+  echo "  To set it up, add to your Claude Code MCP config:"
+  echo ""
+  echo '  {
+    "mcpServers": {
+      "atlassian": {
+        "command": "npx",
+        "args": ["-y", "@anthropic/mcp-atlassian"],
+        "env": {
+          "JIRA_URL": "https://your-domain.atlassian.net",
+          "JIRA_EMAIL": "your-email@company.com",
+          "JIRA_API_TOKEN": "your-api-token"
+        }
+      }
+    }
+  }'
+  echo ""
+  echo "  Get an API token: https://id.atlassian.com/manage-profile/security/api-tokens"
+fi
+
+# ─── SessionStart Hook ──────────────────────────────────────────────────────
+
+echo ""
+echo "Checking SessionStart hook..."
+
+hook_configured=false
+if [ -f ".claude/settings.json" ] && grep -q "SessionStart" ".claude/settings.json" 2>/dev/null; then
+  hook_configured=true
+fi
+
+if $hook_configured; then
+  echo "  OK      SessionStart hook configured"
+else
+  echo "  INFO    SessionStart hook not configured"
+  echo ""
+  echo "  The hook auto-injects .qabuddy.json config into every session."
+  echo "  Add this to .claude/settings.json (create the file if needed):"
+  echo ""
+  echo '  {
+    "hooks": {
+      "SessionStart": [{
+        "hooks": [{
+          "type": "command",
+          "command": "cat .qabuddy.json 2>/dev/null || echo '"'"'{}'"'"'"
+        }]
+      }]
+    }
+  }'
+  echo ""
+  echo "  Or run /qa-setup to configure QABuddy interactively."
+fi
+
+# ─── Features Knowledge Base ────────────────────────────────────────────────
+
+echo ""
+echo "Checking features knowledge base..."
+
+repo_root=$(git rev-parse --show-toplevel 2>/dev/null || echo "")
+kb_path=""
+
+if [ -f ".claude/settings.local.json" ]; then
+  custom_path=$(grep -o '"featuresKbPath"[[:space:]]*:[[:space:]]*"[^"]*"' .claude/settings.local.json 2>/dev/null | sed 's/.*"featuresKbPath"[[:space:]]*:[[:space:]]*"\([^"]*\)"/\1/' || true)
+  [ -n "$custom_path" ] && kb_path="$custom_path"
+fi
+
+if [ -z "$kb_path" ] && [ -n "$repo_root" ]; then
+  kb_path="$repo_root/features-kb"
+fi
+
+if [ -z "$kb_path" ]; then
+  echo "  SKIP    Not in a git repo. Run setup from within your project repo to initialize features-kb/."
+elif [ -d "$kb_path" ]; then
+  echo "  OK      Knowledge base exists at $kb_path"
+else
+  echo "  INFO    No knowledge base found at $kb_path"
+  echo "  INFO    It will be created automatically when you first run a skill."
+  echo "  INFO    Or create it now: mkdir -p $kb_path/features $kb_path/relations"
+fi
+
+# ─── Summary ─────────────────────────────────────────────────────────────────
+
+echo ""
+echo "─────────────────────────────────────"
+if [ -n "$PREFIX" ]; then
+  echo "Skills installed with prefix. Use as:"
+  echo "  /qa-qa, /qa-test-plan, /qa-test-cases, etc."
+  echo ""
+  echo "For short names: $0 --no-prefix"
+else
+  echo "Skills installed without prefix. Use as:"
+  echo "  /qa, /test-plan, /test-cases, /review-ticket, etc."
+fi
+echo ""
+echo "Check status:  $0 --status"
+echo "Uninstall:     $0 --uninstall"

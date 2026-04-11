@@ -1,0 +1,262 @@
+#!/bin/bash
+# QABuddy — GitHub Copilot Setup
+# Copies skills into .github/skills/ in the current repo so Copilot can discover them.
+# Copilot reads skills from the repo (not a global directory).
+
+set -e
+
+SCRIPT_DIR="$(cd "$(dirname "$0")" && pwd)"
+SDT_SKILLS="$SCRIPT_DIR/skills"
+SDT_REFS="$SCRIPT_DIR/references"
+
+# Copilot reads from .github/skills/ in the repo
+SKILLS_DIR=".github/skills"
+
+SKILLS=(
+  "qa"
+  "verify-fix"
+  "test-plan"
+  "test-cases"
+  "review-ticket"
+  "sprint-status"
+  "exploratory"
+  "improve"
+  "setup"
+  "start"
+  "eval"
+)
+
+usage() {
+  echo "QABuddy — GitHub Copilot Setup"
+  echo ""
+  echo "Usage: $0 [OPTIONS]"
+  echo ""
+  echo "Copies QABuddy skills into .github/skills/ in the current repo."
+  echo "Must be run from within a git repository."
+  echo ""
+  echo "Options:"
+  echo "  --no-prefix    Install without 'qa-' prefix"
+  echo "  --uninstall    Remove all QABuddy skills from .github/skills/"
+  echo "  --status       Show current installation status"
+  echo "  --help         Show this help"
+}
+
+# Parse args
+PREFIX="qa-"
+ACTION="install"
+
+case "${1:-}" in
+  --no-prefix)  PREFIX="" ;;
+  --uninstall)  ACTION="uninstall" ;;
+  --status)     ACTION="status" ;;
+  --help|-h)    usage; exit 0 ;;
+  "")           ;; # default: install with prefix
+  *)            echo "Unknown option: $1"; usage; exit 1 ;;
+esac
+
+# Verify we're in a git repo
+if ! git rev-parse --show-toplevel >/dev/null 2>&1; then
+  echo "ERROR: Not in a git repository."
+  echo "Copilot reads skills from .github/skills/ in the repo."
+  echo "Run this script from within your project repo."
+  exit 1
+fi
+
+REPO_ROOT=$(git rev-parse --show-toplevel)
+SKILLS_DIR="$REPO_ROOT/.github/skills"
+
+# ─── Uninstall ───────────────────────────────────────────────────────────────
+
+if [ "$ACTION" = "uninstall" ]; then
+  echo "QABuddy — Uninstall (Copilot)"
+  echo "================================="
+  echo ""
+  removed=0
+  for skill in "${SKILLS[@]}"; do
+    for target in "$SKILLS_DIR/qa-$skill" "$SKILLS_DIR/$skill"; do
+      if [ -d "$target" ]; then
+        rm -rf "$target"
+        echo "  REMOVED  $(basename "$target")"
+        removed=$((removed + 1))
+      fi
+    done
+  done
+  if [ -d "$SKILLS_DIR/qa-references" ]; then
+    rm -rf "$SKILLS_DIR/qa-references"
+    echo "  REMOVED  qa-references"
+    removed=$((removed + 1))
+  fi
+  # Remove copilot instructions if it's ours
+  instructions="$REPO_ROOT/.github/copilot-instructions.md"
+  if [ -f "$instructions" ] && grep -q "QABuddy" "$instructions" 2>/dev/null; then
+    echo ""
+    echo "  NOTE    .github/copilot-instructions.md exists and contains QABuddy content."
+    echo "          Remove manually if desired: rm $instructions"
+  fi
+  echo ""
+  echo "Removed: $removed items"
+  exit 0
+fi
+
+# ─── Status ──────────────────────────────────────────────────────────────────
+
+if [ "$ACTION" = "status" ]; then
+  echo "QABuddy — Status (Copilot)"
+  echo "=============================="
+  echo ""
+  echo "Skills directory: $SKILLS_DIR"
+  echo ""
+  for skill in "${SKILLS[@]}"; do
+    found=""
+    for target in "$SKILLS_DIR/qa-$skill" "$SKILLS_DIR/$skill"; do
+      if [ -d "$target" ]; then
+        echo "  OK      $(basename "$target")"
+        found="yes"
+      fi
+    done
+    [ -z "$found" ] && echo "  MISSING $skill"
+  done
+  echo ""
+  if [ -d "$SKILLS_DIR/qa-references" ]; then
+    echo "  OK      qa-references"
+  else
+    echo "  MISSING qa-references"
+  fi
+  echo ""
+  if [ -f "$REPO_ROOT/.github/copilot-instructions.md" ]; then
+    echo "  OK      .github/copilot-instructions.md exists"
+  else
+    echo "  MISSING .github/copilot-instructions.md"
+  fi
+  echo ""
+  # Check Playwright MCP
+  if [ -f ".vscode/mcp.json" ] && grep -q "playwright" ".vscode/mcp.json" 2>/dev/null; then
+    echo "  OK      Playwright MCP configured"
+  else
+    echo "  WARN    Playwright MCP not detected in .vscode/mcp.json"
+  fi
+  # Check Atlassian MCP
+  if [ -f ".vscode/mcp.json" ] && grep -q "atlassian" ".vscode/mcp.json" 2>/dev/null; then
+    echo "  OK      Atlassian MCP configured"
+  else
+    echo "  WARN    Atlassian MCP not detected in .vscode/mcp.json"
+  fi
+  exit 0
+fi
+
+# ─── Install ─────────────────────────────────────────────────────────────────
+
+echo "QABuddy — Setup (Copilot)"
+echo "============================="
+echo ""
+
+mkdir -p "$SKILLS_DIR"
+
+installed=0
+skipped=0
+
+for skill in "${SKILLS[@]}"; do
+  target="$SKILLS_DIR/${PREFIX}$skill"
+  source="$SDT_SKILLS/$skill"
+
+  if [ ! -d "$source" ]; then
+    echo "  SKIP    $skill (source not found)"
+    skipped=$((skipped + 1))
+    continue
+  fi
+
+  rm -rf "$target"
+  cp -r "$source" "$target"
+  echo "  OK      ${PREFIX}$skill"
+  installed=$((installed + 1))
+done
+
+# Install references
+ref_target="$SKILLS_DIR/qa-references"
+if [ -d "$SDT_REFS" ]; then
+  rm -rf "$ref_target"
+  cp -r "$SDT_REFS" "$ref_target"
+  echo "  OK      qa-references"
+  installed=$((installed + 1))
+fi
+
+echo ""
+echo "Installed: $installed items ($((installed - 1)) skills + references)"
+[ $skipped -gt 0 ] && echo "Skipped: $skipped skills"
+
+# ─── Project Instructions ───────────────────────────────────────────────────
+
+echo ""
+instructions="$REPO_ROOT/.github/copilot-instructions.md"
+if [ -f "$instructions" ]; then
+  echo "  OK      .github/copilot-instructions.md already exists"
+  echo "  INFO    Review and merge QABuddy instructions manually if needed."
+  echo "  INFO    Template: $SCRIPT_DIR/.github/copilot-instructions.md"
+else
+  project_file="$SCRIPT_DIR/.github/copilot-instructions.md"
+  if [ -f "$project_file" ]; then
+    mkdir -p "$(dirname "$instructions")"
+    cp "$project_file" "$instructions"
+    echo "  OK      Created .github/copilot-instructions.md"
+  fi
+fi
+
+# ─── MCP Checks ─────────────────────────────────────────────────────────────
+
+echo ""
+echo "Checking MCP servers..."
+
+# Playwright MCP
+if [ -f ".vscode/mcp.json" ] && grep -q "playwright" ".vscode/mcp.json" 2>/dev/null; then
+  echo "  OK      Playwright MCP configured"
+else
+  echo "  WARN    Playwright MCP not detected"
+  echo ""
+  echo "  Browser-testing skills need Playwright MCP."
+  echo "  Add to .vscode/mcp.json:"
+  echo ""
+  echo '  {
+    "mcpServers": {
+      "playwright": {
+        "command": "npx",
+        "args": ["@playwright/mcp@latest"]
+      }
+    }
+  }'
+fi
+
+# Atlassian MCP
+echo ""
+if [ -f ".vscode/mcp.json" ] && grep -q "atlassian" ".vscode/mcp.json" 2>/dev/null; then
+  echo "  OK      Atlassian MCP configured"
+else
+  echo "  WARN    Atlassian MCP not detected"
+  echo ""
+  echo "  Most QABuddy skills need Jira/Confluence access via Atlassian MCP."
+  echo "  Add to .vscode/mcp.json:"
+  echo ""
+  echo '  {
+    "mcpServers": {
+      "atlassian": {
+        "command": "npx",
+        "args": ["-y", "@anthropic/mcp-atlassian"],
+        "env": {
+          "JIRA_URL": "https://your-domain.atlassian.net",
+          "JIRA_EMAIL": "your-email@company.com",
+          "JIRA_API_TOKEN": "your-api-token"
+        }
+      }
+    }
+  }'
+fi
+
+# ─── Summary ─────────────────────────────────────────────────────────────────
+
+echo ""
+echo "─────────────────────────────────────"
+echo "Skills copied to .github/skills/. Copilot will discover them automatically."
+echo ""
+echo "Remember to commit .github/skills/ to your repo so all team members get them."
+echo ""
+echo "Check status:  $0 --status"
+echo "Uninstall:     $0 --uninstall"

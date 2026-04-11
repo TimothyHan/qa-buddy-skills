@@ -1,0 +1,56 @@
+{
+  "skill": "improve",
+  "version": "0.3.0",
+  "fixtures": [
+    {
+      "id": "fx-001",
+      "description": "Generates structured improvement proposal",
+      "input": {
+        "failure": "test-plan inferred test status from Jira ticket status"
+      },
+      "assertions": [
+        { "field": "output", "op": "contains", "value": "Root Cause" },
+        { "field": "output", "op": "contains", "value": "Proposed Changes" },
+        { "field": "output", "op": "contains", "value": "Expected Outcome" }
+      ],
+      "tags": ["proposal", "happy-path"]
+    },
+    {
+      "id": "fx-002",
+      "description": "Classifies root cause correctly",
+      "input": {
+        "failure": "skill skipped self-evaluation phase"
+      },
+      "assertions": [
+        { "field": "output", "op": "matches", "value": "missing constraint|instruction gap|self-eval gap|wrong phase order|template issue|over-reliance|scope drift" }
+      ],
+      "tags": ["classification"]
+    },
+    {
+      "id": "fx-003",
+      "description": "Applies fix and rebuilds",
+      "input": {
+        "failure": "any skill failure, SDT approves proposal"
+      },
+      "assertions": [
+        { "field": "output", "op": "contains", "value": "build.js" },
+        { "field": "output", "op": "matches", "value": "version|bump" },
+        { "field": "output", "op": "contains", "value": "DONE" }
+      ],
+      "tags": ["apply-fix"]
+    },
+    {
+      "id": "fx-004",
+      "description": "Offers PR, local, or review-only delivery",
+      "input": {
+        "failure": "any failure after fix applied"
+      },
+      "assertions": [
+        { "field": "output", "op": "matches", "value": "PR|pull request|Create.*PR" },
+        { "field": "output", "op": "matches", "value": "locally|local" },
+        { "field": "output", "op": "matches", "value": "review|Review" }
+      ],
+      "tags": ["delivery-options"]
+    }
+  ]
+}

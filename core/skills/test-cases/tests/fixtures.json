@@ -1,0 +1,57 @@
+{
+  "skill": "test-cases",
+  "version": "0.3.0",
+  "fixtures": [
+    {
+      "id": "fx-001",
+      "description": "Generates E2E test cases with Playwright sketches",
+      "input": {
+        "ticket": "story with 3 ACs, existing Playwright tests in repo"
+      },
+      "assertions": [
+        { "field": "output", "op": "contains", "value": "TC-" },
+        { "field": "output", "op": "contains", "value": "Playwright" },
+        { "field": "output", "op": "contains", "value": "P0" },
+        { "field": "output", "op": "contains", "value": "Unit Test Checklist" },
+        { "field": "output", "op": "contains", "value": "DONE" }
+      ],
+      "tags": ["happy-path", "playwright"]
+    },
+    {
+      "id": "fx-002",
+      "description": "Traceability mapping created with coverage status",
+      "input": {
+        "ticket": "story with 3 ACs"
+      },
+      "assertions": [
+        { "field": "output", "op": "contains", "value": "mapping" },
+        { "field": "output", "op": "matches", "value": "full|partial" },
+        { "field": "file:features-kb/features/*/test-cases/*-mapping.json", "op": "exists" }
+      ],
+      "tags": ["traceability"]
+    },
+    {
+      "id": "fx-003",
+      "description": "No duplicate tests against existing coverage",
+      "input": {
+        "ticket": "story where 2 of 3 ACs already have Playwright tests in repo"
+      },
+      "assertions": [
+        { "field": "output", "op": "matches", "value": "Already covered|existing|reference" }
+      ],
+      "tags": ["dedup"]
+    },
+    {
+      "id": "fx-004",
+      "description": "Priority distribution is not all P0",
+      "input": {
+        "ticket": "story with 3 ACs generating 6+ test cases"
+      },
+      "assertions": [
+        { "field": "output", "op": "contains", "value": "P0" },
+        { "field": "output", "op": "matches", "value": "P1|P2" }
+      ],
+      "tags": ["priority-distribution"]
+    }
+  ]
+}

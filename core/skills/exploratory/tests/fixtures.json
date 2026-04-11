@@ -1,0 +1,48 @@
+{
+  "skill": "exploratory",
+  "version": "0.3.0",
+  "fixtures": [
+    {
+      "id": "fx-001",
+      "description": "Generates charter with heuristic focus areas",
+      "input": {
+        "feature": "feature with existing test cases in KB"
+      },
+      "assertions": [
+        { "field": "output", "op": "contains", "value": "Charter" },
+        { "field": "output", "op": "contains", "value": "Focus Area" },
+        { "field": "output", "op": "contains", "value": "Mission" },
+        { "field": "output", "op": "contains", "value": "Already Tested" }
+      ],
+      "tags": ["charter", "happy-path"]
+    },
+    {
+      "id": "fx-002",
+      "description": "Findings categorized with severity and evidence",
+      "input": {
+        "feature": "feature with discoverable bugs"
+      },
+      "assertions": [
+        { "field": "output", "op": "contains", "value": "Finding" },
+        { "field": "output", "op": "matches", "value": "new-scenario|bug|ux-concern|missing-requirement|question" },
+        { "field": "output", "op": "contains", "value": "Severity" },
+        { "field": "output", "op": "contains", "value": "Screenshot" }
+      ],
+      "tags": ["findings", "evidence"]
+    },
+    {
+      "id": "fx-003",
+      "description": "Session report with recommendation",
+      "input": {
+        "feature": "any feature after exploratory session"
+      },
+      "assertions": [
+        { "field": "output", "op": "contains", "value": "Session Outcome" },
+        { "field": "output", "op": "contains", "value": "Recommendation" },
+        { "field": "output", "op": "matches", "value": "Proceed|another session|Blocked" },
+        { "field": "output", "op": "contains", "value": "DONE" }
+      ],
+      "tags": ["report", "recommendation"]
+    }
+  ]
+}

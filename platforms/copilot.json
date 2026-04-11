@@ -1,0 +1,26 @@
+{
+  "name": "copilot",
+  "reference_path": ".github/skills/qa-references",
+  "skills_install_dir": ".github/skills",
+  "project_file": ".github/copilot-instructions.md",
+  "prefix_default": "qa-",
+
+  "tool_priority": "### Jira / Confluence\nUse Atlassian MCP tools (`@atlassian/mcp`). Configure in `.vscode/mcp.json`.\nIf MCP is not connected, guide the user through setup.\n\n### Browser Automation\nUse Playwright MCP (`@playwright/mcp`) for all browser testing.\nConfigure in `.vscode/mcp.json`:\n```json\n{\n  \"mcpServers\": {\n    \"playwright\": {\n      \"command\": \"npx\",\n      \"args\": [\"@playwright/mcp@latest\"]\n    }\n  }\n}\n```\nPlaywright MCP tools use the `browser_*` prefix (e.g., `browser_navigate`, `browser_snapshot`, `browser_click`).",
+
+  "tool_groups": {
+    "bash":   [],
+    "read":   [],
+    "write":  [],
+    "edit":   [],
+    "glob":   [],
+    "grep":   [],
+    "agent":  [],
+    "ask":    [],
+    "web-search": [],
+    "jira":            [],
+    "jira-fields":     [],
+    "confluence":      [],
+    "confluence-write": [],
+    "browser":         []
+  }
+}

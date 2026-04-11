@@ -1,0 +1,72 @@
+{
+  "skill": "review-ticket",
+  "version": "0.3.0",
+  "fixtures": [
+    {
+      "id": "fx-001",
+      "description": "Ticket with clear ACs produces READY verdict",
+      "input": {
+        "ticket": "well-defined ticket with 3 clear, testable ACs"
+      },
+      "assertions": [
+        { "field": "output", "op": "contains", "value": "READY" },
+        { "field": "output", "op": "contains", "value": "AC Assessment" },
+        { "field": "output", "op": "contains", "value": "Suggested Test Approach" },
+        { "field": "output", "op": "contains", "value": "Status" },
+        { "field": "output", "op": "contains", "value": "DONE" }
+      ],
+      "tags": ["happy-path", "ready"]
+    },
+    {
+      "id": "fx-002",
+      "description": "Ticket with vague ACs produces NEEDS WORK verdict",
+      "input": {
+        "ticket": "ticket with placeholder ACs like 'it should work well'"
+      },
+      "assertions": [
+        { "field": "output", "op": "contains", "value": "NEEDS WORK" },
+        { "field": "output", "op": "contains", "value": "Missing Scenarios" },
+        { "field": "output", "op": "contains", "value": "Given" }
+      ],
+      "tags": ["needs-work", "vague-acs"]
+    },
+    {
+      "id": "fx-003",
+      "description": "Ticket with blocking dependency produces BLOCKED verdict",
+      "input": {
+        "ticket": "ticket that depends on another unfinished ticket"
+      },
+      "assertions": [
+        { "field": "output", "op": "contains", "value": "BLOCKED" },
+        { "field": "output", "op": "contains", "value": "Blocker" }
+      ],
+      "tags": ["blocked"]
+    },
+    {
+      "id": "fx-004",
+      "description": "Self-evaluation catches over-flagging",
+      "input": {
+        "ticket": "simple 2-AC story with clear requirements"
+      },
+      "assertions": [
+        { "field": "output.missing_scenarios", "op": "length_gte", "value": 0 },
+        { "field": "output", "op": "contains", "value": "READY" },
+        { "field": "output", "op": "contains", "value": "Given" }
+      ],
+      "tags": ["self-eval", "no-over-flag"]
+    },
+    {
+      "id": "fx-005",
+      "description": "Saves review to correct KB path",
+      "input": {
+        "ticket": "PROJ-456 under epic PROJ-100"
+      },
+      "assertions": [
+        { "field": "output", "op": "contains", "value": "features-kb/features/" },
+        { "field": "output", "op": "contains", "value": "reviews/" },
+        { "field": "output", "op": "matches", "value": "/test-cases" }
+      ],
+      "tags": ["kb-path", "next-step"]
+    }
+  ]
+}

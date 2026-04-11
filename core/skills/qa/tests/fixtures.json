@@ -1,0 +1,59 @@
+{
+  "skill": "qa",
+  "version": "0.3.0",
+  "fixtures": [
+    {
+      "id": "fx-001",
+      "description": "All test cases pass, all ACs verified",
+      "input": {
+        "ticket": "ticket with test cases in KB, all features working"
+      },
+      "assertions": [
+        { "field": "output", "op": "contains", "value": "AC Verification" },
+        { "field": "output", "op": "contains", "value": "PASS" },
+        { "field": "output", "op": "contains", "value": "Test Execution Summary" },
+        { "field": "output", "op": "contains", "value": "DONE" }
+      ],
+      "tags": ["happy-path", "all-pass"]
+    },
+    {
+      "id": "fx-002",
+      "description": "Failed test case triggers bug filing",
+      "input": {
+        "ticket": "ticket with a broken feature"
+      },
+      "assertions": [
+        { "field": "output", "op": "contains", "value": "FAIL" },
+        { "field": "output", "op": "contains", "value": "Bugs Filed" },
+        { "field": "output", "op": "contains", "value": "Severity" },
+        { "field": "output", "op": "contains", "value": "approval" }
+      ],
+      "tags": ["bug-filing", "fail"]
+    },
+    {
+      "id": "fx-003",
+      "description": "No test cases in KB triggers prompt to generate them",
+      "input": {
+        "ticket": "ticket with no test cases in features-kb/"
+      },
+      "assertions": [
+        { "field": "output", "op": "matches", "value": "/qa-test-cases|test cases" },
+        { "field": "output", "op": "matches", "value": "generate|first|No test cases" }
+      ],
+      "tags": ["no-test-cases", "prompt"]
+    },
+    {
+      "id": "fx-004",
+      "description": "Bug filed to KB when no Jira",
+      "input": {
+        "config": { "contextSource": "spec" },
+        "ticket": "ticket with a broken feature, no Jira MCP"
+      },
+      "assertions": [
+        { "field": "output", "op": "contains", "value": "features-kb" },
+        { "field": "output", "op": "contains", "value": "bugs/" }
+      ],
+      "tags": ["no-jira", "kb-bug"]
+    }
+  ]
+}

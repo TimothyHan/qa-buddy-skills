@@ -1,0 +1,19 @@
+# Generated output — rebuild with: node build.js all
+dist/
+
+# OS files
+.DS_Store
+Thumbs.db
+
+# Editor files
+*.swp
+*.swo
+*~
+
+# Node
+node_modules/
+
+# QABuddy project config (project-specific, not part of the tool)
+.qabuddy.json
+features-kb/
+.qa-reports/

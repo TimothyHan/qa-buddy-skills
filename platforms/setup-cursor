@@ -1,0 +1,305 @@
+#!/bin/bash
+# QABuddy — Cursor Setup
+# Symlinks skills into ~/.cursor/skills/ so Cursor can discover them.
+# Also checks for Playwright MCP and Atlassian MCP configuration.
+
+set -e
+
+SCRIPT_DIR="$(cd "$(dirname "$0")" && pwd)"
+SKILLS_DIR="$HOME/.cursor/skills"
+SDT_SKILLS="$SCRIPT_DIR/skills"
+SDT_REFS="$SCRIPT_DIR/references"
+
+SKILLS=(
+  "qa"
+  "verify-fix"
+  "test-plan"
+  "test-cases"
+  "review-ticket"
+  "sprint-status"
+  "exploratory"
+  "improve"
+  "setup"
+  "start"
+  "eval"
+)
+
+usage() {
+  echo "QABuddy — Cursor Setup"
+  echo ""
+  echo "Usage: $0 [OPTIONS]"
+  echo ""
+  echo "Options:"
+  echo "  --no-prefix    Install without 'qa-' prefix"
+  echo "  --project      Copy skills into .cursor/skills/ in current project instead of global"
+  echo "  --uninstall    Remove all QABuddy skill symlinks"
+  echo "  --status       Show current installation status"
+  echo "  --help         Show this help"
+}
+
+# Parse args
+PREFIX="qa-"
+ACTION="install"
+MODE="global"
+
+case "${1:-}" in
+  --no-prefix)  PREFIX="" ;;
+  --project)    MODE="project" ;;
+  --uninstall)  ACTION="uninstall" ;;
+  --status)     ACTION="status" ;;
+  --help|-h)    usage; exit 0 ;;
+  "")           ;; # default: global install with prefix
+  *)            echo "Unknown option: $1"; usage; exit 1 ;;
+esac
+
+if [ "$MODE" = "project" ]; then
+  SKILLS_DIR=".cursor/skills"
+fi
+
+# ─── Uninstall ───────────────────────────────────────────────────────────────
+
+if [ "$ACTION" = "uninstall" ]; then
+  echo "QABuddy — Uninstall (Cursor)"
+  echo "================================"
+  echo ""
+  removed=0
+  for skill in "${SKILLS[@]}"; do
+    for target in "$SKILLS_DIR/qa-$skill" "$SKILLS_DIR/$skill"; do
+      if [ -L "$target" ]; then
+        rm "$target"
+        echo "  REMOVED  $(basename "$target")"
+        removed=$((removed + 1))
+      elif [ -d "$target" ] && [ "$MODE" = "project" ]; then
+        rm -rf "$target"
+        echo "  REMOVED  $(basename "$target") (directory)"
+        removed=$((removed + 1))
+      fi
+    done
+  done
+  for target in "$SKILLS_DIR/qa-references"; do
+    if [ -L "$target" ] || [ -d "$target" ]; then
+      rm -rf "$target"
+      echo "  REMOVED  qa-references"
+      removed=$((removed + 1))
+    fi
+  done
+  echo ""
+  echo "Removed: $removed items"
+  exit 0
+fi
+
+# ─── Status ──────────────────────────────────────────────────────────────────
+
+if [ "$ACTION" = "status" ]; then
+  echo "QABuddy — Status (Cursor)"
+  echo "============================="
+  echo ""
+  echo "Skills directory: $SKILLS_DIR"
+  echo ""
+  for skill in "${SKILLS[@]}"; do
+    found=""
+    for target in "$SKILLS_DIR/qa-$skill" "$SKILLS_DIR/$skill"; do
+      if [ -L "$target" ]; then
+        echo "  OK      $(basename "$target") -> $(readlink "$target")"
+        found="yes"
+      elif [ -d "$target" ]; then
+        echo "  OK      $(basename "$target") (project copy)"
+        found="yes"
+      fi
+    done
+    [ -z "$found" ] && echo "  MISSING $skill"
+  done
+  echo ""
+  # Check Playwright MCP
+  if [ -f ".cursor/mcp.json" ] && grep -q "playwright" ".cursor/mcp.json" 2>/dev/null; then
+    echo "  OK      Playwright MCP configured (project)"
+  elif [ -f "$HOME/.cursor/mcp.json" ] && grep -q "playwright" "$HOME/.cursor/mcp.json" 2>/dev/null; then
+    echo "  OK      Playwright MCP configured (global)"
+  else
+    echo "  WARN    Playwright MCP not detected"
+  fi
+  # Check Atlassian MCP
+  if [ -f ".cursor/mcp.json" ] && grep -q "atlassian" ".cursor/mcp.json" 2>/dev/null; then
+    echo "  OK      Atlassian MCP configured (project)"
+  elif [ -f "$HOME/.cursor/mcp.json" ] && grep -q "atlassian" "$HOME/.cursor/mcp.json" 2>/dev/null; then
+    echo "  OK      Atlassian MCP configured (global)"
+  else
+    echo "  WARN    Atlassian MCP not detected"
+  fi
+  exit 0
+fi
+
+# ─── Install ─────────────────────────────────────────────────────────────────
+
+echo "QABuddy — Setup (Cursor)"
+echo "==========================="
+echo "Mode: $MODE"
+echo ""
+
+mkdir -p "$SKILLS_DIR"
+
+installed=0
+skipped=0
+
+for skill in "${SKILLS[@]}"; do
+  target="$SKILLS_DIR/${PREFIX}$skill"
+  source="$SDT_SKILLS/$skill"
+
+  if [ ! -d "$source" ]; then
+    echo "  SKIP    $skill (source not found)"
+    skipped=$((skipped + 1))
+    continue
+  fi
+
+  if [ "$MODE" = "project" ]; then
+    # Copy to project directory
+    rm -rf "$target"
+    cp -r "$source" "$target"
+    echo "  OK      ${PREFIX}$skill (copied)"
+  else
+    # Symlink to global directory
+    if [ -L "$target" ]; then
+      rm "$target"
+    elif [ -d "$target" ]; then
+      echo "  WARN    $target exists and is not a symlink. Skipping."
+      skipped=$((skipped + 1))
+      continue
+    fi
+    ln -s "$source" "$target"
+    echo "  OK      ${PREFIX}$skill -> $source"
+  fi
+  installed=$((installed + 1))
+done
+
+# Install references
+ref_target="$SKILLS_DIR/qa-references"
+if [ -d "$SDT_REFS" ]; then
+  if [ "$MODE" = "project" ]; then
+    rm -rf "$ref_target"
+    cp -r "$SDT_REFS" "$ref_target"
+    echo "  OK      qa-references (copied)"
+  else
+    [ -L "$ref_target" ] && rm "$ref_target"
+    ln -s "$SDT_REFS" "$ref_target"
+    echo "  OK      qa-references -> $SDT_REFS"
+  fi
+  installed=$((installed + 1))
+fi
+
+echo ""
+echo "Installed: $installed items ($((installed - 1)) skills + references)"
+[ $skipped -gt 0 ] && echo "Skipped: $skipped skills"
+
+# ─── MCP Checks ─────────────────────────────────────────────────────────────
+
+echo ""
+echo "Checking MCP servers..."
+
+# Playwright MCP
+playwright_found=false
+for config in ".cursor/mcp.json" "$HOME/.cursor/mcp.json"; do
+  if [ -f "$config" ] && grep -q "playwright" "$config" 2>/dev/null; then
+    playwright_found=true
+    break
+  fi
+done
+
+if $playwright_found; then
+  echo "  OK      Playwright MCP configured"
+else
+  echo "  WARN    Playwright MCP not detected"
+  echo ""
+  echo "  Browser-testing skills (qa, qa-report, exploratory) need Playwright MCP."
+  echo "  Add to .cursor/mcp.json or ~/.cursor/mcp.json:"
+  echo ""
+  echo '  {
+    "mcpServers": {
+      "playwright": {
+        "command": "npx",
+        "args": ["@playwright/mcp@latest"]
+      }
+    }
+  }'
+fi
+
+# Atlassian MCP
+atlassian_found=false
+for config in ".cursor/mcp.json" "$HOME/.cursor/mcp.json"; do
+  if [ -f "$config" ] && grep -q "atlassian" "$config" 2>/dev/null; then
+    atlassian_found=true
+    break
+  fi
+done
+
+echo ""
+if $atlassian_found; then
+  echo "  OK      Atlassian MCP configured"
+else
+  echo "  WARN    Atlassian MCP not detected"
+  echo ""
+  echo "  Most QABuddy skills need Jira/Confluence access via Atlassian MCP."
+  echo "  Add to .cursor/mcp.json or ~/.cursor/mcp.json:"
+  echo ""
+  echo '  {
+    "mcpServers": {
+      "atlassian": {
+        "command": "npx",
+        "args": ["-y", "@anthropic/mcp-atlassian"],
+        "env": {
+          "JIRA_URL": "https://your-domain.atlassian.net",
+          "JIRA_EMAIL": "your-email@company.com",
+          "JIRA_API_TOKEN": "your-api-token"
+        }
+      }
+    }
+  }'
+fi
+
+# ─── SessionStart Hook ──────────────────────────────────────────────────────
+
+echo ""
+echo "Checking SessionStart hook..."
+
+hook_configured=false
+if [ -f ".cursor/settings.json" ] && grep -q "SessionStart" ".cursor/settings.json" 2>/dev/null; then
+  hook_configured=true
+fi
+
+if $hook_configured; then
+  echo "  OK      SessionStart hook configured"
+else
+  echo "  INFO    SessionStart hook not configured"
+  echo ""
+  echo "  The hook auto-injects .qabuddy.json config into every session."
+  echo "  Add this to .cursor/settings.json:"
+  echo ""
+  echo '  {
+    "hooks": {
+      "SessionStart": [{
+        "hooks": [{
+          "type": "command",
+          "command": "cat .qabuddy.json 2>/dev/null || echo '"'"'{}'"'"'"
+        }]
+      }]
+    }
+  }'
+  echo ""
+  echo "  Or run /qa-setup to configure QABuddy interactively."
+fi
+
+# ─── Summary ─────────────────────────────────────────────────────────────────
+
+echo ""
+echo "─────────────────────────────────────"
+if [ -n "$PREFIX" ]; then
+  echo "Skills installed with prefix. Use as:"
+  echo "  /qa-qa, /qa-test-plan, /qa-test-cases, etc."
+  echo ""
+  echo "For short names: $0 --no-prefix"
+else
+  echo "Skills installed without prefix. Use as:"
+  echo "  /qa, /test-plan, /test-cases, /review-ticket, etc."
+fi
+echo ""
+echo "Check status:  $0 --status"
+echo "Uninstall:     $0 --uninstall"

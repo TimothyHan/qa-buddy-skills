@@ -1,0 +1,28 @@
+{
+  "name": "cursor",
+  "reference_path": "~/.cursor/skills/qa-references",
+  "skills_install_dir": "~/.cursor/skills",
+  "project_file": ".cursor/rules/qabuddy.mdc",
+  "prefix_default": "qa-",
+
+  "project_file_wrapper": "---\ndescription: QABuddy — AI partner for Software Developers in Test in Scrum teams. Covers QA workflow from epic test planning through sprint execution to release verification.\nalwaysApply: true\n---",
+
+  "tool_priority": "### Jira / Confluence\nUse Atlassian MCP tools (`@atlassian/mcp`). Configure in `.cursor/mcp.json`.\nIf MCP is not connected, guide the user through setup.\n\n### Browser Automation\nUse Playwright MCP (`@playwright/mcp`) for all browser testing.\nConfigure in `.cursor/mcp.json`:\n```json\n{\n  \"mcpServers\": {\n    \"playwright\": {\n      \"command\": \"npx\",\n      \"args\": [\"@playwright/mcp@latest\"]\n    }\n  }\n}\n```\nPlaywright MCP tools use the `browser_*` prefix (e.g., `browser_navigate`, `browser_snapshot`, `browser_click`).",
+
+  "tool_groups": {
+    "bash":   [],
+    "read":   [],
+    "write":  [],
+    "edit":   [],
+    "glob":   [],
+    "grep":   [],
+    "agent":  [],
+    "ask":    [],
+    "web-search": [],
+    "jira":            [],
+    "jira-fields":     [],
+    "confluence":      [],
+    "confluence-write": [],
+    "browser":         []
+  }
+}

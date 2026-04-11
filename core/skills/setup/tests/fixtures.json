@@ -1,0 +1,64 @@
+{
+  "skill": "setup",
+  "version": "0.3.0",
+  "fixtures": [
+    {
+      "id": "fx-001",
+      "description": "First-run setup creates .qabuddy.json with Jira config",
+      "input": {
+        "context_source": "jira",
+        "team_mode": "solo",
+        "jira_project": "PROJ"
+      },
+      "assertions": [
+        { "field": "file:.qabuddy.json", "op": "exists" },
+        { "field": "file:.qabuddy.json", "op": "contains", "value": "contextSource" },
+        { "field": "file:.qabuddy.json", "op": "contains", "value": "jira" },
+        { "field": "file:.qabuddy.json", "op": "contains", "value": "PROJ" },
+        { "field": "output", "op": "contains", "value": "DONE" },
+        { "field": "output", "op": "contains", "value": "/qa-start" }
+      ],
+      "tags": ["happy-path", "jira"]
+    },
+    {
+      "id": "fx-002",
+      "description": "First-run setup with spec mode explains KB naming",
+      "input": {
+        "context_source": "spec",
+        "team_mode": "solo"
+      },
+      "assertions": [
+        { "field": "file:.qabuddy.json", "op": "exists" },
+        { "field": "file:.qabuddy.json", "op": "contains", "value": "spec" },
+        { "field": "output", "op": "contains", "value": "slug" }
+      ],
+      "tags": ["happy-path", "spec"]
+    },
+    {
+      "id": "fx-003",
+      "description": "Reconfigure shows existing config first",
+      "input": {
+        "precondition": ".qabuddy.json exists",
+        "action": "reconfigure"
+      },
+      "assertions": [
+        { "field": "output", "op": "contains", "value": "current" },
+        { "field": "output", "op": "matches", "value": "Reconfigure|reconfigure|Keep|keep" }
+      ],
+      "tags": ["reconfigure"]
+    },
+    {
+      "id": "fx-004",
+      "description": "Team mode verifies gh CLI availability",
+      "input": {
+        "context_source": "jira",
+        "team_mode": "team"
+      },
+      "assertions": [
+        { "field": "output", "op": "matches", "value": "gh|GitHub CLI" },
+        { "field": "file:.qabuddy.json", "op": "contains", "value": "team" }
+      ],
+      "tags": ["team-mode"]
+    }
+  ]
+}

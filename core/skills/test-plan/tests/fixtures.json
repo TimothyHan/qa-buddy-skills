@@ -1,0 +1,59 @@
+{
+  "skill": "test-plan",
+  "version": "0.5.0",
+  "fixtures": [
+    {
+      "id": "fx-001",
+      "description": "Test plan for epic with linked stories",
+      "input": {
+        "epic": "epic with 5 linked stories, clear ACs"
+      },
+      "assertions": [
+        { "field": "output", "op": "contains", "value": "Test Plan" },
+        { "field": "output", "op": "contains", "value": "Test Strategy" },
+        { "field": "output", "op": "contains", "value": "Gap Analysis" },
+        { "field": "output", "op": "contains", "value": "Entry" },
+        { "field": "output", "op": "contains", "value": "Risks" },
+        { "field": "output", "op": "contains", "value": "DONE" }
+      ],
+      "tags": ["happy-path"]
+    },
+    {
+      "id": "fx-002",
+      "description": "feature.md created before test plan is drafted",
+      "input": {
+        "epic": "new epic with no existing KB"
+      },
+      "assertions": [
+        { "field": "file:features-kb/features/*/feature.md", "op": "exists" },
+        { "field": "file:features-kb/index.json", "op": "exists" },
+        { "field": "output", "op": "contains", "value": "feature.md" }
+      ],
+      "tags": ["kb-init", "feature-md-first"]
+    },
+    {
+      "id": "fx-003",
+      "description": "Resolved stories use Confirmed/Unverified, never Done (in PR)",
+      "input": {
+        "epic": "epic with 3 resolved stories, 2 open stories"
+      },
+      "assertions": [
+        { "field": "output", "op": "matches", "value": "Confirmed|Unverified|Pending" },
+        { "field": "output", "op": "not_contains", "value": "Done (in PR)" }
+      ],
+      "tags": ["no-inferred-status"]
+    },
+    {
+      "id": "fx-004",
+      "description": "Gap analysis only claims verified coverage",
+      "input": {
+        "epic": "epic with mix of tested and untested stories"
+      },
+      "assertions": [
+        { "field": "output", "op": "contains", "value": "Gap Analysis" },
+        { "field": "output", "op": "matches", "value": "Confirmed|Unverified|No coverage|N/A" }
+      ],
+      "tags": ["gap-analysis", "verified-only"]
+    }
+  ]
+}
