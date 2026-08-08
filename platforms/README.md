@@ -50,4 +50,4 @@ Setup scripts also check for:
 
 ## Adding a New Platform
 
-See [CONTRIBUTING.md](../CONTRIBUTING.md) for the full guide.
+See [CONTRIBUTING.md](../CONTRIBUTING-en.md) for the full guide.

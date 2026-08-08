@@ -1,6 +1,6 @@
 ---
 name: setup
-version: 0.3.0
+version: 0.4.0
 description: |
   First-run configuration wizard for QABuddy. Sets up context source (Jira, spec
   docs, chat, custom), team mode (solo vs PR-based), and project preferences.
@@ -113,6 +113,7 @@ Build the config object from answers:
   "customContextMethod": "{description or null}",
   "githubCli": true/false,
   "contributeUpstream": true/false,
+  "learningsPath": "features-kb/LEARNINGS.md",
   "upstreamRepo": "TimothyHan/Checkmate",
   "defaultBranch": "main",
   "createdAt": "{ISO timestamp}"
@@ -127,6 +128,28 @@ git symbolic-ref refs/remotes/origin/HEAD 2>/dev/null | sed 's@^refs/remotes/ori
 Show the full config to the SDT: "Here's your configuration. Save it?"
 - **(A) Save** — write `.qabuddy.json`
 - **(B) Change something** — go back to the relevant question
+
+---
+
+## Phase 4b: Initialize the Learnings Layer
+
+If the file at `learningsPath` doesn't exist, create it (no question needed — every
+project gets one; see `{{REFERENCE_PATH}}/self-improve.md` for the protocol):
+
+```markdown
+# Project Learnings
+
+Project-specific rules QABuddy captured from real runs. Every skill reads this
+file at start (`active` entries override references) and appends evidence-backed
+entries when a run teaches something new. Protocol: references/self-improve.md.
+Entry format — `## LRN-YYYYMMDD-NN: title` with **Status** (active|promoted|retired),
+**Scope**, **Statement**, **Overrides**, **Evidence**.
+
+<!-- No entries yet. Skills append below as the project teaches them. -->
+```
+
+Tell the SDT: "Created `{learningsPath}` — QABuddy will evolve to fit this project
+by capturing learnings there on every skill run. Commit it; it's team knowledge."
 
 ---
 
@@ -172,6 +195,7 @@ Your setup:
 - Team mode: {mode}
 - {jira project / spec location / custom method}
 - Team practices: {N} documented, {M} not yet defined
+- Learnings layer: {learningsPath} (self-improve active on every skill run)
 
 Next: Run `/qa-start {EPIC-KEY or feature description}` to begin the guided workflow.
 Or use any skill individually: `/qa-test-plan`, `/qa-review-ticket`, etc."

@@ -1,0 +1,135 @@
+{
+  "skill": "e2e-setup",
+  "version": "0.1.1",
+  "note": "RED SUITE — written before the skill exists (eval-first). Execute fixtures run against core/skills/eval/tests/fixture-app/. Ground truth: ANSWER-KEY.md (never shown to the skill).",
+  "fixtures": [
+    {
+      "id": "fx-001",
+      "mode": "execute",
+      "description": "Probe detects cookie-session auth and recommends storageState; scaffold executes",
+      "env": {
+        "variant": "v1",
+        "port": 4173
+      },
+      "input": {
+        "task": "Set up Playwright for the app at http://localhost:4173. Test account: qa@acme.test / demo123. One test account exists. No app source repo available (black-box). Team of 4 devs, GitHub Actions CI."
+      },
+      "user_responses": {
+        "auth-strategy": "accept recommendation",
+        "pom-style": "accept recommendation",
+        "repo-layout": "same repo, playwright/ folder"
+      },
+      "assertions": [
+        {
+          "field": "output",
+          "op": "matches",
+          "value": "cookie|session"
+        },
+        {
+          "field": "output",
+          "op": "contains",
+          "value": "storageState"
+        },
+        {
+          "field": "output",
+          "op": "matches",
+          "value": "workers[:= ]+2|2 workers",
+          "note": "min-2 policy: 1 account + global tenant still yields >=2 workers with a dependent global-state project"
+        },
+        {
+          "field": "output",
+          "op": "matches",
+          "value": "global[- ]state|dependent|shared state"
+        },
+        {
+          "field": "files:**/playwright.config.*",
+          "op": "contains",
+          "value": "workers"
+        },
+        {
+          "field": "output",
+          "op": "matches",
+          "value": "network capture|no OpenAPI|API discovery"
+        },
+        {
+          "field": "files:**/playwright.config.*",
+          "op": "contains",
+          "value": "baseURL"
+        },
+        {
+          "field": "file:playwright/AUTOMATION.md",
+          "op": "exists"
+        },
+        {
+          "field": "cmd:npx playwright test --list",
+          "op": "exit_code",
+          "value": 0
+        },
+        {
+          "field": "cmd:npx playwright test --reporter=line",
+          "op": "exit_code",
+          "value": 0
+        }
+      ],
+      "tags": [
+        "probe",
+        "auth",
+        "scaffold",
+        "smoke-gate"
+      ]
+    },
+    {
+      "id": "fx-002",
+      "mode": "simulate",
+      "description": "Asks the white-box question exactly once and records the answer in the decisions file",
+      "input": {
+        "scenario": "User starts /e2e-setup for an app; user has the app source repo at ~/work/acme-web and answers 'propose patches only'."
+      },
+      "assertions": [
+        {
+          "field": "output",
+          "op": "matches",
+          "value": "source repo|white-box"
+        },
+        {
+          "field": "output",
+          "op": "matches",
+          "value": "propose"
+        },
+        {
+          "field": "output",
+          "op": "contains",
+          "value": "AUTOMATION.md"
+        }
+      ],
+      "tags": [
+        "interview",
+        "white-box"
+      ]
+    },
+    {
+      "id": "fx-003",
+      "mode": "simulate",
+      "description": "Recommends before asking — no open-ended interview questions for probeable facts",
+      "input": {
+        "scenario": "App has a login form posting to /api/auth/login which sets an HttpOnly cookie. Skill reaches the auth-strategy step."
+      },
+      "assertions": [
+        {
+          "field": "output",
+          "op": "matches",
+          "value": "recommend|Recommended"
+        },
+        {
+          "field": "output",
+          "op": "not_contains",
+          "value": "What authentication strategy would you like"
+        }
+      ],
+      "tags": [
+        "interview",
+        "recommend-first"
+      ]
+    }
+  ]
+}

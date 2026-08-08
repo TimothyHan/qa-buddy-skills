@@ -40,6 +40,16 @@ Read `.qabuddy.json` for the configured context source. If no config exists, det
 
 ---
 
+## Project Learnings (every skill run)
+
+This project maintains a learnings layer — project-specific rules captured from real runs. Protocol: `{{REFERENCE_PATH}}/self-improve.md`. Two obligations on **every** skill run:
+
+1. **Read at start:** after references, read the learnings file (`learningsPath` in `.qabuddy.json`, default `features-kb/LEARNINGS.md`; skip silently if absent). Apply `active` entries scoped to this skill — **on conflict with a reference, the learning wins.** Cite applied entries by ID (`LRN-…`) in your output. Ignore `retired`/`promoted` entries.
+2. **Capture at end:** before writing the completion status, check the three capture triggers (documented rule failed against reality / undocumented decision made / SDT corrected output with project knowledge). If one fired, append an evidence-backed entry per the protocol and mention it in the report. **If none fired, write nothing and say nothing** — clean runs leave no trace.
+3. **Suggest, never self-launch:** if the failure behind a trigger traces to QABuddy's own instructions or references (not a project quirk), it is not a learning — don't record it; add "run `/qa-improve`" with the evidence to **Next steps** instead. If a falsified learning was flagged or active entries exceed ~30, suggest `/qa-improve` distill there. Detection is automatic; launching `/improve` is always the SDT's call.
+
+---
+
 ## Review Options
 
 At every pause point where the SDT reviews output, offer three options:
@@ -50,13 +60,11 @@ At every pause point where the SDT reviews output, offer three options:
 
 **If (C) tool feedback:**
 1. Ask: "What did the tool do wrong? What was expected?"
-2. Read the current skill's source from `core/skills/<skill>/SKILL.md`
-3. Read `CONTRIBUTING.md` for guidelines
-4. Analyze root cause, propose a targeted fix with specific changes
-5. Show the proposal. On SDT approval: apply the edit, bump version, run `node build.js all`
-6. Run eval fixtures for the changed skill (`tests/fixtures.json`) — verify no regressions
-7. If `teamMode` is "team": create a PR via `gh` CLI
-8. Resume the current workflow from the same pause point
+2. Run the **`/improve` skill (fix mode)** with that context — it owns root-cause
+   analysis, the proposal/approval gate, apply + version bump + rebuild, eval
+   regression, and delivery (PR / local / upstream per config). Do not
+   re-implement its flow inline; its Phase 1 skips questions already answered.
+3. When it finishes, resume the current workflow from the same pause point.
 
 The fix takes effect on the next skill invocation (symlinks auto-resolve to rebuilt dist/).
 

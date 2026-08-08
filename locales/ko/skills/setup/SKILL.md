@@ -1,6 +1,6 @@
 ---
 name: setup
-version: 0.3.0
+version: 0.4.0
 description: |
   QABuddy 초기 설정 마법사. 컨텍스트 소스(Jira, 스펙 문서, 채팅, 커스텀),
   팀 모드(솔로 vs PR 기반), 프로젝트 환경설정을 구성합니다.
@@ -113,6 +113,7 @@ gh --version 2>/dev/null
   "customContextMethod": "{description or null}",
   "githubCli": true/false,
   "contributeUpstream": true/false,
+  "learningsPath": "features-kb/LEARNINGS.md",
   "upstreamRepo": "TimothyHan/Checkmate",
   "defaultBranch": "main",
   "createdAt": "{ISO timestamp}"
@@ -127,6 +128,28 @@ git symbolic-ref refs/remotes/origin/HEAD 2>/dev/null | sed 's@^refs/remotes/ori
 SDT에게 전체 설정을 보여준다: "설정 내용입니다. 저장하시겠습니까?"
 - **(A) 저장** -- `.qabuddy.json`을 작성한다
 - **(B) 수정** -- 해당 질문으로 돌아간다
+
+---
+
+## Phase 4b: 학습 레이어 초기화
+
+`learningsPath` 위치에 파일이 없으면 생성한다 (질문 불필요 -- 모든 프로젝트가
+하나씩 가진다; 프로토콜은 `{{REFERENCE_PATH}}/self-improve.md` 참조):
+
+```markdown
+# Project Learnings
+
+QABuddy가 실제 실행에서 포착한 프로젝트 고유 규칙. 모든 스킬이 시작 시 이 파일을
+읽고 (`active` 항목이 레퍼런스를 오버라이드), 실행이 새로운 것을 가르치면 증거가
+담긴 항목을 추가합니다. 프로토콜: references/self-improve.md.
+항목 형식 -- `## LRN-YYYYMMDD-NN: 제목` + **Status** (active|promoted|retired),
+**Scope**, **Statement**, **Overrides**, **Evidence**.
+
+<!-- 아직 항목 없음. 프로젝트가 가르치는 대로 스킬이 아래에 추가합니다. -->
+```
+
+SDT에게 안내한다: "`{learningsPath}`를 생성했습니다 -- QABuddy는 모든 스킬 실행에서
+학습을 포착해 이 프로젝트에 맞게 진화합니다. 팀 지식이니 커밋하세요."
 
 ---
 
@@ -170,6 +193,7 @@ mkdir -p features-kb/team-practices
 - 팀 모드: {mode}
 - {Jira 프로젝트 / 스펙 위치 / 커스텀 방식}
 - 팀 실무 관행: {N}개 문서화 완료, {M}개 미정의
+- 학습 레이어: {learningsPath} (모든 스킬 실행에서 자기 개선 활성)
 
 다음: `/qa-start {EPIC-KEY 또는 기능 설명}`을 실행하여 가이드 워크플로우를 시작하세요.
 또는 개별 스킬을 직접 사용할 수 있습니다: `/qa-test-plan`, `/qa-review-ticket` 등"

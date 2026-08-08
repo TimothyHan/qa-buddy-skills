@@ -23,4 +23,4 @@ skill-name/
 
 ## 새 스킬 추가
 
-자세한 내용은 [CONTRIBUTING-ko.md](../../../CONTRIBUTING-ko.md)를 참고하세요.
+자세한 내용은 [CONTRIBUTING.md](../../../CONTRIBUTING.md)를 참고하세요.

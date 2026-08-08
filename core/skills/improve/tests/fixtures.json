@@ -1,6 +1,6 @@
 {
   "skill": "improve",
-  "version": "0.3.0",
+  "version": "0.4.0",
   "fixtures": [
     {
       "id": "fx-001",
@@ -9,11 +9,26 @@
         "failure": "test-plan inferred test status from Jira ticket status"
       },
       "assertions": [
-        { "field": "output", "op": "contains", "value": "Root Cause" },
-        { "field": "output", "op": "contains", "value": "Proposed Changes" },
-        { "field": "output", "op": "contains", "value": "Expected Outcome" }
+        {
+          "field": "output",
+          "op": "contains",
+          "value": "Root Cause"
+        },
+        {
+          "field": "output",
+          "op": "contains",
+          "value": "Proposed Changes"
+        },
+        {
+          "field": "output",
+          "op": "contains",
+          "value": "Expected Outcome"
+        }
       ],
-      "tags": ["proposal", "happy-path"]
+      "tags": [
+        "proposal",
+        "happy-path"
+      ]
     },
     {
       "id": "fx-002",
@@ -22,9 +37,15 @@
         "failure": "skill skipped self-evaluation phase"
       },
       "assertions": [
-        { "field": "output", "op": "matches", "value": "missing constraint|instruction gap|self-eval gap|wrong phase order|template issue|over-reliance|scope drift" }
+        {
+          "field": "output",
+          "op": "matches",
+          "value": "missing constraint|instruction gap|self-eval gap|wrong phase order|template issue|over-reliance|scope drift"
+        }
       ],
-      "tags": ["classification"]
+      "tags": [
+        "classification"
+      ]
     },
     {
       "id": "fx-003",
@@ -33,11 +54,25 @@
         "failure": "any skill failure, SDT approves proposal"
       },
       "assertions": [
-        { "field": "output", "op": "contains", "value": "build.js" },
-        { "field": "output", "op": "matches", "value": "version|bump" },
-        { "field": "output", "op": "contains", "value": "DONE" }
+        {
+          "field": "output",
+          "op": "contains",
+          "value": "build.js"
+        },
+        {
+          "field": "output",
+          "op": "matches",
+          "value": "version|bump"
+        },
+        {
+          "field": "output",
+          "op": "contains",
+          "value": "DONE"
+        }
       ],
-      "tags": ["apply-fix"]
+      "tags": [
+        "apply-fix"
+      ]
     },
     {
       "id": "fx-004",
@@ -46,11 +81,89 @@
         "failure": "any failure after fix applied"
       },
       "assertions": [
-        { "field": "output", "op": "matches", "value": "PR|pull request|Create.*PR" },
-        { "field": "output", "op": "matches", "value": "locally|local" },
-        { "field": "output", "op": "matches", "value": "review|Review" }
+        {
+          "field": "output",
+          "op": "matches",
+          "value": "PR|pull request|Create.*PR"
+        },
+        {
+          "field": "output",
+          "op": "matches",
+          "value": "locally|local"
+        },
+        {
+          "field": "output",
+          "op": "matches",
+          "value": "review|Review"
+        }
       ],
-      "tags": ["delivery-options"]
+      "tags": [
+        "delivery-options"
+      ]
+    },
+    {
+      "id": "fx-005",
+      "description": "SELF-IMPROVE distill: dedupes, retires falsified entries, proposes promotion for repeatedly-proven ones",
+      "input": {
+        "request": "distill learnings",
+        "precondition": "features-kb/LEARNINGS.md has: LRN-A and LRN-B stating the same data-test attribute fact in different words (both active); LRN-C 'toast stays visible 5s' with newer evidence in LRN-D that the toast now auto-dismisses in 1s (contradiction); LRN-E 'seed carts via API not UI' with Evidence lines from three separate dated runs."
+      },
+      "assertions": [
+        {
+          "field": "output",
+          "op": "matches",
+          "value": "duplicate|merge|dedup"
+        },
+        {
+          "field": "output",
+          "op": "matches",
+          "value": "retire|retired"
+        },
+        {
+          "field": "output",
+          "op": "matches",
+          "value": "promot"
+        },
+        {
+          "field": "output",
+          "op": "matches",
+          "value": "reference|playwright-patterns|upstream"
+        }
+      ],
+      "tags": [
+        "self-improve",
+        "distill"
+      ]
+    },
+    {
+      "id": "fx-006",
+      "description": "SELF-IMPROVE distill guard: no destructive edits without SDT approval; retired entries are kept with status, not deleted",
+      "input": {
+        "request": "distill learnings",
+        "precondition": "LEARNINGS.md has one falsified entry and one duplicate pair"
+      },
+      "assertions": [
+        {
+          "field": "output",
+          "op": "matches",
+          "value": "approv|Apply\\?|proceed"
+        },
+        {
+          "field": "output",
+          "op": "not_contains",
+          "value": "deleted the entry"
+        },
+        {
+          "field": "output",
+          "op": "matches",
+          "value": "retired|status"
+        }
+      ],
+      "tags": [
+        "self-improve",
+        "distill",
+        "approval-gate"
+      ]
     }
   ]
 }

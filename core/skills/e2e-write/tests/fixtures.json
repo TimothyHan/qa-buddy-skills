@@ -1,0 +1,179 @@
+{
+  "skill": "e2e-write",
+  "version": "0.1.1",
+  "note": "RED SUITE — written before the skill exists (eval-first). Execute fixtures run against core/skills/eval/tests/fixture-app/. Requires the /e2e-pom fx-001 workspace (POM + inventory + green verification spec against v1). Ground truth: ANSWER-KEY.md (never shown to the skill).",
+  "fixtures": [
+    {
+      "id": "fx-001",
+      "mode": "execute",
+      "description": "Generates a suite for TC-01..TC-06 that is green, re-runnable, flake-free, and lint-clean",
+      "env": {
+        "variant": "v1",
+        "port": 4173
+      },
+      "input": {
+        "task": "Write the e2e suite for TC-01..TC-06 in core/skills/eval/tests/fixture-app/test-cases.md using the existing workspace (scaffold from /e2e-setup, POM from /e2e-pom). Preconditions via API where observed."
+      },
+      "user_responses": {},
+      "assertions": [
+        {
+          "field": "cmd:npx playwright test --reporter=line",
+          "op": "exit_code",
+          "value": 0
+        },
+        {
+          "field": "cmd:npx playwright test --reporter=line",
+          "op": "exit_code",
+          "value": 0,
+          "note": "second consecutive run — proves cleanup; 409-on-duplicate-name makes leaked data fail this"
+        },
+        {
+          "field": "cmd:npx playwright test --repeat-each=3 --reporter=line",
+          "op": "exit_code",
+          "value": 0
+        },
+        {
+          "field": "files:**/*.spec.ts",
+          "op": "not_contains",
+          "value": "waitForTimeout"
+        },
+        {
+          "field": "files:**/*.spec.ts",
+          "op": "not_contains",
+          "value": "test.only"
+        },
+        {
+          "field": "files:**/*.spec.ts",
+          "op": "not_contains",
+          "value": "page.locator("
+        },
+        {
+          "field": "files:**/*.spec.ts",
+          "op": "not_contains",
+          "value": "page.route("
+        },
+        {
+          "field": "files:**/*.spec.ts",
+          "op": "contains",
+          "value": "Date.now()"
+        },
+        {
+          "field": "files:**/*.spec.ts",
+          "op": "contains",
+          "value": "test.step"
+        },
+        {
+          "field": "files:**/*client*",
+          "op": "contains",
+          "value": "status()"
+        },
+        {
+          "field": "files:**/*.spec.ts",
+          "op": "not_contains",
+          "value": "api/reset"
+        }
+      ],
+      "tags": [
+        "green-gate",
+        "cleanup-gate",
+        "flake-gate",
+        "never-list",
+        "spec-purity"
+      ]
+    },
+    {
+      "id": "fx-002",
+      "mode": "execute",
+      "description": "Negative control: the fx-001 suite goes red on v3's silent delete bug — and only there",
+      "env": {
+        "variant": "v3",
+        "port": 4173
+      },
+      "input": {
+        "task": "Run the suite generated in fx-001, unchanged, against http://localhost:4173 (now serving v3)."
+      },
+      "user_responses": {},
+      "assertions": [
+        {
+          "field": "cmd:npx playwright test --reporter=line",
+          "op": "exit_code",
+          "value": 1
+        },
+        {
+          "field": "cmd:npx playwright test --reporter=line",
+          "op": "output_matches",
+          "value": "TC-04"
+        },
+        {
+          "field": "cmd:npx playwright test --reporter=line",
+          "op": "output_matches",
+          "value": "[0-9]+ failed",
+          "note": "every failed test must be delete-dependent (TC-04, API delete round-trip, TC-06 precondition); a red non-delete test fails this fixture"
+        },
+        {
+          "field": "cmd:npx playwright test --reporter=line",
+          "op": "output_matches",
+          "value": "TC-01|TC-02|TC-03|TC-05",
+          "note": "confirm non-delete tests ran and passed — check they are absent from the failed list"
+        }
+      ],
+      "tags": [
+        "negative-control",
+        "sensitivity"
+      ]
+    },
+    {
+      "id": "fx-003",
+      "mode": "simulate",
+      "description": "Missing POM → invokes /e2e-pom instead of inventing locators inline",
+      "input": {
+        "scenario": "User asks /e2e-write to automate test cases for a Settings page. No POM or inventory exists for that page."
+      },
+      "assertions": [
+        {
+          "field": "output",
+          "op": "contains",
+          "value": "e2e-pom"
+        },
+        {
+          "field": "output",
+          "op": "not_contains",
+          "value": "getByTestId('settings"
+        }
+      ],
+      "tags": [
+        "orchestration",
+        "no-guessing"
+      ]
+    },
+    {
+      "id": "fx-004",
+      "mode": "simulate",
+      "description": "Reports honestly when the flake gate fails — no DONE with red runs",
+      "input": {
+        "scenario": "The generated suite passes once but --repeat-each=3 fails intermittently on the create-project test."
+      },
+      "assertions": [
+        {
+          "field": "output",
+          "op": "matches",
+          "value": "DONE_WITH_CONCERNS|BLOCKED"
+        },
+        {
+          "field": "output",
+          "op": "not_contains",
+          "value": "**Status:** DONE"
+        },
+        {
+          "field": "output",
+          "op": "matches",
+          "value": "flake|flaky|intermittent"
+        }
+      ],
+      "tags": [
+        "honesty",
+        "flake-gate"
+      ]
+    }
+  ]
+}

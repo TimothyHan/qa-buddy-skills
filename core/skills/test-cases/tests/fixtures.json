@@ -1,6 +1,6 @@
 {
   "skill": "test-cases",
-  "version": "0.3.0",
+  "version": "0.3.1",
   "fixtures": [
     {
       "id": "fx-001",
@@ -9,13 +9,36 @@
         "ticket": "story with 3 ACs, existing Playwright tests in repo"
       },
       "assertions": [
-        { "field": "output", "op": "contains", "value": "TC-" },
-        { "field": "output", "op": "contains", "value": "Playwright" },
-        { "field": "output", "op": "contains", "value": "P0" },
-        { "field": "output", "op": "contains", "value": "Unit Test Checklist" },
-        { "field": "output", "op": "contains", "value": "DONE" }
+        {
+          "field": "output",
+          "op": "contains",
+          "value": "TC-"
+        },
+        {
+          "field": "output",
+          "op": "contains",
+          "value": "Playwright"
+        },
+        {
+          "field": "output",
+          "op": "contains",
+          "value": "P0"
+        },
+        {
+          "field": "output",
+          "op": "contains",
+          "value": "Unit Test Checklist"
+        },
+        {
+          "field": "output",
+          "op": "contains",
+          "value": "DONE"
+        }
       ],
-      "tags": ["happy-path", "playwright"]
+      "tags": [
+        "happy-path",
+        "playwright"
+      ]
     },
     {
       "id": "fx-002",
@@ -24,11 +47,24 @@
         "ticket": "story with 3 ACs"
       },
       "assertions": [
-        { "field": "output", "op": "contains", "value": "mapping" },
-        { "field": "output", "op": "matches", "value": "full|partial" },
-        { "field": "file:features-kb/features/*/test-cases/*-mapping.json", "op": "exists" }
+        {
+          "field": "output",
+          "op": "contains",
+          "value": "mapping"
+        },
+        {
+          "field": "output",
+          "op": "matches",
+          "value": "full|partial"
+        },
+        {
+          "field": "file:features-kb/features/*/test-cases/*-mapping.json",
+          "op": "exists"
+        }
       ],
-      "tags": ["traceability"]
+      "tags": [
+        "traceability"
+      ]
     },
     {
       "id": "fx-003",
@@ -37,9 +73,15 @@
         "ticket": "story where 2 of 3 ACs already have Playwright tests in repo"
       },
       "assertions": [
-        { "field": "output", "op": "matches", "value": "Already covered|existing|reference" }
+        {
+          "field": "output",
+          "op": "matches",
+          "value": "Already covered|existing|reference"
+        }
       ],
-      "tags": ["dedup"]
+      "tags": [
+        "dedup"
+      ]
     },
     {
       "id": "fx-004",
@@ -48,10 +90,166 @@
         "ticket": "story with 3 ACs generating 6+ test cases"
       },
       "assertions": [
-        { "field": "output", "op": "contains", "value": "P0" },
-        { "field": "output", "op": "matches", "value": "P1|P2" }
+        {
+          "field": "output",
+          "op": "contains",
+          "value": "P0"
+        },
+        {
+          "field": "output",
+          "op": "matches",
+          "value": "P1|P2"
+        }
       ],
-      "tags": ["priority-distribution"]
+      "tags": [
+        "priority-distribution"
+      ]
+    },
+    {
+      "id": "fx-005",
+      "description": "SELF-IMPROVE read path: active learnings override references and are cited; retired learnings are ignored",
+      "input": {
+        "ticket": "story with 2 ACs on the checkout page",
+        "precondition": "features-kb/LEARNINGS.md exists with two entries. LRN-20260807-01 (Status: active, Scope: test-cases, e2e-write): 'This app uses data-test as its test attribute, not data-testid — playwright.config sets testIdAttribute accordingly; sketches must use getByTestId against data-test values like data-test=\"checkout-submit\".' LRN-20260701-09 (Status: retired, Scope: test-cases): 'Use data-cy attributes for all selectors.' The playwright-patterns reference default assumes data-testid."
+      },
+      "assertions": [
+        {
+          "field": "output",
+          "op": "contains",
+          "value": "LRN-20260807-01"
+        },
+        {
+          "field": "output",
+          "op": "contains",
+          "value": "data-test"
+        },
+        {
+          "field": "output",
+          "op": "not_contains",
+          "value": "data-cy"
+        }
+      ],
+      "tags": [
+        "self-improve",
+        "read-path",
+        "override",
+        "retired-ignored"
+      ]
+    },
+    {
+      "id": "fx-006",
+      "description": "SELF-IMPROVE capture: SDT correction during the run produces a well-formed learning entry",
+      "input": {
+        "ticket": "story with 3 ACs on cart management",
+        "scenario": "Mid-run the SDT corrects the draft: 'No — cart preconditions must be seeded via POST /api/cart with a session token; UI-clicking items into the cart is flaky in our app and we never do it in tests.' The correction is project-specific and not covered by any reference."
+      },
+      "assertions": [
+        {
+          "field": "file:features-kb/LEARNINGS.md",
+          "op": "contains",
+          "value": "LRN-"
+        },
+        {
+          "field": "file:features-kb/LEARNINGS.md",
+          "op": "contains",
+          "value": "Evidence"
+        },
+        {
+          "field": "file:features-kb/LEARNINGS.md",
+          "op": "contains",
+          "value": "POST /api/cart"
+        },
+        {
+          "field": "output",
+          "op": "matches",
+          "value": "learning|LEARNINGS"
+        }
+      ],
+      "tags": [
+        "self-improve",
+        "capture",
+        "user-correction"
+      ]
+    },
+    {
+      "id": "fx-007",
+      "description": "SELF-IMPROVE noise guard: a clean run captures nothing",
+      "input": {
+        "ticket": "story with 2 ACs, straightforward, existing patterns cover everything",
+        "scenario": "The run completes with no reference-rule failures, no undocumented decisions, and no SDT corrections."
+      },
+      "assertions": [
+        {
+          "field": "output",
+          "op": "not_contains",
+          "value": "LRN-"
+        },
+        {
+          "field": "output",
+          "op": "not_contains",
+          "value": "appended to LEARNINGS"
+        }
+      ],
+      "tags": [
+        "self-improve",
+        "noise-guard",
+        "silence"
+      ]
+    },
+    {
+      "id": "fx-008",
+      "description": "SELF-IMPROVE suggest-not-capture: a QABuddy-defect failure yields a /qa-improve suggestion in Next steps, not a learning entry",
+      "input": {
+        "ticket": "story with 2 ACs",
+        "scenario": "During the run, the traceability template from the skill itself produces JSON that fails the skill's own Phase 4 check — reproducible in any project, nothing project-specific. The SDT confirms it is a tool bug, not a preference."
+      },
+      "assertions": [
+        {
+          "field": "output",
+          "op": "matches",
+          "value": "qa-improve|/improve"
+        },
+        {
+          "field": "output",
+          "op": "not_contains",
+          "value": "LRN-"
+        }
+      ],
+      "tags": [
+        "self-improve",
+        "suggest",
+        "defect-classification"
+      ]
+    },
+    {
+      "id": "fx-009",
+      "description": "SELF-IMPROVE (C) dispatcher: tool feedback at a pause point dispatches to /improve and resumes — no inline re-implementation",
+      "input": {
+        "ticket": "story with 3 ACs",
+        "scenario": "At the review pause the SDT chooses (C) Tool feedback: the skill duplicated two test cases that cover the same AC."
+      },
+      "assertions": [
+        {
+          "field": "output",
+          "op": "matches",
+          "value": "/improve|improve skill"
+        },
+        {
+          "field": "output",
+          "op": "matches",
+          "value": "resume|same pause"
+        },
+        {
+          "field": "output",
+          "op": "not_contains",
+          "value": "Read CONTRIBUTING.md for guidelines"
+        }
+      ],
+      "tags": [
+        "self-improve",
+        "dispatcher",
+        "review-options"
+      ]
     }
   ]
 }

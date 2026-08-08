@@ -1,0 +1,352 @@
+# Contributing to QABuddy
+
+[한국어](CONTRIBUTING.md) · [English](CONTRIBUTING-en.md)
+
+Thanks for your interest in contributing! This guide covers everything from adding skills to editing the playbook to submitting upstream improvements.
+
+---
+
+## Minimum Model Requirement
+
+Skills are designed for **Claude Sonnet** as the minimum. Every skill must work reliably within Sonnet's context handling. Opus works too, but Sonnet is the baseline.
+
+**Why:** Sonnet suffers instruction fatigue with verbose skills — skips late phases, ignores nuanced rules. Every line must earn its place.
+
+| Component | Budget |
+|-----------|--------|
+| Preamble (Tier 1) | ~34 lines |
+| Preamble (Tier 2) | ~78 lines |
+| **Skill body** | **150-300 lines** |
+| Reference files | 2-4 files, ~80-150 lines |
+| **Total per invocation** | **~260-530 lines** |
+
+**Rules:**
+1. Don't explain what the AI already knows
+2. Bullet points, not paragraphs
+3. Templates show structure, not populated examples
+4. Self-evaluation is a checklist (1 line per item)
+5. One reference file = one topic
+6. Test with Sonnet before submitting
+
+---
+
+## Quick Reference
+
+| I want to... | Do this |
+|---|---|
+| **Add a new skill** | [Adding a New Skill](#adding-a-new-skill) |
+| **Edit an existing skill** | Edit `core/skills/<skill>/SKILL.md`, run `node build.js all` |
+| **Add playbook knowledge** | [SDT Playbook](#sdt-playbook-editing-and-adding-knowledge) |
+| **Report a skill issue** | Run `/qa-improve` or [write a proposal manually](#reporting-skill-issues) |
+| **Add a locale** | [Adding a New Locale](#adding-a-new-locale) |
+| **Add a platform** | [Adding a New Platform](#adding-a-new-platform) |
+
+---
+
+## Project Structure
+
+```
+agents/
+├── build.js                     # Build script (node, zero deps)
+├── test.js                      # 475 structural tests
+├── core/                        # Edit here — single source of truth
+│   ├── skills/ (11)             # Skill templates
+│   ├── references/playbook/     # 10 methodology files
+│   ├── preamble-base.md         # Tier 1 (all skills)
+│   └── preamble-full.md         # Tier 2 additions
+├── platforms/                   # 3 configs + 6 setup scripts
+├── locales/ko/                  # Korean translation
+└── dist/                        # Generated — never edit directly
+```
+
+**Key rule:** Edit `core/` and `platforms/`. Never edit `dist/`. Run `node build.js all` to regenerate.
+
+---
+
+## Adding a New Skill
+
+### 1. Create the directory
+
+```bash
+mkdir -p core/skills/my-skill/tests
+```
+
+### 2. Write SKILL.md
+
+Every skill follows this structure:
+
+```markdown
+---
+name: my-skill
+version: 0.3.0
+description: |
+  What the skill does.
+  Use when: "trigger phrase 1", "trigger phrase 2".
+  Do NOT use when: scenarios that should use a different skill.
+tool-groups:
+  - bash
+  - read
+  - jira
+preamble-tier: 2
+---
+
+# /my-skill: Short Title
+
+One paragraph describing the role.
+
+## Constraints
+1. **Most important rule.** Explanation.
+2. **Second rule.** Explanation.
+
+---
+
+## Phase 1: ...
+**Load methodology references** from `{{REFERENCE_PATH}}/playbook/`:
+- `file.md` — what it covers
+...
+
+## Phase N: Self-Evaluation
+1. Check item
+2. Check item
+3. **Format check** — verify output includes: {required sections}
+Fix issues found. One pass.
+
+---
+
+## Phase N+1: Output
+...
+**Status:** DONE | DONE_WITH_CONCERNS | BLOCKED | NEEDS_CONTEXT
+**Summary:** {one line}
+**Next steps:** {next action}
+```
+
+### 3. Add eval fixtures
+
+Create `core/skills/my-skill/tests/fixtures.json`:
+
+```json
+{
+  "skill": "my-skill",
+  "version": "0.3.0",
+  "fixtures": [
+    {
+      "id": "fx-001",
+      "description": "Happy path scenario",
+      "input": { "context": "description of input" },
+      "assertions": [
+        { "field": "output", "op": "contains", "value": "expected string" }
+      ],
+      "tags": ["happy-path"]
+    }
+  ]
+}
+```
+
+Assertion operators — simulate mode: `eq`, `contains`, `not_contains`, `matches`, `exists`, `length_eq`, `length_gte`; execute mode (`cmd:`/`files:`/`file:`/`count:` fields): `exit_code`, `output_contains`, `output_matches`, `json_valid`, `lte`.
+
+### 4. Wire it up
+
+- Add tool groups to `platforms/claude.json` if using new groups
+- Add to `SKILLS` array in all 6 setup scripts
+- Add to skills table + routing in `core/project-instructions.md`
+- Add to playbook `index.md` "Used by" column if referencing playbook files
+- Build: `node build.js all`
+- Test: `node test.js`
+
+---
+
+## Skill Conventions
+
+<details>
+<summary><strong>Structure, Frontmatter, Tiers, Placeholders</strong></summary>
+
+**Structure order:** Frontmatter → Title + description → Constraints → Phases → Self-evaluation → Output
+
+**Frontmatter fields:**
+
+| Field | Required | Description |
+|-------|----------|-------------|
+| `name` | Yes | Kebab-case, matches directory name |
+| `version` | Yes | Semver. Bump on changes |
+| `description` | Yes | Multi-line. Include "Use when:" and "Do NOT use when:" |
+| `tool-groups` | Yes | Abstract capabilities ([tool group list](#tool-groups)) |
+| `preamble-tier` | Yes | `1` (minimal) or `2` (full with severity + escalation) |
+
+**Preamble tiers:**
+
+| Tier | Injects | Use for |
+|------|---------|---------|
+| `1` | Context Recovery + Completion Status (34 lines) | Lightweight skills |
+| `2` | Tier 1 + Severity tables + Escalation + Asking Questions (78 lines) | Interactive, classification-heavy skills |
+
+**Placeholder:** `{{REFERENCE_PATH}}` → replaced with platform-specific reference path at build time.
+
+</details>
+
+<details>
+<summary><strong>Tool Groups</strong></summary>
+
+| Group | Claude Code tools | Purpose |
+|-------|-------------------|---------|
+| `bash` | Bash | Shell commands |
+| `read` | Read | Read files |
+| `write` | Write | Create files |
+| `edit` | Edit | Modify files |
+| `glob` | Glob | Find files |
+| `grep` | Grep | Search content |
+| `agent` | Agent | Sub-agents |
+| `ask` | AskUserQuestion | Prompt user |
+| `web-search` | WebSearch | Web search |
+| `jira` | jira_get_issue, jira_search | Jira tickets |
+| `jira-fields` | jira_list_fields | Jira fields |
+| `confluence` | confluence_search, confluence_get_page | Read Confluence |
+| `confluence-write` | confluence_create_page, confluence_update_page | Write Confluence |
+| `browser` | Chrome ext + Preview + Playwright | Browser testing |
+
+Cursor and Copilot ignore `tool-groups` — their agents auto-discover tools.
+
+</details>
+
+<details>
+<summary><strong>Writing Style</strong></summary>
+
+- **Be concise.** One line if the AI already knows how
+- **Bullet points over paragraphs**
+- **Constraints at the top** — AI sees limits before starting
+- **Self-evaluation as a checklist** — numbered, one line each
+- **Format checks in self-evaluation** — list required output sections
+- **Completion status on every skill** — DONE/DONE_WITH_CONCERNS/BLOCKED/NEEDS_CONTEXT
+
+</details>
+
+---
+
+## SDT Playbook: Editing and Adding Knowledge
+
+The playbook lives in `core/references/playbook/` as focused files (~35-70 lines each). See `index.md` for the full map.
+
+<details>
+<summary><strong>Current Playbook Files</strong></summary>
+
+| File | Covers |
+|------|--------|
+| `terminology.md` | Normalized terms (AC, SDT, DoR, DoD) |
+| `risk-and-priority.md` | Severity/priority scales, effort allocation |
+| `metrics-and-coverage.md` | Code coverage, requirements coverage, defect + test health metrics |
+| `shift-left.md` | Challenge requirements early, verify alignment |
+| `test-distribution.md` | Test pyramid/diamond, deduplication |
+| `test-types.md` | Manual vs automation, UAT vs functional |
+| `execution-sequence.md` | Testing order through the sprint |
+| `defect-lifecycle.md` | Bug types, states, SLA, regression tests |
+| `maintenance-and-ci.md` | Flaky tests, time budget, CI gates |
+| `exploratory-heuristics.md` | 10 heuristic categories, technique checklists |
+
+</details>
+
+**Editing:** Stay within scope, keep under 70 lines, run `node build.js all`.
+
+**Adding new knowledge:**
+1. Fits an existing file? Add there. New topic? Create a file.
+2. Keep under 70 lines. Tables for data, bullets for rules. Write for the AI, not humans.
+3. Update `index.md` with file name, description, "Used by" skills.
+4. Wire into skills — add to Phase 1 methodology references. Only skills that need it.
+5. Verify context budget: `wc -l core/skills/*/SKILL.md`
+
+**What NOT to put in the playbook:** Tool-specific instructions, project config, skill workflow details, preamble duplicates.
+
+---
+
+## Reporting Skill Issues
+
+### Automated (recommended)
+
+Run `/qa-improve` or choose **(C) Tool feedback** at any review pause point. The AI:
+1. Asks what happened and what was expected
+2. Reads the skill + CONTRIBUTING.md
+3. Classifies root cause → generates proposal → applies fix → runs eval → delivers
+
+### Manual
+
+<details>
+<summary><strong>Improvement Proposal Template</strong></summary>
+
+```markdown
+# Skill Improvement Proposal: `<skill-name>`
+**Version:** current → proposed
+**Root cause:** [missing constraint | wrong phase order | instruction gap |
+  self-eval gap | template issue | over-reliance on context | scope drift]
+
+## Problem
+[What went wrong and why]
+
+## Root Cause
+[Which phase/instruction/gap — quote the specific text]
+
+## Proposed Changes
+| # | Location | Change | Description |
+|---|----------|--------|-------------|
+
+## Expected Outcome
+[How this fix prevents recurrence]
+
+## Budget Check
+Current / After / Within 300-line budget?
+```
+
+</details>
+
+---
+
+## Adding a New Locale
+
+The build system loads from `locales/<code>/` and falls back to `core/` for untranslated files.
+
+1. Create: `mkdir -p locales/<code>/skills/{qa,verify-fix,...}/` and `locales/<code>/references/playbook/`
+2. Translate: preambles, project-instructions, all skills, all playbook files
+3. Copy (don't translate): `feature-knowledge-base-spec.md`
+4. Build: `node build.js all --locale <code>`
+
+**Guidelines:** Translate prose. Keep English for technical terms, code blocks, file paths, status codes, `{{placeholders}}`.
+
+---
+
+## Adding a New Platform
+
+1. Create `platforms/<platform>.json` (name, reference_path, tool_groups, project_file)
+2. Create `platforms/setup-<platform>` (bash) and `.ps1` (PowerShell)
+3. Add to `ALL_PLATFORMS` in `build.js`
+4. Run `node build.js <platform>`
+
+---
+
+## KB Path Convention
+
+All skills use `features-kb/features/{EPIC-KEY}/` as the base path. Never `features-kb/epics/` (legacy).
+
+---
+
+## Checklist Before Submitting
+
+### Build
+- [ ] Edited in `core/`, not `dist/`
+- [ ] `node build.js all` passes
+- [ ] All 3 platforms build (11 skills each)
+- [ ] If locale exists: `node build.js all --locale <code>` passes
+
+### Quality
+- [ ] Skill body under 300 lines
+- [ ] Total context under 530 lines
+- [ ] Constraints at top, self-eval with format check, completion status at end
+- [ ] Eval fixtures exist with at least 3 scenarios (happy path, error, edge case)
+- [ ] `Do NOT use when:` in description
+
+### Testing
+- [ ] `node test.js` passes
+- [ ] `/qa-eval {skill}` passes all fixtures
+- [ ] Tested with Sonnet on a real task
+- [ ] AI follows all phases without skipping
+
+### Integration
+- [ ] Added to setup scripts (all 6) and project-instructions
+- [ ] Playbook index updated if methodology files changed
+- [ ] No `features-kb/epics/` paths

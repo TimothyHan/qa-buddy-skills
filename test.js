@@ -356,6 +356,8 @@ function testConfigAwareness() {
 
   const skills = getSkillDirs();
   const skipSkills = ['setup', 'start', 'improve', 'eval']; // These handle config differently
+  // e2e-pom/e2e-write read playwright/AUTOMATION.md — /e2e-setup owns their config
+  skipSkills.push('e2e-pom', 'e2e-write');
 
   for (const skill of skills) {
     if (skipSkills.includes(skill)) continue;
@@ -390,7 +392,12 @@ function testExcludeConditions() {
 function testEvalFixtures() {
   console.log('\n🧪 Eval Fixtures');
 
-  const VALID_OPS = ['eq', 'contains', 'not_contains', 'length_eq', 'length_gte', 'matches', 'exists'];
+  const VALID_OPS = [
+    // simulate-mode ops
+    'eq', 'contains', 'not_contains', 'length_eq', 'length_gte', 'matches', 'exists',
+    // execute-mode ops (eval SKILL.md §2E: cmd:/files:/file:/count: fields)
+    'exit_code', 'output_contains', 'output_matches', 'json_valid', 'lte',
+  ];
   const skills = getSkillDirs();
   let totalFixtures = 0;
 

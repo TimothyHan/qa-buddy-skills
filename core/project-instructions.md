@@ -17,7 +17,10 @@ provided via files, chat, or any project management tool.
 | Verify Fix | `/verify-fix` | Bug fixed | Re-test a bug fix, check regressions, update bug status |
 | Sprint Status | `/sprint-status` | Mid-sprint | Cross-feature dashboard: tested, blocked, coverage gaps |
 | Exploratory | `/exploratory` | Feature ready | Guided exploratory testing session with charter and findings |
-| Improve | `/improve` | After any skill | Analyze skill failure, propose and apply fix, create PR |
+| E2E Setup | `/e2e-setup` | Automation start | Probe the app, scaffold Playwright, record decisions in AUTOMATION.md |
+| E2E POM | `/e2e-pom` | Automation | Build/heal page objects by live discovery — locators proven, never guessed |
+| E2E Write | `/e2e-write` | Automation | Suites from test cases: API preconditions, intent-only specs, four gates |
+| Improve | `/improve` | After any skill | Fix skill failures; distill the learnings layer (dedupe, retire, promote) |
 | Eval | `/eval` | After /improve | Run eval fixtures against a skill to verify correctness |
 | Setup | `/setup` | First run | Configure context source, team mode, project preferences |
 | Start | `/start` | Epic created | Guided workflow: setup → test plan → reviews → test cases |
@@ -33,7 +36,11 @@ Invoke skills based on what the user says:
 - "verify fix", "retest", "is this fixed?", "check BUG-123" -> `/verify-fix`
 - "sprint status", "what's tested", "coverage check" -> `/sprint-status`
 - "exploratory test", "explore this feature", "charter for testing" -> `/exploratory`
+- "set up playwright", "e2e setup", "test automation setup" -> `/e2e-setup`
+- "build POM", "page objects", "map elements", "heal selectors" -> `/e2e-pom`
+- "write e2e tests", "automate test cases", "generate the test suite" -> `/e2e-write`
 - "this didn't work", "improve this skill", "fix the skill", "output was wrong" -> `/improve`
+- "distill learnings", "clean up learnings" -> `/improve` (distill mode)
 - "eval", "run evals", "test skill", "check fixtures", "regression test" -> `/eval`
 - "setup", "configure", "first time", "change settings" -> `/setup`
 - "start", "begin", "guided qa", "qa workflow", "new epic" -> `/start`

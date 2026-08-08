@@ -1,91 +1,93 @@
-# Security Policy
+# 보안 정책
 
-[English](SECURITY.md) · [한국어](SECURITY-ko.md)
+[한국어](SECURITY.md) · [English](SECURITY-en.md)
 
-## Reporting Vulnerabilities
+## 취약점 신고
 
-If you discover a security vulnerability, please report it privately:
+보안 취약점을 발견하면 비공개로 신고해 주세요:
 
-**Email:** timothy.seungmin.han@gmail.com
+**이메일:** timothy.seungmin.han@gmail.com
 
-Do NOT open a public GitHub issue for security vulnerabilities. We will respond within 48 hours and work with you to address the issue before any public disclosure.
+보안 취약점에 대해 공개 GitHub 이슈를 생성하지 마세요. 48시간 이내에 응답하며, 공개 전에 문제를 해결하기 위해 협력합니다.
 
-## Trust Model
+## 신뢰 모델
 
-QABuddy is a set of AI skill instructions (markdown files). When installed, these instructions tell the AI what to do — including running shell commands, reading/writing files, and interacting with external services (Jira, browsers).
+QABuddy는 AI 스킬 지시서(마크다운 파일)입니다. 설치하면 이 지시서가 AI에게 셸 명령 실행, 파일 읽기/쓰기, 외부 서비스(Jira, 브라우저) 연동 등 수행할 작업을 지시합니다.
 
-**Skills are code.** Treat them with the same scrutiny as any executable you install. Review what they instruct the AI to do before using them.
+**스킬은 코드와 같습니다.** 설치하기 전에 다른 실행 파일과 동일한 수준으로 검토하세요. AI에게 어떤 작업을 지시하는지 확인하세요.
 
-### What Skills Can Do
+### 스킬이 할 수 있는 것
 
-| Capability | Risk | Mitigation |
+| 기능 | 위험 | 대응 |
 |---|---|---|
-| Read files in the workspace | Could access `.env`, credentials, private keys | Skills are scoped to project files. Review any skill that reads outside the project. |
-| Write files | Could modify source code, configs, scripts | Self-evaluation phases verify output. SDT reviews before approving. |
-| Run shell commands | Could execute anything the user can | Claude Code restricts via `allowed-tools`. Cursor/Copilot have no such restriction — review skill constraints carefully. |
-| Query Jira / Confluence | Could read sensitive ticket data | Only accesses what the configured MCP token allows. |
-| Open browser pages | Could navigate to any URL | Browser tools are limited to testing the target app. |
-| Create git branches and PRs | Could push to remotes | Requires `gh` CLI auth. Only triggers in team mode with SDT approval. |
+| 워크스페이스 내 파일 읽기 | `.env`, 인증 정보, 개인키에 접근 가능 | 스킬은 프로젝트 파일로 범위가 제한됩니다. 프로젝트 외부를 읽는 스킬은 검토하세요. |
+| 파일 쓰기 | 소스 코드, 설정, 스크립트를 수정할 수 있음 | 자기 평가 단계에서 결과물을 검증합니다. SDT가 승인 전에 검토합니다. |
+| 셸 명령 실행 | 사용자 권한으로 모든 명령 실행 가능 | Claude Code는 `allowed-tools`로 제한합니다. Cursor/Copilot에는 이러한 제한이 없으므로 스킬의 제약 조건을 주의 깊게 검토하세요. |
+| Jira / Confluence 조회 | 민감한 티켓 데이터를 읽을 수 있음 | 설정된 MCP 토큰이 허용하는 범위만 접근합니다. |
+| 브라우저 페이지 열기 | 모든 URL로 이동 가능 | 브라우저 도구는 대상 앱 테스트로 제한됩니다. |
+| git 브랜치 및 PR 생성 | 리모트에 push 가능 | `gh` CLI 인증이 필요합니다. 팀 모드에서 SDT 승인 후에만 실행됩니다. |
 
-### What Skills Cannot Do
+### 스킬이 할 수 없는 것
 
-- Access files outside the workspace (no `~/.ssh/`, no `/etc/`)
-- Run commands without the AI platform's permission system
-- Send data to external servers (no outbound HTTP in skill instructions)
-- Modify the AI platform's settings or other installed skills
+- 워크스페이스 외부 파일 접근 (`~/.ssh/`, `/etc/` 등)
+- AI 플랫폼의 권한 시스템 없이 명령 실행
+- 외부 서버로 데이터 전송 (스킬 지시서에 아웃바운드 HTTP 없음)
+- AI 플랫폼의 설정이나 다른 설치된 스킬 수정
 
-## For Contributors
+## 기여자를 위한 안내
 
-### Reviewing PRs
+### PR 리뷰 시 확인 사항
 
-When reviewing PRs that modify skill files, check for:
+스킬 파일을 수정하는 PR을 리뷰할 때 다음을 확인하세요:
 
-1. **Command injection** — does any new bash command or instruction tell the AI to read sensitive files, access credentials, or run destructive operations?
-2. **Data exfiltration** — does the skill instruct the AI to send data to an external URL, email, or API?
-3. **Scope creep** — does the skill access files or tools beyond what it needs? Check `tool-groups` in frontmatter.
-4. **Constraint bypass** — does the change weaken or remove existing constraints (e.g., removing "SDT approves before filing")?
-5. **Eval fixture safety** — do new fixtures instruct the AI to do anything harmful during simulation?
+1. **명령 주입** — 새로운 bash 명령이 민감한 파일을 읽거나, 인증 정보에 접근하거나, 파괴적 작업을 수행하도록 지시하는지 확인
+2. **데이터 유출** — 스킬이 외부 URL, 이메일, API로 데이터를 전송하도록 지시하는지 확인
+3. **범위 초과** — 스킬이 필요 이상의 파일이나 도구에 접근하는지 확인. frontmatter의 `tool-groups`를 검토
+4. **제약 조건 우회** — 기존 제약 조건을 약화하거나 제거하는 변경인지 확인 (예: "SDT 승인 후 등록" 삭제)
+5. **eval fixture 안전성** — 새 fixture가 시뮬레이션 중 유해한 작업을 지시하는지 확인
 
-### Safe Patterns
+### 안전한 패턴
 
-Skills should follow these patterns:
+스킬은 다음 패턴을 따라야 합니다:
 
-- **Ask before acting** — destructive or external operations require SDT approval (option A/B/C at pause points)
-- **Minimal tool groups** — declare only the tools the skill actually uses
-- **No hardcoded paths** — use `{{REFERENCE_PATH}}` and `features-kb/` relative paths
-- **No secrets in output** — skills should never include API tokens, passwords, or credentials in reports or KB artifacts
+- **실행 전 확인** — 파괴적 또는 외부 작업은 SDT 승인 필요 (확인 단계에서 A/B/C 옵션)
+- **최소한의 tool-groups** — 스킬이 실제로 사용하는 도구만 선언
+- **하드코딩된 경로 없음** — `{{REFERENCE_PATH}}`와 `features-kb/` 상대 경로 사용
+- **결과물에 비밀 정보 없음** — 보고서나 KB 결과물에 API 토큰, 비밀번호, 인증 정보를 포함하지 않음
 
-## For Users
+## 사용자를 위한 안내
 
-### Before Installing
+### 설치 전 확인 사항
 
-1. **Read the skills** — each skill is a markdown file in `core/skills/`. Review what they instruct the AI to do.
-2. **Check tool-groups** — these declare what tools each skill can use. A skill that only needs `read` and `jira` shouldn't have `bash` and `browser`.
-3. **Review the setup script** — it creates symlinks and prints hook instructions. It does not modify your settings files automatically.
+1. **스킬을 읽어보세요** — 각 스킬은 `core/skills/`에 있는 마크다운 파일입니다. AI에게 어떤 작업을 지시하는지 확인하세요.
+2. **tool-groups를 확인하세요** — 각 스킬이 사용할 수 있는 도구를 선언합니다. `read`와 `jira`만 필요한 스킬에 `bash`와 `browser`가 있으면 안 됩니다.
+3. **설정 스크립트를 검토하세요** — 심볼릭 링크를 생성하고 hook 설정 안내를 출력합니다. 설정 파일을 자동으로 수정하지 않습니다.
 
-### Secrets to Protect
+### 보호해야 할 비밀 정보
 
-| Secret | Where it might appear | How to protect |
+| 비밀 정보 | 노출 가능 위치 | 보호 방법 |
 |---|---|---|
-| Jira API token | MCP config in settings files | Never commit settings files with tokens. Use environment variables. |
-| Screenshots with PII | `.qa-reports/screenshots/` | `.gitignore` excludes `.qa-reports/`. Don't manually commit. |
-| Internal URLs | Bug reports, QA reports, KB artifacts | `.gitignore` excludes `features-kb/`. If using team mode, review KB content before committing. |
-| `.qabuddy.json` | Project root | Contains project key — low sensitivity. `.gitignore` excludes it. |
+| Jira API 토큰 | 설정 파일의 MCP 설정 | 토큰이 포함된 설정 파일을 커밋하지 마세요. 환경 변수를 사용하세요. |
+| PII가 포함된 스크린샷 | `.qa-reports/screenshots/` | `.gitignore`가 `.qa-reports/`를 제외합니다. 수동으로 커밋하지 마세요. |
+| 내부 URL | 버그 보고서, QA 보고서, KB 결과물 | `.gitignore`가 `features-kb/`를 제외합니다. 팀 모드에서는 커밋 전에 KB 내용을 검토하세요. |
+| `.qabuddy.json` | 프로젝트 루트 | 프로젝트 키만 포함 — 민감도 낮음. `.gitignore`가 제외합니다. |
 
-### SessionStart Hooks
+### SessionStart Hook
 
-The setup script suggests adding a `SessionStart` hook that runs `cat .qabuddy.json`. This is safe — it reads a config file you control. If you modify the hook command, you are responsible for what it executes.
+설정 스크립트는 `cat .qabuddy.json`을 실행하는 `SessionStart` hook을 제안합니다. 이것은 안전합니다 — 사용자가 관리하는 설정 파일을 읽습니다. hook 명령을 수정하면 실행되는 내용에 대한 책임은 사용자에게 있습니다.
 
-### Upstream Contributions
+### 업스트림 기여
 
-When `contributeUpstream: true` is set, `/improve` auto-creates PRs to the upstream QABuddy repo. These PRs:
-- Only contain `core/` changes (not `.qabuddy.json`, `features-kb/`, or team-specific files)
-- Are reviewed by maintainers before merging
-- Require `gh` CLI authentication (your GitHub account)
+`contributeUpstream: true`로 설정하면 `/improve`가 업스트림 QABuddy 저장소에 자동으로 PR을 생성합니다. 이 PR은:
+- `core/` 변경 사항만 포함합니다 (`.qabuddy.json`, `features-kb/`, 팀별 파일 제외)
+- 관리자가 머지 전에 리뷰합니다
+- `gh` CLI 인증이 필요합니다 (사용자의 GitHub 계정)
 
-## Supported Versions
+## 지원 버전
 
-| Version | Supported |
-|---------|-----------|
-| 0.3.x+ | Yes |
-| < 0.3.0 | No |
+| 버전 | 지원 여부 |
+|------|----------|
+| 0.3.x+ | 지원 |
+| < 0.3.0 | 미지원 |
+
+> **참고:** 법적 효력이 있는 버전은 영문 원본입니다. 본 한국어 번역은 이해를 돕기 위한 참고용입니다.

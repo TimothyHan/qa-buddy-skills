@@ -1,0 +1,192 @@
+{
+  "skill": "e2e-pom",
+  "version": "0.1.1",
+  "note": "RED SUITE — written before the skill exists (eval-first). Execute fixtures run against core/skills/eval/tests/fixture-app/ with its test-cases.md as feature context. Ground truth: ANSWER-KEY.md (never shown to the skill). fx-002 reuses fx-001's workspace.",
+  "fixtures": [
+    {
+      "id": "fx-001",
+      "mode": "execute",
+      "description": "Build mode: demand-driven inventory, proven locators, exact gap report, green verification spec",
+      "env": {
+        "variant": "v1",
+        "port": 4173
+      },
+      "input": {
+        "task": "Build the POM for TC-01..TC-06 in core/skills/eval/tests/fixture-app/test-cases.md against http://localhost:4173. Playwright scaffold already exists in the workspace (run /e2e-setup fx-001 first if absent). Black-box mode."
+      },
+      "user_responses": {
+        "confirm-highlights": "confirm all highlighted elements as proposed",
+        "ambiguous-element": "accept the row-scoped option"
+      },
+      "assertions": [
+        {
+          "field": "cmd:npx playwright test pom-verification --reporter=line",
+          "op": "exit_code",
+          "value": 0
+        },
+        {
+          "field": "files:**/inventory/*.json",
+          "op": "exists"
+        },
+        {
+          "field": "file:playwright/pom/inventory/projects.json",
+          "op": "json_valid"
+        },
+        {
+          "field": "files:**/inventory/*.json",
+          "op": "not_contains",
+          "value": "filter"
+        },
+        {
+          "field": "files:**/*.page.ts",
+          "op": "contains",
+          "value": "getByTestId"
+        },
+        {
+          "field": "files:**/*.page.ts",
+          "op": "not_contains",
+          "value": "xpath"
+        },
+        {
+          "field": "output",
+          "op": "matches",
+          "value": "gap|testability"
+        },
+        {
+          "field": "output",
+          "op": "contains",
+          "value": "search"
+        },
+        {
+          "field": "output",
+          "op": "matches",
+          "value": "empty state|No projects yet"
+        },
+        {
+          "field": "output",
+          "op": "contains",
+          "value": "toast"
+        },
+        {
+          "field": "output",
+          "op": "matches",
+          "value": "highlight|confirm"
+        }
+      ],
+      "tags": [
+        "build",
+        "inventory",
+        "gap-report",
+        "verification-gate",
+        "over-scraping"
+      ]
+    },
+    {
+      "id": "fx-002",
+      "mode": "execute",
+      "description": "Heal mode on v2: auto-heals the two renames, flags the removed element, touches nothing else",
+      "env": {
+        "variant": "v2",
+        "port": 4173
+      },
+      "input": {
+        "task": "The verification spec now fails against http://localhost:4173. Run heal mode using the fx-001 workspace (its POM, inventory, and verification spec built against v1)."
+      },
+      "user_responses": {},
+      "assertions": [
+        {
+          "field": "output",
+          "op": "contains",
+          "value": "project-list-row"
+        },
+        {
+          "field": "output",
+          "op": "contains",
+          "value": "project-remove-button"
+        },
+        {
+          "field": "output",
+          "op": "matches",
+          "value": "removed|no longer|gone"
+        },
+        {
+          "field": "output",
+          "op": "contains",
+          "value": "TC-05"
+        },
+        {
+          "field": "files:**/inventory/*.json",
+          "op": "contains",
+          "value": "project-list-row"
+        },
+        {
+          "field": "files:**/inventory/*.json",
+          "op": "contains",
+          "value": "new-project-button"
+        },
+        {
+          "field": "files:**/inventory/*.json",
+          "op": "contains",
+          "value": "login-email"
+        },
+        {
+          "field": "cmd:npx playwright test pom-verification --reporter=line",
+          "op": "exit_code",
+          "value": 0
+        }
+      ],
+      "tags": [
+        "heal",
+        "precision",
+        "flag-not-fix"
+      ]
+    },
+    {
+      "id": "fx-003",
+      "mode": "simulate",
+      "description": "Refuses to scrape beyond the test cases' element demand",
+      "input": {
+        "scenario": "User says: 'just map every element on the Projects page while you're there, might need them later.'"
+      },
+      "assertions": [
+        {
+          "field": "output",
+          "op": "matches",
+          "value": "test case|scope|demand"
+        },
+        {
+          "field": "output",
+          "op": "not_contains",
+          "value": "mapped every element"
+        }
+      ],
+      "tags": [
+        "over-scraping",
+        "scope"
+      ]
+    },
+    {
+      "id": "fx-004",
+      "mode": "simulate",
+      "description": "Never writes a locator into the POM without live proof",
+      "input": {
+        "scenario": "The app is temporarily unreachable mid-discovery. Three elements remain unproven."
+      },
+      "assertions": [
+        {
+          "field": "output",
+          "op": "matches",
+          "value": "unproven|not verified|blocked|BLOCKED"
+        },
+        {
+          "field": "output",
+          "op": "not_contains",
+          "value": "added the remaining locators"
+        }
+      ],
+      "tags": [
+        "proof-gate"
+      ]
+    }
+  ]
+}

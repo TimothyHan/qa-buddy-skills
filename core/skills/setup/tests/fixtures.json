@@ -1,6 +1,6 @@
 {
   "skill": "setup",
-  "version": "0.3.0",
+  "version": "0.4.0",
   "fixtures": [
     {
       "id": "fx-001",
@@ -11,14 +11,40 @@
         "jira_project": "PROJ"
       },
       "assertions": [
-        { "field": "file:.qabuddy.json", "op": "exists" },
-        { "field": "file:.qabuddy.json", "op": "contains", "value": "contextSource" },
-        { "field": "file:.qabuddy.json", "op": "contains", "value": "jira" },
-        { "field": "file:.qabuddy.json", "op": "contains", "value": "PROJ" },
-        { "field": "output", "op": "contains", "value": "DONE" },
-        { "field": "output", "op": "contains", "value": "/qa-start" }
+        {
+          "field": "file:.qabuddy.json",
+          "op": "exists"
+        },
+        {
+          "field": "file:.qabuddy.json",
+          "op": "contains",
+          "value": "contextSource"
+        },
+        {
+          "field": "file:.qabuddy.json",
+          "op": "contains",
+          "value": "jira"
+        },
+        {
+          "field": "file:.qabuddy.json",
+          "op": "contains",
+          "value": "PROJ"
+        },
+        {
+          "field": "output",
+          "op": "contains",
+          "value": "DONE"
+        },
+        {
+          "field": "output",
+          "op": "contains",
+          "value": "/qa-start"
+        }
       ],
-      "tags": ["happy-path", "jira"]
+      "tags": [
+        "happy-path",
+        "jira"
+      ]
     },
     {
       "id": "fx-002",
@@ -28,11 +54,25 @@
         "team_mode": "solo"
       },
       "assertions": [
-        { "field": "file:.qabuddy.json", "op": "exists" },
-        { "field": "file:.qabuddy.json", "op": "contains", "value": "spec" },
-        { "field": "output", "op": "contains", "value": "slug" }
+        {
+          "field": "file:.qabuddy.json",
+          "op": "exists"
+        },
+        {
+          "field": "file:.qabuddy.json",
+          "op": "contains",
+          "value": "spec"
+        },
+        {
+          "field": "output",
+          "op": "contains",
+          "value": "slug"
+        }
       ],
-      "tags": ["happy-path", "spec"]
+      "tags": [
+        "happy-path",
+        "spec"
+      ]
     },
     {
       "id": "fx-003",
@@ -42,10 +82,20 @@
         "action": "reconfigure"
       },
       "assertions": [
-        { "field": "output", "op": "contains", "value": "current" },
-        { "field": "output", "op": "matches", "value": "Reconfigure|reconfigure|Keep|keep" }
+        {
+          "field": "output",
+          "op": "contains",
+          "value": "current"
+        },
+        {
+          "field": "output",
+          "op": "matches",
+          "value": "Reconfigure|reconfigure|Keep|keep"
+        }
       ],
-      "tags": ["reconfigure"]
+      "tags": [
+        "reconfigure"
+      ]
     },
     {
       "id": "fx-004",
@@ -55,10 +105,54 @@
         "team_mode": "team"
       },
       "assertions": [
-        { "field": "output", "op": "matches", "value": "gh|GitHub CLI" },
-        { "field": "file:.qabuddy.json", "op": "contains", "value": "team" }
+        {
+          "field": "output",
+          "op": "matches",
+          "value": "gh|GitHub CLI"
+        },
+        {
+          "field": "file:.qabuddy.json",
+          "op": "contains",
+          "value": "team"
+        }
       ],
-      "tags": ["team-mode"]
+      "tags": [
+        "team-mode"
+      ]
+    },
+    {
+      "id": "fx-005",
+      "description": "SELF-IMPROVE init: setup writes learningsPath config and initializes the learnings file skeleton",
+      "input": {
+        "context_source": "jira",
+        "team_mode": "solo",
+        "jira_project": "PROJ"
+      },
+      "assertions": [
+        {
+          "field": "file:.qabuddy.json",
+          "op": "contains",
+          "value": "learningsPath"
+        },
+        {
+          "field": "file:features-kb/LEARNINGS.md",
+          "op": "exists"
+        },
+        {
+          "field": "file:features-kb/LEARNINGS.md",
+          "op": "contains",
+          "value": "LRN-"
+        },
+        {
+          "field": "file:features-kb/LEARNINGS.md",
+          "op": "matches",
+          "value": "active|Status"
+        }
+      ],
+      "tags": [
+        "self-improve",
+        "init"
+      ]
     }
   ]
 }

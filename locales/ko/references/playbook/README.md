@@ -9,4 +9,4 @@
 3. AI를 위해 작성하세요 — "X를 고려해 보세요"가 아니라 "X를 수행하세요"
 4. 편집 후 `node build.js all`을 실행하세요 — 참조 파일이 모든 플랫폼으로 복사됩니다
 
-자세한 내용은 [CONTRIBUTING-ko.md](../../../../CONTRIBUTING-ko.md)를 참고하세요.
+자세한 내용은 [CONTRIBUTING.md](../../../../CONTRIBUTING.md)를 참고하세요.

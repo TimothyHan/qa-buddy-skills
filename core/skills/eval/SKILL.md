@@ -1,35 +1,49 @@
 ---
 name: eval
-version: 0.3.0
+version: 0.4.0
 description: |
   Run eval fixtures against a skill to verify it produces correct output.
-  Reads the skill's SKILL.md and tests/fixtures.json, simulates each scenario,
-  and checks assertions. Use after /improve to verify fixes didn't break anything.
+  Two modes per fixture: simulate (read SKILL.md, simulate the scenario, check
+  assertions) and execute (run the skill's generated artifacts against the
+  local fixture app and grade via exit codes and file checks). Use after
+  /improve to verify fixes didn't break anything.
   Use when: "eval", "run evals", "test skill", "check fixtures", "regression test".
   Do NOT use when: running actual QA on an app (use /qa), improving a skill (use /improve), checking sprint status.
 tool-groups:
   - bash
   - read
+  - write
   - glob
   - grep
   - ask
+  - browser
 preamble-tier: 1
 ---
 
 # /eval: Skill Eval Testing
 
 You run eval fixtures against a skill to verify it produces correct output.
-For each fixture, you read the skill's instructions, simulate the scenario,
-and check every assertion. This is a regression test — use it after `/improve`
-to confirm fixes didn't break existing behavior.
+Each fixture declares its mode:
+
+- **`simulate`** (default) — read the skill's instructions, simulate the
+  scenario, check assertions against the hypothetical output. For skills whose
+  output is prose (reports, verdicts, plans).
+- **`execute`** — actually run the skill against the local fixture app, then
+  grade the artifacts it produced by executing them (`npx playwright test`,
+  greps, file checks). For skills whose output is code (`/e2e-setup`,
+  `/e2e-pom`, `/e2e-write`). A generated artifact passes only by running, never
+  by looking right.
 
 ## Constraints
 
-1. **One skill at a time.** Don't run all 11 skills in one session — context window.
-2. **Follow the skill's instructions exactly.** When simulating, pretend you are that skill. Apply its constraints, phases, and methodology references.
+1. **One skill at a time.** Don't run all skills in one session — context window.
+2. **Follow the skill's instructions exactly.** When simulating or executing, you are that skill. Apply its constraints, phases, and methodology references.
 3. **Grade honestly.** If an assertion fails, report it — don't rationalize a pass.
 4. **Assertions are literal.** `contains "READY"` means the string "READY" appears in the output. Don't interpret loosely.
-5. **Don't execute in the real environment.** You simulate — you don't actually open browsers, query Jira, or write files.
+5. **Simulate mode never touches the real environment** — no browsers, no Jira, no file writes.
+6. **Execute mode touches ONLY the local fixture app and a scratch workspace.** Never external systems: no Jira, no real staging URLs, no network beyond `localhost`. All generated artifacts go in a throwaway workspace directory, never the QABuddy repo.
+7. **Never open `ANSWER-KEY.md` while acting as the skill under eval.** The answer key is for grading only. Discovery must happen against the running app. Reading the key mid-simulation invalidates the fixture — report it as a harness error, not a pass.
+8. **Scripted user responses replace the user.** Execute fixtures include `user_responses` for the skill's interactive gates. Answer exactly as scripted. If the skill never asks at a gate where a response was scripted, that's a finding — several fixtures assert the skill *does* pause.
 
 ---
 
@@ -49,7 +63,8 @@ Report: "{N} fixtures loaded for {skill} v{version}."
 
 ## Phase 2: Run Fixtures
 
-For each fixture in order:
+For each fixture in order, branch on `mode` (`simulate` when absent → 2a–2d;
+`execute` → 2E).
 
 ### 2a. Setup
 - Read the fixture's `input` (scenario description, preconditions)
@@ -75,7 +90,63 @@ For each assertion, apply the operator:
 
 Record: PASS or FAIL with evidence (quote the relevant output).
 
-### 2d. Report per fixture
+### 2E. Execute-mode fixtures
+
+Execute fixtures carry three extra blocks:
+
+```json
+{
+  "id": "fx-101",
+  "mode": "execute",
+  "description": "Generated suite goes red on v3 (negative control)",
+  "env": { "variant": "v3", "port": 4173 },
+  "input": { "task": "…what to run the skill on…" },
+  "user_responses": { "confirm-highlights": "confirm all", "auth-strategy": "accept recommendation" },
+  "assertions": [ … ]
+}
+```
+
+**Runner protocol:**
+
+1. **Workspace.** Create (or reuse for the session) a scratch directory outside
+   the QABuddy repo. All artifacts the skill generates live there.
+2. **Fixture app up.** From `core/skills/eval/tests/fixture-app/`:
+   `APP_VARIANT={env.variant} PORT={env.port} node server.js` in the background.
+   `POST /api/reset` before the fixture (and between fixtures sharing a server).
+3. **Run the skill for real.** Follow the target skill's SKILL.md phase by
+   phase in the workspace, against `http://localhost:{port}`. At interactive
+   gates, answer from `user_responses` — nothing else. Real browsing, real
+   file writes (workspace only), real `npx playwright test`.
+4. **Grade.** Apply the assertions (operators below). Quote command output as
+   evidence.
+5. **Teardown.** Kill the fixture app. Keep the workspace until the summary is
+   written (evidence), then it's disposable.
+6. **Workspace state across fixtures.** A fixture that mutates shared workspace
+   artifacts (e.g., heal mode rewriting the POM) must not leak that state into
+   fixtures expecting the original build. Snapshot before mutating (git commit
+   in the workspace, or a copy) and restore afterward. Preserve the mutated
+   snapshot as evidence.
+
+**Execute-mode assertion operators** (in addition to the simulate table; the
+`file:` prefix works in both modes):
+
+| Field prefix / operator | How to check |
+|----------|-------------|
+| `cmd:{command}` + op `exit_code` | Run `{command}` in the workspace; exit code must equal value |
+| `cmd:{command}` + op `output_contains` / `output_matches` | Run it; check stdout+stderr |
+| `files:{glob}` + op `not_contains` | Grep every file matching the glob; FAIL if the pattern appears anywhere |
+| `files:{glob}` + op `contains` | Pattern must appear in at least one matching file |
+| `file:{path}` + op `exists` / `json_valid` | File exists / parses as JSON |
+| `count:{files-glob or json-path}` + op `eq` / `lte` | Count matches / array length equals or is at most value |
+
+Playwright runs use the workspace's own config; pass `--reporter=line` and
+capture the exit code — that IS the grade for pass/fail assertions. For flake
+gates use `--repeat-each=N` as specified in the fixture's command. If a
+command needed by an assertion can't run at all (missing dependency, config
+crash), every assertion depending on it FAILS with that evidence — a fixture
+is never skipped silently.
+
+### 2d. Report per fixture (both modes)
 
 ```
 Fixture: {id} — {description}

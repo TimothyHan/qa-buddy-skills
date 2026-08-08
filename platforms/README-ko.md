@@ -34,4 +34,4 @@ Claude Code는 `tool_groups`를 사용하여 스킬 frontmatter에 `allowed-tool
 
 ## 새 플랫폼 추가
 
-자세한 내용은 [CONTRIBUTING-ko.md](../CONTRIBUTING-ko.md)를 참고하세요.
+자세한 내용은 [CONTRIBUTING.md](../CONTRIBUTING.md)를 참고하세요.

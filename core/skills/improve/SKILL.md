@@ -1,13 +1,15 @@
 ---
 name: improve
-version: 0.3.0
+version: 0.4.0
 description: |
   Meta-skill that improves other skills based on real usage failures. When an SDT
   reports a skill produced incorrect or unexpected output, this skill analyzes the
   root cause, generates a structured improvement proposal, applies the fix following
   CONTRIBUTING.md guidelines, and offers to create a PR or apply locally.
+  Also maintains the project learnings layer (distill mode): dedupe, retire
+  falsified entries, promote proven learnings into references/upstream.
   Use when: "improve", "this didn't work", "fix this skill", "the output was wrong",
-  "skill improvement", "qa-improve".
+  "skill improvement", "qa-improve", "distill learnings", "clean up learnings".
   Do NOT use when: giving content feedback on output (use option B at pause point), asking about QA methodology, running normal QA workflow.
 tool-groups:
   - bash
@@ -22,9 +24,14 @@ preamble-tier: 1
 
 # /improve: Skill Self-Improvement
 
-You are a meta-skill that improves other QABuddy skills based on real usage failures.
-When an SDT reports that a skill produced incorrect, misleading, or incomplete output,
-you analyze the root cause, propose targeted fixes, apply them, and verify.
+You are a meta-skill with two modes:
+
+- **Fix mode** (default, Phases 1–6): an SDT reports a skill produced incorrect,
+  misleading, or incomplete output — analyze root cause, propose targeted fixes,
+  apply, verify.
+- **Distill mode** ("distill learnings", a skill flagged a falsified entry, or the
+  learnings file exceeds ~30 active entries): maintain the project learnings layer —
+  see the Distill Mode section at the end.
 
 ## Constraints
 
@@ -198,6 +205,44 @@ If `.qabuddy.json` has `contributeUpstream: true`, automatically contribute afte
 Skip upstream contribution if:
 - Option (C) was chosen (nothing committed yet)
 - The change is team-specific (modifies team-practices/, .qabuddy.json, or project-specific content)
+
+---
+
+## Distill Mode: Learnings Layer Maintenance
+
+Read the protocol first: `{{REFERENCE_PATH}}/self-improve.md`. Then read the
+learnings file (`learningsPath` from `.qabuddy.json`, default `features-kb/LEARNINGS.md`).
+
+Sweep every `active` entry and classify:
+
+| Finding | Action proposed |
+|---|---|
+| **Duplicate** — two entries state the same fact | Merge evidence into the older ID; mark the newer `retired` with reason "duplicate of LRN-…" |
+| **Falsified** — newer evidence (another entry, a skill's drift flag, or live observation) contradicts it | Mark `retired` with the contradicting evidence as reason |
+| **Promotion candidate** — evidence from 3+ separate dated runs AND the rule is generalizable beyond this project | Propose adding it to the matching reference (e.g., `playwright-patterns.md`); mark `promoted` with a pointer to where it landed |
+| **Healthy** | Leave untouched |
+
+Rules:
+
+1. **Status changes only — never delete an entry.** IDs and history are permanent;
+   `retired` entries keep a one-line reason.
+2. **Approval gate.** Present the full sweep plan (per-entry: finding → proposed
+   action → evidence) and ask "Apply?" before editing the file. Same as Fix mode
+   Phase 3 — no silent edits.
+3. **Promotion is a reference edit**, so it follows the Fix-mode machinery: apply
+   to `core/references/`, note the Korean twin needs syncing, run
+   `node build.js all` so installed dists pick up the change (learnings need no
+   rebuild — they're read from the project repo at runtime; references do), and
+   if `contributeUpstream: true`, offer the upstream PR path from Phase 6. Only
+   promote what holds beyond this project — project-specific facts stay learnings
+   forever, no matter how well-proven.
+4. **Deltas-only check while sweeping:** an entry that merely restates reference
+   content is a copy, not a learning — propose retiring it.
+
+Report: entries swept / merged / retired / promoted / left active, plus the
+resulting active count.
+
+---
 
 **Status:** DONE | DONE_WITH_CONCERNS | BLOCKED | NEEDS_CONTEXT
 **Summary:** {what was changed and why}
