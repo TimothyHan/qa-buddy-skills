@@ -560,10 +560,57 @@ testKoreanCompleteness();
 testPlaybookBudget();
 testPreambleTiers();
 testConfigAwareness();
+function testDistBom() {
+  console.log('\n🔤 dist BOM (Gap G3)');
+
+  // PS 5.1 reads BOM-less UTF-8 as ANSI: a mangled em-dash ends in a smart
+  // quote PowerShell treats as a string delimiter — code silently vanishes
+  // (caught live in v0.2.2: the qa-references block evaporated).
+  for (const platform of PLATFORMS) {
+    const ps1 = path.join(resolvePlatformDir(platform), 'setup.ps1');
+    if (!fs.existsSync(ps1)) continue;
+    const head = fs.readFileSync(ps1).subarray(0, 3);
+    check(
+      head[0] === 0xEF && head[1] === 0xBB && head[2] === 0xBF,
+      `dist/${platform}/setup.ps1 starts with UTF-8 BOM`,
+      'BOM missing — PS 5.1 will misparse string boundaries'
+    );
+  }
+}
+
+function testKbPathHygiene() {
+  console.log('\n🧹 KB Path Hygiene');
+
+  // Regression guard for the qa- prefix sweep (caught live 2026-08-08):
+  // command-reference replacements must never leak into KB paths like
+  // {EPIC-KEY}/test-cases/. Only qa-reports/ legitimately carries the prefix.
+  const offenders = [];
+  const walk = (dir) => {
+    for (const entry of fs.readdirSync(dir, { withFileTypes: true })) {
+      const full = path.join(dir, entry.name);
+      if (entry.isDirectory()) walk(full);
+      else if (entry.name.endsWith('.md')) {
+        const content = fs.readFileSync(full, 'utf8');
+        const hits = content.match(/\}\/qa-(?!reports)[a-z-]+/g);
+        if (hits) offenders.push(`${full}: ${[...new Set(hits)].join(', ')}`);
+      }
+    }
+  };
+  walk(path.join(__dirname, 'core'));
+  walk(path.join(__dirname, 'locales'));
+  check(
+    offenders.length === 0,
+    'no qa- prefix leaked into KB paths (}/qa-* except qa-reports)',
+    offenders.join(' | ')
+  );
+}
+
 testExcludeConditions();
 testEvalFixtures();
 testCrlfTolerance();
 testInstallerSkillSync();
+testDistBom();
+testKbPathHygiene();
 
 console.log('\n================');
 console.log(`Results: ${passed} passed, ${failed} failed`);
