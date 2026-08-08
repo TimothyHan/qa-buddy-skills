@@ -1,4 +1,4 @@
-#Requires -Version 5.1
+﻿#Requires -Version 5.1
 <#
 .SYNOPSIS
     QABuddy — Cursor Setup (Windows)
@@ -42,16 +42,27 @@ $SkillsDir = if ($Project) {
 
 $Skills = Get-ChildItem $SdtSkills -Directory | Select-Object -ExpandProperty Name
 
+# PS 5.1: Remove-Item on a directory symlink throws NullReferenceException,
+# and -Recurse can descend into the link target. Delete links via .Delete().
+function Remove-Link([string]$LinkPath) {
+    $item = Get-Item $LinkPath -Force
+    if ($item.Attributes -band [IO.FileAttributes]::ReparsePoint) {
+        $item.Delete()
+    } else {
+        Remove-Item $LinkPath -Force -Recurse
+    }
+}
+
 function New-SymlinkOrCopy {
     param([string]$Target, [string]$Source, [bool]$UseProject)
 
     if ($UseProject) {
-        if (Test-Path $Target) { Remove-Item $Target -Force -Recurse }
+        if (Test-Path $Target) { Remove-Link $Target }
         Copy-Item -Path $Source -Destination $Target -Recurse -Force
         return 'copied'
     }
 
-    if (Test-Path $Target) { Remove-Item $Target -Force -Recurse }
+    if (Test-Path $Target) { Remove-Link $Target }
     try {
         New-Item -ItemType SymbolicLink -Path $Target -Target $Source -Force | Out-Null
         return 'symlink'
@@ -76,7 +87,7 @@ if ($Uninstall) {
         foreach ($name in @("qa-$skill", $skill)) {
             $target = Join-Path $SkillsDir $name
             if (Test-Path $target) {
-                Remove-Item $target -Force -Recurse
+                Remove-Link $target
                 Write-Host "  REMOVED  $name"
                 $removed++
             }
@@ -84,7 +95,7 @@ if ($Uninstall) {
     }
     $refPath = Join-Path $SkillsDir 'qa-references'
     if (Test-Path $refPath) {
-        Remove-Item $refPath -Force -Recurse
+        Remove-Link $refPath
         Write-Host '  REMOVED  qa-references'
         $removed++
     }
@@ -177,14 +188,20 @@ foreach ($skill in $Skills) {
 
 # Install references
 $refTarget = Join-Path $SkillsDir 'qa-references'
-$result = New-SymlinkOrCopy -Target $refTarget -Source $SdtRefs -UseProject $Project
-if ($result -ne 'failed') {
-    Write-Host "  OK      qa-references ($result)"
-    $installed++
+if (Test-Path -LiteralPath $SdtRefs) {
+    $result = New-SymlinkOrCopy -Target $refTarget -Source $SdtRefs -UseProject $Project
+    if ($result -ne 'failed') {
+        Write-Host "  OK      qa-references ($result)"
+        $installed++
+    } else {
+        Write-Host '  FAIL    qa-references — enable Developer Mode or run as admin' -ForegroundColor Red
+    }
+} else {
+    Write-Host "  SKIP    qa-references (not found: $SdtRefs)" -ForegroundColor Yellow
 }
 
 Write-Host ''
-Write-Host "Installed: $installed items ($($installed - 1) skills + references)"
+Write-Host "Installed: $installed items"
 if ($skipped -gt 0) { Write-Host "Skipped: $skipped" -ForegroundColor Yellow }
 
 # ─── MCP Checks ─────────────────────────────────────────────────────────────

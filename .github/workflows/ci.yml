@@ -41,12 +41,15 @@ jobs:
         shell: powershell
         run: |
           & dist/claude/setup.ps1
-          & dist/claude/setup.ps1 -Status
+          $status = & dist/claude/setup.ps1 -Status | Out-String
+          Write-Host $status
+          if ($status -match 'MISSING|FAIL|SKIP') { throw 'Status/install reported MISSING/FAIL/SKIP entries' }
           & dist/claude/setup.ps1 -Uninstall
 
       - name: Install via setup (bash)
         if: runner.os == 'Linux'
         run: |
           dist/claude/setup
-          dist/claude/setup --status
+          dist/claude/setup --status | tee /tmp/qabuddy-status.txt
+          ! grep -Eq 'MISSING|FAIL' /tmp/qabuddy-status.txt
           dist/claude/setup --uninstall
