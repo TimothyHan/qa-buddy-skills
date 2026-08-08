@@ -48,3 +48,13 @@ QABuddy가 실제 실행에서 포착한 프로젝트 고유 규칙. 모든 스�
 - **Overrides:** 없음
 - **Evidence:** 2026-08-08 디코이 검증을 스크래치 HOME으로 수행 (이슈 #6과
   동일 사고를 개발 머신에서 재현할 뻔한 구조).
+
+## LRN-20260808-05: 메타 AC(테스트 인프라 자체)는 자기 검증으로 매핑한다
+- **Status:** active
+- **Scope:** test-plan, test-cases
+- **Statement:** 회귀 안전망 자체를 기술하는 AC(예: "test.js가 X를 검증한다")는
+  별도 TC를 만들지 않고, 매핑에 `META — <해당 인프라>가 매 실행마다 스스로 수행`
+  행으로 기록한다. 테스트를 테스트하는 무한 회귀 방지.
+- **Overrides:** test-cases SKILL의 "모든 AC에 최소 1개 TC" (확장: 메타 AC 예외)
+- **Evidence:** 2026-08-08 /qa-test-plan 검증 실행 — AC5.1/5.2가 매핑에 없는데
+  unmapped_requirements도 비어 있는 불일치 발견, 이 관례로 해소.

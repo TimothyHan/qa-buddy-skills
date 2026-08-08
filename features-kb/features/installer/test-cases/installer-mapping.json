@@ -125,6 +125,20 @@
         "TC-INST-008"
       ],
       "coverage": "full"
+    },
+    {
+      "requirement": "AC5.1 test.js 구조 검증 (메타)",
+      "tests": [
+        "META — test.js가 CI 매 실행마다 스스로 수행"
+      ],
+      "coverage": "full"
+    },
+    {
+      "requirement": "AC5.2 CI 디코이 전 사이클 (메타)",
+      "tests": [
+        "META — ci.yml 디코이 스텝이 매 push마다 스스로 수행"
+      ],
+      "coverage": "full"
     }
   ],
   "unmapped_requirements": [],

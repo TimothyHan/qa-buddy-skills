@@ -98,5 +98,7 @@
 ## Traceability 요약
 
 전체 매핑: [installer-mapping.json](installer-mapping.json)
-- AC 15개 중 full 커버 11, partial 3 (G1·G3 갭 기록), 미커버 0
-- P0 8건 전부 Automated (CI/test.js 인용 있음) — 과거 결함 8건 모두 회귀 TC 보유
+- AC 20개: full 15 (메타 AC5.1/5.2 포함), partial 4 (G3·미검증 등급 갭 기록), 미커버 0
+  (AC4.1/4.2는 매핑 1행으로 묶임; AC5.x는 테스트 인프라 자체라 CI 실행으로 자기 검증)
+- TC 우선순위: P0 7 / P1 6 / P2 2 (P0 47% — ≤50% 규칙 준수)
+- P0 7건 전부 Automated (CI/test.js 인용 있음); 과거 결함 8건 모두 회귀 TC 보유
