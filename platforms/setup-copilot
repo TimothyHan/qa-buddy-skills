@@ -17,6 +17,29 @@ for _skill_dir in "$SDT_SKILLS"/*/; do
   [ -d "$_skill_dir" ] && SKILLS+=("$(basename "$_skill_dir")")
 done
 
+# --adopt: stamp ownership markers onto pre-v0.2.3 QABuddy copies so the
+# normal flow can manage them. Evidence required: qa- prefixed real directory,
+# no marker, SKILL.md mentioning QABuddy (references: playbook/ present).
+adopt_legacy() {
+  local dir="$1"
+  local adopted=0
+  for skill in "${SKILLS[@]}"; do
+    d="$dir/qa-$skill"
+    if [ -d "$d" ] && [ ! -L "$d" ] && [ ! -f "$d/.qabuddy-owned" ] && grep -q "QABuddy" "$d/SKILL.md" 2>/dev/null; then
+      echo "adopted pre-v0.2.3 copy" > "$d/.qabuddy-owned"
+      echo "  ADOPTED  qa-$skill (legacy copy — marker stamped)"
+      adopted=$((adopted + 1))
+    fi
+  done
+  rd="$dir/qa-references"
+  if [ -d "$rd" ] && [ ! -L "$rd" ] && [ ! -f "$rd/.qabuddy-owned" ] && [ -d "$rd/playbook" ]; then
+    echo "adopted pre-v0.2.3 copy" > "$rd/.qabuddy-owned"
+    echo "  ADOPTED  qa-references (legacy copy — marker stamped)"
+    adopted=$((adopted + 1))
+  fi
+  [ $adopted -eq 0 ] && echo "  (no legacy copies found in $dir)"
+}
+
 usage() {
   echo "QABuddy — GitHub Copilot Setup"
   echo ""
@@ -29,6 +52,7 @@ usage() {
   echo "  --no-prefix    Install without 'qa-' prefix"
   echo "  --uninstall    Remove all QABuddy skills from .github/skills/"
   echo "  --status       Show current installation status"
+  echo "  --adopt        Stamp ownership markers onto pre-v0.2.3 QABuddy copies, then install"
   echo "  --help         Show this help"
 }
 
@@ -36,10 +60,12 @@ usage() {
 PREFIX="qa-"
 ACTION="install"
 
+ADOPT=0
 case "${1:-}" in
   --no-prefix)  PREFIX="" ;;
   --uninstall)  ACTION="uninstall" ;;
   --status)     ACTION="status" ;;
+  --adopt)      ADOPT=1 ;;
   --help|-h)    usage; exit 0 ;;
   "")           ;; # default: install with prefix
   *)            echo "Unknown option: $1"; usage; exit 1 ;;
@@ -154,6 +180,11 @@ echo "NOTE: Copilot is an UNVERIFIED platform — CI does not execute this insta
 echo "      Officially supported: Claude Code. Issue reports welcome."
 echo "============================="
 echo ""
+if [ "$ADOPT" = "1" ]; then
+  echo "Adopting pre-v0.2.3 legacy copies:"
+  adopt_legacy "$SKILLS_DIR"
+  echo ""
+fi
 
 mkdir -p "$SKILLS_DIR"
 
@@ -171,7 +202,7 @@ for skill in "${SKILLS[@]}"; do
   fi
 
   if [ -d "$target" ] && [ ! -f "$target/.qabuddy-owned" ]; then
-    echo "  FAIL    ${PREFIX}$skill — another tool's directory occupies $target. Remove it manually."
+    echo "  FAIL    ${PREFIX}$skill — unowned directory occupies $target. Pre-v0.2.3 QABuddy copy? Re-run with --adopt. Otherwise remove it manually."
     skipped=$((skipped + 1))
     continue
   fi

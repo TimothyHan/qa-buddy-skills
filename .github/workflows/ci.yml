@@ -78,6 +78,26 @@ jobs:
           & dist/claude/setup.ps1 -Uninstall
           if (-not (Test-Path "$HOME\.claude\skills\setup")) { throw 'Final uninstall deleted the foreign decoy' }
 
+      # --adopt migration smoke (TC-INST-016). Deliberate exception to the
+      # unverified-tier policy: a broken adopt would strand exactly the
+      # pre-v0.2.3 copy-install users it exists to rescue.
+      - name: Adopt migration smoke (copilot bash)
+        if: runner.os == 'Linux'
+        run: |
+          tmp=$(mktemp -d); cd "$tmp"; git init -q .
+          mkdir -p .github/skills/qa-test-plan
+          printf '%s\n' '---' 'name: test-plan' '---' 'QABuddy legacy skill body' > .github/skills/qa-test-plan/SKILL.md
+          mkdir -p .github/skills/qa-eval
+          echo 'some other tool, no marker, no QABuddy evidence' > .github/skills/qa-eval/SKILL.md
+          "$GITHUB_WORKSPACE/dist/copilot/setup" --adopt | tee adopt.log
+          grep -q 'ADOPTED  qa-test-plan' adopt.log
+          ! grep -q 'ADOPTED  qa-eval' adopt.log
+          grep -q 'FAIL    qa-eval' adopt.log
+          test -f .github/skills/qa-test-plan/.qabuddy-owned
+          "$GITHUB_WORKSPACE/dist/copilot/setup" --uninstall | tee unadopt.log
+          grep -q 'SKIP     qa-eval' unadopt.log
+          test -d .github/skills/qa-eval
+
       # PowerShell 7 parity (manual matrix item M2): same installer, pwsh shell
       - name: Install cycle under PowerShell 7
         if: runner.os == 'Windows'
