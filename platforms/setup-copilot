@@ -37,7 +37,10 @@ adopt_legacy() {
     echo "  ADOPTED  qa-references (legacy copy — marker stamped)"
     adopted=$((adopted + 1))
   fi
-  [ $adopted -eq 0 ] && echo "  (no legacy copies found in $dir)"
+  if [ $adopted -eq 0 ]; then
+    echo "  (no legacy copies found in $dir)"
+  fi
+  return 0
 }
 
 usage() {
