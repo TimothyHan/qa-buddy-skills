@@ -98,6 +98,47 @@ jobs:
           grep -q 'SKIP     qa-eval' unadopt.log
           test -d .github/skills/qa-eval
 
+      - name: Adopt migration smoke (cursor bash, project mode)
+        if: runner.os == 'Linux'
+        run: |
+          tmp=$(mktemp -d); cd "$tmp"
+          mkdir -p .cursor/skills/qa-improve .cursor/skills/qa-eval
+          printf 'QABuddy legacy body\n' > .cursor/skills/qa-improve/SKILL.md
+          echo 'no adoption evidence here' > .cursor/skills/qa-eval/SKILL.md
+          "$GITHUB_WORKSPACE/dist/cursor/setup" --adopt | tee adopt.log
+          grep -q 'ADOPTED  qa-improve' adopt.log
+          ! grep -q 'ADOPTED  qa-eval' adopt.log
+          test -f .cursor/skills/qa-improve/.qabuddy-owned
+          "$GITHUB_WORKSPACE/dist/cursor/setup" --project | tee proj.log
+          grep -q 'FAIL    qa-eval' proj.log
+          grep -q 'OK      qa-improve (copied)' proj.log
+          test -d .cursor/skills/qa-eval
+          "$GITHUB_WORKSPACE/dist/cursor/setup" --uninstall > /dev/null
+
+      # -Adopt smoke under real PS 5.1 — the migration primarily serves
+      # Windows users (the original reporter's environment)
+      - name: Adopt migration smoke (copilot ps1)
+        if: runner.os == 'Windows'
+        shell: powershell
+        run: |
+          $tmp = New-Item -ItemType Directory -Path (Join-Path $env:TEMP ("qab-" + [guid]::NewGuid().ToString('N').Substring(0,8)))
+          Set-Location $tmp
+          git init -q .
+          New-Item -ItemType Directory -Force -Path .github/skills/qa-test-plan, .github/skills/qa-eval | Out-Null
+          Set-Content .github/skills/qa-test-plan/SKILL.md "QABuddy legacy skill body"
+          Set-Content .github/skills/qa-eval/SKILL.md 'no adoption evidence here'
+          $log = & "$env:GITHUB_WORKSPACE\dist\copilot\setup.ps1" -Adopt 6>&1 | Out-String
+          Write-Host $log
+          if ($log -notmatch 'ADOPTED  qa-test-plan') { throw 'legacy copy was not adopted' }
+          if ($log -match 'ADOPTED  qa-eval') { throw 'no-evidence dir was wrongly adopted' }
+          if ($log -notmatch 'FAIL    qa-eval') { throw 'no FAIL guidance for unowned dir' }
+          if (-not (Test-Path .github/skills/qa-test-plan/.qabuddy-owned)) { throw 'ownership marker missing' }
+          $un = & "$env:GITHUB_WORKSPACE\dist\copilot\setup.ps1" -Uninstall 6>&1 | Out-String
+          Write-Host $un
+          if ($un -notmatch 'SKIP     qa-eval') { throw 'uninstall did not SKIP the unowned dir' }
+          if (-not (Test-Path .github/skills/qa-eval)) { throw 'unowned dir was deleted' }
+          Set-Location $env:GITHUB_WORKSPACE
+
       # PowerShell 7 parity (manual matrix item M2): same installer, pwsh shell
       - name: Install cycle under PowerShell 7
         if: runner.os == 'Windows'

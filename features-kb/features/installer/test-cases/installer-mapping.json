@@ -151,6 +151,6 @@
   "unmapped_requirements": [],
   "test_gaps": [
     "G1: 정책 종결 (2026-08-08) — cursor/copilot은 미검증 등급; 공식 승격 시 CI 확장 필요",
-    "TC-INST-016 ps1 변형(-Adopt) 미자동화 — 미검증 등급 정책 (bash 경로는 CI 커버)"
+    "TC-INST-016 cursor ps1 변형만 미자동화 (copilot bash/ps1 + cursor bash는 CI 커버)"
   ]
 }
