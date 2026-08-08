@@ -12,19 +12,10 @@ SDT_REFS="$SCRIPT_DIR/references"
 # Copilot reads from .github/skills/ in the repo
 SKILLS_DIR=".github/skills"
 
-SKILLS=(
-  "qa"
-  "verify-fix"
-  "test-plan"
-  "test-cases"
-  "review-ticket"
-  "sprint-status"
-  "exploratory"
-  "improve"
-  "setup"
-  "start"
-  "eval"
-)
+SKILLS=()
+for _skill_dir in "$SDT_SKILLS"/*/; do
+  [ -d "$_skill_dir" ] && SKILLS+=("$(basename "$_skill_dir")")
+done
 
 usage() {
   echo "QABuddy — GitHub Copilot Setup"

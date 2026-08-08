@@ -45,7 +45,7 @@ no separate app, no daemon, no dependencies beyond Node.js.
 ## Quick Start
 
 ```bash
-git clone <repo-url> && cd agents
+git clone https://github.com/TimothyHan/QABuddy.git && cd QABuddy
 node build.js all              # Build for all platforms
 dist/claude/setup              # Install (or dist/cursor/setup, dist/copilot/setup)
 ```
@@ -60,8 +60,8 @@ Then:
 <summary><strong>Windows (PowerShell)</strong></summary>
 
 ```powershell
-git clone <repo-url>
-cd agents
+git clone https://github.com/TimothyHan/QABuddy.git
+cd QABuddy
 node build.js all
 .\dist\claude\setup.ps1        # or .\dist\cursor\setup.ps1
 ```
@@ -294,7 +294,7 @@ node test.js                       # Run 664 structural tests
 <summary><strong>Project Structure</strong></summary>
 
 ```
-agents/
+QABuddy/
 ├── build.js                     # Build script (node, zero deps)
 ├── test.js                      # Structural test suite (664 checks)
 ├── core/                        # Single source of truth — edit here

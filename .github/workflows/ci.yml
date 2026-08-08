@@ -1,0 +1,52 @@
+name: CI
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+
+jobs:
+  build-and-test:
+    strategy:
+      fail-fast: false
+      matrix:
+        os: [ubuntu-latest, windows-latest]
+    runs-on: ${{ matrix.os }}
+    steps:
+      # Reproduce the default Windows git environment that broke v0.2.0:
+      # core.autocrlf=true checks text files out with CRLF
+      - name: Emulate Windows default git config
+        if: runner.os == 'Windows'
+        run: git config --global core.autocrlf true
+
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 20
+
+      - name: Build (en)
+        run: node build.js all
+
+      - name: Build (ko)
+        run: node build.js all --locale ko
+
+      - name: Structural tests
+        run: node test.js
+
+      # Windows PowerShell 5.1 (the OS-bundled shell, not pwsh 7) is what a
+      # default Windows user runs — v0.2.0's 3-arg Join-Path broke only there
+      - name: Install via setup.ps1 under PowerShell 5.1
+        if: runner.os == 'Windows'
+        shell: powershell
+        run: |
+          & dist/claude/setup.ps1
+          & dist/claude/setup.ps1 -Status
+          & dist/claude/setup.ps1 -Uninstall
+
+      - name: Install via setup (bash)
+        if: runner.os == 'Linux'
+        run: |
+          dist/claude/setup
+          dist/claude/setup --status
+          dist/claude/setup --uninstall

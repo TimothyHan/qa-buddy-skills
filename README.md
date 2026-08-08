@@ -45,7 +45,7 @@ QABuddy는 AI가 자동으로 인식하고 실행하는 `SKILL.md` 파일 모음
 ## 빠른 시작
 
 ```bash
-git clone <repo-url> && cd agents
+git clone https://github.com/TimothyHan/QABuddy.git && cd QABuddy
 node build.js all --locale ko  # 한국어 버전 빌드
 dist/ko/claude/setup           # 설치 (또는 dist/ko/cursor/setup, dist/ko/copilot/setup)
 ```
@@ -60,8 +60,8 @@ dist/ko/claude/setup           # 설치 (또는 dist/ko/cursor/setup, dist/ko/co
 <summary><strong>Windows (PowerShell)</strong></summary>
 
 ```powershell
-git clone <repo-url>
-cd agents
+git clone https://github.com/TimothyHan/QABuddy.git
+cd QABuddy
 node build.js all --locale ko
 .\dist\ko\claude\setup.ps1     # 또는 .\dist\ko\cursor\setup.ps1
 ```
@@ -294,7 +294,7 @@ node test.js                       # 664개 구조 테스트 실행
 <summary><strong>프로젝트 구조</strong></summary>
 
 ```
-agents/
+QABuddy/
 ├── build.js                     # 빌드 스크립트 (node, 의존성 없음)
 ├── test.js                      # 구조 테스트 스위트 (664개 검사)
 ├── core/                        # 단일 소스 — 여기서 편집

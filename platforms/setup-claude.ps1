@@ -26,14 +26,11 @@ param(
 $ErrorActionPreference = 'Stop'
 
 $ScriptDir = Split-Path -Parent $MyInvocation.MyCommand.Path
-$SkillsDir = Join-Path $HOME '.claude' 'skills'
+$SkillsDir = Join-Path (Join-Path $HOME '.claude') 'skills'
 $SdtSkills = Join-Path $ScriptDir 'skills'
 $SdtRefs   = Join-Path $ScriptDir 'references'
 
-$Skills = @(
-    'qa', 'verify-fix', 'test-plan', 'test-cases',
-    'review-ticket', 'sprint-status', 'exploratory', 'improve', 'setup', 'start', 'eval'
-)
+$Skills = Get-ChildItem $SdtSkills -Directory | Select-Object -ExpandProperty Name
 
 # ─── Uninstall ───────────────────────────────────────────────────────────────
 
@@ -102,7 +99,7 @@ if ($Status) {
     }
     Write-Host ''
     # Check Atlassian MCP
-    $settingsFile = Join-Path $HOME '.claude' 'settings.json'
+    $settingsFile = Join-Path (Join-Path $HOME '.claude') 'settings.json'
     if ((Test-Path $settingsFile) -and (Select-String -Path $settingsFile -Pattern 'atlassian' -Quiet)) {
         Write-Host '  OK      Atlassian MCP configured'
     } else {
@@ -186,9 +183,9 @@ Write-Host 'Checking Atlassian MCP...'
 
 $atlassianFound = $false
 foreach ($config in @(
-    (Join-Path $HOME '.claude' 'settings.json'),
-    (Join-Path '.' '.claude' 'settings.json'),
-    (Join-Path '.' '.claude' 'settings.local.json')
+    (Join-Path (Join-Path $HOME '.claude') 'settings.json'),
+    (Join-Path (Join-Path '.' '.claude') 'settings.json'),
+    (Join-Path (Join-Path '.' '.claude') 'settings.local.json')
 )) {
     if ((Test-Path $config) -and (Select-String -Path $config -Pattern 'atlassian' -Quiet)) {
         $atlassianFound = $true

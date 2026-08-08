@@ -52,6 +52,10 @@ function resolveDir(relativePath, locale) {
 // ─── Frontmatter parsing (minimal, no dependencies) ───────────────────────
 
 function parseFrontmatter(content) {
+  // Normalize CRLF: with core.autocrlf=true (Windows git default) files check
+  // out with \r\n, which would fail the match below and poison every
+  // downstream split('\n') with trailing \r
+  content = content.replace(/\r\n/g, '\n');
   const match = content.match(/^---\n([\s\S]*?)\n---\n([\s\S]*)$/);
   if (!match) return { meta: {}, body: content };
   return { meta: parseYaml(match[1]), body: match[2] };

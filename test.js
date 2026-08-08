@@ -56,6 +56,8 @@ function getSkillDirs() {
 }
 
 function parseFrontmatter(content) {
+  // Keep in sync with build.js: normalize CRLF checkouts (Windows autocrlf)
+  content = content.replace(/\r\n/g, '\n');
   const match = content.match(/^---\n([\s\S]*?)\n---\n([\s\S]*)$/);
   if (!match) return { raw: '', body: content, fields: {} };
   const raw = match[1];
@@ -70,15 +72,29 @@ function parseFrontmatter(content) {
 
 // ─── Test Suites ────────────────────────────────────────────────────────
 
+// A build may live at dist/<platform>/ (en) or dist/<locale>/<platform>/
+// (e.g. `node build.js all --locale ko`). Either satisfies the build checks.
+function resolvePlatformDir(platform) {
+  const direct = path.join(DIST_DIR, platform);
+  if (fs.existsSync(direct)) return direct;
+  if (fs.existsSync(DIST_DIR)) {
+    for (const entry of fs.readdirSync(DIST_DIR)) {
+      const candidate = path.join(DIST_DIR, entry, platform);
+      if (fs.existsSync(candidate)) return candidate;
+    }
+  }
+  return direct;
+}
+
 function testBuildOutput() {
   console.log('\n📦 Build Output');
 
   for (const platform of PLATFORMS) {
-    const platformDir = path.join(DIST_DIR, platform);
+    const platformDir = resolvePlatformDir(platform);
     check(
       fs.existsSync(platformDir),
-      `dist/${platform}/ exists`,
-      `Run "node build.js all" first`
+      `dist/${platform}/ exists (any locale)`,
+      `Run "node build.js all" (or --locale ko) first`
     );
 
     if (!fs.existsSync(platformDir)) continue;
@@ -213,7 +229,7 @@ function testNoRawPlaceholders() {
   console.log('\n🔗 Placeholder Substitution');
 
   for (const platform of PLATFORMS) {
-    const skillsDir = path.join(DIST_DIR, platform, 'skills');
+    const skillsDir = path.join(resolvePlatformDir(platform), 'skills');
     if (!fs.existsSync(skillsDir)) continue;
 
     const skills = fs.readdirSync(skillsDir);
@@ -460,6 +476,58 @@ function testEvalFixtures() {
 console.log('QABuddy — Test');
 console.log('================');
 
+function testCrlfTolerance() {
+  console.log('\n🪟 CRLF Tolerance (Windows autocrlf)');
+
+  // v0.2.0 regression: CRLF checkouts made the frontmatter regex miss,
+  // crashing build.js on meta.description. Parsers must accept both endings.
+  const sample = '---\r\nname: demo\r\nversion: 0.0.1\r\n---\r\nBody line\r\n';
+  const parsed = parseFrontmatter(sample);
+  check(
+    parsed.fields.name === 'demo' && parsed.fields.version === '0.0.1',
+    'parseFrontmatter handles CRLF frontmatter',
+    `Got fields: ${JSON.stringify(parsed.fields)}`
+  );
+  check(
+    !parsed.body.includes('\r'),
+    'parseFrontmatter normalizes CRLF out of the body',
+    'Body still contains \\r — downstream split("\\n") would keep trailing \\r'
+  );
+  check(
+    fs.existsSync(path.join(__dirname, '.gitattributes')),
+    '.gitattributes exists (eol=lf normalization)',
+    'Without it, Windows git (autocrlf=true) checks out CRLF'
+  );
+}
+
+function testInstallerSkillSync() {
+  console.log('\n🔧 Installer/Skill Sync');
+
+  // v0.2.0 regression: hardcoded skill arrays in 6 setup scripts silently
+  // dropped the 3 new e2e skills. Scripts must enumerate the skills dir.
+  const scripts = [
+    ['platforms/setup-claude',      /for _skill_dir in "\$SDT_SKILLS"\/\*\//],
+    ['platforms/setup-cursor',      /for _skill_dir in "\$SDT_SKILLS"\/\*\//],
+    ['platforms/setup-copilot',     /for _skill_dir in "\$SDT_SKILLS"\/\*\//],
+    ['platforms/setup-claude.ps1',  /Get-ChildItem \$SdtSkills -Directory/],
+    ['platforms/setup-cursor.ps1',  /Get-ChildItem \$SdtSkills -Directory/],
+    ['platforms/setup-copilot.ps1', /Get-ChildItem \$SdtSkills -Directory/],
+  ];
+  for (const [file, pattern] of scripts) {
+    const content = readFile(path.join(__dirname, file)) || '';
+    check(
+      pattern.test(content),
+      `${file}: enumerates skills dynamically`,
+      'Hardcoded skill list drifts from core/skills/ — enumerate the directory'
+    );
+    check(
+      !/SKILLS=\(\s*\n\s*"/.test(content) && !/\$Skills = @\(/.test(content),
+      `${file}: no hardcoded skill array`,
+      'Found a literal skill array — new skills would be silently skipped'
+    );
+  }
+}
+
 testBuildOutput();
 testSkillStructure();
 testNoStalePaths();
@@ -471,6 +539,8 @@ testPreambleTiers();
 testConfigAwareness();
 testExcludeConditions();
 testEvalFixtures();
+testCrlfTolerance();
+testInstallerSkillSync();
 
 console.log('\n================');
 console.log(`Results: ${passed} passed, ${failed} failed`);

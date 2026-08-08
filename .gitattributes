@@ -1,0 +1,7 @@
+# Normalize all text files to LF in the repo and on checkout.
+# Without this, Windows git's default core.autocrlf=true checks files out
+# with CRLF, which broke the frontmatter parsers in build.js/test.js (v0.2.0).
+* text=auto eol=lf
+
+# Windows scripts stay CRLF on checkout
+*.ps1 text eol=crlf

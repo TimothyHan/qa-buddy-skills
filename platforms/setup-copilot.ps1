@@ -30,10 +30,7 @@ $ScriptDir = Split-Path -Parent $MyInvocation.MyCommand.Path
 $SdtSkills = Join-Path $ScriptDir 'skills'
 $SdtRefs   = Join-Path $ScriptDir 'references'
 
-$Skills = @(
-    'qa', 'verify-fix', 'test-plan', 'test-cases',
-    'review-ticket', 'sprint-status', 'exploratory', 'improve', 'setup', 'start', 'eval'
-)
+$Skills = Get-ChildItem $SdtSkills -Directory | Select-Object -ExpandProperty Name
 
 # Verify git repo
 try {
@@ -46,7 +43,7 @@ try {
     exit 1
 }
 
-$SkillsDir = Join-Path $RepoRoot '.github' 'skills'
+$SkillsDir = Join-Path (Join-Path $RepoRoot '.github') 'skills'
 
 # ─── Uninstall ───────────────────────────────────────────────────────────────
 
@@ -72,7 +69,7 @@ if ($Uninstall) {
         $removed++
     }
     # Check for instructions file
-    $instructions = Join-Path $RepoRoot '.github' 'copilot-instructions.md'
+    $instructions = Join-Path (Join-Path $RepoRoot '.github') 'copilot-instructions.md'
     if ((Test-Path $instructions) -and (Select-String -Path $instructions -Pattern 'QABuddy' -Quiet)) {
         Write-Host ''
         Write-Host '  NOTE    .github/copilot-instructions.md contains QABuddy content.'
@@ -110,7 +107,7 @@ if ($Status) {
         Write-Host '  MISSING qa-references' -ForegroundColor Yellow
     }
     Write-Host ''
-    $instructions = Join-Path $RepoRoot '.github' 'copilot-instructions.md'
+    $instructions = Join-Path (Join-Path $RepoRoot '.github') 'copilot-instructions.md'
     if (Test-Path $instructions) {
         Write-Host '  OK      .github/copilot-instructions.md exists'
     } else {
@@ -118,7 +115,7 @@ if ($Status) {
     }
     Write-Host ''
     # Check MCP
-    $mcpConfig = Join-Path '.' '.vscode' 'mcp.json'
+    $mcpConfig = Join-Path (Join-Path '.' '.vscode') 'mcp.json'
     foreach ($mcp in @('playwright', 'atlassian')) {
         $label = $mcp.Substring(0,1).ToUpper() + $mcp.Substring(1)
         if ((Test-Path $mcpConfig) -and (Select-String -Path $mcpConfig -Pattern $mcp -Quiet)) {
@@ -177,12 +174,12 @@ if ($skipped -gt 0) { Write-Host "Skipped: $skipped" -ForegroundColor Yellow }
 # ─── Project Instructions ───────────────────────────────────────────────────
 
 Write-Host ''
-$instructions = Join-Path $RepoRoot '.github' 'copilot-instructions.md'
+$instructions = Join-Path (Join-Path $RepoRoot '.github') 'copilot-instructions.md'
 if (Test-Path $instructions) {
     Write-Host '  OK      .github/copilot-instructions.md already exists'
     Write-Host '  INFO    Review and merge QABuddy instructions manually if needed.'
 } else {
-    $projectFile = Join-Path $ScriptDir '.github' 'copilot-instructions.md'
+    $projectFile = Join-Path (Join-Path $ScriptDir '.github') 'copilot-instructions.md'
     if (Test-Path $projectFile) {
         $instrDir = Split-Path $instructions -Parent
         if (-not (Test-Path $instrDir)) { New-Item -ItemType Directory -Path $instrDir -Force | Out-Null }
@@ -196,7 +193,7 @@ if (Test-Path $instructions) {
 Write-Host ''
 Write-Host 'Checking MCP servers...'
 
-$mcpConfig = Join-Path '.' '.vscode' 'mcp.json'
+$mcpConfig = Join-Path (Join-Path '.' '.vscode') 'mcp.json'
 foreach ($mcp in @('playwright', 'atlassian')) {
     $label = $mcp.Substring(0,1).ToUpper() + $mcp.Substring(1)
     if ((Test-Path $mcpConfig) -and (Select-String -Path $mcpConfig -Pattern $mcp -Quiet)) {

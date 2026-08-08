@@ -35,15 +35,12 @@ $SdtSkills = Join-Path $ScriptDir 'skills'
 $SdtRefs   = Join-Path $ScriptDir 'references'
 
 $SkillsDir = if ($Project) {
-    Join-Path '.' '.cursor' 'skills'
+    Join-Path (Join-Path '.' '.cursor') 'skills'
 } else {
-    Join-Path $HOME '.cursor' 'skills'
+    Join-Path (Join-Path $HOME '.cursor') 'skills'
 }
 
-$Skills = @(
-    'qa', 'verify-fix', 'test-plan', 'test-cases',
-    'review-ticket', 'sprint-status', 'exploratory', 'improve', 'setup', 'start', 'eval'
-)
+$Skills = Get-ChildItem $SdtSkills -Directory | Select-Object -ExpandProperty Name
 
 function New-SymlinkOrCopy {
     param([string]$Target, [string]$Source, [bool]$UseProject)
@@ -120,8 +117,8 @@ if ($Status) {
     foreach ($mcp in @('playwright', 'atlassian')) {
         $mcpFound = $false
         foreach ($config in @(
-            (Join-Path '.' '.cursor' 'mcp.json'),
-            (Join-Path $HOME '.cursor' 'mcp.json')
+            (Join-Path (Join-Path '.' '.cursor') 'mcp.json'),
+            (Join-Path (Join-Path $HOME '.cursor') 'mcp.json')
         )) {
             if ((Test-Path $config) -and (Select-String -Path $config -Pattern $mcp -Quiet)) {
                 $mcpFound = $true; break
@@ -198,8 +195,8 @@ Write-Host 'Checking MCP servers...'
 foreach ($mcp in @('playwright', 'atlassian')) {
     $mcpFound = $false
     foreach ($config in @(
-        (Join-Path '.' '.cursor' 'mcp.json'),
-        (Join-Path $HOME '.cursor' 'mcp.json')
+        (Join-Path (Join-Path '.' '.cursor') 'mcp.json'),
+        (Join-Path (Join-Path $HOME '.cursor') 'mcp.json')
     )) {
         if ((Test-Path $config) -and (Select-String -Path $config -Pattern $mcp -Quiet)) {
             $mcpFound = $true; break

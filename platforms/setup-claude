@@ -9,19 +9,10 @@ SKILLS_DIR="$HOME/.claude/skills"
 SDT_SKILLS="$SCRIPT_DIR/skills"
 SDT_REFS="$SCRIPT_DIR/references"
 
-SKILLS=(
-  "qa"
-  "verify-fix"
-  "test-plan"
-  "test-cases"
-  "review-ticket"
-  "sprint-status"
-  "exploratory"
-  "improve"
-  "setup"
-  "start"
-  "eval"
-)
+SKILLS=()
+for _skill_dir in "$SDT_SKILLS"/*/; do
+  [ -d "$_skill_dir" ] && SKILLS+=("$(basename "$_skill_dir")")
+done
 
 usage() {
   echo "QABuddy — Claude Code Setup"
