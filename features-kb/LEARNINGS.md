@@ -58,3 +58,17 @@ QABuddy가 실제 실행에서 포착한 프로젝트 고유 규칙. 모든 스�
 - **Overrides:** test-cases SKILL의 "모든 AC에 최소 1개 TC" (확장: 메타 AC 예외)
 - **Evidence:** 2026-08-08 /qa-test-plan 검증 실행 — AC5.1/5.2가 매핑에 없는데
   unmapped_requirements도 비어 있는 불일치 발견, 이 관례로 해소.
+
+## LRN-20260808-06: bash 설치 스크립트 검증 함정 목록
+- **Status:** active
+- **Scope:** qa, verify-fix, test-cases
+- **Statement:** 이 프로젝트의 bash 스크립트 검증 시: (1) 함수 마지막 줄의
+  `[ cond ] && cmd` 패턴은 cond가 거짓이면 함수 반환값이 1 — `set -e`(CI 기본)
+  아래서 스크립트 즉사. 함수는 명시적 `return 0`으로 끝낼 것. (2) macOS bash
+  3.2와 linux bash 5의 `set -e` 의미가 달라 로컬 통과가 CI 통과를 보장하지
+  않음 — 로컬 검증은 `bash -e <script>`로 CI 조건을 강제할 것. (3) 테스트
+  픽스처 문구는 로컬과 CI에서 동일해야 함 — 증거 검사가 문자열 grep이므로
+  픽스처 내용에 검사 대상 문자열("QABuddy")을 넣는 순간 자충수.
+- **Overrides:** 없음 (LRN-20260808-03의 bash 대응편 — 승격 후보)
+- **Evidence:** 2026-08-08 --adopt CI 스모크 첫 실행 2연속 실패 실측 —
+  픽스처 자충수(d76b22e), set -e 반환값 트랩(649cf39). 로컬은 양쪽 모두 통과했었음.
