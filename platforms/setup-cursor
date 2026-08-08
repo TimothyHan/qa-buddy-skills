@@ -57,20 +57,33 @@ if [ "$ACTION" = "uninstall" ]; then
   for skill in "${SKILLS[@]}"; do
     for target in "$SKILLS_DIR/qa-$skill" "$SKILLS_DIR/$skill"; do
       if [ -L "$target" ]; then
-        rm "$target"
-        echo "  REMOVED  $(basename "$target")"
-        removed=$((removed + 1))
+        link_target=$(readlink "$target" 2>/dev/null || true)
+        if [[ "$link_target" == *"$SDT_SKILLS"* ]] || [[ "$link_target" == *"qa-skills"* ]]; then
+          rm "$target"
+          echo "  REMOVED  $(basename "$target")"
+          removed=$((removed + 1))
+        else
+          echo "  SKIP     $(basename "$target") (not QABuddy's — left untouched)"
+        fi
       elif [ -d "$target" ] && [ "$MODE" = "project" ]; then
-        rm -rf "$target"
-        echo "  REMOVED  $(basename "$target") (directory)"
-        removed=$((removed + 1))
+        if [ -f "$target/.qabuddy-owned" ]; then
+          rm -rf "$target"
+          echo "  REMOVED  $(basename "$target") (directory)"
+          removed=$((removed + 1))
+        else
+          echo "  SKIP     $(basename "$target") (no ownership marker — left untouched)"
+        fi
       fi
     done
   done
   for target in "$SKILLS_DIR/qa-references"; do
-    if [ -L "$target" ] || [ -d "$target" ]; then
-      rm -rf "$target"
+    if [ -L "$target" ]; then
+      rm "$target"
       echo "  REMOVED  qa-references"
+      removed=$((removed + 1))
+    elif [ -d "$target" ] && [ -f "$target/.qabuddy-owned" ]; then
+      rm -rf "$target"
+      echo "  REMOVED  qa-references (directory)"
       removed=$((removed + 1))
     fi
   done
@@ -91,7 +104,15 @@ if [ "$ACTION" = "status" ]; then
     found=""
     for target in "$SKILLS_DIR/qa-$skill" "$SKILLS_DIR/$skill"; do
       if [ -L "$target" ]; then
-        echo "  OK      $(basename "$target") -> $(readlink "$target")"
+        link_target=$(readlink "$target" 2>/dev/null || true)
+        if [[ "$link_target" == *"$SDT_SKILLS"* ]] || [[ "$link_target" == *"qa-skills"* ]]; then
+          echo "  OK      $(basename "$target") -> $link_target"
+          found="yes"
+        else
+          echo "  FOREIGN $(basename "$target") -> $link_target (not QABuddy's — ignored)"
+        fi
+      elif [ -d "$target" ] && [ -f "$target/.qabuddy-owned" ]; then
+        echo "  OK      $(basename "$target") (copied)"
         found="yes"
       elif [ -d "$target" ]; then
         echo "  OK      $(basename "$target") (project copy)"
@@ -144,13 +165,26 @@ for skill in "${SKILLS[@]}"; do
 
   if [ "$MODE" = "project" ]; then
     # Copy to project directory
+    if [ -d "$target" ] && [ ! -f "$target/.qabuddy-owned" ]; then
+      echo "  FAIL    ${PREFIX}$skill — another tool's directory occupies $target. Remove it manually."
+      skipped=$((skipped + 1))
+      continue
+    fi
     rm -rf "$target"
     cp -r "$source" "$target"
+    echo "$source" > "$target/.qabuddy-owned"
     echo "  OK      ${PREFIX}$skill (copied)"
   else
     # Symlink to global directory
     if [ -L "$target" ]; then
-      rm "$target"
+      link_target=$(readlink "$target" 2>/dev/null || true)
+      if [[ "$link_target" == *"$SDT_SKILLS"* ]] || [[ "$link_target" == *"qa-skills"* ]]; then
+        rm "$target"
+      else
+        echo "  FAIL    ${PREFIX}$skill — another tool's link occupies $target. Remove it manually or use prefix mode."
+        skipped=$((skipped + 1))
+        continue
+      fi
     elif [ -d "$target" ]; then
       echo "  WARN    $target exists and is not a symlink. Skipping."
       skipped=$((skipped + 1))
@@ -168,6 +202,7 @@ if [ -d "$SDT_REFS" ]; then
   if [ "$MODE" = "project" ]; then
     rm -rf "$ref_target"
     cp -r "$SDT_REFS" "$ref_target"
+    echo "$SDT_REFS" > "$ref_target/.qabuddy-owned"
     echo "  OK      qa-references (copied)"
   else
     [ -L "$ref_target" ] && rm "$ref_target"

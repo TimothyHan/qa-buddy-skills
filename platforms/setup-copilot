@@ -66,16 +66,24 @@ if [ "$ACTION" = "uninstall" ]; then
   for skill in "${SKILLS[@]}"; do
     for target in "$SKILLS_DIR/qa-$skill" "$SKILLS_DIR/$skill"; do
       if [ -d "$target" ]; then
-        rm -rf "$target"
-        echo "  REMOVED  $(basename "$target")"
-        removed=$((removed + 1))
+        if [ -f "$target/.qabuddy-owned" ]; then
+          rm -rf "$target"
+          echo "  REMOVED  $(basename "$target")"
+          removed=$((removed + 1))
+        else
+          echo "  SKIP     $(basename "$target") (no ownership marker — left untouched)"
+        fi
       fi
     done
   done
   if [ -d "$SKILLS_DIR/qa-references" ]; then
-    rm -rf "$SKILLS_DIR/qa-references"
-    echo "  REMOVED  qa-references"
-    removed=$((removed + 1))
+    if [ -f "$SKILLS_DIR/qa-references/.qabuddy-owned" ]; then
+      rm -rf "$SKILLS_DIR/qa-references"
+      echo "  REMOVED  qa-references"
+      removed=$((removed + 1))
+    else
+      echo "  SKIP     qa-references (no ownership marker — left untouched)"
+    fi
   fi
   # Remove copilot instructions if it's ours
   instructions="$REPO_ROOT/.github/copilot-instructions.md"
@@ -101,8 +109,12 @@ if [ "$ACTION" = "status" ]; then
     found=""
     for target in "$SKILLS_DIR/qa-$skill" "$SKILLS_DIR/$skill"; do
       if [ -d "$target" ]; then
-        echo "  OK      $(basename "$target")"
-        found="yes"
+        if [ -f "$target/.qabuddy-owned" ]; then
+          echo "  OK      $(basename "$target")"
+          found="yes"
+        else
+          echo "  FOREIGN $(basename "$target") (not QABuddy's — ignored)"
+        fi
       fi
     done
     [ -z "$found" ] && echo "  MISSING $skill"
@@ -156,8 +168,14 @@ for skill in "${SKILLS[@]}"; do
     continue
   fi
 
+  if [ -d "$target" ] && [ ! -f "$target/.qabuddy-owned" ]; then
+    echo "  FAIL    ${PREFIX}$skill — another tool's directory occupies $target. Remove it manually."
+    skipped=$((skipped + 1))
+    continue
+  fi
   rm -rf "$target"
   cp -r "$source" "$target"
+  echo "$source" > "$target/.qabuddy-owned"
   echo "  OK      ${PREFIX}$skill"
   installed=$((installed + 1))
 done
@@ -165,10 +183,15 @@ done
 # Install references
 ref_target="$SKILLS_DIR/qa-references"
 if [ -d "$SDT_REFS" ]; then
-  rm -rf "$ref_target"
-  cp -r "$SDT_REFS" "$ref_target"
-  echo "  OK      qa-references"
-  installed=$((installed + 1))
+  if [ -d "$ref_target" ] && [ ! -f "$ref_target/.qabuddy-owned" ]; then
+    echo "  FAIL    qa-references — another directory occupies $ref_target. Remove it manually."
+  else
+    rm -rf "$ref_target"
+    cp -r "$SDT_REFS" "$ref_target"
+    echo "$SDT_REFS" > "$ref_target/.qabuddy-owned"
+    echo "  OK      qa-references"
+    installed=$((installed + 1))
+  fi
 fi
 
 echo ""
