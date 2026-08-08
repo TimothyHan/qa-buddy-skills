@@ -21,6 +21,8 @@ PS 5.1/bash 3.2 호환, CRLF/BOM 인코딩 내성.
 계층 분배는 test-distribution.md의 피라미드를 이 도메인에 맞게 번역한다:
 **구조 검증(test.js, 초 단위·다수) → CI 통합(실제 스크립트 실행, 분 단위·중간) →
 수동 OS 매트릭스(실기기, 릴리스 전·소수)**.
+(2026-08-08 갭 종결: G2·G3·TC-009·TC-014·M2 자동화 — CI가 PS 5.1과 7 양쪽에서
+멱등성·NoPrefix 디코이 보호까지 단언. 잔여 수동: M1 junction, M4 비ASCII 경로, M5 업그레이드)
 
 ### 구조 검증 (test.js — 피라미드 하단)
 
@@ -40,14 +42,13 @@ PS 5.1/bash 3.2 호환, CRLF/BOM 인코딩 내성.
 | C3 | 디코이 생존: 외부 도구 링크가 전 사이클 후 원래 대상 그대로 | P0 | Confirmed: ci.yml decoy 단계 (양 OS) |
 | C4 | status 정직성: MISSING/FAIL/SKIP → 잡 실패, 디코이는 FOREIGN 표기 필수 | P0 | Confirmed: ci.yml 단언 (PS는 `6>&1` 캡처) |
 | C5 | cursor/copilot 스크립트 install→uninstall 사이클 | P2 | **De-scoped** — 미검증 등급 (2026-08-08 결정): 공식 지원은 Claude Code, cursor/copilot은 구조 검증(S2·S3)만. 설치 스크립트가 UNVERIFIED 배너 출력 |
-| C6 | 재설치 멱등성 (owned 설치 위에 재실행 → 전부 OK) | P1 | **No coverage** — Gap G2 |
+| C6 | 재설치 멱등성 (owned 설치 위에 재실행 → 전부 OK) | P1 | Confirmed: ci.yml 2회차 install 단언 (양 OS) |
 
 ### 수동 / 탐색 (실기기 매트릭스 — 피라미드 상단)
 
 | # | 영역 | 무엇을 | 왜 수동인가 |
 |---|---|---|---|
 | M1 | Windows 비관리자 + 개발자 모드 OFF | junction 폴백 경로 실동작 | CI 러너는 항상 관리자 — 권한 상태 재현 불가 |
-| M2 | Windows PowerShell 7 | 5.1과 동일 사이클 | CI는 5.1 고정; 7은 릴리스 전 1회 확인 |
 | M3 | macOS (bash 3.2 + zsh 기본 셸) | 전체 사이클 + 디코이 | 개발 머신 = 준상시 커버 (2026-08-08 디코이 포함 실측 green) |
 | M4 | 비ASCII/공백 경로 (`D:\자동화\...`) | clone 경로 특이성 | 리포터 실측으로 동작 확인됨 — 회귀 시 재확인용 |
 | M5 | v0.2.2→현재 업그레이드 (마커 없는 copilot/cursor-project 설치본) | FAIL 안내가 나오는지, 안내대로 복구 가능한지 | 구버전 상태 재현이 CI에 없음 |
@@ -57,8 +58,6 @@ PS 5.1/bash 3.2 호환, CRLF/BOM 인코딩 내성.
 | Area | Current Coverage | Gap | Effort |
 |---|---|---|---|
 | G1: cursor/copilot 스크립트 | 정책으로 종결 — 미검증 등급 (README·설치 배너에 명시) | 공식 승격 시 CI 매트릭스 확장 필요 (copilot은 git repo, cursor는 2모드) | M (보류) |
-| G2: 재설치 멱등성 | No coverage | CI에 install 2회 실행 + 2회차 출력 전부 OK 단언 추가 | S |
-| G3: BOM 보존 검사 | Unverified — dist 복사가 바이트 보존한다고 가정 | test.js에 dist `.ps1` 선두 3바이트 단언 추가 | S |
 | G4: junction 폴백 | No coverage (M1 수동 의존) | 러너에서 권한 박탈이 비현실적 — 수동 유지가 합리적 | L (부적합) |
 
 ## 5. Environment & Test Data

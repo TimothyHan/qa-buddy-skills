@@ -22,7 +22,7 @@
 **Requirement:** AC1.4, AC1.5 | **Priority:** P1 | **Type:** happy-path
 **Steps:** 빌드 후 ① `grep -r "{{REFERENCE_PATH}}" dist/ | wc -l` ② `head -c 3 dist/claude/setup.ps1 | xxd`
 **Expected:** ① 0건 ② `efbbbf`
-**Status:** Partial — 플레이스홀더는 test.js `testNoRawPlaceholders`; BOM은 **Gap G3** (수동)
+**Status:** Automated — test.js `testNoRawPlaceholders` + `testDistBom` (G3 종결)
 
 ### TC-INST-004: claude 신규 설치 (깨끗한 환경)
 **Requirement:** AC2.1, AC2.7 | **Priority:** P0 | **Type:** happy-path
@@ -59,7 +59,7 @@
 **Requirement:** AC2.5 (6-a) | **Priority:** P1 | **Type:** negative
 **Steps:** 외부 소유 `setup` 존재 상태에서 `setup.ps1 -NoPrefix` / `setup --no-prefix`
 **Expected:** 해당 스킬 FAIL + 수동 제거/접두사 안내, 기존 항목 무손상, 나머지는 정상 설치
-**Status:** Manual — 구현은 확인(코드 경로 동일 Test-Owned), 시나리오 자체는 미자동화
+**Status:** Automated — ci.yml NoPrefix 디코이 단언 (양 OS, 2026-08-08 자동화)
 
 ### TC-INST-010: cursor global/project 설치·제거
 **Requirement:** AC2.3 | **Priority:** P1 | **Type:** happy-path
@@ -84,13 +84,13 @@
 **Requirement:** AC2.1+AC2.5 조합 | **Priority:** P1 | **Type:** edge
 **Steps:** install 성공 직후 install 재실행
 **Expected:** 15개 전부 OK (자기 설치분은 소유 판정 → 교체), FAIL 0
-**Status:** Manual — **Gap G2** (CI에 2회차 실행 추가로 자동화 가능, Effort S)
+**Status:** Automated — ci.yml 2회차 install 단언 (양 OS, FAIL/SKIP 0 + OK ≥15)
 
 ### TC-INST-014: ko 단독 빌드 + 테스트
 **Requirement:** AC1.2 | **Priority:** P2 | **Type:** edge (과거 P2 결함 회귀)
 **Steps:** `rm -rf dist` → `node build.js all --locale ko` → `node test.js`
 **Expected:** 0 failed (`resolvePlatformDir`가 `dist/ko/` 인식)
-**Status:** Automated — ci.yml은 양쪽 빌드 후 실행; ko-단독 순서는 Manual
+**Status:** Automated — ci.yml이 ko 빌드 직후(en 빌드 전) test.js 실행 (ubuntu)
 
 ### TC-INST-015: 업그레이드 — 마커 없는 구버전(≤v0.2.2) 복사 설치본
 **Requirement:** Missing ACs 4행 | **Priority:** P2 | **Type:** edge
@@ -109,8 +109,8 @@
 - [x] 스크립트 6종: 동적 스킬 순회, 하드코딩 배열 부재 (`testInstallerSkillSync`)
 - [x] 스크립트 6종: 소유권 메커니즘 존재 (Test-Owned / readlink / 마커 / FOREIGN)
 - [x] dist 존재(로케일 인식) + 플레이스홀더 치환 (`testBuildOutput`, `testNoRawPlaceholders`)
-- [ ] dist `.ps1` BOM 선두 바이트 단언 — **Gap G3** (Effort S, TC-INST-003 자동화분)
-- [ ] 접두사 치환류 일괄 편집 시 경로 오염 검사 (`}/test-cases` 등 KB 경로가 명령 치환에 휩쓸리지 않는지) — 2026-08-08 실측 결함, 미자동화
+- [x] dist `.ps1` BOM 선두 바이트 단언 (`testDistBom`, G3 종결)
+- [x] KB 경로 오염 가드 (`testKbPathHygiene` — `}/qa-*` 스캔, qa-reports 제외)
 
 ---
 
@@ -120,4 +120,5 @@
 - AC 20개: full 15 (메타 AC5.1/5.2 포함), partial 4 (G3·미검증 등급 갭 기록), 미커버 0
   (AC4.1/4.2는 매핑 1행으로 묶임; AC5.x는 테스트 인프라 자체라 CI 실행으로 자기 검증)
 - TC 우선순위: P0 7 / P1 6 / P2 2 (P0 47% — ≤50% 규칙 준수)
-- P0 7건 전부 Automated (CI/test.js 인용 있음); 과거 결함 8건 모두 회귀 TC 보유
+- P0 7건 + P1 4건(003/009/013/014) Automated; 과거 결함 전건 회귀 TC 보유
+- 잔여 수동: TC-010/011(미검증 등급), TC-012(junction), TC-015(업그레이드)

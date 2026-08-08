@@ -143,8 +143,6 @@
   ],
   "unmapped_requirements": [],
   "test_gaps": [
-    "G1: 정책 종결 (2026-08-08) — cursor/copilot은 미검증 등급; 공식 승격 시 CI 확장 필요",
-    "G2: 재설치 멱등성 미자동화 (TC-INST-013) — Effort S",
-    "G3: dist .ps1 BOM 바이트 단언 없음 (TC-INST-003) — Effort S"
+    "G1: 정책 종결 (2026-08-08) — cursor/copilot은 미검증 등급; 공식 승격 시 CI 확장 필요"
   ]
 }
