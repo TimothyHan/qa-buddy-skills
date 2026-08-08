@@ -25,11 +25,17 @@ jobs:
         with:
           node-version: 20
 
-      - name: Build (en)
-        run: node build.js all
-
+      # ko FIRST, then structural tests before the en build exists —
+      # proves a ko-only checkout passes (TC-INST-014, was a reported P2)
       - name: Build (ko)
         run: node build.js all --locale ko
+
+      - name: Structural tests (ko-only dist)
+        if: runner.os == 'Linux'
+        run: node test.js
+
+      - name: Build (en)
+        run: node build.js all
 
       - name: Structural tests
         run: node test.js
@@ -56,6 +62,30 @@ jobs:
           if (-not (Test-Path "$HOME\.claude\skills\setup")) { throw 'Uninstall deleted a foreign skill (decoy gone)' }
           $decoy = Get-Item "$HOME\.claude\skills\setup" -Force
           if (@($decoy.Target)[0] -notlike "*foreign-tool*") { throw 'Decoy no longer points at its original target' }
+          # Reinstall idempotency (TC-INST-013 / Gap G2): second install over an
+          # owned install must replace cleanly — all OK, zero FAIL/SKIP
+          & dist/claude/setup.ps1 6>&1 | Out-Null
+          $second = & dist/claude/setup.ps1 6>&1 | Out-String
+          Write-Host $second
+          if ($second -match 'FAIL|SKIP') { throw 'Second install is not idempotent' }
+          if (($second | Select-String '  OK      ' -AllMatches).Matches.Count -lt 15) { throw 'Second install did not report 15 OK items' }
+          # -NoPrefix onto a foreign bare name must FAIL, never overwrite (TC-INST-009 / issue 6-a)
+          $np = & dist/claude/setup.ps1 -NoPrefix 6>&1 | Out-String
+          Write-Host $np
+          if ($np -notmatch 'FAIL    setup') { throw 'NoPrefix did not FAIL on the foreign setup decoy' }
+          $decoy2 = Get-Item "$HOME\.claude\skills\setup" -Force
+          if (@($decoy2.Target)[0] -notlike '*foreign-tool*') { throw 'NoPrefix overwrote the foreign decoy' }
+          & dist/claude/setup.ps1 -Uninstall
+          if (-not (Test-Path "$HOME\.claude\skills\setup")) { throw 'Final uninstall deleted the foreign decoy' }
+
+      # PowerShell 7 parity (manual matrix item M2): same installer, pwsh shell
+      - name: Install cycle under PowerShell 7
+        if: runner.os == 'Windows'
+        shell: pwsh
+        run: |
+          & dist/claude/setup.ps1
+          & dist/claude/setup.ps1 -Status
+          & dist/claude/setup.ps1 -Uninstall
 
       - name: Install via setup (bash, with foreign decoy)
         if: runner.os == 'Linux'
@@ -69,3 +99,14 @@ jobs:
           dist/claude/setup --uninstall
           test -L "$HOME/.claude/skills/setup"
           test "$(readlink "$HOME/.claude/skills/setup")" = "/tmp/foreign-tool/setup"
+          # Reinstall idempotency (TC-INST-013 / Gap G2)
+          dist/claude/setup > /dev/null
+          dist/claude/setup | tee /tmp/qabuddy-second.txt
+          ! grep -Eq 'FAIL|SKIP' /tmp/qabuddy-second.txt
+          test "$(grep -c '  OK      ' /tmp/qabuddy-second.txt)" -ge 15
+          # -NoPrefix onto a foreign bare name must FAIL, never overwrite (TC-INST-009 / issue 6-a)
+          dist/claude/setup --no-prefix | tee /tmp/qabuddy-np.txt
+          grep -q 'FAIL    setup' /tmp/qabuddy-np.txt
+          test "$(readlink "$HOME/.claude/skills/setup")" = "/tmp/foreign-tool/setup"
+          dist/claude/setup --uninstall
+          test -L "$HOME/.claude/skills/setup"
