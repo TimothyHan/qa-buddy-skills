@@ -103,7 +103,7 @@
 **Precondition:** git repo의 `.github/skills/`에 ① 마커 없는 레거시 QABuddy 복사본(qa-test-plan, SKILL.md에 "QABuddy" 포함) ② 마커·증거 모두 없는 동명 외부 디렉터리(qa-eval)
 **Steps:** `dist/copilot/setup --adopt` → 마커 확인 → `--uninstall` → 외부 디렉터리 확인
 **Expected:** ①만 `ADOPTED` + 마커 생성 후 정상 교체; ②는 인수되지 않고 `FAIL` 안내, uninstall에서 `SKIP` 후 보존
-**Status:** Automated — ci.yml "Adopt migration smoke" (linux) + test.js 구조 검사 4종; ps1 변형(-Adopt)은 Manual (미검증 등급)
+**Status:** Automated — ci.yml 스모크 3종: copilot bash·cursor bash(project)·copilot ps1(PS 5.1) + test.js 구조 검사; 잔여 수동은 cursor ps1 변형뿐
 
 ---
 
