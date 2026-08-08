@@ -1,6 +1,6 @@
 {
   "skill": "start",
-  "version": "0.3.0",
+  "version": "0.3.1",
   "fixtures": [
     {
       "id": "fx-001",
@@ -9,12 +9,31 @@
         "epic": "epic with 3 stories and clear ACs"
       },
       "assertions": [
-        { "field": "output", "op": "contains", "value": "Test Plan" },
-        { "field": "output", "op": "contains", "value": "Test Cases" },
-        { "field": "output", "op": "contains", "value": "Planning Complete" },
-        { "field": "output", "op": "contains", "value": "DONE" }
+        {
+          "field": "output",
+          "op": "contains",
+          "value": "Test Plan"
+        },
+        {
+          "field": "output",
+          "op": "contains",
+          "value": "Test Cases"
+        },
+        {
+          "field": "output",
+          "op": "contains",
+          "value": "Planning Complete"
+        },
+        {
+          "field": "output",
+          "op": "contains",
+          "value": "DONE"
+        }
       ],
-      "tags": ["happy-path", "full-workflow"]
+      "tags": [
+        "happy-path",
+        "full-workflow"
+      ]
     },
     {
       "id": "fx-002",
@@ -23,10 +42,20 @@
         "epic": "any epic"
       },
       "assertions": [
-        { "field": "output", "op": "matches", "value": "Approve|approve|Continue|continue" },
-        { "field": "output", "op": "matches", "value": "Review|review" }
+        {
+          "field": "output",
+          "op": "matches",
+          "value": "Approve|approve|Continue|continue"
+        },
+        {
+          "field": "output",
+          "op": "matches",
+          "value": "Review|review"
+        }
       ],
-      "tags": ["pause-points"]
+      "tags": [
+        "pause-points"
+      ]
     },
     {
       "id": "fx-003",
@@ -36,9 +65,15 @@
         "epic": "previously started epic"
       },
       "assertions": [
-        { "field": "output", "op": "matches", "value": "Resume|resume|left off" }
+        {
+          "field": "output",
+          "op": "matches",
+          "value": "Resume|resume|left off"
+        }
       ],
-      "tags": ["resume"]
+      "tags": [
+        "resume"
+      ]
     },
     {
       "id": "fx-004",
@@ -48,9 +83,15 @@
         "epic": "any epic"
       },
       "assertions": [
-        { "field": "output", "op": "matches", "value": "context source|Context source|Jira|spec|chat" }
+        {
+          "field": "output",
+          "op": "matches",
+          "value": "context source|Context source|Jira|spec|chat"
+        }
       ],
-      "tags": ["inline-setup"]
+      "tags": [
+        "inline-setup"
+      ]
     }
   ]
 }

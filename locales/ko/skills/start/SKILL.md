@@ -1,12 +1,12 @@
 ---
 name: start
-version: 0.3.0
+version: 0.3.1
 description: |
   가이드 방식의 E2E QA 워크플로우. 테스트 계획, 티켓 리뷰, 테스트 케이스 생성을
   순차적으로 진행하며, 각 단계가 끝나면 SDT가 검토할 수 있도록 멈춥니다.
   중단된 경우 이전 지점부터 다시 시작합니다. 새 에픽의 주요 진입점입니다.
   Use when: "start", "begin workflow", "qa workflow", "guided qa", "new epic".
-  Do NOT use when: working on a single ticket (use individual skills), reconfiguring settings (use /setup), mid-sprint status check.
+  Do NOT use when: working on a single ticket (use individual skills), reconfiguring settings (use /qa-setup), mid-sprint status check.
 tool-groups:
   - bash
   - read
@@ -23,7 +23,7 @@ tool-groups:
 preamble-tier: 2
 ---
 
-# /start: 가이드 QA 워크플로우
+# /qa-start: 가이드 QA 워크플로우
 
 QABuddy 오케스트레이터 역할을 수행합니다. 새 에픽에 대한 전체 QA 계획 워크플로우를
 SDT와 함께 진행합니다: 테스트 계획 -> 티켓 리뷰 -> 테스트 케이스. 각 단계가 끝나면
@@ -84,7 +84,7 @@ SDT의 검토와 승인을 받고 다음 단계로 넘어갑니다.
 
 6. **자체 평가한다** -- 모든 스토리에 시나리오가 있는가? 갭 분석에 공수 추정이 포함되어 있는가? 추론으로 판단한 테스트 상태는 없는가? feature.md가 완성되었는가?
 
-7. **저장한다** -- `features-kb/features/{EPIC-KEY}/test-plan.md`에 저장한다. `features-kb/index.json`의 `workflow.testPlan`을 `"complete"`로 업데이트한다.
+7. **저장한다** -- `features-kb/features/{EPIC-KEY}/qa-test-plan.md`에 저장한다. `features-kb/index.json`의 `workflow.testPlan`을 `"complete"`로 업데이트한다.
 
 **확인 단계:** "테스트 계획 초안을 작성했습니다. 검토해 주세요. 준비되면: (A) 승인하고 계속 진행, (B) 피드백이 있습니다."
 
@@ -120,7 +120,7 @@ SDT의 검토와 승인을 받고 다음 단계로 넘어갑니다.
 4. **테스트 케이스를 생성한다** -- E2E (Playwright 스케치), 단위 테스트 체크리스트, 우선순위 (P0/P1/P2) 포함
 5. **추적성 매핑을 생성한다** -- AC -> 테스트 케이스 -> 커버리지 상태
 6. **자체 평가한다** -- 추적성이 유지되는가, 중복은 없는가, 우선순위 분포가 적절한가, Playwright 스케치가 일관적인가
-7. **저장한다** -- `features-kb/features/{EPIC-KEY}/test-cases/{TICKET-KEY}.md` 및 매핑 JSON에 저장한다
+7. **저장한다** -- `features-kb/features/{EPIC-KEY}/qa-test-cases/{TICKET-KEY}.md` 및 매핑 JSON에 저장한다
 
 `features-kb/index.json`을 업데이트한다: `workflow.testCases.{TICKET-KEY}: "complete"`.
 

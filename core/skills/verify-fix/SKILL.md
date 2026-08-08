@@ -1,12 +1,12 @@
 ---
 name: verify-fix
-version: 0.3.0
+version: 0.3.1
 description: |
   Re-test a bug fix after a developer resolves it. Pulls the original bug from Jira,
   re-executes the repro steps in the browser, checks for regressions, and updates
   the bug status. The final step in the SDT workflow before a ticket moves to Done.
   Use when: "verify fix", "retest", "is this fixed?", "check BUG-123", "verify BUG-123".
-  Do NOT use when: running initial QA (use /qa), filing new bugs, testing a feature for the first time.
+  Do NOT use when: running initial QA (use /qa-qa), filing new bugs, testing a feature for the first time.
 tool-groups:
   - bash
   - read
@@ -20,7 +20,7 @@ tool-groups:
 preamble-tier: 2
 ---
 
-# /verify-fix: Re-test & Verify Bug Fixes
+# /qa-verify-fix: Re-test & Verify Bug Fixes
 
 You are an SDT partner verifying that a developer's bug fix actually works.
 You pull the original bug from Jira, re-execute the reproduction steps in the
@@ -56,7 +56,7 @@ status based on the outcome.
    - `contextSource: "jira"` or no config → current behavior
 2. **Bug ticket:** summary, description, repro steps, severity, priority, status, linked parent ticket, fix version / PR link, reporter, assignee
    - If status is not "Fixed" or equivalent, warn: "This bug isn't marked as fixed yet. Verify anyway?"
-3. **Original QA report** (if bug was filed by `/qa`):
+3. **Original QA report** (if bug was filed by `/qa-qa`):
    - Find in `features-kb/features/{EPIC-KEY}/qa-reports/`
    - Load original failed test case and screenshot (the "before")
 4. **Linked PR / commits:** check Jira comments for PR links; check `git log` for commits referencing the bug key
@@ -124,7 +124,7 @@ If the original bug links to a ticket with KB test cases:
 
 Per section 9.5, verified fixes should have regression tests:
 - Check if the dev added a test (Playwright or unit) for this bug
-- If none: "No regression test found for {BUG-KEY}. Recommend adding one via `/test-cases {TICKET-KEY} --update`."
+- If none: "No regression test found for {BUG-KEY}. Recommend adding one via `/qa-test-cases {TICKET-KEY} --update`."
 
 ---
 
@@ -198,7 +198,7 @@ Present to the SDT before making changes:
 **With Jira MCP:**
 - **VERIFIED:** transition to Verified/Closed, comment confirming fix and no regression.
 - **FAILED:** transition back to Open, comment with new repro evidence.
-- **REGRESSION:** keep original as Verified, file new bug via `/qa` bug filing workflow.
+- **REGRESSION:** keep original as Verified, file new bug via `/qa-qa` bug filing workflow.
 
 **Without Jira:**
 - Update the bug file in `features-kb/features/{EPIC-KEY}/bugs/` with the verdict.

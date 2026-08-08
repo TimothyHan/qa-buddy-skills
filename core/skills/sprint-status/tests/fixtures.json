@@ -1,6 +1,6 @@
 {
   "skill": "sprint-status",
-  "version": "0.4.0",
+  "version": "0.4.1",
   "fixtures": [
     {
       "id": "fx-001",
@@ -9,14 +9,41 @@
         "sprint": "sprint with 5 tickets: 2 QA passed, 1 bugs open, 1 not started, 1 blocked"
       },
       "assertions": [
-        { "field": "output", "op": "contains", "value": "Per-Ticket Status" },
-        { "field": "output", "op": "contains", "value": "Sprint Quality Metrics" },
-        { "field": "output", "op": "contains", "value": "Defect escape rate" },
-        { "field": "output", "op": "contains", "value": "Test pass rate" },
-        { "field": "output", "op": "contains", "value": "Recommendations" },
-        { "field": "output", "op": "contains", "value": "DONE" }
+        {
+          "field": "output",
+          "op": "contains",
+          "value": "Per-Ticket Status"
+        },
+        {
+          "field": "output",
+          "op": "contains",
+          "value": "Sprint Quality Metrics"
+        },
+        {
+          "field": "output",
+          "op": "contains",
+          "value": "Defect escape rate"
+        },
+        {
+          "field": "output",
+          "op": "contains",
+          "value": "Test pass rate"
+        },
+        {
+          "field": "output",
+          "op": "contains",
+          "value": "Recommendations"
+        },
+        {
+          "field": "output",
+          "op": "contains",
+          "value": "DONE"
+        }
       ],
-      "tags": ["happy-path", "mixed-status"]
+      "tags": [
+        "happy-path",
+        "mixed-status"
+      ]
     },
     {
       "id": "fx-002",
@@ -25,11 +52,26 @@
         "sprint": "sprint with 2 Critical bugs open, 3 tickets untested"
       },
       "assertions": [
-        { "field": "output", "op": "matches", "value": "[Ll]ow" },
-        { "field": "output", "op": "contains", "value": "Risk Items" },
-        { "field": "output", "op": "contains", "value": "Critical" }
+        {
+          "field": "output",
+          "op": "matches",
+          "value": "[Ll]ow"
+        },
+        {
+          "field": "output",
+          "op": "contains",
+          "value": "Risk Items"
+        },
+        {
+          "field": "output",
+          "op": "contains",
+          "value": "Critical"
+        }
       ],
-      "tags": ["low-confidence", "critical-bugs"]
+      "tags": [
+        "low-confidence",
+        "critical-bugs"
+      ]
     },
     {
       "id": "fx-003",
@@ -38,9 +80,16 @@
         "sprint": "sprint with tickets at various stages"
       },
       "assertions": [
-        { "field": "output", "op": "matches", "value": "/qa-|/verify-fix|/test-cases|/review-ticket" }
+        {
+          "field": "output",
+          "op": "matches",
+          "value": "/qa-|/verify-fix|/test-cases|/review-ticket"
+        }
       ],
-      "tags": ["recommendations", "skill-commands"]
+      "tags": [
+        "recommendations",
+        "skill-commands"
+      ]
     },
     {
       "id": "fx-004",
@@ -49,10 +98,21 @@
         "sprint": "sprint with no QA reports, no bugs filed"
       },
       "assertions": [
-        { "field": "output", "op": "contains", "value": "N/A" },
-        { "field": "output", "op": "contains", "value": "Sprint Quality Metrics" }
+        {
+          "field": "output",
+          "op": "contains",
+          "value": "N/A"
+        },
+        {
+          "field": "output",
+          "op": "contains",
+          "value": "Sprint Quality Metrics"
+        }
       ],
-      "tags": ["missing-data", "graceful"]
+      "tags": [
+        "missing-data",
+        "graceful"
+      ]
     }
   ]
 }

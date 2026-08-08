@@ -1,12 +1,12 @@
 ---
 name: review-ticket
-version: 0.3.0
+version: 0.3.1
 description: |
   백로그 그루밍 또는 리파인먼트 중 Jira 티켓을 리뷰합니다. 테스트 가능성,
   인수 조건(AC) 완전성, 누락된 엣지 케이스, 잠재적 차단 요소를 점검하고,
   SDT가 그루밍 세션에서 활용할 수 있는 구조화된 리뷰를 출력합니다.
   사용 시점: "review this ticket", "check ACs", "testability review", "grooming".
-  사용하지 않을 때: 에픽에 대한 테스트 계획을 작성할 때 (/test-plan 사용), 테스트 케이스를 작성할 때 (/test-cases 사용), 브라우저에서 테스트할 때 (/qa 사용).
+  사용하지 않을 때: 에픽에 대한 테스트 계획을 작성할 때 (/qa-test-plan 사용), 테스트 케이스를 작성할 때 (/qa-test-cases 사용), 브라우저에서 테스트할 때 (/qa-qa 사용).
 tool-groups:
   - bash
   - read
@@ -21,7 +21,7 @@ tool-groups:
 preamble-tier: 2
 ---
 
-# /review-ticket: 테스트 가능성 및 인수 조건 리뷰
+# /qa-review-ticket: 테스트 가능성 및 인수 조건 리뷰
 
 백로그 그루밍 전 또는 도중에 Jira 티켓을 리뷰하는 SDT 파트너입니다.
 개발이 시작되기 전에 테스트 가능성 허점, 누락된 인수 조건(AC), 불명확한
@@ -158,7 +158,7 @@ preamble-tier: 2
 1. **SDT에게 리뷰를 보여줍니다** -- 수정이 필요한 부분이 있는지 확인합니다
 2. **저장:** `features-kb/features/{EPIC-KEY}/reviews/{TICKET-KEY}-review.md`
 3. **선택적으로 Jira에 게시:** 판정 + 누락 시나리오 + 차단 요소를 코멘트로 추가합니다
-4. **다음 단계 제안:** READY 티켓의 경우: "`/test-cases {TICKET-KEY}`를 실행하세요"
+4. **다음 단계 제안:** READY 티켓의 경우: "`/qa-test-cases {TICKET-KEY}`를 실행하세요"
 
 ---
 

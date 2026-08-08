@@ -36,7 +36,7 @@ QABuddy는 완성품이 아니라 파운데이션입니다. 모든 프로젝트�
 - **Statement:** 장바구니 상태는 세션 토큰과 함께 `POST /api/cart`로 시딩.
   테스트에서 UI 클릭으로 장바구니 담기 금지 — 이 앱에서는 플레이키.
 - **Overrides:** playwright-patterns.md §사전조건 (확장: API 우선, 엔드포인트 추가)
-- **Evidence:** 2026-08-07 /test-cases 실행 — SDT가 초안 수정; UI 시딩이
+- **Evidence:** 2026-08-07 /qa-test-cases 실행 — SDT가 초안 수정; UI 시딩이
   스프린트 14에서 플레이키한 체크아웃 스펙의 원인이었음.
 ```
 

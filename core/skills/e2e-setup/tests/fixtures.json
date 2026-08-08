@@ -1,7 +1,7 @@
 {
   "skill": "e2e-setup",
-  "version": "0.1.1",
-  "note": "RED SUITE — written before the skill exists (eval-first). Execute fixtures run against core/skills/eval/tests/fixture-app/. Ground truth: ANSWER-KEY.md (never shown to the skill).",
+  "version": "0.1.2",
+  "note": "RED SUITE \u2014 written before the skill exists (eval-first). Execute fixtures run against core/skills/eval/tests/fixture-app/. Ground truth: ANSWER-KEY.md (never shown to the skill).",
   "fixtures": [
     {
       "id": "fx-001",
@@ -110,7 +110,7 @@
     {
       "id": "fx-003",
       "mode": "simulate",
-      "description": "Recommends before asking — no open-ended interview questions for probeable facts",
+      "description": "Recommends before asking \u2014 no open-ended interview questions for probeable facts",
       "input": {
         "scenario": "App has a login form posting to /api/auth/login which sets an HttpOnly cookie. Skill reaches the auth-strategy step."
       },

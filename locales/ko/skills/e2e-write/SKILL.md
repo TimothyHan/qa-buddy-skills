@@ -1,15 +1,15 @@
 ---
 name: e2e-write
-version: 0.1.1
+version: 0.1.2
 description: |
   테스트 케이스로부터 e2e 테스트 스위트를 작성합니다: 사전 조건용 API
   클라이언트, fixture, 그리고 증명된 POM 위의 의도만 담은 스펙. 로케이터를
-  절대 지어내지 않습니다 -- 페이지에 POM이 없으면 먼저 /e2e-pom을
+  절대 지어내지 않습니다 -- 페이지에 POM이 없으면 먼저 /qa-e2e-pom을
   호출합니다. 스위트가 세 게이트(green, 다시 green(정리 증명),
   --repeat-each=3에서 green(플레이크 증명))와 금지 패턴 기계 린트를 통과해야
   완료입니다.
   사용 시점: "write e2e tests", "automate test cases", "generate the test suite", "API client for tests".
-  사용하지 않을 때: Playwright 셋업 시 (/e2e-setup 사용), 페이지 객체 빌드/힐링 시 (/e2e-pom 사용), 수동 테스트 실행 시 (/qa 사용).
+  사용하지 않을 때: Playwright 셋업 시 (/qa-e2e-setup 사용), 페이지 객체 빌드/힐링 시 (/qa-e2e-pom 사용), 수동 테스트 실행 시 (/qa-qa 사용).
 tool-groups:
   - bash
   - read
@@ -22,10 +22,10 @@ tool-groups:
 preamble-tier: 1
 ---
 
-# /e2e-write: 테스트 스위트 생성
+# /qa-e2e-write: 테스트 스위트 생성
 
 테스트 케이스를 통과하는, 재실행 가능한, 플레이크 없는 스위트로 바꿉니다.
-`playwright/AUTOMATION.md`(결정)와 `/e2e-pom`의 POM + 인벤토리를 읽습니다.
+`playwright/AUTOMATION.md`(결정)와 `/qa-e2e-pom`의 POM + 인벤토리를 읽습니다.
 어휘는 POM과 API 클라이언트; 스펙은 의도만 담습니다.
 
 **코드 표준:** 클라이언트, fixture, 스펙 코드를 쓰기 전에
@@ -38,7 +38,7 @@ context, worker-indexed 계정, 네트워크 동기화), 매처 테이블, 안�
 ## 제약 사항
 
 1. **로케이터를 절대 지어내지 않습니다.** 스펙과 헬퍼는 POM export만
-   사용합니다. POM 없는 페이지 → `/e2e-pom` 스킬(build 모드)을 호출하고 그
+   사용합니다. POM 없는 페이지 → `/qa-e2e-pom` 스킬(build 모드)을 호출하고 그
    게이트 통과 후 계속합니다. 매핑 안 된 요소에 인라인으로
    `getByTestId(...)`를 쓰는 것이 이 스킬의 대표적 실패입니다.
 2. **스펙은 의도만.** 스펙 파일에 `page.locator(`, raw CSS/XPath,
@@ -72,10 +72,10 @@ context, worker-indexed 계정, 네트워크 동기화), 매처 테이블, 안�
 ## Phase 1: 입력
 
 - 테스트 케이스 (KB 경로 또는 파일) -- 스펙의 진실 원천
-- `playwright/AUTOMATION.md` -- 없으면 `/e2e-setup` 먼저, 중단
+- `playwright/AUTOMATION.md` -- 없으면 `/qa-e2e-setup` 먼저, 중단
 - TC가 건드리는 모든 화면의 POM + 인벤토리 -- 없거나 불완전 → 누락 화면에
-  대해 `/e2e-pom` build 모드 호출 (제약 1)
-- `/e2e-pom`이 저장했다면 `playwright/api-capture.json`; AUTOMATION.md에
+  대해 `/qa-e2e-pom` build 모드 호출 (제약 1)
+- `/qa-e2e-pom`이 저장했다면 `playwright/api-capture.json`; AUTOMATION.md에
   있다면 OpenAPI 스펙
 
 ## Phase 2: API 클라이언트
@@ -158,4 +158,4 @@ OpenAPI 스펙 또는 네트워크 캡처로부터, TC에 필요한 작업(시�
 
 **Status:** DONE | DONE_WITH_CONCERNS (우려 사항 명시) | BLOCKED (게이트 + 출력 명시)
 **Summary:** TC {n}개 자동화, 게이트 {gates}개 green, 부채 {d}건
-**Next steps:** {CI 연결 | 부채 해소 | 검증 드리프트 시 /e2e-pom heal}
+**Next steps:** {CI 연결 | 부채 해소 | 검증 드리프트 시 /qa-e2e-pom heal}

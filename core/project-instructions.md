@@ -10,40 +10,42 @@ provided via files, chat, or any project management tool.
 
 | Skill | Command | Sprint Phase | What it does |
 |-------|---------|-------------|--------------|
-| Test Plan | `/test-plan` | Epic created | Build test plan from epic: strategy, automation gaps, success criteria, risks |
-| Review Ticket | `/review-ticket` | Grooming / Refinement | Audit ticket for testability, AC gaps, missing edge cases, blockers |
-| Test Cases | `/test-cases` | Sprint execution | Generate e2e test cases + unit test checklist from ticket ACs |
-| QA | `/qa` | Feature ready | Execute test cases, verify ACs in browser, file bugs |
-| Verify Fix | `/verify-fix` | Bug fixed | Re-test a bug fix, check regressions, update bug status |
-| Sprint Status | `/sprint-status` | Mid-sprint | Cross-feature dashboard: tested, blocked, coverage gaps |
-| Exploratory | `/exploratory` | Feature ready | Guided exploratory testing session with charter and findings |
-| E2E Setup | `/e2e-setup` | Automation start | Probe the app, scaffold Playwright, record decisions in AUTOMATION.md |
-| E2E POM | `/e2e-pom` | Automation | Build/heal page objects by live discovery — locators proven, never guessed |
-| E2E Write | `/e2e-write` | Automation | Suites from test cases: API preconditions, intent-only specs, four gates |
-| Improve | `/improve` | After any skill | Fix skill failures; distill the learnings layer (dedupe, retire, promote) |
-| Eval | `/eval` | After /improve | Run eval fixtures against a skill to verify correctness |
-| Setup | `/setup` | First run | Configure context source, team mode, project preferences |
-| Start | `/start` | Epic created | Guided workflow: setup → test plan → reviews → test cases |
+| Test Plan | `/qa-test-plan` | Epic created | Build test plan from epic: strategy, automation gaps, success criteria, risks |
+| Review Ticket | `/qa-review-ticket` | Grooming / Refinement | Audit ticket for testability, AC gaps, missing edge cases, blockers |
+| Test Cases | `/qa-test-cases` | Sprint execution | Generate e2e test cases + unit test checklist from ticket ACs |
+| QA | `/qa-qa` | Feature ready | Execute test cases, verify ACs in browser, file bugs |
+| Verify Fix | `/qa-verify-fix` | Bug fixed | Re-test a bug fix, check regressions, update bug status |
+| Sprint Status | `/qa-sprint-status` | Mid-sprint | Cross-feature dashboard: tested, blocked, coverage gaps |
+| Exploratory | `/qa-exploratory` | Feature ready | Guided exploratory testing session with charter and findings |
+| E2E Setup | `/qa-e2e-setup` | Automation start | Probe the app, scaffold Playwright, record decisions in AUTOMATION.md |
+| E2E POM | `/qa-e2e-pom` | Automation | Build/heal page objects by live discovery — locators proven, never guessed |
+| E2E Write | `/qa-e2e-write` | Automation | Suites from test cases: API preconditions, intent-only specs, four gates |
+| Improve | `/qa-improve` | After any skill | Fix skill failures; distill the learnings layer (dedupe, retire, promote) |
+| Eval | `/qa-eval` | After /qa-improve | Run eval fixtures against a skill to verify correctness |
+| Setup | `/qa-setup` | First run | Configure context source, team mode, project preferences |
+| Start | `/qa-start` | Epic created | Guided workflow: setup → test plan → reviews → test cases |
+
+Commands above use the default `qa-` prefix. Installing with `--no-prefix` / `-NoPrefix` drops it (e.g. `/test-plan`) — same skills, bare names.
 
 ## Routing
 
 Invoke skills based on what the user says:
 
-- "test plan", "plan tests for this epic", "test strategy" -> `/test-plan`
-- "review this ticket", "check ACs", "testability review", "grooming" -> `/review-ticket`
-- "write test cases", "generate tests", "e2e tests for this" -> `/test-cases`
-- "qa", "test this ticket", "run test cases", "verify ACs", "does this pass?" -> `/qa`
-- "verify fix", "retest", "is this fixed?", "check BUG-123" -> `/verify-fix`
-- "sprint status", "what's tested", "coverage check" -> `/sprint-status`
-- "exploratory test", "explore this feature", "charter for testing" -> `/exploratory`
-- "set up playwright", "e2e setup", "test automation setup" -> `/e2e-setup`
-- "build POM", "page objects", "map elements", "heal selectors" -> `/e2e-pom`
-- "write e2e tests", "automate test cases", "generate the test suite" -> `/e2e-write`
-- "this didn't work", "improve this skill", "fix the skill", "output was wrong" -> `/improve`
-- "distill learnings", "clean up learnings" -> `/improve` (distill mode)
-- "eval", "run evals", "test skill", "check fixtures", "regression test" -> `/eval`
-- "setup", "configure", "first time", "change settings" -> `/setup`
-- "start", "begin", "guided qa", "qa workflow", "new epic" -> `/start`
+- "test plan", "plan tests for this epic", "test strategy" -> `/qa-test-plan`
+- "review this ticket", "check ACs", "testability review", "grooming" -> `/qa-review-ticket`
+- "write test cases", "generate tests", "e2e tests for this" -> `/qa-test-cases`
+- "qa", "test this ticket", "run test cases", "verify ACs", "does this pass?" -> `/qa-qa`
+- "verify fix", "retest", "is this fixed?", "check BUG-123" -> `/qa-verify-fix`
+- "sprint status", "what's tested", "coverage check" -> `/qa-sprint-status`
+- "exploratory test", "explore this feature", "charter for testing" -> `/qa-exploratory`
+- "set up playwright", "e2e setup", "test automation setup" -> `/qa-e2e-setup`
+- "build POM", "page objects", "map elements", "heal selectors" -> `/qa-e2e-pom`
+- "write e2e tests", "automate test cases", "generate the test suite" -> `/qa-e2e-write`
+- "this didn't work", "improve this skill", "fix the skill", "output was wrong" -> `/qa-improve`
+- "distill learnings", "clean up learnings" -> `/qa-improve` (distill mode)
+- "eval", "run evals", "test skill", "check fixtures", "regression test" -> `/qa-eval`
+- "setup", "configure", "first time", "change settings" -> `/qa-setup`
+- "start", "begin", "guided qa", "qa workflow", "new epic" -> `/qa-start`
 
 ## Process Context
 
@@ -118,6 +120,6 @@ Each skill references only the files it needs — see the skill's methodology re
 
 - Execute test cases from KB before ad-hoc testing
 - File bugs (Jira if available, otherwise structured markdown in KB)
-- Verify fixes via `/verify-fix` before closing bugs
+- Verify fixes via `/qa-verify-fix` before closing bugs
 - Flag missing regression tests during fix verification
 - Generate unit test checklists for developers alongside e2e test cases

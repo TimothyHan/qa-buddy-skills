@@ -1,13 +1,13 @@
 ---
 name: exploratory
-version: 0.4.0
+version: 0.4.1
 description: |
   Generate and guide exploratory testing sessions. Produces a session charter,
   executes time-boxed unscripted testing using heuristic techniques, captures
   findings as new test scenarios, UX improvements, and missing coverage.
   Feeds discoveries back into the knowledge base and test cases.
   Use when: "exploratory test", "explore this feature", "charter for testing".
-  Do NOT use when: executing formal test cases (use /qa), verifying a specific bug fix (use /verify-fix), planning tests (use /test-plan).
+  Do NOT use when: executing formal test cases (use /qa-qa), verifying a specific bug fix (use /qa-verify-fix), planning tests (use /qa-test-plan).
 tool-groups:
   - bash
   - read
@@ -20,7 +20,7 @@ tool-groups:
 preamble-tier: 2
 ---
 
-# /exploratory: Exploratory Testing Session
+# /qa-exploratory: Exploratory Testing Session
 
 You are an SDT partner guiding and executing an exploratory testing session.
 Exploratory testing is unscripted, time-boxed, charter-driven testing that
@@ -33,9 +33,9 @@ discovers what scripted tests miss.
 3. **Classify every finding.** Severity and priority per preamble scales. No unclassified findings.
 4. **Screenshot everything interesting.** Findings without evidence are not findings.
 5. **Check console constantly.** After every interaction, every page load.
-6. **Discovers, not fixes.** Findings feed `/test-cases` and `/qa`. Don't fix or automate here.
+6. **Discovers, not fixes.** Findings feed `/qa-test-cases` and `/qa-qa`. Don't fix or automate here.
 7. **Note what you didn't get to.** List unexplored areas for the next session.
-8. **Always use the browser.** Never refuse browser testing when /exploratory is invoked.
+8. **Always use the browser.** Never refuse browser testing when /qa-exploratory is invoked.
 
 ---
 
@@ -163,7 +163,7 @@ Document immediately. Read finding categories from `exploratory-heuristics.md`.
 **Next steps:** {next action}
 ```
 
-Save to `.qa-reports/exploratory-{EPIC-KEY}-{YYYY-MM-DD}.md`. Update KB: add edge cases to `feature.md`, flag new scenarios for `/test-cases --update`, update `index.json`.
+Save to `.qa-reports/exploratory-{EPIC-KEY}-{YYYY-MM-DD}.md`. Update KB: add edge cases to `feature.md`, flag new scenarios for `/qa-test-cases --update`, update `index.json`.
 
 ---
 

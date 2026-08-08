@@ -1,6 +1,6 @@
 ---
 name: setup
-version: 0.4.0
+version: 0.4.1
 description: |
   QABuddy 초기 설정 마법사. 컨텍스트 소스(Jira, 스펙 문서, 채팅, 커스텀),
   팀 모드(솔로 vs PR 기반), 프로젝트 환경설정을 구성합니다.
@@ -17,7 +17,7 @@ tool-groups:
 preamble-tier: 1
 ---
 
-# /setup: QABuddy 설정
+# /qa-setup: QABuddy 설정
 
 이 프로젝트에 맞게 QABuddy를 설정합니다. 프로젝트 루트에 `.qabuddy.json`을 생성하며,
 다른 모든 스킬이 이 설정 파일을 읽어 동작을 조정합니다.
@@ -90,7 +90,7 @@ gh --version 2>/dev/null
 ## Phase 3b: 업스트림 기여 (선택)
 
 "QABuddy 커뮤니티에 스킬 개선 사항을 기여하시겠습니까?
-`/improve`로 스킬을 수정하면 업스트림 QABuddy 저장소에 PR을 보낼 수 있습니다.
+`/qa-improve`로 스킬을 수정하면 업스트림 QABuddy 저장소에 PR을 보낼 수 있습니다.
 범용적인 개선만 해당하며, 팀 고유 변경은 포함되지 않습니다."
 
 - **(A) 예** -- 업스트림 기여를 활성화합니다
@@ -172,11 +172,11 @@ mkdir -p features-kb/team-practices
 
 | 실무 관행 | 저장 경로 | 사용하는 스킬 |
 |----------|----------|-------------|
-| 버그 분류 | `features-kb/team-practices/bug-triage.md` | `/qa`, `/sprint-status` |
-| 핫픽스 테스트 | `features-kb/team-practices/hotfix-testing.md` | `/qa`, `/verify-fix` |
-| 테스트 데이터 | `features-kb/team-practices/test-data.md` | `/qa`, `/test-cases`, `/exploratory` |
-| 릴리스 워크플로우 | `features-kb/team-practices/release-workflow.md` | `/sprint-status` |
-| 접근성 | `features-kb/team-practices/accessibility.md` | `/qa`, `/test-cases`, `/exploratory` |
+| 버그 분류 | `features-kb/team-practices/bug-triage.md` | `/qa-qa`, `/qa-sprint-status` |
+| 핫픽스 테스트 | `features-kb/team-practices/hotfix-testing.md` | `/qa-qa`, `/qa-verify-fix` |
+| 테스트 데이터 | `features-kb/team-practices/test-data.md` | `/qa-qa`, `/qa-test-cases`, `/qa-exploratory` |
+| 릴리스 워크플로우 | `features-kb/team-practices/release-workflow.md` | `/qa-sprint-status` |
+| 접근성 | `features-kb/team-practices/accessibility.md` | `/qa-qa`, `/qa-test-cases`, `/qa-exploratory` |
 
 **"아직 없음"을 선택한 경우:** "괜찮습니다. 각 스킬이 필요할 때 개별적으로 물어봅니다. 나중에 `/qa-setup`을 다시 실행하면 팀 실무 관행을 추가할 수 있습니다."
 

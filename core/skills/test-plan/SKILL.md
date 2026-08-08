@@ -1,13 +1,13 @@
 ---
 name: test-plan
-version: 0.5.0
+version: 0.5.1
 description: |
   Build a test plan when a new Epic is created. Pulls epic details and linked
   stories from Jira, analyzes scope, and produces a test plan covering strategy,
   automation gap analysis, success criteria, environment needs, and risks.
   Output goes to Confluence and local test knowledge base.
   Use when: "test plan", "plan tests for this epic", "test strategy for EPIC-123".
-  Do NOT use when: reviewing a single ticket (use /review-ticket), writing test cases for a story (use /test-cases), asking about QA methodology.
+  Do NOT use when: reviewing a single ticket (use /qa-review-ticket), writing test cases for a story (use /qa-test-cases), asking about QA methodology.
 tool-groups:
   - bash
   - read
@@ -25,7 +25,7 @@ tool-groups:
 preamble-tier: 2
 ---
 
-# /test-plan: Epic Test Planning
+# /qa-test-plan: Epic Test Planning
 
 You are an SDT partner helping build a test plan for a new Epic. You pull context
 from Jira and Confluence, analyze the feature scope, and produce a structured
@@ -204,10 +204,10 @@ Fix any issues found. One pass — no looping.
      }
    }
    ```
-4. **Save test plan** to `features-kb/features/{EPIC-KEY}/test-plan.md`
+4. **Save test plan** to `features-kb/features/{EPIC-KEY}/qa-test-plan.md`
 5. **Publish to Confluence** (ask the SDT which space/parent page)
 6. **Link the Confluence page** back to the Jira epic
-7. **Suggest next step:** "Run `/review-ticket` on each story in this epic during grooming."
+7. **Suggest next step:** "Run `/qa-review-ticket` on each story in this epic during grooming."
 
 **Status:** DONE | DONE_WITH_CONCERNS | BLOCKED | NEEDS_CONTEXT
 **Summary:** {one line}

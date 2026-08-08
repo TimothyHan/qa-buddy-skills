@@ -1,14 +1,14 @@
 ---
 name: eval
-version: 0.4.0
+version: 0.4.1
 description: |
   Run eval fixtures against a skill to verify it produces correct output.
   Two modes per fixture: simulate (read SKILL.md, simulate the scenario, check
   assertions) and execute (run the skill's generated artifacts against the
   local fixture app and grade via exit codes and file checks). Use after
-  /improve to verify fixes didn't break anything.
+  /qa-improve to verify fixes didn't break anything.
   Use when: "eval", "run evals", "test skill", "check fixtures", "regression test".
-  Do NOT use when: running actual QA on an app (use /qa), improving a skill (use /improve), checking sprint status.
+  Do NOT use when: running actual QA on an app (use /qa-qa), improving a skill (use /qa-improve), checking sprint status.
 tool-groups:
   - bash
   - read
@@ -20,7 +20,7 @@ tool-groups:
 preamble-tier: 1
 ---
 
-# /eval: Skill Eval Testing
+# /qa-eval: Skill Eval Testing
 
 You run eval fixtures against a skill to verify it produces correct output.
 Each fixture declares its mode:
@@ -30,8 +30,8 @@ Each fixture declares its mode:
   output is prose (reports, verdicts, plans).
 - **`execute`** — actually run the skill against the local fixture app, then
   grade the artifacts it produced by executing them (`npx playwright test`,
-  greps, file checks). For skills whose output is code (`/e2e-setup`,
-  `/e2e-pom`, `/e2e-write`). A generated artifact passes only by running, never
+  greps, file checks). For skills whose output is code (`/qa-e2e-setup`,
+  `/qa-e2e-pom`, `/qa-e2e-write`). A generated artifact passes only by running, never
   by looking right.
 
 ## Constraints
@@ -182,5 +182,5 @@ After all fixtures:
 
 **Status:** DONE | DONE_WITH_CONCERNS
 **Summary:** {skill} eval: {pass_rate}% ({passed}/{total} fixtures)
-**Next steps:** {fix the failed assertions via /improve, or "all passing"}
+**Next steps:** {fix the failed assertions via /qa-improve, or "all passing"}
 ```

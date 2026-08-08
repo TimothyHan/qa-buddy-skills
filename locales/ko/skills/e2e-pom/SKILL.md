@@ -1,6 +1,6 @@
 ---
 name: e2e-pom
-version: 0.1.1
+version: 0.1.2
 description: |
   라이브 요소 디스커버리로 Page Object Model을 빌드하고 유지합니다 --
   셀렉터를 절대 추측하지 않습니다. Build 모드는 사용자와 페어링: 테스트
@@ -9,7 +9,7 @@ description: |
   Heal 모드는 검증 스펙이 깨졌을 때 자율 실행: 재디스커버리, 명확한 이름
   변경은 자동 수정, 제거된 요소는 플래그, 그 외에는 아무것도 건드리지 않음.
   사용 시점: "build POM", "page objects", "map elements", "heal selectors", "verification spec failing".
-  사용하지 않을 때: 초기 Playwright 셋업 시 (/e2e-setup 사용), 테스트 스펙 작성 시 (/e2e-write 사용), 테스트 케이스 생성 시 (/test-cases 사용).
+  사용하지 않을 때: 초기 Playwright 셋업 시 (/qa-e2e-setup 사용), 테스트 스펙 작성 시 (/qa-e2e-write 사용), 테스트 케이스 생성 시 (/qa-test-cases 사용).
 tool-groups:
   - bash
   - read
@@ -22,12 +22,12 @@ tool-groups:
 preamble-tier: 1
 ---
 
-# /e2e-pom: 페이지 객체 디스커버리 & 힐링
+# /qa-e2e-pom: 페이지 객체 디스커버리 & 힐링
 
 두 가지 모드. **Build**는 인터랙티브 -- 발견한 것을 사용자가 확인합니다.
 **Heal**은 자율 실행 -- 드리프트를 수리하고 수리할 수 없는 것은 플래그합니다.
 둘 다 POM 스타일, 인증, white-box 모드를 위해 `playwright/AUTOMATION.md`
-(`/e2e-setup` 산출물)를 읽습니다. AUTOMATION.md 없음 → `/e2e-setup` 먼저.
+(`/qa-e2e-setup` 산출물)를 읽습니다. AUTOMATION.md 없음 → `/qa-e2e-setup` 먼저.
 
 **코드 표준:** POM 코드를 쓰기 전에
 `{{REFERENCE_PATH}}/playwright-patterns.md`를 읽으세요 -- POM 템플릿, 셀렉터
@@ -79,7 +79,7 @@ preamble-tier: 1
 
 화면별로: 이동(셋업의 storageState로 인증됨), DOM/접근성 트리 읽기, 인벤토리
 요소별 후보 셀렉터를 제약 3의 순위로 수집. 워크 중 네트워크 트래픽 캡처 --
-요청/응답 쌍을 `playwright/api-capture.json`에 저장 (`/e2e-write`의 API
+요청/응답 쌍을 `playwright/api-capture.json`에 저장 (`/qa-e2e-write`의 API
 클라이언트가 공짜로 얻어갑니다).
 
 ### Phase B3: 증명하고 확인받기 (페어링 순간)
@@ -167,4 +167,4 @@ DONE. 보고: 매핑된 요소 수, 갭(보고서 포함), fragile 개수.
 
 **Status:** DONE | DONE_WITH_CONCERNS (fragile/플래그 항목 -- 나열할 것) | BLOCKED (앱 접속 불가, 증명 안 된 요소 -- 나열할 것)
 **Summary:** {모드}: 요소 {n}개 증명, 갭 {g}개, 플래그 {f}개
-**Next steps:** {/e2e-write로 스펙 작성 | testid 패치 머지 | 플래그 요소 사람 리뷰}
+**Next steps:** {/qa-e2e-write로 스펙 작성 | testid 패치 머지 | 플래그 요소 사람 리뷰}

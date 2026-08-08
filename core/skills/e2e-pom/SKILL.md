@@ -1,6 +1,6 @@
 ---
 name: e2e-pom
-version: 0.1.1
+version: 0.1.2
 description: |
   Build and maintain Page Object Models by live element discovery — never by
   guessing selectors. Build mode pairs with the user: derives the element
@@ -9,7 +9,7 @@ description: |
   Heal mode runs autonomously when the verification spec breaks: re-discovers,
   auto-fixes unambiguous renames, flags removed elements, touches nothing else.
   Use when: "build POM", "page objects", "map elements", "heal selectors", "verification spec failing".
-  Do NOT use when: initial Playwright setup (use /e2e-setup), writing test specs (use /e2e-write), generating test cases (use /test-cases).
+  Do NOT use when: initial Playwright setup (use /qa-e2e-setup), writing test specs (use /qa-e2e-write), generating test cases (use /qa-test-cases).
 tool-groups:
   - bash
   - read
@@ -22,12 +22,12 @@ tool-groups:
 preamble-tier: 1
 ---
 
-# /e2e-pom: Page Object Discovery & Healing
+# /qa-e2e-pom: Page Object Discovery & Healing
 
 Two modes. **Build** is interactive — the user confirms what you discovered.
 **Heal** is autonomous — it repairs what drifted and flags what it can't.
-Both read `playwright/AUTOMATION.md` (from `/e2e-setup`) for POM style,
-auth, and white-box mode. No AUTOMATION.md → run `/e2e-setup` first.
+Both read `playwright/AUTOMATION.md` (from `/qa-e2e-setup`) for POM style,
+auth, and white-box mode. No AUTOMATION.md → run `/qa-e2e-setup` first.
 
 **Code standards:** read `{{REFERENCE_PATH}}/playwright-patterns.md` before
 writing POM code — POM templates, selector rules, and the exact-match /
@@ -80,7 +80,7 @@ Per screen: navigate (authed via the setup's storageState), read the DOM /
 accessibility tree, and collect candidate selectors for each inventory
 element, ranked by Constraint 3. Capture network traffic while walking —
 save request/response pairs to `playwright/api-capture.json` (this feeds
-`/e2e-write`'s API client for free).
+`/qa-e2e-write`'s API client for free).
 
 ### Phase B3: Prove and confirm (the pairing moment)
 
@@ -170,4 +170,4 @@ outside the broken set = report it as an error, revert it.
 
 **Status:** DONE | DONE_WITH_CONCERNS (fragile/flagged entries — list them) | BLOCKED (app unreachable, unproven elements — list them)
 **Summary:** {mode}: {n} elements proven, {g} gaps, {f} flagged
-**Next steps:** {/e2e-write for specs | merge testid patch | human review of flagged elements}
+**Next steps:** {/qa-e2e-write for specs | merge testid patch | human review of flagged elements}

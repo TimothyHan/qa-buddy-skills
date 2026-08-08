@@ -1,6 +1,6 @@
 ---
 name: e2e-setup
-version: 0.1.1
+version: 0.1.2
 description: |
   이 팀과 앱에 맞춘 Playwright e2e 자동화를 셋업합니다. 실행 중인 앱을
   프로브(인증 방식, API 표면, 스펙 존재 여부)하고, 열린 질문 대신 추천을
@@ -8,7 +8,7 @@ description: |
   playwright/AUTOMATION.md에 기록해 다른 e2e 스킬들이 읽게 합니다.
   스캐폴드가 green으로 실행되기 전까지 셋업은 끝난 것이 아닙니다.
   사용 시점: "e2e setup", "set up playwright", "configure test automation", "automation setup".
-  사용하지 않을 때: 페이지 객체 빌드 시 (/e2e-pom 사용), 테스트 스크립트 작성 시 (/e2e-write 사용), QABuddy 일반 설정 시 (/setup 사용).
+  사용하지 않을 때: 페이지 객체 빌드 시 (/qa-e2e-pom 사용), 테스트 스크립트 작성 시 (/qa-e2e-write 사용), QABuddy 일반 설정 시 (/qa-setup 사용).
 tool-groups:
   - bash
   - read
@@ -21,10 +21,10 @@ tool-groups:
 preamble-tier: 1
 ---
 
-# /e2e-setup: Playwright 자동화 셋업
+# /qa-e2e-setup: Playwright 자동화 셋업
 
 이 팀의 앱을 위한 Playwright를 한 번 구성합니다. 여기서 결정된 모든 것은
-`playwright/AUTOMATION.md`에 기록됩니다 -- `/e2e-pom`과 `/e2e-write`는 매
+`playwright/AUTOMATION.md`에 기록됩니다 -- `/qa-e2e-pom`과 `/qa-e2e-write`는 매
 실행마다 다시 묻는 대신 이 파일을 읽습니다.
 
 **코드 표준:** config, fixture, 스펙을 생성하기 전에
@@ -58,7 +58,7 @@ preamble-tier: 1
 - 자동화 코드를 둘 대상 레포/디렉토리
 
 기존 셋업 확인: `playwright/AUTOMATION.md`가 있으면 보여주고 재구성-또는-유지를
-묻습니다 (`/setup`이 `.qabuddy.json`에 하듯이).
+묻습니다 (`/qa-setup`이 `.qabuddy.json`에 하듯이).
 
 ## Phase 2: 앱 프로브
 
@@ -115,7 +115,7 @@ workers = clamp( floor(cpu_cores / 2), 최소 = 2, 최대 = 사용 가능한 계
 | 계정 하나 / 전역 공유 상태(단일 테넌트) | 엔티티 스코프 테스트를 위해 worker는 ≥2 유지; **전역 또는 사용자별 공유 상태를 변경하는** 테스트는 병렬 페이즈 이후에 실행되는 종속 Playwright 프로젝트(`dependencies: ['parallel'], workers: 1`)로. 프로젝트별 `workers: 1`은 필수 -- `--repeat-each`는 같은 파일의 인스턴스도 워커에 분산시키므로 파일 묶기만으로는 직렬화되지 않습니다. |
 
 어떤 기능이 공유 상태인지 명시적으로 경고하세요 (프로브: 데이터가 사용자별인가
-전역인가?) -- `/e2e-write`가 그 테스트들을 그에 맞게 그룹화하도록.
+전역인가?) -- `/qa-e2e-write`가 그 테스트들을 그에 맞게 그룹화하도록.
 
 ### 3b. White-box 모드
 
@@ -123,7 +123,7 @@ workers = clamp( floor(cpu_cores / 2), 최소 = 2, 최대 = 사용 가능한 계
 - **가능** → 후속 질문: 요소에 안정적인 셀렉터가 없을 때, **(A) 개발자용
   diff로 `data-testid` 패치를 제안**할까요 (Recommended), 아니면 **(B) 앱
   레포의 브랜치에 적용**할까요?
-- **불가능** → black-box 모드: `/e2e-pom`이 패치 대신 테스트 가능성 갭
+- **불가능** → black-box 모드: `/qa-e2e-pom`이 패치 대신 테스트 가능성 갭
   보고서를 냅니다.
 
 ### 3c. POM 스타일
@@ -195,4 +195,4 @@ config는 레포 루트에 둡니다(테스트 디스커버리 편의); 나머�
 
 **Status:** DONE | BLOCKED (게이트 red -- 어떤 명령이 왜 실패했는지 명시)
 **Summary:** {앱} Playwright 구성 완료: {인증 전략}, {n} workers, {POM 스타일}
-**Next steps:** /e2e-pom으로 첫 페이지 객체 빌드
+**Next steps:** /qa-e2e-pom으로 첫 페이지 객체 빌드

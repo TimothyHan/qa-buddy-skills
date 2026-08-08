@@ -1,7 +1,7 @@
 {
   "skill": "e2e-pom",
-  "version": "0.1.1",
-  "note": "RED SUITE — written before the skill exists (eval-first). Execute fixtures run against core/skills/eval/tests/fixture-app/ with its test-cases.md as feature context. Ground truth: ANSWER-KEY.md (never shown to the skill). fx-002 reuses fx-001's workspace.",
+  "version": "0.1.2",
+  "note": "RED SUITE \u2014 written before the skill exists (eval-first). Execute fixtures run against core/skills/eval/tests/fixture-app/ with its test-cases.md as feature context. Ground truth: ANSWER-KEY.md (never shown to the skill). fx-002 reuses fx-001's workspace.",
   "fixtures": [
     {
       "id": "fx-001",

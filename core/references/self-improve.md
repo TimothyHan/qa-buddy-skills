@@ -36,7 +36,7 @@ Entry template (one `##` block per learning):
 - **Statement:** Seed cart state via `POST /api/cart` with a session token.
   Never UI-click items into the cart in tests — flaky in this app.
 - **Overrides:** playwright-patterns.md §preconditions (extends: API-first, adds the endpoint)
-- **Evidence:** 2026-08-07 /test-cases run — SDT corrected draft; UI seeding
+- **Evidence:** 2026-08-07 /qa-test-cases run — SDT corrected draft; UI seeding
   had caused flaky checkout specs in sprint 14.
 ```
 

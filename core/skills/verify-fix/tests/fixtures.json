@@ -1,43 +1,78 @@
 {
   "skill": "verify-fix",
-  "version": "0.3.0",
+  "version": "0.3.1",
   "fixtures": [
     {
       "id": "fx-001",
-      "description": "Fix works, no regression — VERIFIED",
+      "description": "Fix works, no regression \u2014 VERIFIED",
       "input": {
         "bug": "bug with clear repro steps, fix deployed and working"
       },
       "assertions": [
-        { "field": "output", "op": "contains", "value": "VERIFIED" },
-        { "field": "output", "op": "contains", "value": "Regression Check" },
-        { "field": "output", "op": "contains", "value": "DONE" }
+        {
+          "field": "output",
+          "op": "contains",
+          "value": "VERIFIED"
+        },
+        {
+          "field": "output",
+          "op": "contains",
+          "value": "Regression Check"
+        },
+        {
+          "field": "output",
+          "op": "contains",
+          "value": "DONE"
+        }
       ],
-      "tags": ["happy-path", "verified"]
+      "tags": [
+        "happy-path",
+        "verified"
+      ]
     },
     {
       "id": "fx-002",
-      "description": "Fix doesn't work — FAILED",
+      "description": "Fix doesn't work \u2014 FAILED",
       "input": {
         "bug": "bug still reproduces after supposed fix"
       },
       "assertions": [
-        { "field": "output", "op": "contains", "value": "FAILED" },
-        { "field": "output", "op": "contains", "value": "evidence" }
+        {
+          "field": "output",
+          "op": "contains",
+          "value": "FAILED"
+        },
+        {
+          "field": "output",
+          "op": "contains",
+          "value": "evidence"
+        }
       ],
-      "tags": ["failed"]
+      "tags": [
+        "failed"
+      ]
     },
     {
       "id": "fx-003",
-      "description": "Fix works but broke something else — REGRESSION",
+      "description": "Fix works but broke something else \u2014 REGRESSION",
       "input": {
         "bug": "bug fixed but adjacent feature broke"
       },
       "assertions": [
-        { "field": "output", "op": "contains", "value": "REGRESSION" },
-        { "field": "output", "op": "matches", "value": "new bug|BUG-" }
+        {
+          "field": "output",
+          "op": "contains",
+          "value": "REGRESSION"
+        },
+        {
+          "field": "output",
+          "op": "matches",
+          "value": "new bug|BUG-"
+        }
       ],
-      "tags": ["regression"]
+      "tags": [
+        "regression"
+      ]
     },
     {
       "id": "fx-004",
@@ -46,10 +81,20 @@
         "bug": "bug verified, no regression test added by dev"
       },
       "assertions": [
-        { "field": "output", "op": "matches", "value": "regression test|no.*test" },
-        { "field": "output", "op": "matches", "value": "recommend|suggest|flag" }
+        {
+          "field": "output",
+          "op": "matches",
+          "value": "regression test|no.*test"
+        },
+        {
+          "field": "output",
+          "op": "matches",
+          "value": "recommend|suggest|flag"
+        }
       ],
-      "tags": ["missing-regression-test"]
+      "tags": [
+        "missing-regression-test"
+      ]
     }
   ]
 }

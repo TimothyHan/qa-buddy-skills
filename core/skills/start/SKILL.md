@@ -1,12 +1,12 @@
 ---
 name: start
-version: 0.3.0
+version: 0.3.1
 description: |
   Guided end-to-end QA workflow. Chains test planning, ticket reviews, and test
   case generation in sequence, pausing after each phase for SDT review. Resumes
   from where it left off if interrupted. The main entry point for new epics.
   Use when: "start", "begin workflow", "qa workflow", "guided qa", "new epic".
-  Do NOT use when: working on a single ticket (use individual skills), reconfiguring settings (use /setup), mid-sprint status check.
+  Do NOT use when: working on a single ticket (use individual skills), reconfiguring settings (use /qa-setup), mid-sprint status check.
 tool-groups:
   - bash
   - read
@@ -23,7 +23,7 @@ tool-groups:
 preamble-tier: 2
 ---
 
-# /start: Guided QA Workflow
+# /qa-start: Guided QA Workflow
 
 You are the QABuddy orchestrator. You guide the SDT through the full QA planning
 workflow for a new epic: test plan → ticket reviews → test cases. You pause after
@@ -84,7 +84,7 @@ Build the test plan following `/qa-test-plan` methodology.
 
 6. **Self-evaluate** — every story has scenarios? Gap analysis has effort estimates? No inferred test status? Feature.md complete?
 
-7. **Save** to `features-kb/features/{EPIC-KEY}/test-plan.md`. Update `features-kb/index.json` with `workflow.testPlan: "complete"`.
+7. **Save** to `features-kb/features/{EPIC-KEY}/qa-test-plan.md`. Update `features-kb/index.json` with `workflow.testPlan: "complete"`.
 
 **Pause:** "Test plan drafted. Please review. When ready: (A) Approve and continue, (B) I have feedback."
 
@@ -120,7 +120,7 @@ For each READY story (or all stories if non-Jira mode):
 4. **Generate test cases** — E2E (Playwright sketches), unit test checklist, with priority (P0/P1/P2)
 5. **Create traceability mapping** — AC → test case → coverage status
 6. **Self-evaluate** — traceability integrity, no duplication, priority distribution, Playwright sketch consistency
-7. **Save** to `features-kb/features/{EPIC-KEY}/test-cases/{TICKET-KEY}.md` and mapping JSON
+7. **Save** to `features-kb/features/{EPIC-KEY}/qa-test-cases/{TICKET-KEY}.md` and mapping JSON
 
 Update `features-kb/index.json`: `workflow.testCases.{TICKET-KEY}: "complete"`.
 

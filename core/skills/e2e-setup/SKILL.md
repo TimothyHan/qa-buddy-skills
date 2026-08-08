@@ -1,6 +1,6 @@
 ---
 name: e2e-setup
-version: 0.1.1
+version: 0.1.2
 description: |
   Set up Playwright e2e automation tailored to this team and app. Probes the
   running app (auth mechanism, API surface, spec availability), interviews with
@@ -8,7 +8,7 @@ description: |
   and records every decision in playwright/AUTOMATION.md for the other e2e
   skills to read. Setup is not done until the scaffold has executed green.
   Use when: "e2e setup", "set up playwright", "configure test automation", "automation setup".
-  Do NOT use when: building page objects (use /e2e-pom), writing test scripts (use /e2e-write), general QABuddy config (use /setup).
+  Do NOT use when: building page objects (use /qa-e2e-pom), writing test scripts (use /qa-e2e-write), general QABuddy config (use /qa-setup).
 tool-groups:
   - bash
   - read
@@ -21,10 +21,10 @@ tool-groups:
 preamble-tier: 1
 ---
 
-# /e2e-setup: Playwright Automation Setup
+# /qa-e2e-setup: Playwright Automation Setup
 
 Configure Playwright for this team's app, once. Everything decided here is
-recorded in `playwright/AUTOMATION.md` — `/e2e-pom` and `/e2e-write` read it
+recorded in `playwright/AUTOMATION.md` — `/qa-e2e-pom` and `/qa-e2e-write` read it
 on every run instead of re-asking.
 
 **Code standards:** read `{{REFERENCE_PATH}}/playwright-patterns.md` before
@@ -59,7 +59,7 @@ Collect from the user (or the invoking context):
 - Target repo/directory for the automation code
 
 Check for an existing setup: `playwright/AUTOMATION.md` present → show it and
-ask reconfigure-or-keep, like `/setup` does with `.qabuddy.json`.
+ask reconfigure-or-keep, like `/qa-setup` does with `.qabuddy.json`.
 
 ## Phase 2: Probe the App
 
@@ -117,7 +117,7 @@ in AUTOMATION.md.
 | One account / global shared state (single tenant) | Workers stay ≥2 for entity-scoped tests; tests that mutate **global or per-user shared state** go in a dependent Playwright project (`dependencies: ['parallel'], workers: 1`) that runs after the parallel phase. The per-project `workers: 1` is mandatory — `--repeat-each` spreads instances of the same file across workers, so file grouping alone does not serialize. |
 
 Warn explicitly which features are shared state (probe: is data per-user or
-global?) so `/e2e-write` groups their tests accordingly.
+global?) so `/qa-e2e-write` groups their tests accordingly.
 
 ### 3b. White-box mode
 
@@ -125,7 +125,7 @@ Ask once: "Is the app's source repo available to me? (path or 'no')"
 - **Available** → follow-up: when elements lack stable selectors, should I
   **(A) propose** `data-testid` patches as a diff for devs (Recommended), or
   **(B) apply** them on a branch in the app repo?
-- **Not available** → black-box mode: `/e2e-pom` emits testability gap reports
+- **Not available** → black-box mode: `/qa-e2e-pom` emits testability gap reports
   instead of patches.
 
 ### 3c. POM style
@@ -198,4 +198,4 @@ Write `playwright/AUTOMATION.md`:
 
 **Status:** DONE | BLOCKED (gate red — say which command failed and why)
 **Summary:** Playwright configured for {app}: {auth strategy}, {n} workers, {POM style}
-**Next steps:** Run /e2e-pom to build the first page objects
+**Next steps:** Run /qa-e2e-pom to build the first page objects

@@ -1,12 +1,12 @@
 ---
 name: review-ticket
-version: 0.3.0
+version: 0.3.1
 description: |
   Review a Jira ticket during backlog grooming or refinement. Audits the ticket
   for testability, AC completeness, missing edge cases, and potential blockers.
   Outputs a structured review the SDT can bring to the grooming session.
   Use when: "review this ticket", "check ACs", "testability review", "grooming".
-  Do NOT use when: building a test plan for an epic (use /test-plan), writing test cases (use /test-cases), testing in the browser (use /qa).
+  Do NOT use when: building a test plan for an epic (use /qa-test-plan), writing test cases (use /qa-test-cases), testing in the browser (use /qa-qa).
 tool-groups:
   - bash
   - read
@@ -21,7 +21,7 @@ tool-groups:
 preamble-tier: 2
 ---
 
-# /review-ticket: Testability & AC Review
+# /qa-review-ticket: Testability & AC Review
 
 You are an SDT partner reviewing a Jira ticket before or during backlog grooming.
 Your job is to catch testability gaps, missing acceptance criteria, unclear
@@ -158,7 +158,7 @@ Fix any issues found. Do not loop -- one pass is enough.
 1. **Show the review** to the SDT -- ask if anything needs adjusting
 2. **Save:** `features-kb/features/{EPIC-KEY}/reviews/{TICKET-KEY}-review.md`
 3. **Optionally post to Jira:** verdict + missing scenarios + blockers as comment
-4. **Suggest next step:** For READY tickets: "Run `/test-cases {TICKET-KEY}`"
+4. **Suggest next step:** For READY tickets: "Run `/qa-test-cases {TICKET-KEY}`"
 
 ---
 

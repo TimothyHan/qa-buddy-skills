@@ -1,13 +1,13 @@
 ---
 name: exploratory
-version: 0.4.0
+version: 0.4.1
 description: |
   탐색적 테스트 세션을 생성하고 안내합니다. 세션 차터를 작성하고, 휴리스틱
   기법을 활용하여 시간 제한된 비정형 테스트를 실행하며, 발견 사항을 새로운
   테스트 시나리오, UX 개선사항, 누락 커버리지로 기록합니다.
   발견 사항을 지식 베이스(KB)와 테스트 케이스에 반영합니다.
   사용 시점: "exploratory test", "explore this feature", "charter for testing".
-  사용하지 않을 때: 정형 테스트 케이스 실행 시 (/qa 사용), 특정 버그 수정 검증 시 (/verify-fix 사용), 테스트 계획 수립 시 (/test-plan 사용).
+  사용하지 않을 때: 정형 테스트 케이스 실행 시 (/qa-qa 사용), 특정 버그 수정 검증 시 (/qa-verify-fix 사용), 테스트 계획 수립 시 (/qa-test-plan 사용).
 tool-groups:
   - bash
   - read
@@ -20,7 +20,7 @@ tool-groups:
 preamble-tier: 2
 ---
 
-# /exploratory: 탐색적 테스트 세션
+# /qa-exploratory: 탐색적 테스트 세션
 
 탐색적 테스트 세션을 안내하고 실행하는 SDT 파트너입니다.
 탐색적 테스트는 정형 테스트가 놓치는 것을 발견하기 위한 비정형, 시간 제한,
@@ -33,9 +33,9 @@ preamble-tier: 2
 3. **모든 발견 사항을 분류.** 프리앰블 척도에 따라 심각도와 우선순위를 부여합니다. 미분류 발견 사항은 없어야 합니다.
 4. **흥미로운 것은 모두 스크린샷.** 증거 없는 발견 사항은 발견 사항이 아닙니다.
 5. **콘솔을 지속적으로 확인.** 모든 상호작용, 모든 페이지 로드 후에 확인합니다.
-6. **발견만 하고 수정하지 않기.** 발견 사항은 `/test-cases`와 `/qa`에 반영합니다. 여기서 수정하거나 자동화하지 않습니다.
+6. **발견만 하고 수정하지 않기.** 발견 사항은 `/qa-test-cases`와 `/qa-qa`에 반영합니다. 여기서 수정하거나 자동화하지 않습니다.
 7. **탐색하지 못한 영역을 기록.** 다음 세션을 위해 미탐색 영역을 나열합니다.
-8. **항상 브라우저를 사용.** /exploratory가 호출되면 브라우저 테스트를 거부하지 않습니다.
+8. **항상 브라우저를 사용.** /qa-exploratory가 호출되면 브라우저 테스트를 거부하지 않습니다.
 
 ---
 
@@ -163,7 +163,7 @@ preamble-tier: 2
 **Next steps:** {다음 조치}
 ```
 
-`.qa-reports/exploratory-{EPIC-KEY}-{YYYY-MM-DD}.md`에 저장합니다. KB를 업데이트합니다: `feature.md`에 엣지 케이스를 추가하고, `/test-cases --update`로 새 시나리오를 표시하고, `index.json`을 갱신합니다.
+`.qa-reports/exploratory-{EPIC-KEY}-{YYYY-MM-DD}.md`에 저장합니다. KB를 업데이트합니다: `feature.md`에 엣지 케이스를 추가하고, `/qa-test-cases --update`로 새 시나리오를 표시하고, `index.json`을 갱신합니다.
 
 ---
 

@@ -1,7 +1,7 @@
 {
   "skill": "e2e-write",
-  "version": "0.1.1",
-  "note": "RED SUITE — written before the skill exists (eval-first). Execute fixtures run against core/skills/eval/tests/fixture-app/. Requires the /e2e-pom fx-001 workspace (POM + inventory + green verification spec against v1). Ground truth: ANSWER-KEY.md (never shown to the skill).",
+  "version": "0.1.2",
+  "note": "RED SUITE \u2014 written before the skill exists (eval-first). Execute fixtures run against core/skills/eval/tests/fixture-app/. Requires the /e2e-pom fx-001 workspace (POM + inventory + green verification spec against v1). Ground truth: ANSWER-KEY.md (never shown to the skill).",
   "fixtures": [
     {
       "id": "fx-001",
@@ -25,7 +25,7 @@
           "field": "cmd:npx playwright test --reporter=line",
           "op": "exit_code",
           "value": 0,
-          "note": "second consecutive run — proves cleanup; 409-on-duplicate-name makes leaked data fail this"
+          "note": "second consecutive run \u2014 proves cleanup; 409-on-duplicate-name makes leaked data fail this"
         },
         {
           "field": "cmd:npx playwright test --repeat-each=3 --reporter=line",
@@ -84,7 +84,7 @@
     {
       "id": "fx-002",
       "mode": "execute",
-      "description": "Negative control: the fx-001 suite goes red on v3's silent delete bug — and only there",
+      "description": "Negative control: the fx-001 suite goes red on v3's silent delete bug \u2014 and only there",
       "env": {
         "variant": "v3",
         "port": 4173
@@ -114,7 +114,7 @@
           "field": "cmd:npx playwright test --reporter=line",
           "op": "output_matches",
           "value": "TC-01|TC-02|TC-03|TC-05",
-          "note": "confirm non-delete tests ran and passed — check they are absent from the failed list"
+          "note": "confirm non-delete tests ran and passed \u2014 check they are absent from the failed list"
         }
       ],
       "tags": [
@@ -125,7 +125,7 @@
     {
       "id": "fx-003",
       "mode": "simulate",
-      "description": "Missing POM → invokes /e2e-pom instead of inventing locators inline",
+      "description": "Missing POM \u2192 invokes /e2e-pom instead of inventing locators inline",
       "input": {
         "scenario": "User asks /e2e-write to automate test cases for a Settings page. No POM or inventory exists for that page."
       },
@@ -149,7 +149,7 @@
     {
       "id": "fx-004",
       "mode": "simulate",
-      "description": "Reports honestly when the flake gate fails — no DONE with red runs",
+      "description": "Reports honestly when the flake gate fails \u2014 no DONE with red runs",
       "input": {
         "scenario": "The generated suite passes once but --repeat-each=3 fails intermittently on the create-project test."
       },

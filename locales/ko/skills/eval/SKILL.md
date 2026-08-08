@@ -1,14 +1,14 @@
 ---
 name: eval
-version: 0.4.0
+version: 0.4.1
 description: |
   스킬에 대해 eval fixture를 실행하여 올바른 출력을 생성하는지 검증합니다.
   fixture별 두 가지 모드: simulate(SKILL.md를 읽고 시나리오를 시뮬레이션하여
   assertion 확인)와 execute(스킬이 생성한 아티팩트를 로컬 fixture 앱에 대해
-  실제로 실행하고 exit code와 파일 검사로 채점). /improve 후에 수정이 기존
+  실제로 실행하고 exit code와 파일 검사로 채점). /qa-improve 후에 수정이 기존
   동작을 깨뜨리지 않았는지 검증할 때 사용합니다.
   사용 시점: "eval", "run evals", "test skill", "check fixtures", "regression test".
-  사용하지 않을 때: 실제 앱 QA 수행 시 (/qa 사용), 스킬 개선 시 (/improve 사용), 스프린트 상태 확인 시.
+  사용하지 않을 때: 실제 앱 QA 수행 시 (/qa-qa 사용), 스킬 개선 시 (/qa-improve 사용), 스프린트 상태 확인 시.
 tool-groups:
   - bash
   - read
@@ -20,7 +20,7 @@ tool-groups:
 preamble-tier: 1
 ---
 
-# /eval: 스킬 Eval 테스팅
+# /qa-eval: 스킬 Eval 테스팅
 
 스킬에 대해 eval fixture를 실행하여 올바른 출력을 생성하는지 검증합니다.
 각 fixture는 자신의 모드를 선언합니다:
@@ -30,7 +30,7 @@ preamble-tier: 1
   계획)인 스킬용.
 - **`execute`** -- 로컬 fixture 앱에 대해 스킬을 실제로 실행한 다음, 생성된
   아티팩트를 실행하여 채점합니다 (`npx playwright test`, grep, 파일 검사).
-  산출물이 코드인 스킬용 (`/e2e-setup`, `/e2e-pom`, `/e2e-write`). 생성된
+  산출물이 코드인 스킬용 (`/qa-e2e-setup`, `/qa-e2e-pom`, `/qa-e2e-write`). 생성된
   아티팩트는 실행되어야만 통과 -- 그럴듯해 보이는 것으로는 통과하지 못합니다.
 
 ## 제약 사항
@@ -178,5 +178,5 @@ Fixture: {id} -- {description}
 
 **Status:** DONE | DONE_WITH_CONCERNS
 **Summary:** {skill} eval: {pass_rate}% ({passed}/{total} fixtures)
-**Next steps:** {실패한 assertion을 /improve로 수정, 또는 "전부 통과"}
+**Next steps:** {실패한 assertion을 /qa-improve로 수정, 또는 "전부 통과"}
 ```

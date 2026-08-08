@@ -1,12 +1,12 @@
 ---
 name: test-cases
-version: 0.3.1
+version: 0.3.2
 description: |
   Jira 티켓의 인수 조건(AC)에서 테스트 케이스를 생성합니다. Playwright E2E 테스트
   시나리오와 개발자용 단위 테스트 체크리스트를 작성합니다. 테스트 케이스는 추적성을 위해
   요구사항에 매핑됩니다.
   사용 시점: "테스트 케이스 작성", "테스트 생성", "PROJ-789 E2E 테스트", "이 티켓 테스트 케이스".
-  사용하지 않는 경우: 티켓 테스트 가능성 리뷰(/review-ticket 사용), 테스트 실행(/qa 사용), 앱 탐색(/exploratory 사용).
+  사용하지 않는 경우: 티켓 테스트 가능성 리뷰(/qa-review-ticket 사용), 테스트 실행(/qa-qa 사용), 앱 탐색(/qa-exploratory 사용).
 tool-groups:
   - bash
   - read
@@ -21,7 +21,7 @@ tool-groups:
 preamble-tier: 2
 ---
 
-# /test-cases: AC에서 테스트 케이스 생성
+# /qa-test-cases: AC에서 테스트 케이스 생성
 
 SDT 파트너로서 티켓의 테스트 케이스를 생성합니다. Jira에서 티켓의 AC를 가져오고,
 에픽 테스트 계획과 대조하여 다음을 작성합니다:
@@ -54,7 +54,7 @@ SDT 파트너로서 티켓의 테스트 케이스를 생성합니다. Jira에서
    - `test-types.md` — 수동 vs 자동화, UAT vs 기능 테스트 구분
    - `maintenance-and-ci.md` — 브라우저 매트릭스 (Playwright는 Chrome, Firefox, Safari, Edge에서 실행)
    - Playwright 스케치를 쓸 때는 `{{REFERENCE_PATH}}/playwright-patterns.md`도 —
-     스케치가 그 문서의 셀렉터/대기/데이터 규칙을 따라야 `/e2e-write`가
+     스케치가 그 문서의 셀렉터/대기/데이터 규칙을 따라야 `/qa-e2e-write`가
      재작업 없이 구현할 수 있습니다
    - 그 다음 프로젝트 학습 파일(프리앰블 참조) — 이 스킬에 스코프된 active
      `LRN-` 항목이 위 레퍼런스들을 오버라이드합니다; 적용한 ID를 인용하세요
@@ -70,7 +70,7 @@ SDT 파트너로서 티켓의 테스트 케이스를 생성합니다. Jira에서
    - AC에 없는 테스트 가능한 요구사항을 추출합니다 (유효성 검증 규칙, 오류 코드, 엣지 케이스)
 
 5. **에픽 테스트 계획을 로드합니다** (있는 경우):
-   - `features-kb/features/{EPIC-KEY}/test-plan.md`를 읽습니다
+   - `features-kb/features/{EPIC-KEY}/qa-test-plan.md`를 읽습니다
    - 테스트 계획의 어떤 시나리오가 이 티켓에 매핑되는지 확인합니다
 
 6. **저장소의 기존 테스트를 확인합니다:**
@@ -78,7 +78,7 @@ SDT 파트너로서 티켓의 테스트 케이스를 생성합니다. Jira에서
    - 네이밍 컨벤션, 페이지 오브젝트 패턴, 테스트 데이터 설정, 테스트 스타일을 파악합니다
 
 7. **이 티켓의 기존 테스트 케이스를 확인합니다:**
-   - `features-kb/features/{EPIC-KEY}/test-cases/{TICKET-KEY}.md`
+   - `features-kb/features/{EPIC-KEY}/qa-test-cases/{TICKET-KEY}.md`
    - 이미 있으면 새로 작성하는 것이 아니라 업데이트입니다
 
 ---
@@ -187,10 +187,10 @@ test('{테스트 제목}', async ({ page }) => {
 ## 5단계: 결과물 저장
 
 ### 테스트 케이스 문서 저장:
-`features-kb/features/{EPIC-KEY}/test-cases/{TICKET-KEY}.md`
+`features-kb/features/{EPIC-KEY}/qa-test-cases/{TICKET-KEY}.md`
 
 ### 추적성 매핑 저장:
-`features-kb/features/{EPIC-KEY}/test-cases/{TICKET-KEY}-mapping.json`
+`features-kb/features/{EPIC-KEY}/qa-test-cases/{TICKET-KEY}-mapping.json`
 
 ### SDT에게 제시:
 - "빠진 시나리오가 있나요?"
@@ -198,9 +198,9 @@ test('{테스트 제목}', async ({ page }) => {
 - "테스트 데이터 관련 우려 사항이 있나요?"
 
 ### 에픽 테스트 계획 업데이트 (있는 경우):
-`features-kb/features/{EPIC-KEY}/test-plan.md`에서 테스트 케이스가 생성된 시나리오의 상태 열을 업데이트합니다.
+`features-kb/features/{EPIC-KEY}/qa-test-plan.md`에서 테스트 케이스가 생성된 시나리오의 상태 열을 업데이트합니다.
 
-**다음 단계 제안:** "테스트 케이스가 준비되었습니다. 기능이 구현되면 `/qa {TICKET-KEY}`를 실행하여 테스트를 수행하세요."
+**다음 단계 제안:** "테스트 케이스가 준비되었습니다. 기능이 구현되면 `/qa-qa {TICKET-KEY}`를 실행하여 테스트를 수행하세요."
 
 **Status:** DONE | DONE_WITH_CONCERNS | BLOCKED | NEEDS_CONTEXT
 **Summary:** {한 줄 요약}

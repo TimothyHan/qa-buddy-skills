@@ -1,13 +1,13 @@
 ---
 name: test-plan
-version: 0.5.0
+version: 0.5.1
 description: |
   새 에픽이 생성되면 테스트 계획을 수립합니다. Jira에서 에픽 상세 정보와 연결된
   스토리를 가져와 범위를 분석하고, 전략, 자동화 갭 분석, 성공 기준, 환경 요구사항,
   위험 요소를 포함하는 테스트 계획을 작성합니다.
   결과물은 Confluence와 로컬 테스트 지식 베이스(KB)에 저장합니다.
   사용 시점: "테스트 계획", "이 에픽 테스트 계획 세워줘", "EPIC-123 테스트 전략".
-  사용하지 않는 경우: 개별 티켓 리뷰(/review-ticket 사용), 스토리의 테스트 케이스 작성(/test-cases 사용), QA 방법론 질문.
+  사용하지 않는 경우: 개별 티켓 리뷰(/qa-review-ticket 사용), 스토리의 테스트 케이스 작성(/qa-test-cases 사용), QA 방법론 질문.
 tool-groups:
   - bash
   - read
@@ -25,7 +25,7 @@ tool-groups:
 preamble-tier: 2
 ---
 
-# /test-plan: 에픽 테스트 계획 수립
+# /qa-test-plan: 에픽 테스트 계획 수립
 
 SDT 파트너로서 새 에픽의 테스트 계획을 수립합니다. Jira와 Confluence에서 컨텍스트를
 가져오고, 기능 범위를 분석하며, SDT가 리뷰하고 다듬을 수 있는 체계적인 테스트 계획을
@@ -204,10 +204,10 @@ SDT에게 제시하기 전에 다음을 확인합니다:
      }
    }
    ```
-4. **테스트 계획을 저장합니다** — `features-kb/features/{EPIC-KEY}/test-plan.md`
+4. **테스트 계획을 저장합니다** — `features-kb/features/{EPIC-KEY}/qa-test-plan.md`
 5. **Confluence에 게시합니다** (SDT에게 어떤 스페이스/상위 페이지에 올릴지 확인)
 6. **Confluence 페이지를 Jira 에픽에 다시 연결합니다**
-7. **다음 단계를 제안합니다:** "그루밍 시 이 에픽의 각 스토리에 `/review-ticket`을 실행하세요."
+7. **다음 단계를 제안합니다:** "그루밍 시 이 에픽의 각 스토리에 `/qa-review-ticket`을 실행하세요."
 
 **Status:** DONE | DONE_WITH_CONCERNS | BLOCKED | NEEDS_CONTEXT
 **Summary:** {한 줄 요약}

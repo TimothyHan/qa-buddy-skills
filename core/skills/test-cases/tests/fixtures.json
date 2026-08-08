@@ -1,6 +1,6 @@
 {
   "skill": "test-cases",
-  "version": "0.3.1",
+  "version": "0.3.2",
   "fixtures": [
     {
       "id": "fx-001",
@@ -110,7 +110,7 @@
       "description": "SELF-IMPROVE read path: active learnings override references and are cited; retired learnings are ignored",
       "input": {
         "ticket": "story with 2 ACs on the checkout page",
-        "precondition": "features-kb/LEARNINGS.md exists with two entries. LRN-20260807-01 (Status: active, Scope: test-cases, e2e-write): 'This app uses data-test as its test attribute, not data-testid — playwright.config sets testIdAttribute accordingly; sketches must use getByTestId against data-test values like data-test=\"checkout-submit\".' LRN-20260701-09 (Status: retired, Scope: test-cases): 'Use data-cy attributes for all selectors.' The playwright-patterns reference default assumes data-testid."
+        "precondition": "features-kb/LEARNINGS.md exists with two entries. LRN-20260807-01 (Status: active, Scope: test-cases, e2e-write): 'This app uses data-test as its test attribute, not data-testid \u2014 playwright.config sets testIdAttribute accordingly; sketches must use getByTestId against data-test values like data-test=\"checkout-submit\".' LRN-20260701-09 (Status: retired, Scope: test-cases): 'Use data-cy attributes for all selectors.' The playwright-patterns reference default assumes data-testid."
       },
       "assertions": [
         {
@@ -141,7 +141,7 @@
       "description": "SELF-IMPROVE capture: SDT correction during the run produces a well-formed learning entry",
       "input": {
         "ticket": "story with 3 ACs on cart management",
-        "scenario": "Mid-run the SDT corrects the draft: 'No — cart preconditions must be seeded via POST /api/cart with a session token; UI-clicking items into the cart is flaky in our app and we never do it in tests.' The correction is project-specific and not covered by any reference."
+        "scenario": "Mid-run the SDT corrects the draft: 'No \u2014 cart preconditions must be seeded via POST /api/cart with a session token; UI-clicking items into the cart is flaky in our app and we never do it in tests.' The correction is project-specific and not covered by any reference."
       },
       "assertions": [
         {
@@ -201,7 +201,7 @@
       "description": "SELF-IMPROVE suggest-not-capture: a QABuddy-defect failure yields a /qa-improve suggestion in Next steps, not a learning entry",
       "input": {
         "ticket": "story with 2 ACs",
-        "scenario": "During the run, the traceability template from the skill itself produces JSON that fails the skill's own Phase 4 check — reproducible in any project, nothing project-specific. The SDT confirms it is a tool bug, not a preference."
+        "scenario": "During the run, the traceability template from the skill itself produces JSON that fails the skill's own Phase 4 check \u2014 reproducible in any project, nothing project-specific. The SDT confirms it is a tool bug, not a preference."
       },
       "assertions": [
         {
@@ -223,7 +223,7 @@
     },
     {
       "id": "fx-009",
-      "description": "SELF-IMPROVE (C) dispatcher: tool feedback at a pause point dispatches to /improve and resumes — no inline re-implementation",
+      "description": "SELF-IMPROVE (C) dispatcher: tool feedback at a pause point dispatches to /improve and resumes \u2014 no inline re-implementation",
       "input": {
         "ticket": "story with 3 ACs",
         "scenario": "At the review pause the SDT chooses (C) Tool feedback: the skill duplicated two test cases that cover the same AC."

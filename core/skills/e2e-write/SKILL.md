@@ -1,14 +1,14 @@
 ---
 name: e2e-write
-version: 0.1.1
+version: 0.1.2
 description: |
   Write the e2e test suite from test cases: API client for preconditions,
   fixtures, and intent-only specs on top of a proven POM. Never invents
-  locators — if a page has no POM, it invokes /e2e-pom first. Done only when
+  locators — if a page has no POM, it invokes /qa-e2e-pom first. Done only when
   the suite passes three gates: green, green again (cleanup proof), and green
   under --repeat-each=3 (flake proof), plus a mechanical lint of banned patterns.
   Use when: "write e2e tests", "automate test cases", "generate the test suite", "API client for tests".
-  Do NOT use when: setting up Playwright (use /e2e-setup), building/healing page objects (use /e2e-pom), manual test execution (use /qa).
+  Do NOT use when: setting up Playwright (use /qa-e2e-setup), building/healing page objects (use /qa-e2e-pom), manual test execution (use /qa-qa).
 tool-groups:
   - bash
   - read
@@ -21,11 +21,11 @@ tool-groups:
 preamble-tier: 1
 ---
 
-# /e2e-write: Test Suite Generation
+# /qa-e2e-write: Test Suite Generation
 
 Turn test cases into a passing, re-runnable, flake-free suite. Reads
 `playwright/AUTOMATION.md` (decisions) and the POM + inventory from
-`/e2e-pom`. The vocabulary is the POM and API client; the specs carry intent
+`/qa-e2e-pom`. The vocabulary is the POM and API client; the specs carry intent
 only.
 
 **Code standards:** read `{{REFERENCE_PATH}}/playwright-patterns.md` before
@@ -38,7 +38,7 @@ scoped here override those patterns.
 ## Constraints
 
 1. **Never invent a locator.** Specs and helpers use POM exports only. A page
-   without a POM → invoke the `/e2e-pom` skill (build mode) and continue after
+   without a POM → invoke the `/qa-e2e-pom` skill (build mode) and continue after
    its gate passes. Writing `getByTestId(...)` for an unmapped element inline
    is the defining failure of this skill.
 2. **Specs are intent-only.** No `page.locator(`, no raw CSS/XPath, no
@@ -73,10 +73,10 @@ scoped here override those patterns.
 ## Phase 1: Inputs
 
 - Test cases (KB path or file) — the spec's source of truth
-- `playwright/AUTOMATION.md` — missing → run `/e2e-setup` first, stop
+- `playwright/AUTOMATION.md` — missing → run `/qa-e2e-setup` first, stop
 - POM + inventory for every screen the TCs touch — missing/incomplete →
-  invoke `/e2e-pom` build mode for the missing screens (Constraint 1)
-- `playwright/api-capture.json` if `/e2e-pom` saved one; OpenAPI spec if
+  invoke `/qa-e2e-pom` build mode for the missing screens (Constraint 1)
+- `playwright/api-capture.json` if `/qa-e2e-pom` saved one; OpenAPI spec if
   AUTOMATION.md says one exists
 
 ## Phase 2: API Client
@@ -159,4 +159,4 @@ named — never as DONE.
 
 **Status:** DONE | DONE_WITH_CONCERNS (name the concern) | BLOCKED (name the gate + output)
 **Summary:** {n} TCs automated, {gates} gates green, {d} debt items
-**Next steps:** {wire into CI | resolve debt items | /e2e-pom heal if verification drifts}
+**Next steps:** {wire into CI | resolve debt items | /qa-e2e-pom heal if verification drifts}

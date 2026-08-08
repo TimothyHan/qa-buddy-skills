@@ -33,11 +33,11 @@ no separate app, no daemon, no dependencies beyond Node.js.
 | Without QABuddy | With QABuddy |
 |---|---|
 | Manually write test plans from scratch | `/qa-start` generates test plans from epic context |
-| Review tickets by memory during grooming | `/review-ticket` audits ACs with structured checklists |
+| Review tickets by memory during grooming | `/qa-review-ticket` audits ACs with structured checklists |
 | Track test coverage in spreadsheets | Knowledge base tracks coverage with traceability mappings |
-| File bugs via copy-paste into Jira | `/qa` files bugs automatically with repro steps + screenshots |
-| "Is the sprint on track?" — guesswork | `/sprint-status` dashboard with 6 quality metrics |
-| Fix a skill issue? Rewrite from scratch | `/improve` analyzes the failure, fixes it, runs regression tests |
+| File bugs via copy-paste into Jira | `/qa-qa` files bugs automatically with repro steps + screenshots |
+| "Is the sprint on track?" — guesswork | `/qa-sprint-status` dashboard with 6 quality metrics |
+| Fix a skill issue? Rewrite from scratch | `/qa-improve` analyzes the failure, fixes it, runs regression tests |
 | Same static tool forever, on every team | Every run captures your project's quirks into a learnings layer — QABuddy evolves to fit your team |
 
 ---
@@ -79,30 +79,33 @@ node build.js all
 
 | Skill | Command | What it does |
 |-------|---------|-------------|
-| **Setup** | `/setup` | First-run wizard: context source, team mode, project preferences |
-| **Start** | `/start` | Guided end-to-end workflow: setup → test plan → reviews → test cases |
+| **Setup** | `/qa-setup` | First-run wizard: context source, team mode, project preferences |
+| **Start** | `/qa-start` | Guided end-to-end workflow: setup → test plan → reviews → test cases |
 
 ### QA Skills
 
 | Skill | Command | Sprint Phase | What it does |
 |-------|---------|-------------|-------------|
-| **Test Plan** | `/test-plan` | Epic created | Test strategy, automation gaps, success criteria, risks |
-| **Review Ticket** | `/review-ticket` | Grooming | Audit ACs, testability, missing edge cases, blockers |
-| **Test Cases** | `/test-cases` | Sprint execution | Playwright e2e + unit test checklist from ACs |
-| **QA** | `/qa` | Feature ready | Execute test cases, verify ACs, file bugs |
-| **Verify Fix** | `/verify-fix` | Bug fixed | Re-test fix, check regressions, update bug status |
-| **Sprint Status** | `/sprint-status` | Mid-sprint | Testing dashboard with quality metrics |
-| **Exploratory** | `/exploratory` | Feature ready | Charter-driven exploratory testing session |
-| **E2E Setup** | `/e2e-setup` | Automation start | Probe the app, scaffold Playwright, record decisions in AUTOMATION.md |
-| **E2E POM** | `/e2e-pom` | Automation | Build/heal page objects by live discovery — every locator proven, never guessed |
-| **E2E Write** | `/e2e-write` | Automation | Test suites from test cases: API preconditions, intent-only specs, four quality gates |
+| **Test Plan** | `/qa-test-plan` | Epic created | Test strategy, automation gaps, success criteria, risks |
+| **Review Ticket** | `/qa-review-ticket` | Grooming | Audit ACs, testability, missing edge cases, blockers |
+| **Test Cases** | `/qa-test-cases` | Sprint execution | Playwright e2e + unit test checklist from ACs |
+| **QA** | `/qa-qa` | Feature ready | Execute test cases, verify ACs, file bugs |
+| **Verify Fix** | `/qa-verify-fix` | Bug fixed | Re-test fix, check regressions, update bug status |
+| **Sprint Status** | `/qa-sprint-status` | Mid-sprint | Testing dashboard with quality metrics |
+| **Exploratory** | `/qa-exploratory` | Feature ready | Charter-driven exploratory testing session |
+| **E2E Setup** | `/qa-e2e-setup` | Automation start | Probe the app, scaffold Playwright, record decisions in AUTOMATION.md |
+| **E2E POM** | `/qa-e2e-pom` | Automation | Build/heal page objects by live discovery — every locator proven, never guessed |
+| **E2E Write** | `/qa-e2e-write` | Automation | Test suites from test cases: API preconditions, intent-only specs, four quality gates |
 
 ### Meta Skills
 
 | Skill | Command | What it does |
 |-------|---------|-------------|
-| **Improve** | `/improve` | Fix skill failures; distill the learnings layer (dedupe, retire, promote to canon) |
-| **Eval** | `/eval` | Run eval fixtures against a skill to verify correctness |
+| **Improve** | `/qa-improve` | Fix skill failures; distill the learnings layer (dedupe, retire, promote to canon) |
+| **Eval** | `/qa-eval` | Run eval fixtures against a skill to verify correctness |
+
+
+> Commands use the default `qa-` prefix. Install with `--no-prefix` to use bare names.
 
 ---
 
@@ -130,7 +133,7 @@ At every pause, you choose:
 |--------|-------------|
 | **(A) Approve** | Continue to next phase |
 | **(B) Content feedback** | Iterate on the output |
-| **(C) Tool feedback** | Dispatches to `/improve`: root cause, approved fix, rebuild, eval — then resumes |
+| **(C) Tool feedback** | Dispatches to `/qa-improve`: root cause, approved fix, rebuild, eval — then resumes |
 
 ---
 
@@ -244,22 +247,22 @@ flowchart LR
     B -- clean run --> D[No trace]
     C --> E[Next run reads learnings —<br>they override references]
     E --> A
-    C -. proven repeatedly .-> F["/improve distill:<br>promote to references<br>+ upstream PR"]
+    C -. proven repeatedly .-> F["/qa-improve distill:<br>promote to references<br>+ upstream PR"]
 ```
 
 **The learnings layer (automatic, every skill run).** Every run reads `features-kb/LEARNINGS.md` at start — active entries are project-specific rules that *override* the shipped references — and checks three capture triggers at the end: a documented rule failed against reality, an undocumented decision was made, or the SDT corrected the output. Entries require evidence; clean runs write nothing. The file lives in your repo, so learnings travel to your whole team via git and survive QABuddy upgrades. Protocol: [`core/references/self-improve.md`](core/references/self-improve.md).
 
-**Skill fixes.** One flow, one owner: `/improve`. Choose **(C) Tool feedback** at any pause point (it dispatches to `/improve` and resumes your workflow), run it directly, or accept the end-of-run suggestion when a captured learning points at a skill defect — structured proposal, targeted fix, eval regression run, PR.
+**Skill fixes.** One flow, one owner: `/qa-improve`. Choose **(C) Tool feedback** at any pause point (it dispatches to `/qa-improve` and resumes your workflow), run it directly, or accept the end-of-run suggestion when a captured learning points at a skill defect — structured proposal, targeted fix, eval regression run, PR.
 
-**Distillation & promotion.** `/improve` distill mode sweeps the learnings layer: merges duplicates, retires falsified entries, and promotes rules proven across repeated runs into the canonical references — and, with `contributeUpstream` enabled, PRs them to the QABuddy repo so everyone benefits.
+**Distillation & promotion.** `/qa-improve` distill mode sweeps the learnings layer: merges duplicates, retires falsified entries, and promotes rules proven across repeated runs into the canonical references — and, with `contributeUpstream` enabled, PRs them to the QABuddy repo so everyone benefits.
 
-**Quality gate.** `/eval` runs fixture suites against any skill — including execute-mode fixtures that grade real `npx playwright test` exit codes against a bundled fixture app.
+**Quality gate.** `/qa-eval` runs fixture suites against any skill — including execute-mode fixtures that grade real `npx playwright test` exit codes against a bundled fixture app.
 
 ---
 
 ## Sprint Quality Metrics
 
-`/sprint-status` computes these automatically:
+`/qa-sprint-status` computes these automatically:
 
 | Metric | Target |
 |--------|--------|

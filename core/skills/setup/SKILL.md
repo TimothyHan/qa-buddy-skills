@@ -1,6 +1,6 @@
 ---
 name: setup
-version: 0.4.0
+version: 0.4.1
 description: |
   First-run configuration wizard for QABuddy. Sets up context source (Jira, spec
   docs, chat, custom), team mode (solo vs PR-based), and project preferences.
@@ -17,7 +17,7 @@ tool-groups:
 preamble-tier: 1
 ---
 
-# /setup: QABuddy Configuration
+# /qa-setup: QABuddy Configuration
 
 Configure QABuddy for this project. Creates `.qabuddy.json` at the project root
 with your preferences. All other skills read this config to adjust their behavior.
@@ -90,7 +90,7 @@ If not available, warn: "GitHub CLI not found. Install it for PR workflows, or s
 ## Phase 3b: Upstream Contributions (optional)
 
 "Would you like to contribute skill improvements back to the QABuddy community?
-When you use `/improve` to fix a skill, you'll get an option to submit a PR to
+When you use `/qa-improve` to fix a skill, you'll get an option to submit a PR to
 the upstream QABuddy repo. Only universal improvements — not team-specific changes."
 
 - **(A) Yes** — enable upstream contributions
@@ -173,12 +173,12 @@ mkdir -p features-kb/team-practices
 
 | Practice | Saved to | Used by |
 |----------|----------|---------|
-| Bug triage | `features-kb/team-practices/bug-triage.md` | `/qa`, `/sprint-status` |
-| Hotfix testing | `features-kb/team-practices/hotfix-testing.md` | `/qa`, `/verify-fix` |
-| Test data | `features-kb/team-practices/test-data.md` | `/qa`, `/test-cases`, `/exploratory` |
-| Release workflow | `features-kb/team-practices/release-workflow.md` | `/sprint-status` |
-| Accessibility | `features-kb/team-practices/accessibility.md` | `/qa`, `/test-cases`, `/exploratory` |
-| CI/CD pipeline | `features-kb/team-practices/ci-cd-pipeline.md` | `/sprint-status`, `/qa`, `/test-plan` |
+| Bug triage | `features-kb/team-practices/bug-triage.md` | `/qa-qa`, `/qa-sprint-status` |
+| Hotfix testing | `features-kb/team-practices/hotfix-testing.md` | `/qa-qa`, `/qa-verify-fix` |
+| Test data | `features-kb/team-practices/test-data.md` | `/qa-qa`, `/qa-test-cases`, `/qa-exploratory` |
+| Release workflow | `features-kb/team-practices/release-workflow.md` | `/qa-sprint-status` |
+| Accessibility | `features-kb/team-practices/accessibility.md` | `/qa-qa`, `/qa-test-cases`, `/qa-exploratory` |
+| CI/CD pipeline | `features-kb/team-practices/ci-cd-pipeline.md` | `/qa-sprint-status`, `/qa-qa`, `/qa-test-plan` |
 
 **If "none":** "That's fine. Skills will ask you case-by-case when these come up. You can add team practices later by running `/qa-setup` again."
 

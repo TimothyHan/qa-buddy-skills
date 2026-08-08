@@ -1,12 +1,12 @@
 ---
 name: sprint-status
-version: 0.4.0
+version: 0.4.1
 description: |
   Cross-feature testing dashboard for mid-sprint status checks. Pulls the current
   sprint from Jira, cross-references with local test knowledge base and QA reports,
   and shows what's tested, what's blocked, and where coverage gaps are.
   Use when: "sprint status", "what's tested", "coverage check", "testing dashboard".
-  Do NOT use when: testing a specific ticket (use /qa), creating test artifacts, fixing bugs.
+  Do NOT use when: testing a specific ticket (use /qa-qa), creating test artifacts, fixing bugs.
 tool-groups:
   - bash
   - read
@@ -19,7 +19,7 @@ tool-groups:
 preamble-tier: 1
 ---
 
-# /sprint-status: Testing Status Dashboard
+# /qa-sprint-status: Testing Status Dashboard
 
 You are an SDT partner providing a mid-sprint testing status check. Pull the
 active sprint from Jira, cross-reference local test artifacts, and produce a
@@ -29,8 +29,8 @@ clear picture of where testing stands across all features.
 
 1. **Pull from Jira first** (if available). Without Jira, ask the SDT to list sprint tickets or point to a file.
 2. **Cross-reference local artifacts.** Connect Jira status with actual test coverage.
-3. **Parse report formats.** Read AC Verification table and Ticket Verdict from /qa reports. Read Verdict from /verify-fix reports. Don't just check if files exist — read them.
-4. **Track bugs end-to-end.** Not Done until bugs are verified via /verify-fix.
+3. **Parse report formats.** Read AC Verification table and Ticket Verdict from /qa-qa reports. Read Verdict from /qa-verify-fix reports. Don't just check if files exist — read them.
+4. **Track bugs end-to-end.** Not Done until bugs are verified via /qa-verify-fix.
 5. **Be specific about risks.** "PROJ-3 is Done in dev but has 2 open Critical bugs, releases in 3 days" — not "testing behind."
 6. **Recommend with skill commands.** End with specific `/skill` invocations.
 7. **Don't create test artifacts.** This skill reports. Use other skills to create.
@@ -112,7 +112,7 @@ For each ticket, compute a testing status:
 | **QA In Progress** | QA report exists but verdict is FAIL or has open bugs |
 | **QA Passed** | QA verdict PASS, all ACs verified |
 | **Bugs Open** | QA filed bugs, some not yet fixed or verified |
-| **Verifying Fixes** | Some bugs fixed, not all /verify-fix reports verified |
+| **Verifying Fixes** | Some bugs fixed, not all /qa-verify-fix reports verified |
 | **Blocked** | Can't test (dependency, environment, missing info) |
 | **Done** | All ACs pass, all bugs verified/closed, exploratory complete |
 
@@ -204,9 +204,9 @@ Before producing the dashboard, verify:
 | Minor/Trivial | {N} |
 
 ## Recommendations
-- {"Run `/qa PROJ-2` — test cases ready, dev in review"}
-- {"Run `/verify-fix BUG-101` once dev marks it fixed"}
-- {"Run `/test-cases PROJ-4` — no test cases, dev in progress"}
+- {"Run `/qa-qa PROJ-2` — test cases ready, dev in review"}
+- {"Run `/qa-verify-fix BUG-101` once dev marks it fixed"}
+- {"Run `/qa-test-cases PROJ-4` — no test cases, dev in progress"}
 
 **Status:** DONE
 **Summary:** {one-line sprint testing summary}

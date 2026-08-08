@@ -10,40 +10,42 @@ Jira + Confluence(Atlassian MCP 연동)를 사용할 수도 있고, 파일이나
 
 | 스킬 | 명령어 | 스프린트 단계 | 기능 |
 |-------|---------|-------------|--------------|
-| 테스트 계획 | `/test-plan` | 에픽 생성 시 | 에픽에서 테스트 계획을 수립합니다: 전략, 자동화 갭, 성공 기준, 리스크 |
-| 티켓 리뷰 | `/review-ticket` | 그루밍 / 리파인먼트 | 티켓의 테스트 가능성, AC 누락, 엣지 케이스, 차단 요소를 점검합니다 |
-| 테스트 케이스 | `/test-cases` | 스프린트 실행 | 티켓 AC를 기반으로 E2E 테스트 케이스와 단위 테스트 체크리스트를 생성합니다 |
-| QA | `/qa` | 기능 완료 시 | 테스트 케이스를 실행하고, 브라우저에서 AC를 검증하고, 버그를 등록합니다 |
-| 수정 검증 | `/verify-fix` | 버그 수정 완료 시 | 버그 수정을 재테스트하고, 회귀 여부를 확인하고, 버그 상태를 업데이트합니다 |
-| 스프린트 현황 | `/sprint-status` | 스프린트 중간 | 기능별 대시보드: 테스트 완료, 차단됨, 커버리지 갭 |
-| 탐색적 테스트 | `/exploratory` | 기능 완료 시 | 차터 기반의 가이드형 탐색적 테스트 세션을 진행하고 발견 사항을 기록합니다 |
-| E2E 셋업 | `/e2e-setup` | 자동화 시작 | 앱을 프로빙하고, Playwright를 스캐폴드하고, AUTOMATION.md에 결정을 기록합니다 |
-| E2E POM | `/e2e-pom` | 자동화 | 실시간 탐색으로 페이지 객체를 빌드/힐링합니다 -- 로케이터는 증명, 추측 금지 |
-| E2E 작성 | `/e2e-write` | 자동화 | 테스트 케이스에서 스위트 생성: API 사전 조건, 의도만 담은 스펙, 네 개의 게이트 |
-| 개선 | `/improve` | 스킬 실행 후 | 스킬 실패를 수정하고, 학습 레이어를 정제합니다 (중복 제거, 은퇴, 승격) |
-| 평가 | `/eval` | /improve 이후 | eval fixture를 실행해서 스킬이 올바르게 동작하는지 검증합니다 |
-| 설정 | `/setup` | 최초 실행 시 | 컨텍스트 소스, 팀 모드, 프로젝트 설정을 구성합니다 |
-| 시작 | `/start` | 에픽 생성 시 | 가이드형 워크플로우: 설정 -> 테스트 계획 -> 리뷰 -> 테스트 케이스 |
+| 테스트 계획 | `/qa-test-plan` | 에픽 생성 시 | 에픽에서 테스트 계획을 수립합니다: 전략, 자동화 갭, 성공 기준, 리스크 |
+| 티켓 리뷰 | `/qa-review-ticket` | 그루밍 / 리파인먼트 | 티켓의 테스트 가능성, AC 누락, 엣지 케이스, 차단 요소를 점검합니다 |
+| 테스트 케이스 | `/qa-test-cases` | 스프린트 실행 | 티켓 AC를 기반으로 E2E 테스트 케이스와 단위 테스트 체크리스트를 생성합니다 |
+| QA | `/qa-qa` | 기능 완료 시 | 테스트 케이스를 실행하고, 브라우저에서 AC를 검증하고, 버그를 등록합니다 |
+| 수정 검증 | `/qa-verify-fix` | 버그 수정 완료 시 | 버그 수정을 재테스트하고, 회귀 여부를 확인하고, 버그 상태를 업데이트합니다 |
+| 스프린트 현황 | `/qa-sprint-status` | 스프린트 중간 | 기능별 대시보드: 테스트 완료, 차단됨, 커버리지 갭 |
+| 탐색적 테스트 | `/qa-exploratory` | 기능 완료 시 | 차터 기반의 가이드형 탐색적 테스트 세션을 진행하고 발견 사항을 기록합니다 |
+| E2E 셋업 | `/qa-e2e-setup` | 자동화 시작 | 앱을 프로빙하고, Playwright를 스캐폴드하고, AUTOMATION.md에 결정을 기록합니다 |
+| E2E POM | `/qa-e2e-pom` | 자동화 | 실시간 탐색으로 페이지 객체를 빌드/힐링합니다 -- 로케이터는 증명, 추측 금지 |
+| E2E 작성 | `/qa-e2e-write` | 자동화 | 테스트 케이스에서 스위트 생성: API 사전 조건, 의도만 담은 스펙, 네 개의 게이트 |
+| 개선 | `/qa-improve` | 스킬 실행 후 | 스킬 실패를 수정하고, 학습 레이어를 정제합니다 (중복 제거, 은퇴, 승격) |
+| 평가 | `/qa-eval` | /qa-improve 이후 | eval fixture를 실행해서 스킬이 올바르게 동작하는지 검증합니다 |
+| 설정 | `/qa-setup` | 최초 실행 시 | 컨텍스트 소스, 팀 모드, 프로젝트 설정을 구성합니다 |
+| 시작 | `/qa-start` | 에픽 생성 시 | 가이드형 워크플로우: 설정 -> 테스트 계획 -> 리뷰 -> 테스트 케이스 |
+
+위 명령어는 기본 `qa-` 접두사를 사용합니다. `--no-prefix` / `-NoPrefix`로 설치하면 접두사가 빠집니다 (예: `/test-plan`) — 같은 스킬, 이름만 다릅니다.
 
 ## 라우팅
 
 사용자 발화에 따라 적절한 스킬을 호출합니다:
 
-- "test plan", "plan tests for this epic", "test strategy" -> `/test-plan`
-- "review this ticket", "check ACs", "testability review", "grooming" -> `/review-ticket`
-- "write test cases", "generate tests", "e2e tests for this" -> `/test-cases`
-- "qa", "test this ticket", "run test cases", "verify ACs", "does this pass?" -> `/qa`
-- "verify fix", "retest", "is this fixed?", "check BUG-123" -> `/verify-fix`
-- "sprint status", "what's tested", "coverage check" -> `/sprint-status`
-- "exploratory test", "explore this feature", "charter for testing" -> `/exploratory`
-- "set up playwright", "e2e setup", "test automation setup", "e2e 셋업" -> `/e2e-setup`
-- "build POM", "page objects", "map elements", "heal selectors", "POM 빌드" -> `/e2e-pom`
-- "write e2e tests", "automate test cases", "generate the test suite", "e2e 테스트 작성" -> `/e2e-write`
-- "this didn't work", "improve this skill", "fix the skill", "output was wrong" -> `/improve`
-- "distill learnings", "clean up learnings", "학습 정제" -> `/improve` (distill 모드)
-- "eval", "run evals", "test skill", "check fixtures", "regression test" -> `/eval`
-- "setup", "configure", "first time", "change settings" -> `/setup`
-- "start", "begin", "guided qa", "qa workflow", "new epic" -> `/start`
+- "test plan", "plan tests for this epic", "test strategy" -> `/qa-test-plan`
+- "review this ticket", "check ACs", "testability review", "grooming" -> `/qa-review-ticket`
+- "write test cases", "generate tests", "e2e tests for this" -> `/qa-test-cases`
+- "qa", "test this ticket", "run test cases", "verify ACs", "does this pass?" -> `/qa-qa`
+- "verify fix", "retest", "is this fixed?", "check BUG-123" -> `/qa-verify-fix`
+- "sprint status", "what's tested", "coverage check" -> `/qa-sprint-status`
+- "exploratory test", "explore this feature", "charter for testing" -> `/qa-exploratory`
+- "set up playwright", "e2e setup", "test automation setup", "e2e 셋업" -> `/qa-e2e-setup`
+- "build POM", "page objects", "map elements", "heal selectors", "POM 빌드" -> `/qa-e2e-pom`
+- "write e2e tests", "automate test cases", "generate the test suite", "e2e 테스트 작성" -> `/qa-e2e-write`
+- "this didn't work", "improve this skill", "fix the skill", "output was wrong" -> `/qa-improve`
+- "distill learnings", "clean up learnings", "학습 정제" -> `/qa-improve` (distill 모드)
+- "eval", "run evals", "test skill", "check fixtures", "regression test" -> `/qa-eval`
+- "setup", "configure", "first time", "change settings" -> `/qa-setup`
+- "start", "begin", "guided qa", "qa workflow", "new epic" -> `/qa-start`
 
 ## 프로세스 컨텍스트
 
@@ -117,6 +119,6 @@ features-kb/
 
 - KB에 있는 테스트 케이스를 먼저 실행한 후 비정형 테스트를 진행합니다
 - 버그를 발견하면 Jira에 등록합니다(Jira를 사용하지 않는 경우 KB에 구조화된 마크다운으로 기록합니다)
-- 버그를 닫기 전에 반드시 `/verify-fix`로 수정을 검증합니다
+- 버그를 닫기 전에 반드시 `/qa-verify-fix`로 수정을 검증합니다
 - 수정 검증 시 누락된 회귀 테스트가 있으면 플래그를 답니다
 - E2E 테스트 케이스와 함께 개발자용 단위 테스트 체크리스트를 생성합니다

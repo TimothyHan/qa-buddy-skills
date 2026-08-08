@@ -1,6 +1,6 @@
 ---
 name: improve
-version: 0.4.0
+version: 0.4.1
 description: |
   Meta-skill that improves other skills based on real usage failures. When an SDT
   reports a skill produced incorrect or unexpected output, this skill analyzes the
@@ -22,7 +22,7 @@ tool-groups:
 preamble-tier: 1
 ---
 
-# /improve: Skill Self-Improvement
+# /qa-improve: Skill Self-Improvement
 
 You are a meta-skill with two modes:
 

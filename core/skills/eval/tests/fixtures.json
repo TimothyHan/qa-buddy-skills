@@ -1,6 +1,6 @@
 {
   "skill": "eval",
-  "version": "0.3.0",
+  "version": "0.4.1",
   "fixtures": [
     {
       "id": "fx-001",
@@ -9,12 +9,30 @@
         "skill": "review-ticket"
       },
       "assertions": [
-        { "field": "output", "op": "contains", "value": "Eval Results" },
-        { "field": "output", "op": "contains", "value": "Pass rate" },
-        { "field": "output", "op": "matches", "value": "PASS|FAIL" },
-        { "field": "output", "op": "contains", "value": "DONE" }
+        {
+          "field": "output",
+          "op": "contains",
+          "value": "Eval Results"
+        },
+        {
+          "field": "output",
+          "op": "contains",
+          "value": "Pass rate"
+        },
+        {
+          "field": "output",
+          "op": "matches",
+          "value": "PASS|FAIL"
+        },
+        {
+          "field": "output",
+          "op": "contains",
+          "value": "DONE"
+        }
       ],
-      "tags": ["happy-path"]
+      "tags": [
+        "happy-path"
+      ]
     },
     {
       "id": "fx-002",
@@ -23,9 +41,15 @@
         "skill": "skill-with-no-fixtures"
       },
       "assertions": [
-        { "field": "output", "op": "matches", "value": "No fixtures|not found" }
+        {
+          "field": "output",
+          "op": "matches",
+          "value": "No fixtures|not found"
+        }
       ],
-      "tags": ["no-fixtures"]
+      "tags": [
+        "no-fixtures"
+      ]
     },
     {
       "id": "fx-003",
@@ -34,10 +58,20 @@
         "skill": "any skill with a failing fixture"
       },
       "assertions": [
-        { "field": "output", "op": "contains", "value": "Failed Assertions" },
-        { "field": "output", "op": "contains", "value": "Evidence" }
+        {
+          "field": "output",
+          "op": "contains",
+          "value": "Failed Assertions"
+        },
+        {
+          "field": "output",
+          "op": "contains",
+          "value": "Evidence"
+        }
       ],
-      "tags": ["failure-evidence"]
+      "tags": [
+        "failure-evidence"
+      ]
     }
   ]
 }

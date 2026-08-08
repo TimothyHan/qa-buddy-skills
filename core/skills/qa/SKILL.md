@@ -1,6 +1,6 @@
 ---
 name: qa
-version: 0.3.0
+version: 0.3.1
 description: |
   SDT test execution skill. Executes test cases from the knowledge base, verifies
   acceptance criteria in the browser, files bugs in Jira for failures, and updates
@@ -8,7 +8,7 @@ description: |
   the test cases, and what needs to pass before the ticket moves forward.
   Optional --fix flag for teams where SDTs handle minor fixes.
   Use when: "qa", "test this ticket", "run test cases", "verify ACs", "does this pass?".
-  Do NOT use when: asking about QA methodology, verifying a bug fix (use /verify-fix), just reporting without filing bugs (exploratory), checking sprint status.
+  Do NOT use when: asking about QA methodology, verifying a bug fix (use /qa-verify-fix), just reporting without filing bugs (exploratory), checking sprint status.
 tool-groups:
   - bash
   - read
@@ -22,7 +22,7 @@ tool-groups:
 preamble-tier: 2
 ---
 
-# /qa: Test Execution & AC Verification
+# /qa-qa: Test Execution & AC Verification
 
 You are an SDT partner executing QA for a ticket. You run formal test cases from
 the knowledge base, verify acceptance criteria in the browser, and file bugs in
@@ -41,10 +41,10 @@ Jira bugs for anything medium+ severity.
 4. **Evidence is everything.** Every test case result needs a screenshot. Every bug needs repro steps + screenshot + console state.
 5. **Don't fix unless asked.** `--fix` mode is opt-in and limited to minor/trivial. Medium+ severity always goes to the dev team.
 6. **Check console after every interaction.** Silent JS errors count as findings.
-7. **One ticket at a time.** For cross-ticket testing, use `/sprint-status` then run `/qa` per ticket.
+7. **One ticket at a time.** For cross-ticket testing, use `/qa-sprint-status` then run `/qa-qa` per ticket.
 8. **Connect to the sprint.** Update Jira and KB. Results only in local markdown can't be aggregated by sprint-status.
 9. **Show screenshots to the SDT inline.**
-10. **Always use the browser.** Never refuse browser testing when /qa is invoked.
+10. **Always use the browser.** Never refuse browser testing when /qa-qa is invoked.
 
 ---
 
@@ -67,13 +67,13 @@ If a ticket key is provided:
    - `contextSource: "jira"` or no config → current behavior
 2. **Pull ticket context** (Jira MCP if available, otherwise ask the SDT to provide or point to a file): summary, description, ACs, status, parent epic, linked bugs
 3. **Load from Knowledge Base:**
-   - Test cases: `features-kb/features/{EPIC-KEY}/test-cases/{TICKET-KEY}.md`
-   - Traceability mapping: `features-kb/features/{EPIC-KEY}/test-cases/{TICKET-KEY}-mapping.json`
-   - Test plan: `features-kb/features/{EPIC-KEY}/test-plan.md`
+   - Test cases: `features-kb/features/{EPIC-KEY}/qa-test-cases/{TICKET-KEY}.md`
+   - Traceability mapping: `features-kb/features/{EPIC-KEY}/qa-test-cases/{TICKET-KEY}-mapping.json`
+   - Test plan: `features-kb/features/{EPIC-KEY}/qa-test-plan.md`
    - Prior QA reports: `features-kb/features/{EPIC-KEY}/qa-reports/`
 4. **If no test cases exist:**
    Ask the SDT: "No test cases found for {TICKET-KEY}. Want me to run
-   `/test-cases {TICKET-KEY}` first, or proceed with AC-based testing?"
+   `/qa-test-cases {TICKET-KEY}` first, or proceed with AC-based testing?"
 
 ### No Ticket (URL-only or branch-based)
 
@@ -158,7 +158,7 @@ For each AC on the ticket:
 
 - **ALL ACs PASS** -> ticket is ready to move forward
 - **ANY AC FAILS** -> bugs need filing, ticket stays in testing
-- **ANY AC NOT TESTED** -> coverage gap, suggest running `/test-cases`
+- **ANY AC NOT TESTED** -> coverage gap, suggest running `/qa-test-cases`
 
 ---
 
@@ -267,7 +267,7 @@ and `features-kb/features/{EPIC-KEY}/qa-reports/{TICKET-KEY}-{YYYY-MM-DD}.md`:
 
 ### KB Updates
 
-1. Update test case statuses in `features-kb/features/{EPIC-KEY}/test-cases/{TICKET-KEY}.md` — mark each as passed/failed/blocked with date
+1. Update test case statuses in `features-kb/features/{EPIC-KEY}/qa-test-cases/{TICKET-KEY}.md` — mark each as passed/failed/blocked with date
 2. Update traceability mapping — set coverage status per AC
 3. Save QA report to KB for sprint-status aggregation
 

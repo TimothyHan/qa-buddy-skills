@@ -1,6 +1,6 @@
 ---
 name: improve
-version: 0.4.0
+version: 0.4.1
 description: |
   실제 사용 실패를 기반으로 다른 스킬을 개선하는 메타 스킬입니다. SDT가
   스킬의 출력이 잘못되었거나 예상과 다르다고 보고하면, 근본 원인을 분석하고,
@@ -22,7 +22,7 @@ tool-groups:
 preamble-tier: 1
 ---
 
-# /improve: 스킬 자기 개선
+# /qa-improve: 스킬 자기 개선
 
 두 가지 모드를 가진 메타 스킬입니다:
 
