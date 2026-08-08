@@ -1,0 +1,11 @@
+{
+  "installer": {
+    "title": "빌드·설치·제거 파이프라인",
+    "status": "active",
+    "testPlanCreated": "2026-08-08",
+    "stories": ["installer"],
+    "testCaseCount": 15,
+    "acCovered": 17,
+    "notes": "P0 8건 전부 CI/test.js로 자동화, 갭 G1–G3은 test-plan.md §4"
+  }
+}

@@ -1,0 +1,29 @@
+{
+  "ticket": "installer",
+  "epic": "installer",
+  "mappings": [
+    { "requirement": "AC1.1 전체 빌드 (3플랫폼×14스킬)", "tests": ["TC-INST-001"], "coverage": "full" },
+    { "requirement": "AC1.2 ko 로케일 빌드", "tests": ["TC-INST-001", "TC-INST-014"], "coverage": "full" },
+    { "requirement": "AC1.3 CRLF 체크아웃 내성", "tests": ["TC-INST-002"], "coverage": "full" },
+    { "requirement": "AC1.4 플레이스홀더 치환", "tests": ["TC-INST-003"], "coverage": "full" },
+    { "requirement": "AC1.5 .ps1 BOM 보존", "tests": ["TC-INST-003"], "coverage": "partial" },
+    { "requirement": "AC2.1 claude 링크 설치", "tests": ["TC-INST-004", "TC-INST-013"], "coverage": "full" },
+    { "requirement": "AC2.2 junction 폴백", "tests": ["TC-INST-012"], "coverage": "partial" },
+    { "requirement": "AC2.3 cursor global/project", "tests": ["TC-INST-010"], "coverage": "partial" },
+    { "requirement": "AC2.4 copilot 복사+마커", "tests": ["TC-INST-011"], "coverage": "partial" },
+    { "requirement": "AC2.5 미소유 선점 시 FAIL (NoPrefix 포함)", "tests": ["TC-INST-006", "TC-INST-009"], "coverage": "full" },
+    { "requirement": "AC2.6 PS 5.1 호환", "tests": ["TC-INST-005"], "coverage": "full" },
+    { "requirement": "AC2.7 무음 분기 금지", "tests": ["TC-INST-004", "TC-INST-008"], "coverage": "full" },
+    { "requirement": "AC3.1 소유분 전체 제거", "tests": ["TC-INST-007"], "coverage": "full" },
+    { "requirement": "AC3.2 미소유 SKIP 보존", "tests": ["TC-INST-007", "TC-INST-011"], "coverage": "full" },
+    { "requirement": "AC3.3 PS5.1 링크 삭제 무크래시", "tests": ["TC-INST-005"], "coverage": "full" },
+    { "requirement": "AC3.4 링크 대상 재귀 금지", "tests": ["TC-INST-007"], "coverage": "full" },
+    { "requirement": "AC4.1/4.2 FOREIGN 구분·거짓 통과 차단", "tests": ["TC-INST-008"], "coverage": "full" }
+  ],
+  "unmapped_requirements": [],
+  "test_gaps": [
+    "G1: cursor/copilot 스크립트 CI 미커버 (TC-INST-010/011 수동) — Effort M",
+    "G2: 재설치 멱등성 미자동화 (TC-INST-013) — Effort S",
+    "G3: dist .ps1 BOM 바이트 단언 없음 (TC-INST-003) — Effort S"
+  ]
+}

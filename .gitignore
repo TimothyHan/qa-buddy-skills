@@ -13,7 +13,9 @@ Thumbs.db
 # Node
 node_modules/
 
-# QABuddy project config (project-specific, not part of the tool)
+# QABuddy per-user config (not part of the tool)
 .qabuddy.json
-features-kb/
 .qa-reports/
+
+# features-kb/ is intentionally TRACKED here: this repo dogfoods QABuddy on
+# itself — the installer test plan/cases and project learnings live there.
