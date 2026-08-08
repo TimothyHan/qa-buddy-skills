@@ -1,4 +1,4 @@
-#Requires -Version 5.1
+﻿#Requires -Version 5.1
 <#
 .SYNOPSIS
     QABuddy — GitHub Copilot Setup (Windows)
@@ -32,6 +32,17 @@ $SdtRefs   = Join-Path $ScriptDir 'references'
 
 $Skills = Get-ChildItem $SdtSkills -Directory | Select-Object -ExpandProperty Name
 
+# PS 5.1: Remove-Item on a directory symlink throws NullReferenceException,
+# and -Recurse can descend into the link target. Delete links via .Delete().
+function Remove-Link([string]$LinkPath) {
+    $item = Get-Item $LinkPath -Force
+    if ($item.Attributes -band [IO.FileAttributes]::ReparsePoint) {
+        $item.Delete()
+    } else {
+        Remove-Item $LinkPath -Force -Recurse
+    }
+}
+
 # Verify git repo
 try {
     $RepoRoot = (git rev-parse --show-toplevel 2>&1).Trim()
@@ -56,7 +67,7 @@ if ($Uninstall) {
         foreach ($name in @("qa-$skill", $skill)) {
             $target = Join-Path $SkillsDir $name
             if (Test-Path $target) {
-                Remove-Item $target -Force -Recurse
+                Remove-Link $target
                 Write-Host "  REMOVED  $name"
                 $removed++
             }
@@ -64,7 +75,7 @@ if ($Uninstall) {
     }
     $refPath = Join-Path $SkillsDir 'qa-references'
     if (Test-Path $refPath) {
-        Remove-Item $refPath -Force -Recurse
+        Remove-Link $refPath
         Write-Host '  REMOVED  qa-references'
         $removed++
     }
@@ -152,7 +163,7 @@ foreach ($skill in $Skills) {
         continue
     }
 
-    if (Test-Path $target) { Remove-Item $target -Force -Recurse }
+    if (Test-Path $target) { Remove-Link $target }
     Copy-Item -Path $source -Destination $target -Recurse -Force
     Write-Host "  OK      $Prefix$skill"
     $installed++
@@ -160,15 +171,17 @@ foreach ($skill in $Skills) {
 
 # Install references
 $refTarget = Join-Path $SkillsDir 'qa-references'
-if (Test-Path $SdtRefs) {
-    if (Test-Path $refTarget) { Remove-Item $refTarget -Force -Recurse }
+if (Test-Path -LiteralPath $SdtRefs) {
+    if (Test-Path $refTarget) { Remove-Link $refTarget }
     Copy-Item -Path $SdtRefs -Destination $refTarget -Recurse -Force
     Write-Host '  OK      qa-references'
     $installed++
+} else {
+    Write-Host "  SKIP    qa-references (not found: $SdtRefs)" -ForegroundColor Yellow
 }
 
 Write-Host ''
-Write-Host "Installed: $installed items ($($installed - 1) skills + references)"
+Write-Host "Installed: $installed items"
 if ($skipped -gt 0) { Write-Host "Skipped: $skipped" -ForegroundColor Yellow }
 
 # ─── Project Instructions ───────────────────────────────────────────────────

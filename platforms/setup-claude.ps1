@@ -1,4 +1,4 @@
-#Requires -Version 5.1
+﻿#Requires -Version 5.1
 <#
 .SYNOPSIS
     QABuddy — Claude Code Setup (Windows)
@@ -32,6 +32,17 @@ $SdtRefs   = Join-Path $ScriptDir 'references'
 
 $Skills = Get-ChildItem $SdtSkills -Directory | Select-Object -ExpandProperty Name
 
+# PS 5.1: Remove-Item on a directory symlink throws NullReferenceException,
+# and -Recurse can descend into the link target. Delete links via .Delete().
+function Remove-Link([string]$LinkPath) {
+    $item = Get-Item $LinkPath -Force
+    if ($item.Attributes -band [IO.FileAttributes]::ReparsePoint) {
+        $item.Delete()
+    } else {
+        Remove-Item $LinkPath -Force -Recurse
+    }
+}
+
 # ─── Uninstall ───────────────────────────────────────────────────────────────
 
 if ($Uninstall) {
@@ -45,7 +56,7 @@ if ($Uninstall) {
             if (Test-Path $target) {
                 $item = Get-Item $target -Force
                 if ($item.Attributes -band [IO.FileAttributes]::ReparsePoint) {
-                    Remove-Item $target -Force
+                    Remove-Link $target
                     Write-Host "  REMOVED  $name"
                     $removed++
                 }
@@ -55,7 +66,7 @@ if ($Uninstall) {
     foreach ($name in @('qa-references', 'slowhama-references', 'slowhama-qa-references')) {
         $target = Join-Path $SkillsDir $name
         if (Test-Path $target) {
-            Remove-Item $target -Force -Recurse
+            Remove-Link $target
             Write-Host "  REMOVED  $name"
             $removed++
         }
@@ -134,7 +145,7 @@ foreach ($skill in $Skills) {
     }
 
     if (Test-Path $target) {
-        Remove-Item $target -Force -Recurse
+        Remove-Link $target
     }
 
     try {
@@ -156,8 +167,8 @@ foreach ($skill in $Skills) {
 
 # Install references
 $refTarget = Join-Path $SkillsDir 'qa-references'
-if (Test-Path $SdtRefs) {
-    if (Test-Path $refTarget) { Remove-Item $refTarget -Force -Recurse }
+if (Test-Path -LiteralPath $SdtRefs) {
+    if (Test-Path $refTarget) { Remove-Link $refTarget }
     try {
         New-Item -ItemType SymbolicLink -Path $refTarget -Target $SdtRefs -Force | Out-Null
         Write-Host "  OK      qa-references -> $SdtRefs"
@@ -170,10 +181,12 @@ if (Test-Path $SdtRefs) {
         }
     }
     $installed++
+} else {
+    Write-Host "  SKIP    qa-references (not found: $SdtRefs)" -ForegroundColor Yellow
 }
 
 Write-Host ''
-Write-Host "Installed: $installed items ($($installed - 1) skills + references)"
+Write-Host "Installed: $installed items"
 if ($skipped -gt 0) { Write-Host "Skipped: $skipped skills" -ForegroundColor Yellow }
 
 # ─── Atlassian MCP Check ────────────────────────────────────────────────────
