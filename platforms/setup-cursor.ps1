@@ -53,12 +53,32 @@ function Remove-Link([string]$LinkPath) {
     }
 }
 
+# Ownership check: never delete, overwrite, or count what QABuddy didn't install.
+# Links are owned when the target resolves under our expected root; copied
+# directories are owned only when they carry the .qabuddy-owned marker file.
+function Test-Owned([string]$Path, [string]$ExpectedRoot) {
+    $item = Get-Item $Path -Force -ErrorAction SilentlyContinue
+    if (-not $item) { return $false }
+    if ($item.Attributes -band [IO.FileAttributes]::ReparsePoint) {
+        $t = @($item.Target)[0]
+        if (-not $t) { return $false }
+        try {
+            return ([IO.Path]::GetFullPath($t)).StartsWith(
+                [IO.Path]::GetFullPath($ExpectedRoot), [StringComparison]::OrdinalIgnoreCase)
+        } catch { return $false }
+    }
+    return Test-Path (Join-Path $Path '.qabuddy-owned')
+}
+
 function New-SymlinkOrCopy {
     param([string]$Target, [string]$Source, [bool]$UseProject)
+
+    if ((Test-Path $Target) -and -not (Test-Owned $Target $Source)) { return 'occupied' }
 
     if ($UseProject) {
         if (Test-Path $Target) { Remove-Link $Target }
         Copy-Item -Path $Source -Destination $Target -Recurse -Force
+        Set-Content -Path (Join-Path $Target '.qabuddy-owned') -Value $Source
         return 'copied'
     }
 
@@ -87,17 +107,25 @@ if ($Uninstall) {
         foreach ($name in @("qa-$skill", $skill)) {
             $target = Join-Path $SkillsDir $name
             if (Test-Path $target) {
-                Remove-Link $target
-                Write-Host "  REMOVED  $name"
-                $removed++
+                if (Test-Owned $target $SdtSkills) {
+                    Remove-Link $target
+                    Write-Host "  REMOVED  $name"
+                    $removed++
+                } else {
+                    Write-Host "  SKIP     $name (not QABuddy's — left untouched)" -ForegroundColor Yellow
+                }
             }
         }
     }
     $refPath = Join-Path $SkillsDir 'qa-references'
     if (Test-Path $refPath) {
-        Remove-Link $refPath
-        Write-Host '  REMOVED  qa-references'
-        $removed++
+        if (Test-Owned $refPath $SdtRefs) {
+            Remove-Link $refPath
+            Write-Host '  REMOVED  qa-references'
+            $removed++
+        } else {
+            Write-Host "  SKIP     qa-references (not QABuddy's — left untouched)" -ForegroundColor Yellow
+        }
     }
     Write-Host ''
     Write-Host "Removed: $removed items"
@@ -117,8 +145,12 @@ if ($Status) {
         foreach ($name in @("qa-$skill", $skill)) {
             $target = Join-Path $SkillsDir $name
             if (Test-Path $target) {
-                Write-Host "  OK      $name"
-                $found = $true
+                if (Test-Owned $target $SdtSkills) {
+                    Write-Host "  OK      $name"
+                    $found = $true
+                } else {
+                    Write-Host "  FOREIGN $name (not QABuddy's — ignored)" -ForegroundColor Yellow
+                }
             }
         }
         if (-not $found) { Write-Host "  MISSING $skill" -ForegroundColor Yellow }
@@ -173,16 +205,21 @@ foreach ($skill in $Skills) {
     }
 
     $result = New-SymlinkOrCopy -Target $target -Source $source -UseProject $Project
-    switch ($result) {
-        'symlink'  { Write-Host "  OK      $Prefix$skill -> $source" }
-        'junction' { Write-Host "  OK      $Prefix$skill -> $source (junction)" }
-        'copied'   { Write-Host "  OK      $Prefix$skill (copied)" }
-        'failed'   {
-            Write-Host "  FAIL    $Prefix$skill — enable Developer Mode or run as admin" -ForegroundColor Red
-            $skipped++
-            continue
-        }
+    # NOTE: plain ifs, not a switch — `continue` inside a switch continues the
+    # switch, not the enclosing foreach, which would fall through to $installed++
+    if ($result -eq 'occupied') {
+        Write-Host "  FAIL    $Prefix$skill — another tool's item occupies the target. Remove it manually or use prefix mode." -ForegroundColor Red
+        $skipped++
+        continue
     }
+    if ($result -eq 'failed') {
+        Write-Host "  FAIL    $Prefix$skill — enable Developer Mode or run as admin" -ForegroundColor Red
+        $skipped++
+        continue
+    }
+    if ($result -eq 'symlink')  { Write-Host "  OK      $Prefix$skill -> $source" }
+    if ($result -eq 'junction') { Write-Host "  OK      $Prefix$skill -> $source (junction)" }
+    if ($result -eq 'copied')   { Write-Host "  OK      $Prefix$skill (copied)" }
     $installed++
 }
 
@@ -190,7 +227,9 @@ foreach ($skill in $Skills) {
 $refTarget = Join-Path $SkillsDir 'qa-references'
 if (Test-Path -LiteralPath $SdtRefs) {
     $result = New-SymlinkOrCopy -Target $refTarget -Source $SdtRefs -UseProject $Project
-    if ($result -ne 'failed') {
+    if ($result -eq 'occupied') {
+        Write-Host "  FAIL    qa-references — another item occupies $refTarget. Remove it manually." -ForegroundColor Red
+    } elseif ($result -ne 'failed') {
         Write-Host "  OK      qa-references ($result)"
         $installed++
     } else {

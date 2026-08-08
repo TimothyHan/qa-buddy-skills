@@ -36,20 +36,34 @@ jobs:
 
       # Windows PowerShell 5.1 (the OS-bundled shell, not pwsh 7) is what a
       # default Windows user runs — v0.2.0's 3-arg Join-Path broke only there
-      - name: Install via setup.ps1 under PowerShell 5.1
+      # A decoy skill named like ours but owned by "another tool" must survive
+      # install → status → uninstall untouched (issue #6: ownership verification)
+      - name: Install via setup.ps1 under PowerShell 5.1 (with foreign decoy)
         if: runner.os == 'Windows'
         shell: powershell
         run: |
+          New-Item -ItemType Directory -Force -Path "$HOME\.claude\skills" | Out-Null
+          New-Item -ItemType Directory -Force -Path "$env:TEMP\foreign-tool\setup" | Out-Null
+          New-Item -ItemType SymbolicLink -Path "$HOME\.claude\skills\setup" -Target "$env:TEMP\foreign-tool\setup" -Force | Out-Null
           & dist/claude/setup.ps1
           $status = & dist/claude/setup.ps1 -Status | Out-String
           Write-Host $status
-          if ($status -match 'MISSING|FAIL|SKIP') { throw 'Status/install reported MISSING/FAIL/SKIP entries' }
+          if ($status -match 'MISSING|FAIL|SKIP') { throw 'Status reported MISSING/FAIL/SKIP entries' }
+          if ($status -notmatch 'FOREIGN setup') { throw 'Foreign decoy was not flagged FOREIGN in status' }
           & dist/claude/setup.ps1 -Uninstall
+          if (-not (Test-Path "$HOME\.claude\skills\setup")) { throw 'Uninstall deleted a foreign skill (decoy gone)' }
+          $decoy = Get-Item "$HOME\.claude\skills\setup" -Force
+          if (@($decoy.Target)[0] -notlike "*foreign-tool*") { throw 'Decoy no longer points at its original target' }
 
-      - name: Install via setup (bash)
+      - name: Install via setup (bash, with foreign decoy)
         if: runner.os == 'Linux'
         run: |
+          mkdir -p "$HOME/.claude/skills" /tmp/foreign-tool/setup
+          ln -sfn /tmp/foreign-tool/setup "$HOME/.claude/skills/setup"
           dist/claude/setup
           dist/claude/setup --status | tee /tmp/qabuddy-status.txt
           ! grep -Eq 'MISSING|FAIL' /tmp/qabuddy-status.txt
+          grep -q 'FOREIGN setup' /tmp/qabuddy-status.txt
           dist/claude/setup --uninstall
+          test -L "$HOME/.claude/skills/setup"
+          test "$(readlink "$HOME/.claude/skills/setup")" = "/tmp/foreign-tool/setup"

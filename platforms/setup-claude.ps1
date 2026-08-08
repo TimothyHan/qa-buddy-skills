@@ -43,6 +43,23 @@ function Remove-Link([string]$LinkPath) {
     }
 }
 
+# Ownership check: never delete, overwrite, or count what QABuddy didn't install.
+# Links are owned when the target resolves under our expected root; copied
+# directories are owned only when they carry the .qabuddy-owned marker file.
+function Test-Owned([string]$Path, [string]$ExpectedRoot) {
+    $item = Get-Item $Path -Force -ErrorAction SilentlyContinue
+    if (-not $item) { return $false }
+    if ($item.Attributes -band [IO.FileAttributes]::ReparsePoint) {
+        $t = @($item.Target)[0]
+        if (-not $t) { return $false }
+        try {
+            return ([IO.Path]::GetFullPath($t)).StartsWith(
+                [IO.Path]::GetFullPath($ExpectedRoot), [StringComparison]::OrdinalIgnoreCase)
+        } catch { return $false }
+    }
+    return Test-Path (Join-Path $Path '.qabuddy-owned')
+}
+
 # ─── Uninstall ───────────────────────────────────────────────────────────────
 
 if ($Uninstall) {
@@ -54,11 +71,12 @@ if ($Uninstall) {
         foreach ($name in @("qa-$skill", $skill)) {
             $target = Join-Path $SkillsDir $name
             if (Test-Path $target) {
-                $item = Get-Item $target -Force
-                if ($item.Attributes -band [IO.FileAttributes]::ReparsePoint) {
+                if (Test-Owned $target $SdtSkills) {
                     Remove-Link $target
                     Write-Host "  REMOVED  $name"
                     $removed++
+                } else {
+                    Write-Host "  SKIP     $name (not QABuddy's — left untouched)" -ForegroundColor Yellow
                 }
             }
         }
@@ -66,9 +84,14 @@ if ($Uninstall) {
     foreach ($name in @('qa-references', 'slowhama-references', 'slowhama-qa-references')) {
         $target = Join-Path $SkillsDir $name
         if (Test-Path $target) {
-            Remove-Link $target
-            Write-Host "  REMOVED  $name"
-            $removed++
+            $item = Get-Item $target -Force
+            if ($item.Attributes -band [IO.FileAttributes]::ReparsePoint) {
+                Remove-Link $target
+                Write-Host "  REMOVED  $name"
+                $removed++
+            } else {
+                Write-Host "  SKIP     $name (not a link — left untouched)" -ForegroundColor Yellow
+            }
         }
     }
     Write-Host ''
@@ -89,14 +112,12 @@ if ($Status) {
         foreach ($name in @("qa-$skill", $skill)) {
             $target = Join-Path $SkillsDir $name
             if (Test-Path $target) {
-                $item = Get-Item $target -Force
-                if ($item.Attributes -band [IO.FileAttributes]::ReparsePoint) {
-                    $linkTarget = $item.Target
-                    Write-Host "  OK      $name -> $linkTarget"
+                if (Test-Owned $target $SdtSkills) {
+                    Write-Host "  OK      $name -> $(@((Get-Item $target -Force).Target)[0])"
+                    $found = $true
                 } else {
-                    Write-Host "  OK      $name (directory)"
+                    Write-Host "  FOREIGN $name (not QABuddy's — ignored)" -ForegroundColor Yellow
                 }
-                $found = $true
             }
         }
         if (-not $found) { Write-Host "  MISSING $skill" -ForegroundColor Yellow }
@@ -104,7 +125,11 @@ if ($Status) {
     Write-Host ''
     $refPath = Join-Path $SkillsDir 'qa-references'
     if (Test-Path $refPath) {
-        Write-Host "  OK      qa-references"
+        if (Test-Owned $refPath $SdtRefs) {
+            Write-Host "  OK      qa-references"
+        } else {
+            Write-Host "  FOREIGN qa-references (not QABuddy's — ignored)" -ForegroundColor Yellow
+        }
     } else {
         Write-Host "  MISSING qa-references" -ForegroundColor Yellow
     }
@@ -145,7 +170,13 @@ foreach ($skill in $Skills) {
     }
 
     if (Test-Path $target) {
-        Remove-Link $target
+        if (Test-Owned $target $SdtSkills) {
+            Remove-Link $target
+        } else {
+            Write-Host "  FAIL    $Prefix$skill — another tool's item occupies $target. Remove it manually or use prefix mode." -ForegroundColor Red
+            $skipped++
+            continue
+        }
     }
 
     try {
@@ -168,6 +199,11 @@ foreach ($skill in $Skills) {
 # Install references
 $refTarget = Join-Path $SkillsDir 'qa-references'
 if (Test-Path -LiteralPath $SdtRefs) {
+    if ((Test-Path $refTarget) -and -not (Test-Owned $refTarget $SdtRefs)) {
+        Write-Host "  FAIL    qa-references — another item occupies $refTarget. Remove it manually." -ForegroundColor Red
+        $refTarget = $null
+    }
+    if ($refTarget) {
     if (Test-Path $refTarget) { Remove-Link $refTarget }
     try {
         New-Item -ItemType SymbolicLink -Path $refTarget -Target $SdtRefs -Force | Out-Null
@@ -181,6 +217,7 @@ if (Test-Path -LiteralPath $SdtRefs) {
         }
     }
     $installed++
+    }
 } else {
     Write-Host "  SKIP    qa-references (not found: $SdtRefs)" -ForegroundColor Yellow
 }

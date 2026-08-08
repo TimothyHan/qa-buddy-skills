@@ -526,6 +526,29 @@ function testInstallerSkillSync() {
       'Found a literal skill array — new skills would be silently skipped'
     );
   }
+
+  // v0.2.2 regression (reported live): uninstall deleted ANOTHER tool's skill.
+  // ~/.claude/skills is a shared namespace and bare names (setup, start, qa…)
+  // collide. Every script must verify ownership before deleting or counting:
+  // links → target resolves under our dist; copies → .qabuddy-owned marker.
+  const ownership = [
+    ['platforms/setup-claude',      [/readlink/, /FOREIGN/]],
+    ['platforms/setup-cursor',      [/readlink/, /\.qabuddy-owned/, /FOREIGN/]],
+    ['platforms/setup-copilot',     [/\.qabuddy-owned/, /FOREIGN/]],
+    ['platforms/setup-claude.ps1',  [/function Test-Owned/, /FOREIGN/]],
+    ['platforms/setup-cursor.ps1',  [/function Test-Owned/, /\.qabuddy-owned/, /FOREIGN/]],
+    ['platforms/setup-copilot.ps1', [/function Test-Owned/, /\.qabuddy-owned/, /FOREIGN/]],
+  ];
+  for (const [file, patterns] of ownership) {
+    const content = readFile(path.join(__dirname, file)) || '';
+    for (const pattern of patterns) {
+      check(
+        pattern.test(content),
+        `${file}: ownership verification (${pattern.source})`,
+        'Deleting/counting by name alone destroys other tools\' skills — verify ownership'
+      );
+    }
+  }
 }
 
 testBuildOutput();
