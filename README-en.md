@@ -8,15 +8,16 @@
 
 [![License: Apache 2.0](https://img.shields.io/badge/License-Apache_2.0-blue.svg)](LICENSE)
 [![Skills: 14](https://img.shields.io/badge/Skills-14-green.svg)](#skills)
-[![Platforms: 3](https://img.shields.io/badge/Platforms-Claude_|_Cursor_|_Copilot-purple.svg)](#how-it-works)
+[![Platform: Claude Code](https://img.shields.io/badge/Platform-Claude_Code-purple.svg)](#how-it-works)
 [![Locales: en, ko](https://img.shields.io/badge/Locales-en_|_ko-orange.svg)](#locales)
-[![Tests: 664](https://img.shields.io/badge/Tests-664_passing-brightgreen.svg)](#testing)
+[![Tests: 694](https://img.shields.io/badge/Tests-694_passing-brightgreen.svg)](#testing)
 
 An AI partner for Software Developers in Test (SDTs) working in Scrum teams.<br>
 Covers the full workflow — from epic test planning through sprint execution to release verification.<br>
 Every team's QA needs are different — so QABuddy ships as a foundation that **self-improves**:<br>
 every skill run captures project-specific learnings and applies them on the next run.<br>
-Works with **Claude Code**, **Cursor**, and **GitHub Copilot**. No Jira required.
+Officially supports **Claude Code**. No Jira required.<br>
+(Unverified installers for Cursor/Copilot are still built — see below.)
 
 Built on the native **skills system** of your AI coding assistant.<br>
 QABuddy is a collection of `SKILL.md` files that your AI discovers and invokes automatically —<br>
@@ -47,7 +48,7 @@ no separate app, no daemon, no dependencies beyond Node.js.
 ```bash
 git clone https://github.com/TimothyHan/QABuddy.git && cd QABuddy
 node build.js all              # Build for all platforms
-dist/claude/setup              # Install (or dist/cursor/setup, dist/copilot/setup)
+dist/claude/setup              # Install
 ```
 
 Then:
@@ -63,7 +64,7 @@ Then:
 git clone https://github.com/TimothyHan/QABuddy.git
 cd QABuddy
 node build.js all
-.\dist\claude\setup.ps1        # or .\dist\cursor\setup.ps1
+.\dist\claude\setup.ps1
 ```
 
 > Symlinks require Developer Mode enabled or running as Administrator.
@@ -174,7 +175,7 @@ If defined, skills follow them automatically. If not, skills ask case-by-case.
 
 - **Node.js** — for the build script (zero npm dependencies)
 - **Atlassian MCP** — optional, only for Jira mode
-- **Playwright MCP** — for browser testing (Cursor/Copilot; Claude Code can use Chrome extension)
+- **Playwright MCP** — fallback for browser testing (Chrome extension recommended on Claude Code)
 
 <details>
 <summary><strong>MCP Configuration</strong></summary>
@@ -277,6 +278,14 @@ flowchart LR
 
 ## How It Works
 
+**Claude Code is the officially supported platform** — the only one CI verifies end to end
+(build → install → status → uninstall) on Linux and Windows (PowerShell 5.1) on every push.
+
+> **Cursor / Copilot (unverified):** the build still produces all three platform outputs, and
+> the installers in `dist/cursor/` and `dist/copilot/` ship as-is. They pass the structural
+> test suite (ownership verification, dynamic skill enumeration), but **CI does not execute
+> them** — use at your own risk. Issue reports welcome.
+
 Skills are authored once in `core/skills/`. The build script generates platform-specific output:
 
 | | Claude Code | Cursor | Copilot |
@@ -290,7 +299,7 @@ Skills are authored once in `core/skills/`. The build script generates platform-
 ```bash
 node build.js all                  # Build for all platforms
 node build.js all --locale ko      # Build Korean version
-node test.js                       # Run 664 structural tests
+node test.js                       # Run 694 structural tests
 ```
 
 <details>
@@ -299,7 +308,7 @@ node test.js                       # Run 664 structural tests
 ```
 QABuddy/
 ├── build.js                     # Build script (node, zero deps)
-├── test.js                      # Structural test suite (664 checks)
+├── test.js                      # Structural test suite (694 checks)
 ├── core/                        # Single source of truth — edit here
 │   ├── skills/ (11)             # Skill templates with {{placeholders}}
 │   ├── references/playbook/     # 10 methodology files

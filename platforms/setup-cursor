@@ -144,6 +144,8 @@ fi
 # ─── Install ─────────────────────────────────────────────────────────────────
 
 echo "QABuddy — Setup (Cursor)"
+echo "NOTE: Cursor is an UNVERIFIED platform — CI does not execute this installer."
+echo "      Officially supported: Claude Code. Issue reports welcome."
 echo "==========================="
 echo "Mode: $MODE"
 echo ""

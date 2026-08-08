@@ -50,5 +50,5 @@ OS 3종 (macOS/Linux/Windows). 설치 대상 디렉터리(`~/.claude/skills` 등
 |---|---|
 | 지원 Node.js 최소 버전 | 문서 미명시 (README는 "Node.js"만 요구) |
 | Windows 비관리자(junction 폴백) 경로의 공식 지원 선언 | 스크립트는 구현했으나 문서·테스트 없음 |
-| cursor/copilot 스크립트의 CI 커버리지 | 없음 — claude만 CI에서 실행됨 |
+| cursor/copilot 스크립트의 CI 커버리지 | 정책 종결 (2026-08-08): 미검증 등급 — 공식 지원은 Claude Code |
 | v0.2.2 이하 copilot/cursor-project 설치본(마커 없음) 업그레이드 절차 | 릴리스 노트로만 안내 |

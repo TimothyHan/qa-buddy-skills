@@ -150,6 +150,8 @@ fi
 # ─── Install ─────────────────────────────────────────────────────────────────
 
 echo "QABuddy — Setup (Copilot)"
+echo "NOTE: Copilot is an UNVERIFIED platform — CI does not execute this installer."
+echo "      Officially supported: Claude Code. Issue reports welcome."
 echo "============================="
 echo ""
 

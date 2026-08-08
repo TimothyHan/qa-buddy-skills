@@ -2,6 +2,7 @@
 
 [English](README.md) · [한국어](README-ko.md)
 
+> **Support tier:** Claude Code is the officially supported platform (verified by CI on every push). The Cursor and Copilot configs and installers here are **unverified** — structurally tested only.
 Platform-specific configuration and setup scripts for Claude Code, Cursor, and GitHub Copilot.
 
 ## Files

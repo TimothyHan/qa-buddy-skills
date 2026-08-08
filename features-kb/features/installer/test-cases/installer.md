@@ -63,13 +63,13 @@
 ### TC-INST-010: cursor global/project 설치·제거
 **Requirement:** AC2.3 | **Priority:** P1 | **Type:** happy-path
 **Expected:** global=링크, project=복사+`.qabuddy-owned` 마커; uninstall은 마커 있는 것만 제거
-**Status:** Manual — **Gap G1** (CI 미커버)
+**Status:** Manual — 미검증 등급 (G1 정책 종결); 스크립트 변경 시에만 수행
 
 ### TC-INST-011: copilot 복사 설치·제거 (마커 소유권)
 **Requirement:** AC2.4, AC3.2 | **Priority:** P1 | **Type:** happy-path + negative
 **Precondition:** git repo 안에서 실행; `.github/skills/`에 마커 없는 외부 디렉터리 1개
 **Expected:** 설치본에 마커 생성; uninstall은 마커 기준 — 외부 디렉터리는 SKIP 보존
-**Status:** Manual — **Gap G1**
+**Status:** Manual — 미검증 등급 (G1 정책 종결); 스크립트 변경 시에만 수행
 
 ### TC-INST-012: junction 폴백 (비관리자 + 개발자 모드 OFF)
 **Requirement:** AC2.2 | **Priority:** P1 | **Type:** compat

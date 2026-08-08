@@ -176,6 +176,8 @@ if ($Status) {
 $Prefix = if ($NoPrefix) { '' } else { 'qa-' }
 
 Write-Host 'QABuddy — Setup (Copilot)' -ForegroundColor Cyan
+Write-Host 'NOTE: Copilot is an UNVERIFIED platform — CI does not execute this installer.' -ForegroundColor Yellow
+Write-Host '      Officially supported: Claude Code. Issue reports welcome.' -ForegroundColor Yellow
 Write-Host ('=' * 29)
 Write-Host ''
 

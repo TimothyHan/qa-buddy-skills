@@ -183,6 +183,8 @@ $Prefix = if ($NoPrefix) { '' } else { 'qa-' }
 $Mode = if ($Project) { 'project' } else { 'global' }
 
 Write-Host 'QABuddy — Setup (Cursor)' -ForegroundColor Cyan
+Write-Host 'NOTE: Cursor is an UNVERIFIED platform — CI does not execute this installer.' -ForegroundColor Yellow
+Write-Host '      Officially supported: Claude Code. Issue reports welcome.' -ForegroundColor Yellow
 Write-Host ('=' * 28)
 Write-Host "Mode: $Mode"
 Write-Host ''

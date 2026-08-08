@@ -8,15 +8,16 @@
 
 [![License: Apache 2.0](https://img.shields.io/badge/License-Apache_2.0-blue.svg)](LICENSE)
 [![Skills: 14](https://img.shields.io/badge/Skills-14-green.svg)](#스킬)
-[![Platforms: 3](https://img.shields.io/badge/Platforms-Claude_|_Cursor_|_Copilot-purple.svg)](#작동-방식)
+[![Platform: Claude Code](https://img.shields.io/badge/Platform-Claude_Code-purple.svg)](#작동-방식)
 [![Locales: en, ko](https://img.shields.io/badge/Locales-en_|_ko-orange.svg)](#로케일)
-[![Tests: 664](https://img.shields.io/badge/Tests-664_passing-brightgreen.svg)](#테스트)
+[![Tests: 694](https://img.shields.io/badge/Tests-694_passing-brightgreen.svg)](#테스트)
 
 스크럼 팀에서 일하는 SDT(Software Developers in Test)를 위한 AI 파트너입니다.<br>
 에픽 테스트 계획 수립부터 스프린트 실행, 릴리스 검증까지 전체 워크플로우를 지원합니다.<br>
 팀마다 QA의 요구는 다릅니다 — 그래서 QABuddy는 **자기 개선**하는 파운데이션으로 제공됩니다:<br>
 모든 스킬 실행이 프로젝트 고유의 학습을 포착하고 다음 실행에 적용합니다.<br>
-**Claude Code**, **Cursor**, **GitHub Copilot**에서 사용할 수 있습니다. Jira 없이도 작동합니다.
+공식 지원 플랫폼은 **Claude Code**입니다. Jira 없이도 작동합니다.<br>
+(Cursor/Copilot용 미검증 설치 스크립트도 빌드에 포함됩니다 — 아래 참고)
 
 AI 코딩 어시스턴트의 네이티브 **스킬 시스템** 위에 구축되었습니다.<br>
 QABuddy는 AI가 자동으로 인식하고 실행하는 `SKILL.md` 파일 모음입니다 —<br>
@@ -47,7 +48,7 @@ QABuddy는 AI가 자동으로 인식하고 실행하는 `SKILL.md` 파일 모음
 ```bash
 git clone https://github.com/TimothyHan/QABuddy.git && cd QABuddy
 node build.js all --locale ko  # 한국어 버전 빌드
-dist/ko/claude/setup           # 설치 (또는 dist/ko/cursor/setup, dist/ko/copilot/setup)
+dist/ko/claude/setup           # 설치
 ```
 
 그런 다음:
@@ -63,7 +64,7 @@ dist/ko/claude/setup           # 설치 (또는 dist/ko/cursor/setup, dist/ko/co
 git clone https://github.com/TimothyHan/QABuddy.git
 cd QABuddy
 node build.js all --locale ko
-.\dist\ko\claude\setup.ps1     # 또는 .\dist\ko\cursor\setup.ps1
+.\dist\ko\claude\setup.ps1
 ```
 
 > 심볼릭 링크를 사용하려면 개발자 모드를 활성화하거나 관리자 권한으로 실행해야 합니다.
@@ -174,7 +175,7 @@ node build.js all --locale ko
 
 - **Node.js** — 빌드 스크립트용 (npm 의존성 없음)
 - **Atlassian MCP** — 선택, Jira 모드에서만 필요
-- **Playwright MCP** — 브라우저 테스팅용 (Cursor/Copilot; Claude Code는 Chrome 확장 프로그램 사용 가능)
+- **Playwright MCP** — 브라우저 테스팅용 대체 수단 (Claude Code는 Chrome 확장 프로그램 권장)
 
 <details>
 <summary><strong>MCP 설정</strong></summary>
@@ -277,6 +278,14 @@ flowchart LR
 
 ## 작동 방식
 
+**공식 지원은 Claude Code입니다** — CI가 모든 push마다 Linux와 Windows(PowerShell 5.1)에서
+빌드·설치·제거 전체 사이클을 검증하는 유일한 플랫폼입니다.
+
+> **Cursor / Copilot (미검증):** 빌드는 세 플랫폼 산출물을 모두 생성하며
+> `dist/cursor/`, `dist/copilot/`의 설치 스크립트도 그대로 제공됩니다. 구조 테스트
+> (소유권 검증, 동적 스킬 순회)는 통과하지만 **CI가 실행을 검증하지 않으므로**
+> 사용은 자기 책임입니다. 문제 리포트는 환영합니다.
+
 스킬은 `core/skills/`에서 한 번만 작성됩니다. 빌드 스크립트가 플랫폼별 출력을 생성합니다:
 
 | | Claude Code | Cursor | Copilot |
@@ -290,7 +299,7 @@ flowchart LR
 ```bash
 node build.js all                  # 모든 플랫폼용 빌드
 node build.js all --locale ko      # 한국어 버전 빌드
-node test.js                       # 664개 구조 테스트 실행
+node test.js                       # 694개 구조 테스트 실행
 ```
 
 <details>
@@ -299,7 +308,7 @@ node test.js                       # 664개 구조 테스트 실행
 ```
 QABuddy/
 ├── build.js                     # 빌드 스크립트 (node, 의존성 없음)
-├── test.js                      # 구조 테스트 스위트 (664개 검사)
+├── test.js                      # 구조 테스트 스위트 (694개 검사)
 ├── core/                        # 단일 소스 — 여기서 편집
 │   ├── skills/ (11)             # {{플레이스홀더}} 포함 스킬 템플릿
 │   ├── references/playbook/     # 10개 방법론 파일

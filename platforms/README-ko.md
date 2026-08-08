@@ -2,6 +2,7 @@
 
 [English](README.md) · [한국어](README-ko.md)
 
+> **지원 등급:** 공식 지원 플랫폼은 Claude Code입니다 (매 push마다 CI 검증). 이 디렉터리의 Cursor/Copilot 설정과 설치 스크립트는 **미검증**입니다 — 구조 테스트만 통과합니다.
 Claude Code, Cursor, GitHub Copilot을 위한 플랫폼별 설정 및 설치 스크립트입니다.
 
 ## 설정 파일 작동 방식

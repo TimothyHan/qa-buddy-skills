@@ -39,7 +39,7 @@ PS 5.1/bash 3.2 호환, CRLF/BOM 인코딩 내성.
 | C2 | Windows: `autocrlf=true` 체크아웃 재현 후 동일 사이클, **실제 PS 5.1** | P0 | Confirmed: ci.yml `shell: powershell` |
 | C3 | 디코이 생존: 외부 도구 링크가 전 사이클 후 원래 대상 그대로 | P0 | Confirmed: ci.yml decoy 단계 (양 OS) |
 | C4 | status 정직성: MISSING/FAIL/SKIP → 잡 실패, 디코이는 FOREIGN 표기 필수 | P0 | Confirmed: ci.yml 단언 (PS는 `6>&1` 캡처) |
-| C5 | cursor/copilot 스크립트 install→uninstall 사이클 | P1 | **No coverage** — Gap G1 |
+| C5 | cursor/copilot 스크립트 install→uninstall 사이클 | P2 | **De-scoped** — 미검증 등급 (2026-08-08 결정): 공식 지원은 Claude Code, cursor/copilot은 구조 검증(S2·S3)만. 설치 스크립트가 UNVERIFIED 배너 출력 |
 | C6 | 재설치 멱등성 (owned 설치 위에 재실행 → 전부 OK) | P1 | **No coverage** — Gap G2 |
 
 ### 수동 / 탐색 (실기기 매트릭스 — 피라미드 상단)
@@ -56,7 +56,7 @@ PS 5.1/bash 3.2 호환, CRLF/BOM 인코딩 내성.
 
 | Area | Current Coverage | Gap | Effort |
 |---|---|---|---|
-| G1: cursor/copilot 스크립트 | No coverage (CI는 claude만) | copilot은 git repo 필요, cursor는 global/project 2모드 — CI 매트릭스 확장 | M |
+| G1: cursor/copilot 스크립트 | 정책으로 종결 — 미검증 등급 (README·설치 배너에 명시) | 공식 승격 시 CI 매트릭스 확장 필요 (copilot은 git repo, cursor는 2모드) | M (보류) |
 | G2: 재설치 멱등성 | No coverage | CI에 install 2회 실행 + 2회차 출력 전부 OK 단언 추가 | S |
 | G3: BOM 보존 검사 | Unverified — dist 복사가 바이트 보존한다고 가정 | test.js에 dist `.ps1` 선두 3바이트 단언 추가 | S |
 | G4: junction 폴백 | No coverage (M1 수동 의존) | 러너에서 권한 박탈이 비현실적 — 수동 유지가 합리적 | L (부적합) |
@@ -80,7 +80,7 @@ PS 5.1/bash 3.2 호환, CRLF/BOM 인코딩 내성.
 | 공유 네임스페이스에서 타 도구 데이터 파괴 | Blocker | Low (수정 후) | 소유권 검증 + 디코이 CI (C3) + S3 구조 검사. **관련 코드 리뷰 시 최우선 확인 항목** |
 | PS 5.1 고유 동작 (스트림, 심볼릭 링크, 인코딩) | Critical | Medium | CI가 pwsh가 아닌 실제 5.1로 실행; PS 5.1 함정 목록을 LEARNINGS.md에 축적 |
 | 무음 실패 경로 재유입 | Major | Medium | C4 status 정직성 단언 + "모든 분기는 출력" 원칙 (feature.md AC2.7) |
-| cursor/copilot 미커버 경로의 잠복 결함 | Major | Medium | G1 해소 전까지 해당 스크립트 변경은 수동 검증 필수 |
+| cursor/copilot(미검증 등급) 잠복 결함 | Major | Medium | 사용자 기대 관리: README·설치 배너에 미검증 명시, 리포트 기반 대응. 스크립트 변경 시 수동 검증 권장 |
 
 ## 8. Success Criteria
 
