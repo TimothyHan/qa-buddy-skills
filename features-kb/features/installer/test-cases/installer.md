@@ -20,7 +20,8 @@
 
 ### TC-INST-003: 산출물 무결성
 **Requirement:** AC1.4, AC1.5 | **Priority:** P1 | **Type:** happy-path
-**Expected:** `{{REFERENCE_PATH}}` 잔존 0건; dist `.ps1` 선두 3바이트 = EF BB BF
+**Steps:** 빌드 후 ① `grep -r "{{REFERENCE_PATH}}" dist/ | wc -l` ② `head -c 3 dist/claude/setup.ps1 | xxd`
+**Expected:** ① 0건 ② `efbbbf`
 **Status:** Partial — 플레이스홀더는 test.js `testNoRawPlaceholders`; BOM은 **Gap G3** (수동)
 
 ### TC-INST-004: claude 신규 설치 (깨끗한 환경)
@@ -62,18 +63,21 @@
 
 ### TC-INST-010: cursor global/project 설치·제거
 **Requirement:** AC2.3 | **Priority:** P1 | **Type:** happy-path
-**Expected:** global=링크, project=복사+`.qabuddy-owned` 마커; uninstall은 마커 있는 것만 제거
+**Steps:** 샌드박스 HOME에서(LRN-04) ① `dist/cursor/setup` → status ② 임의 프로젝트에서 `dist/cursor/setup --project` ③ 각각 uninstall
+**Expected:** ①=링크 15개, ②=`.cursor/skills/` 복사본 + 각 디렉터리에 `.qabuddy-owned` 마커, ③ 마커/소유 링크만 REMOVED
 **Status:** Manual — 미검증 등급 (G1 정책 종결); 스크립트 변경 시에만 수행
 
 ### TC-INST-011: copilot 복사 설치·제거 (마커 소유권)
 **Requirement:** AC2.4, AC3.2 | **Priority:** P1 | **Type:** happy-path + negative
-**Precondition:** git repo 안에서 실행; `.github/skills/`에 마커 없는 외부 디렉터리 1개
-**Expected:** 설치본에 마커 생성; uninstall은 마커 기준 — 외부 디렉터리는 SKIP 보존
+**Precondition:** git repo 안에서 실행; `.github/skills/`에 마커 없는 외부 디렉터리 1개 (디코이, LRN-02)
+**Steps:** ① `dist/copilot/setup` ② status ③ `dist/copilot/setup --uninstall` ④ 디코이 디렉터리 존재 확인
+**Expected:** ① 각 설치본에 `.qabuddy-owned` 생성 ② 디코이 FOREIGN ③ 마커 있는 것만 REMOVED, 디코이 `SKIP` ④ 무손상
 **Status:** Manual — 미검증 등급 (G1 정책 종결); 스크립트 변경 시에만 수행
 
 ### TC-INST-012: junction 폴백 (비관리자 + 개발자 모드 OFF)
 **Requirement:** AC2.2 | **Priority:** P1 | **Type:** compat
-**Expected:** `OK ... (junction)` 출력, 스킬 동작 동일
+**Steps:** 개발자 모드 OFF + 비관리자 PowerShell에서 `dist\claude\setup.ps1` → status → 스킬 1개 호출 확인
+**Expected:** `OK ... (junction)` 출력, status 정상, 스킬 로드 동일
 **Status:** Manual — M1 (CI 재현 불가)
 
 ### TC-INST-013: 재설치 멱등성
@@ -90,8 +94,23 @@
 
 ### TC-INST-015: 업그레이드 — 마커 없는 구버전(≤v0.2.2) 복사 설치본
 **Requirement:** Missing ACs 4행 | **Priority:** P2 | **Type:** edge
-**Expected:** FAIL + 수동 제거 안내 (무단 삭제보다 안전 우선); 안내대로 복구 가능
+**Steps:** v0.2.2 태그로 copilot 설치(마커 없음) → 현재 버전으로 재설치 시도 → 안내대로 `qa-*` 수동 제거 → 재설치
+**Expected:** 재설치 시도는 FAIL + 수동 제거 안내 (무단 삭제 없음); 수동 제거 후 재설치 전부 OK + 마커 생성
 **Status:** Manual — M5
+
+---
+
+## 단위(구조) 테스트 체크리스트 (test.js — 개발자용)
+
+이 도메인의 "단위 계층"은 test.js 구조 검사다. 커버 현황:
+
+- [x] frontmatter 파서: CRLF 입력 처리 + body에 `\r` 잔존 없음 (`testCrlfTolerance`)
+- [x] `.gitattributes` 존재 (eol 정규화)
+- [x] 스크립트 6종: 동적 스킬 순회, 하드코딩 배열 부재 (`testInstallerSkillSync`)
+- [x] 스크립트 6종: 소유권 메커니즘 존재 (Test-Owned / readlink / 마커 / FOREIGN)
+- [x] dist 존재(로케일 인식) + 플레이스홀더 치환 (`testBuildOutput`, `testNoRawPlaceholders`)
+- [ ] dist `.ps1` BOM 선두 바이트 단언 — **Gap G3** (Effort S, TC-INST-003 자동화분)
+- [ ] 접두사 치환류 일괄 편집 시 경로 오염 검사 (`}/test-cases` 등 KB 경로가 명령 치환에 휩쓸리지 않는지) — 2026-08-08 실측 결함, 미자동화
 
 ---
 
