@@ -17,6 +17,9 @@ param(
     [Parameter(ParameterSetName = 'Install')]
     [switch]$NoPrefix,
 
+    [Parameter(ParameterSetName = 'Install')]
+    [switch]$Adopt,
+
     [Parameter(ParameterSetName = 'Uninstall')]
     [switch]$Uninstall,
 
@@ -58,6 +61,33 @@ function Test-Owned([string]$Path, [string]$ExpectedRoot) {
         } catch { return $false }
     }
     return Test-Path (Join-Path $Path '.qabuddy-owned')
+}
+
+# -Adopt: stamp ownership markers onto pre-v0.2.3 QABuddy copies so the
+# normal flow can manage them. Evidence: qa- prefixed real directory, no
+# marker, SKILL.md mentioning QABuddy (references: playbook\ present).
+function Invoke-AdoptLegacy([string]$Dir) {
+    $adopted = 0
+    foreach ($skill in $Skills) {
+        $d = Join-Path $Dir "qa-$skill"
+        $skillMd = Join-Path $d 'SKILL.md'
+        if ((Test-Path $d) -and -not ((Get-Item $d -Force).Attributes -band [IO.FileAttributes]::ReparsePoint) `
+            -and -not (Test-Path (Join-Path $d '.qabuddy-owned')) `
+            -and (Test-Path $skillMd) -and (Select-String -Path $skillMd -Pattern 'QABuddy' -Quiet)) {
+            Set-Content -Path (Join-Path $d '.qabuddy-owned') -Value 'adopted pre-v0.2.3 copy'
+            Write-Host "  ADOPTED  qa-$skill (legacy copy — marker stamped)"
+            $adopted++
+        }
+    }
+    $rd = Join-Path $Dir 'qa-references'
+    if ((Test-Path $rd) -and -not ((Get-Item $rd -Force).Attributes -band [IO.FileAttributes]::ReparsePoint) `
+        -and -not (Test-Path (Join-Path $rd '.qabuddy-owned')) `
+        -and (Test-Path (Join-Path $rd 'playbook'))) {
+        Set-Content -Path (Join-Path $rd '.qabuddy-owned') -Value 'adopted pre-v0.2.3 copy'
+        Write-Host '  ADOPTED  qa-references (legacy copy — marker stamped)'
+        $adopted++
+    }
+    if ($adopted -eq 0) { Write-Host "  (no legacy copies found in $Dir)" }
 }
 
 # Verify git repo
@@ -180,6 +210,11 @@ Write-Host 'NOTE: Copilot is an UNVERIFIED platform — CI does not execute this
 Write-Host '      Officially supported: Claude Code. Issue reports welcome.' -ForegroundColor Yellow
 Write-Host ('=' * 29)
 Write-Host ''
+if ($Adopt) {
+    Write-Host 'Adopting pre-v0.2.3 legacy copies:'
+    Invoke-AdoptLegacy $SkillsDir
+    Write-Host ''
+}
 
 if (-not (Test-Path $SkillsDir)) {
     New-Item -ItemType Directory -Path $SkillsDir -Force | Out-Null
@@ -199,7 +234,7 @@ foreach ($skill in $Skills) {
     }
 
     if ((Test-Path $target) -and -not (Test-Owned $target $SdtSkills)) {
-        Write-Host "  FAIL    $Prefix$skill — another tool's directory occupies $target. Remove it manually." -ForegroundColor Red
+        Write-Host "  FAIL    $Prefix$skill — unowned directory occupies $target. Pre-v0.2.3 QABuddy copy? Re-run with -Adopt. Otherwise remove it manually." -ForegroundColor Red
         $skipped++
         continue
     }

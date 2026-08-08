@@ -98,6 +98,13 @@
 **Expected:** 재설치 시도는 FAIL + 수동 제거 안내 (무단 삭제 없음); 수동 제거 후 재설치 전부 OK + 마커 생성
 **Status:** Manual — M5
 
+### TC-INST-016: `--adopt` 레거시 인수 — 증거 기반, 오인수 금지
+**Requirement:** AC2.8 | **Priority:** P1 | **Type:** happy-path + negative
+**Precondition:** git repo의 `.github/skills/`에 ① 마커 없는 레거시 QABuddy 복사본(qa-test-plan, SKILL.md에 "QABuddy" 포함) ② 마커·증거 모두 없는 동명 외부 디렉터리(qa-eval)
+**Steps:** `dist/copilot/setup --adopt` → 마커 확인 → `--uninstall` → 외부 디렉터리 확인
+**Expected:** ①만 `ADOPTED` + 마커 생성 후 정상 교체; ②는 인수되지 않고 `FAIL` 안내, uninstall에서 `SKIP` 후 보존
+**Status:** Automated — ci.yml "Adopt migration smoke" (linux) + test.js 구조 검사 4종; ps1 변형(-Adopt)은 Manual (미검증 등급)
+
 ---
 
 ## 단위(구조) 테스트 체크리스트 (test.js — 개발자용)
@@ -120,5 +127,5 @@
 - AC 20개: full 15 (메타 AC5.1/5.2 포함), partial 4 (G3·미검증 등급 갭 기록), 미커버 0
   (AC4.1/4.2는 매핑 1행으로 묶임; AC5.x는 테스트 인프라 자체라 CI 실행으로 자기 검증)
 - TC 우선순위: P0 7 / P1 6 / P2 2 (P0 47% — ≤50% 규칙 준수)
-- P0 7건 + P1 4건(003/009/013/014) Automated; 과거 결함 전건 회귀 TC 보유
-- 잔여 수동: TC-010/011(미검증 등급), TC-012(junction), TC-015(업그레이드)
+- P0 7건 + P1 5건(003/009/013/014/016) Automated; 과거 결함 전건 회귀 TC 보유
+- 잔여 수동: TC-010/011(미검증 등급), TC-012(junction), TC-015→016 ps1 변형

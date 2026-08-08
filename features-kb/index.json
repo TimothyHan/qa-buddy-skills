@@ -6,8 +6,8 @@
     "stories": [
       "installer"
     ],
-    "testCaseCount": 15,
-    "acCovered": 20,
+    "testCaseCount": 16,
+    "acCovered": 21,
     "notes": "P0 TC 7건 전부 CI/test.js로 자동화 (과거 결함 8건 회귀 TC 보유), 갭 G2·G3은 test-plan.md §4"
   }
 }

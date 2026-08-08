@@ -549,6 +549,26 @@ function testInstallerSkillSync() {
       );
     }
   }
+
+  // --adopt migration (pre-v0.2.3 copies lack markers): the copy-model
+  // scripts must offer guarded adoption — evidence-checked (SKILL.md must
+  // mention QABuddy), marker-stamping, never silent
+  const adopt = [
+    ['platforms/setup-cursor',      [/--adopt\)/, /ADOPTED/, /grep -q "QABuddy" "\$d\/SKILL\.md"/]],
+    ['platforms/setup-copilot',     [/--adopt\)/, /ADOPTED/, /grep -q "QABuddy" "\$d\/SKILL\.md"/]],
+    ['platforms/setup-cursor.ps1',  [/\[switch\]\$Adopt/, /ADOPTED/, /Select-String -Path \$skillMd -Pattern 'QABuddy'/]],
+    ['platforms/setup-copilot.ps1', [/\[switch\]\$Adopt/, /ADOPTED/, /Select-String -Path \$skillMd -Pattern 'QABuddy'/]],
+  ];
+  for (const [file, patterns] of adopt) {
+    const content = readFile(path.join(__dirname, file)) || '';
+    for (const pattern of patterns) {
+      check(
+        pattern.test(content),
+        `${file}: guarded adopt migration (${pattern.source.slice(0, 30)}…)`,
+        'Copy-model upgrades need evidence-checked --adopt, not manual rm -rf'
+      );
+    }
+  }
 }
 
 testBuildOutput();

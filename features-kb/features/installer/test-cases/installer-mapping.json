@@ -91,6 +91,13 @@
       "coverage": "full"
     },
     {
+      "requirement": "AC2.8 --adopt 레거시 인수 (증거 기반)",
+      "tests": [
+        "TC-INST-016"
+      ],
+      "coverage": "partial"
+    },
+    {
       "requirement": "AC3.1 소유분 전체 제거",
       "tests": [
         "TC-INST-007"
@@ -143,6 +150,7 @@
   ],
   "unmapped_requirements": [],
   "test_gaps": [
-    "G1: 정책 종결 (2026-08-08) — cursor/copilot은 미검증 등급; 공식 승격 시 CI 확장 필요"
+    "G1: 정책 종결 (2026-08-08) — cursor/copilot은 미검증 등급; 공식 승격 시 CI 확장 필요",
+    "TC-INST-016 ps1 변형(-Adopt) 미자동화 — 미검증 등급 정책 (bash 경로는 CI 커버)"
   ]
 }

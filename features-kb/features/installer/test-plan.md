@@ -43,6 +43,7 @@ PS 5.1/bash 3.2 호환, CRLF/BOM 인코딩 내성.
 | C4 | status 정직성: MISSING/FAIL/SKIP → 잡 실패, 디코이는 FOREIGN 표기 필수 | P0 | Confirmed: ci.yml 단언 (PS는 `6>&1` 캡처) |
 | C5 | cursor/copilot 스크립트 install→uninstall 사이클 | P2 | **De-scoped** — 미검증 등급 (2026-08-08 결정): 공식 지원은 Claude Code, cursor/copilot은 구조 검증(S2·S3)만. 설치 스크립트가 UNVERIFIED 배너 출력 |
 | C6 | 재설치 멱등성 (owned 설치 위에 재실행 → 전부 OK) | P1 | Confirmed: ci.yml 2회차 install 단언 (양 OS) |
+| C7 | `--adopt` 마이그레이션: 증거 있는 레거시만 인수, 없는 것은 보존 | P1 | Confirmed: ci.yml "Adopt migration smoke" (linux, copilot bash) — **미검증 등급의 의도된 예외**: adopt가 깨지면 구제 대상 사용자가 고립되므로 이 경로만 CI 실행 |
 
 ### 수동 / 탐색 (실기기 매트릭스 — 피라미드 상단)
 
@@ -51,7 +52,7 @@ PS 5.1/bash 3.2 호환, CRLF/BOM 인코딩 내성.
 | M1 | Windows 비관리자 + 개발자 모드 OFF | junction 폴백 경로 실동작 | CI 러너는 항상 관리자 — 권한 상태 재현 불가 |
 | M3 | macOS (bash 3.2 + zsh 기본 셸) | 전체 사이클 + 디코이 | 개발 머신 = 준상시 커버 (2026-08-08 디코이 포함 실측 green) |
 | M4 | 비ASCII/공백 경로 (`D:\자동화\...`) | clone 경로 특이성 | 리포터 실측으로 동작 확인됨 — 회귀 시 재확인용 |
-| M5 | v0.2.2→현재 업그레이드 (마커 없는 copilot/cursor-project 설치본) | FAIL 안내가 나오는지, 안내대로 복구 가능한지 | 구버전 상태 재현이 CI에 없음 |
+| M5 | v0.2.2→현재 업그레이드 | `--adopt` 경로는 C7이 CI 커버; ps1 변형(-Adopt)만 수동 (미검증 등급) | ps1은 CI 미실행 — 스크립트 변경 시 수동 |
 
 ## 4. Automation Gap Analysis
 

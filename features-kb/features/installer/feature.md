@@ -29,6 +29,7 @@ OS 3종 (macOS/Linux/Windows). 설치 대상 디렉터리(`~/.claude/skills` 등
 - AC2.5: 자리를 차지한 **미소유** 항목은 삭제·덮어쓰기 대신 FAIL 안내 (`-NoPrefix` 포함)
 - AC2.6: Windows PowerShell 5.1(OS 기본)에서 추가 설치 없이 동작
 - AC2.7: 모든 설치 분기가 출력을 냄 (OK/FAIL/SKIP — 무음 경로 없음)
+- AC2.8: `--adopt`/`-Adopt` (cursor/copilot) — 마커 없는 v0.2.2 이하 복사 설치본을 증거 검사 후 인수: qa- 접두사 + 실디렉터리 + 마커 없음 + SKILL.md에 "QABuddy" (references는 playbook/ 존재). 증거 없으면 인수하지 않고 기존 FAIL 유지
 
 ### C3. 제거
 - AC3.1: QABuddy가 설치한 항목 전부 제거 (스킬 + references + 레거시 이름)
@@ -51,4 +52,4 @@ OS 3종 (macOS/Linux/Windows). 설치 대상 디렉터리(`~/.claude/skills` 등
 | 지원 Node.js 최소 버전 | 문서 미명시 (README는 "Node.js"만 요구) |
 | Windows 비관리자(junction 폴백) 경로의 공식 지원 선언 | 스크립트는 구현했으나 문서·테스트 없음 |
 | cursor/copilot 스크립트의 CI 커버리지 | 정책 종결 (2026-08-08): 미검증 등급 — 공식 지원은 Claude Code |
-| v0.2.2 이하 copilot/cursor-project 설치본(마커 없음) 업그레이드 절차 | 릴리스 노트로만 안내 |
+| v0.2.2 이하 copilot/cursor-project 설치본(마커 없음) 업그레이드 절차 | 해소 (AC2.8): `--adopt` 플래그 — 수동 rm -rf 불필요 |

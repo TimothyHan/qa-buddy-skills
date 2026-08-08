@@ -285,6 +285,11 @@ flowchart LR
 > the installers in `dist/cursor/` and `dist/copilot/` ship as-is. They pass the structural
 > test suite (ownership verification, dynamic skill enumeration), but **CI does not execute
 > them** — use at your own risk. Issue reports welcome.
+>
+> **Upgrading from ≤ v0.2.2:** legacy copy installs carry no ownership marker, so a fresh
+> install FAILs on them for safety. Instead of manual deletion, run once with `--adopt`
+> (bash) / `-Adopt` (PowerShell) — it adopts only evidence-checked legacy QABuddy copies
+> (SKILL.md must mention QABuddy) and never touches other tools' directories.
 
 Skills are authored once in `core/skills/`. The build script generates platform-specific output:
 
