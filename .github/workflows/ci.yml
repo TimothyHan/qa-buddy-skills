@@ -46,7 +46,9 @@ jobs:
           New-Item -ItemType Directory -Force -Path "$env:TEMP\foreign-tool\setup" | Out-Null
           New-Item -ItemType SymbolicLink -Path "$HOME\.claude\skills\setup" -Target "$env:TEMP\foreign-tool\setup" -Force | Out-Null
           & dist/claude/setup.ps1
-          $status = & dist/claude/setup.ps1 -Status | Out-String
+          # Write-Host lands on the information stream (6) in PS 5.1 — without
+          # 6>&1 the capture is empty and every -match assertion passes vacuously
+          $status = & dist/claude/setup.ps1 -Status 6>&1 | Out-String
           Write-Host $status
           if ($status -match 'MISSING|FAIL|SKIP') { throw 'Status reported MISSING/FAIL/SKIP entries' }
           if ($status -notmatch 'FOREIGN setup') { throw 'Foreign decoy was not flagged FOREIGN in status' }
