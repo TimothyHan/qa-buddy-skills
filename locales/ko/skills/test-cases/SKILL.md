@@ -1,6 +1,6 @@
 ---
 name: test-cases
-version: 0.3.2
+version: 0.3.3
 description: |
   Jira 티켓의 인수 조건(AC)에서 테스트 케이스를 생성합니다. Playwright E2E 테스트
   시나리오와 개발자용 단위 테스트 체크리스트를 작성합니다. 테스트 케이스는 추적성을 위해
@@ -70,7 +70,7 @@ SDT 파트너로서 티켓의 테스트 케이스를 생성합니다. Jira에서
    - AC에 없는 테스트 가능한 요구사항을 추출합니다 (유효성 검증 규칙, 오류 코드, 엣지 케이스)
 
 5. **에픽 테스트 계획을 로드합니다** (있는 경우):
-   - `features-kb/features/{EPIC-KEY}/qa-test-plan.md`를 읽습니다
+   - `features-kb/features/{EPIC-KEY}/test-plan.md`를 읽습니다
    - 테스트 계획의 어떤 시나리오가 이 티켓에 매핑되는지 확인합니다
 
 6. **저장소의 기존 테스트를 확인합니다:**
@@ -78,7 +78,7 @@ SDT 파트너로서 티켓의 테스트 케이스를 생성합니다. Jira에서
    - 네이밍 컨벤션, 페이지 오브젝트 패턴, 테스트 데이터 설정, 테스트 스타일을 파악합니다
 
 7. **이 티켓의 기존 테스트 케이스를 확인합니다:**
-   - `features-kb/features/{EPIC-KEY}/qa-test-cases/{TICKET-KEY}.md`
+   - `features-kb/features/{EPIC-KEY}/test-cases/{TICKET-KEY}.md`
    - 이미 있으면 새로 작성하는 것이 아니라 업데이트입니다
 
 ---
@@ -187,10 +187,10 @@ test('{테스트 제목}', async ({ page }) => {
 ## 5단계: 결과물 저장
 
 ### 테스트 케이스 문서 저장:
-`features-kb/features/{EPIC-KEY}/qa-test-cases/{TICKET-KEY}.md`
+`features-kb/features/{EPIC-KEY}/test-cases/{TICKET-KEY}.md`
 
 ### 추적성 매핑 저장:
-`features-kb/features/{EPIC-KEY}/qa-test-cases/{TICKET-KEY}-mapping.json`
+`features-kb/features/{EPIC-KEY}/test-cases/{TICKET-KEY}-mapping.json`
 
 ### SDT에게 제시:
 - "빠진 시나리오가 있나요?"
@@ -198,7 +198,7 @@ test('{테스트 제목}', async ({ page }) => {
 - "테스트 데이터 관련 우려 사항이 있나요?"
 
 ### 에픽 테스트 계획 업데이트 (있는 경우):
-`features-kb/features/{EPIC-KEY}/qa-test-plan.md`에서 테스트 케이스가 생성된 시나리오의 상태 열을 업데이트합니다.
+`features-kb/features/{EPIC-KEY}/test-plan.md`에서 테스트 케이스가 생성된 시나리오의 상태 열을 업데이트합니다.
 
 **다음 단계 제안:** "테스트 케이스가 준비되었습니다. 기능이 구현되면 `/qa-qa {TICKET-KEY}`를 실행하여 테스트를 수행하세요."
 

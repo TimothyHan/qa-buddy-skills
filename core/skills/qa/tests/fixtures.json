@@ -1,6 +1,6 @@
 {
   "skill": "qa",
-  "version": "0.3.1",
+  "version": "0.3.2",
   "fixtures": [
     {
       "id": "fx-001",

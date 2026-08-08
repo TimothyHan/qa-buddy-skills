@@ -1,6 +1,6 @@
 ---
 name: test-plan
-version: 0.5.1
+version: 0.5.2
 description: |
   Build a test plan when a new Epic is created. Pulls epic details and linked
   stories from Jira, analyzes scope, and produces a test plan covering strategy,
@@ -204,7 +204,7 @@ Fix any issues found. One pass — no looping.
      }
    }
    ```
-4. **Save test plan** to `features-kb/features/{EPIC-KEY}/qa-test-plan.md`
+4. **Save test plan** to `features-kb/features/{EPIC-KEY}/test-plan.md`
 5. **Publish to Confluence** (ask the SDT which space/parent page)
 6. **Link the Confluence page** back to the Jira epic
 7. **Suggest next step:** "Run `/qa-review-ticket` on each story in this epic during grooming."

@@ -1,6 +1,6 @@
 ---
 name: qa
-version: 0.3.1
+version: 0.3.2
 description: |
   SDT 테스트 실행 스킬. 지식 베이스(KB)의 테스트 케이스를 실행하고, 브라우저에서
   인수 조건(AC)을 검증하며, 실패 항목은 Jira에 버그로 등록하고, KB에 결과를
@@ -67,9 +67,9 @@ SDT 파트너로서 티켓의 QA를 수행합니다. 지식 베이스(KB)의 정
    - `contextSource: "jira"` 또는 설정 없음 → 기본 동작
 2. **티켓 컨텍스트를 가져옵니다** (Jira MCP가 있으면 사용, 없으면 SDT에게 제공하거나 파일을 지정하도록 요청): 요약, 설명, AC, 상태, 상위 에픽, 연결된 버그
 3. **지식 베이스(KB)에서 로드합니다:**
-   - 테스트 케이스: `features-kb/features/{EPIC-KEY}/qa-test-cases/{TICKET-KEY}.md`
-   - 추적성 매핑: `features-kb/features/{EPIC-KEY}/qa-test-cases/{TICKET-KEY}-mapping.json`
-   - 테스트 계획: `features-kb/features/{EPIC-KEY}/qa-test-plan.md`
+   - 테스트 케이스: `features-kb/features/{EPIC-KEY}/test-cases/{TICKET-KEY}.md`
+   - 추적성 매핑: `features-kb/features/{EPIC-KEY}/test-cases/{TICKET-KEY}-mapping.json`
+   - 테스트 계획: `features-kb/features/{EPIC-KEY}/test-plan.md`
    - 이전 QA 보고서: `features-kb/features/{EPIC-KEY}/qa-reports/`
 4. **테스트 케이스가 없는 경우:**
    SDT에게 질문합니다: "{TICKET-KEY}에 대한 테스트 케이스가 없습니다. `/qa-test-cases {TICKET-KEY}`를 먼저 실행할까요, 아니면 AC 기반으로 바로 테스트할까요?"
@@ -266,7 +266,7 @@ FAIL 결과마다 Jira 버그를 작성합니다.
 
 ### KB 업데이트
 
-1. `features-kb/features/{EPIC-KEY}/qa-test-cases/{TICKET-KEY}.md`에서 테스트 케이스 상태를 업데이트합니다 — 각 케이스에 날짜와 함께 통과/실패/차단 표시
+1. `features-kb/features/{EPIC-KEY}/test-cases/{TICKET-KEY}.md`에서 테스트 케이스 상태를 업데이트합니다 — 각 케이스에 날짜와 함께 통과/실패/차단 표시
 2. 추적성 매핑을 업데이트합니다 — AC별 커버리지 상태 설정
 3. QA 보고서를 KB에 저장하여 sprint-status에서 집계할 수 있도록 합니다
 

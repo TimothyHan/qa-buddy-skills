@@ -1,6 +1,6 @@
 ---
 name: test-plan
-version: 0.5.1
+version: 0.5.2
 description: |
   새 에픽이 생성되면 테스트 계획을 수립합니다. Jira에서 에픽 상세 정보와 연결된
   스토리를 가져와 범위를 분석하고, 전략, 자동화 갭 분석, 성공 기준, 환경 요구사항,
@@ -204,7 +204,7 @@ SDT에게 제시하기 전에 다음을 확인합니다:
      }
    }
    ```
-4. **테스트 계획을 저장합니다** — `features-kb/features/{EPIC-KEY}/qa-test-plan.md`
+4. **테스트 계획을 저장합니다** — `features-kb/features/{EPIC-KEY}/test-plan.md`
 5. **Confluence에 게시합니다** (SDT에게 어떤 스페이스/상위 페이지에 올릴지 확인)
 6. **Confluence 페이지를 Jira 에픽에 다시 연결합니다**
 7. **다음 단계를 제안합니다:** "그루밍 시 이 에픽의 각 스토리에 `/qa-review-ticket`을 실행하세요."

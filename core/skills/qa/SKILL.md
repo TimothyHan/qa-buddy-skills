@@ -1,6 +1,6 @@
 ---
 name: qa
-version: 0.3.1
+version: 0.3.2
 description: |
   SDT test execution skill. Executes test cases from the knowledge base, verifies
   acceptance criteria in the browser, files bugs in Jira for failures, and updates
@@ -67,9 +67,9 @@ If a ticket key is provided:
    - `contextSource: "jira"` or no config → current behavior
 2. **Pull ticket context** (Jira MCP if available, otherwise ask the SDT to provide or point to a file): summary, description, ACs, status, parent epic, linked bugs
 3. **Load from Knowledge Base:**
-   - Test cases: `features-kb/features/{EPIC-KEY}/qa-test-cases/{TICKET-KEY}.md`
-   - Traceability mapping: `features-kb/features/{EPIC-KEY}/qa-test-cases/{TICKET-KEY}-mapping.json`
-   - Test plan: `features-kb/features/{EPIC-KEY}/qa-test-plan.md`
+   - Test cases: `features-kb/features/{EPIC-KEY}/test-cases/{TICKET-KEY}.md`
+   - Traceability mapping: `features-kb/features/{EPIC-KEY}/test-cases/{TICKET-KEY}-mapping.json`
+   - Test plan: `features-kb/features/{EPIC-KEY}/test-plan.md`
    - Prior QA reports: `features-kb/features/{EPIC-KEY}/qa-reports/`
 4. **If no test cases exist:**
    Ask the SDT: "No test cases found for {TICKET-KEY}. Want me to run
@@ -267,7 +267,7 @@ and `features-kb/features/{EPIC-KEY}/qa-reports/{TICKET-KEY}-{YYYY-MM-DD}.md`:
 
 ### KB Updates
 
-1. Update test case statuses in `features-kb/features/{EPIC-KEY}/qa-test-cases/{TICKET-KEY}.md` — mark each as passed/failed/blocked with date
+1. Update test case statuses in `features-kb/features/{EPIC-KEY}/test-cases/{TICKET-KEY}.md` — mark each as passed/failed/blocked with date
 2. Update traceability mapping — set coverage status per AC
 3. Save QA report to KB for sprint-status aggregation
 

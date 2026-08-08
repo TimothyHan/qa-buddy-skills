@@ -1,6 +1,6 @@
 ---
 name: test-cases
-version: 0.3.2
+version: 0.3.3
 description: |
   Generate test cases from a Jira ticket's acceptance criteria. Produces Playwright
   e2e test scenarios and a unit test checklist for developers. Test cases map back
@@ -70,7 +70,7 @@ ACs from Jira, cross-reference the epic test plan, and produce:
    - Extract testable requirements not in the ACs (validation rules, error codes, edge cases)
 
 5. **Load the epic test plan** (if exists):
-   - Read `features-kb/features/{EPIC-KEY}/qa-test-plan.md`
+   - Read `features-kb/features/{EPIC-KEY}/test-plan.md`
    - Check which scenarios from the test plan map to this ticket
 
 6. **Read existing tests in the repo:**
@@ -78,7 +78,7 @@ ACs from Jira, cross-reference the epic test plan, and produce:
    - Learn naming conventions, page object patterns, test data setup, test style
 
 7. **Check existing test cases for this ticket:**
-   - `features-kb/features/{EPIC-KEY}/qa-test-cases/{TICKET-KEY}.md`
+   - `features-kb/features/{EPIC-KEY}/test-cases/{TICKET-KEY}.md`
    - If they exist, this is an update, not a fresh creation
 
 ---
@@ -187,10 +187,10 @@ Before saving, verify consistency across all three artifacts. Fix issues found. 
 ## Phase 5: Output
 
 ### Save test cases document:
-`features-kb/features/{EPIC-KEY}/qa-test-cases/{TICKET-KEY}.md`
+`features-kb/features/{EPIC-KEY}/test-cases/{TICKET-KEY}.md`
 
 ### Save traceability mapping:
-`features-kb/features/{EPIC-KEY}/qa-test-cases/{TICKET-KEY}-mapping.json`
+`features-kb/features/{EPIC-KEY}/test-cases/{TICKET-KEY}-mapping.json`
 
 ### Present to SDT:
 - "Any scenarios missing?"
@@ -198,7 +198,7 @@ Before saving, verify consistency across all three artifacts. Fix issues found. 
 - "Any test data concerns?"
 
 ### Update epic test plan (if exists):
-Update status column in `features-kb/features/{EPIC-KEY}/qa-test-plan.md` for scenarios that now have test cases.
+Update status column in `features-kb/features/{EPIC-KEY}/test-plan.md` for scenarios that now have test cases.
 
 **Suggest next step:** "Test cases ready. When the feature is ready, run `/qa-qa {TICKET-KEY}` to execute them."
 
