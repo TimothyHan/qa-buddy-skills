@@ -1,6 +1,6 @@
 ---
 name: setup
-version: 0.4.1
+version: 0.4.2
 description: |
   QABuddy 초기 설정 마법사. 컨텍스트 소스(Jira, 스펙 문서, 채팅, 커스텀),
   팀 모드(솔로 vs PR 기반), 프로젝트 환경설정을 구성합니다.
@@ -114,7 +114,7 @@ gh --version 2>/dev/null
   "githubCli": true/false,
   "contributeUpstream": true/false,
   "learningsPath": "features-kb/LEARNINGS.md",
-  "upstreamRepo": "TimothyHan/Checkmate",
+  "upstreamRepo": "TimothyHan/qa-buddy-skills",
   "defaultBranch": "main",
   "createdAt": "{ISO timestamp}"
 }
