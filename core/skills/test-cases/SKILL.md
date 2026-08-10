@@ -1,6 +1,6 @@
 ---
 name: test-cases
-version: 0.3.4
+version: 0.3.5
 description: |
   Generate test cases from a Jira ticket's acceptance criteria. Produces Playwright
   e2e test scenarios and a unit test checklist for developers. Test cases map back
@@ -143,6 +143,7 @@ test('{test title}', async ({ page }) => {
 - [ ] {function}: throws/returns error for {invalid input}
 - [ ] {validation}: rejects {specific invalid data}
 - [ ] {state transition}: moves from {state A} to {state B} correctly
+- [ ] detection power: run the project's mutation tool (Stryker/PIT/mutmut) on changed modules — automated mutation belongs at this layer (test-suite-verification.md)
 ```
 
 ---

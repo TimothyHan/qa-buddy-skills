@@ -1,6 +1,6 @@
 ---
 name: test-cases
-version: 0.3.4
+version: 0.3.5
 description: |
   Jira 티켓의 인수 조건(AC)에서 테스트 케이스를 생성합니다. Playwright E2E 테스트
   시나리오와 개발자용 단위 테스트 체크리스트를 작성합니다. 테스트 케이스는 추적성을 위해
@@ -143,6 +143,7 @@ test('{테스트 제목}', async ({ page }) => {
 - [ ] {함수}: {잘못된 입력}에 대해 오류를 throw/반환
 - [ ] {유효성 검증}: {특정 잘못된 데이터}를 거부
 - [ ] {상태 전환}: {상태 A}에서 {상태 B}로 올바르게 전환
+- [ ] 검출력: 변경 모듈에 프로젝트의 뮤테이션 도구(Stryker/PIT/mutmut) 실행 — 자동 뮤테이션은 이 층위 담당 (test-suite-verification.md)
 ```
 
 ---

@@ -59,5 +59,10 @@ observable outcome).
 - Right after building a new suite or check layer (before trusting first green).
 - When a run is suspiciously fast or suspiciously green.
 - After a large refactor of the suite itself.
-- A full mutation-testing tool is optional; one manual mutation per defect
-  class already catches most blind spots.
+- Match the form to the layer. **Unit:** automated mutation tools (Stryker,
+  PIT, mutmut) are cheap against millisecond suites — recommend them in the
+  developer unit-test checklist and run them systematically. **Above unit**
+  (integration, e2e, CI scripts): no mainstream tooling exists and suite
+  runtime forbids mutant farms — the manual one-mutation-per-defect-class
+  smoke is the realistic form, and the vacuous-assertion risk is highest
+  here (captured output, greps, exit codes sit far from the behavior).
