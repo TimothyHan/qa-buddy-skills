@@ -6,7 +6,7 @@
 
 If you discover a security vulnerability, please report it privately:
 
-**Email:** timothy.seungmin.han@gmail.com
+**Email:** timothyh124@gmail.com
 
 Do NOT open a public GitHub issue for security vulnerabilities. We will respond within 48 hours and work with you to address the issue before any public disclosure.
 
