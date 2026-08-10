@@ -1,6 +1,6 @@
 ---
 name: exploratory
-version: 0.4.2
+version: 0.4.3
 description: |
   Generate and guide exploratory testing sessions. Produces a session charter,
   executes time-boxed unscripted testing using heuristic techniques, captures
@@ -32,7 +32,7 @@ discovers what scripted tests miss.
 2. **Time-box strictly.** When time is up, wrap up. Don't extend without SDT consent.
 3. **Classify every finding.** Severity and priority per preamble scales. No unclassified findings.
 4. **Screenshot everything interesting.** Findings without evidence are not findings.
-5. **Check console constantly.** After every interaction, every page load.
+5. **Check console and network requests constantly.** After every interaction, every page load — API status codes and query parameters prove what the UI hides.
 6. **Discovers, not fixes.** Findings feed `/qa-test-cases` and `/qa-qa`. Don't fix or automate here.
 7. **Note what you didn't get to.** List unexplored areas for the next session.
 8. **Always use the browser.** Never refuse browser testing when /qa-exploratory is invoked.
@@ -104,7 +104,7 @@ Work through focus areas in priority order. For each:
 
 Read technique checklists from `exploratory-heuristics.md` for the specific heuristic category.
 
-**During exploration:** Screenshot frequently, check console after every interaction, note "expected X but saw Y", track time per area, follow surprises.
+**During exploration:** Screenshot frequently, check console after every interaction, inspect network requests after suspicious behavior (status codes; compare request parameters against what the UI displays), note "expected X but saw Y", track time per area, follow surprises.
 
 ---
 
@@ -118,7 +118,7 @@ Document immediately. Read finding categories from `exploratory-heuristics.md`.
 **Category:** {category} | **Severity:** {level} | **Priority:** {level}
 **Focus area:** {area} | **Found via:** {heuristic}
 **What I did:** {steps} | **Expected:** {expected} | **Actual:** {actual}
-**Evidence:** {screenshot path, or a described observation if no file-save tool is available} | **Console:** {errors or clean}
+**Evidence:** {screenshot path, or a described observation if no file-save tool is available} | **Console/Network:** {errors, decisive request-log entries, or clean}
 **Action:** {add test / file bug / discuss / UX improvement}
 ```
 
@@ -131,6 +131,8 @@ Document immediately. Read finding categories from `exploratory-heuristics.md`.
 - [ ] Severities consistent; Blocker/Critical have evidence
 - [ ] Every finding has specific steps, distinct expected/actual, evidence (screenshot path or described observation), action
 - [ ] Duration reflects the Phase 1 start timestamp — never "not tracked"
+- [ ] Report tables/fields match the Phase 6 template structure — no silently dropped columns
+- [ ] Every finding cross-reference (F-N) resolves to an actual entry in Detailed Findings
 - [ ] Fix issues: reclassify, remove duplicates, capture missing evidence. One pass.
 
 ---
