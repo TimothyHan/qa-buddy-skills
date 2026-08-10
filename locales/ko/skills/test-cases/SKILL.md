@@ -1,6 +1,6 @@
 ---
 name: test-cases
-version: 0.3.3
+version: 0.3.4
 description: |
   Jira 티켓의 인수 조건(AC)에서 테스트 케이스를 생성합니다. Playwright E2E 테스트
   시나리오와 개발자용 단위 테스트 체크리스트를 작성합니다. 테스트 케이스는 추적성을 위해
@@ -53,6 +53,7 @@ SDT 파트너로서 티켓의 테스트 케이스를 생성합니다. Jira에서
    - `test-distribution.md` — 가장 낮은 적절한 계층에 테스트 배치, 중복 제거 규칙
    - `test-types.md` — 수동 vs 자동화, UAT vs 기능 테스트 구분
    - `maintenance-and-ci.md` — 브라우저 매트릭스 (Playwright는 Chrome, Firefox, Safari, Edge에서 실행)
+   - `test-suite-verification.md` — 스케치의 공허 단언 체크리스트 (빈 캡처, 조건부 단언, 픽스처 본문에 증거 문자열 포함)
    - Playwright 스케치를 쓸 때는 `{{REFERENCE_PATH}}/playwright-patterns.md`도 —
      스케치가 그 문서의 셀렉터/대기/데이터 규칙을 따라야 `/qa-e2e-write`가
      재작업 없이 구현할 수 있습니다

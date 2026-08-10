@@ -1,6 +1,6 @@
 ---
 name: e2e-write
-version: 0.1.2
+version: 0.1.3
 description: |
   테스트 케이스로부터 e2e 테스트 스위트를 작성합니다: 사전 조건용 API
   클라이언트, fixture, 그리고 증명된 POM 위의 의도만 담은 스펙. 로케이터를
@@ -113,6 +113,8 @@ OpenAPI 스펙 또는 네트워크 캡처로부터, TC에 필요한 작업(시�
   환경이 비어있다고 가정하지 않기
 
 ## Phase 5: 게이트 -- 네 개 전부, 순서대로
+
+이 게이트들의 근거: `{{REFERENCE_PATH}}/playbook/test-suite-verification.md` (검출력, 공허 단언).
 
 1. **Green:** `npx playwright test` exit 0
 2. **다시 green:** 즉시 재실행, exit 0 -- 누출된 데이터(409, 이름 충돌)가

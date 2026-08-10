@@ -1,6 +1,6 @@
 ---
 name: test-cases
-version: 0.3.3
+version: 0.3.4
 description: |
   Generate test cases from a Jira ticket's acceptance criteria. Produces Playwright
   e2e test scenarios and a unit test checklist for developers. Test cases map back
@@ -53,6 +53,7 @@ ACs from Jira, cross-reference the epic test plan, and produce:
    - `test-distribution.md` — assign tests to lowest appropriate layer, deduplication rules
    - `test-types.md` — manual vs automation, UAT vs functional distinction
    - `maintenance-and-ci.md` — browser matrix (Playwright runs Chrome, Firefox, Safari, Edge)
+   - `test-suite-verification.md` — vacuous-assertion checklist for sketches (empty captures, conditional asserts, fixture text containing the evidence string)
    - For Playwright sketches also read `{{REFERENCE_PATH}}/playwright-patterns.md` —
      sketches must follow its selector, wait, and data rules so `/qa-e2e-write`
      can implement them without rework

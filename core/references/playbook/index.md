@@ -3,7 +3,7 @@
 Shared methodology for all QABuddy skills. Each skill references only the files
 it needs — do not load all files at once.
 
-**Version:** 0.3.0
+**Version:** 0.4.0
 
 ## Files
 
@@ -20,6 +20,7 @@ it needs — do not load all files at once.
 | `defect-lifecycle.md`     | Bug types, Jira states, SLA expectations, regression test requirements                   | qa, test-plan, review-ticket, verify-fix                     |
 | `maintenance-and-ci.md`   | Test ownership, flaky process, 15-min time budget, CI gates, browser matrix              | test-cases, sprint-status, qa                                |
 | `exploratory-heuristics.md` | 10 heuristic categories, technique checklists per heuristic, finding categories         | exploratory                                                  |
+| `test-suite-verification.md` | Detection power, mutation smoke, vacuous assertions, self-derived expectations         | test-plan, test-cases, e2e-write                             |
 
 ## Team Practices (project-specific)
 
