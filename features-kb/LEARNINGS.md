@@ -85,3 +85,15 @@ QABuddy가 실제 실행에서 포착한 프로젝트 고유 규칙. 모든 스�
 - **Evidence:** 2026-08-08 SDT 확정. 근거 실측: 스킬 검증 실행이 집계 드리프트
   3건을, 정식 호출이 스킬 지침의 경로 오염 24건을 잡았고, 직접 편집(adopt
   라운드)은 그 안전망 밖이었음.
+
+## LRN-20260809-08: 외부 연습 앱 세션은 이 저장소의 features-kb/index.json에 등록하지 않는다
+- **Status:** active
+- **Scope:** exploratory, qa, test-cases, test-plan
+- **Statement:** 이 저장소(QABuddy 자체)의 `features-kb/index.json`은 QABuddy
+  자신의 기능(installer 등)만 추적한다(LRN-20260808-01). automationintesting.online
+  같은 외부 공개 연습 앱을 대상으로 한 탐색적/기능 테스트 세션은 `.qa-reports/`에만
+  저장하고 `index.json`·`features-kb/features/`에는 등록하지 않는다 — QABuddy 자신의
+  기능 추적을 무관한 연습 세션으로 오염시키지 않기 위함.
+- **Overrides:** 없음 — 일반 프로토콜(KB에 산출물 저장)의 예외 사례
+- **Evidence:** 2026-08-09 automationintesting.online 탐색 세션에서 처음 발생.
+  `.qa-reports/exploratory-EXT-RBP-2026-08-09.md`로 저장, index.json 미수정.
