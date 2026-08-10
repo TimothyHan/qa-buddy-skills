@@ -1,6 +1,6 @@
 ---
 name: exploratory
-version: 0.4.1
+version: 0.4.2
 description: |
   Generate and guide exploratory testing sessions. Produces a session charter,
   executes time-boxed unscripted testing using heuristic techniques, captures
@@ -58,7 +58,9 @@ discovers what scripted tests miss.
 
 4. **Understand what's already tested** — list existing automated tests and what they cover. Exploratory testing finds what those tests miss.
 
-5. **Detect app** at given URL or common ports (3000, 4000, 5173, 8080). Create `.qa-reports/screenshots/`.
+5. **Detect app** at given URL or common ports (3000, 4000, 5173, 8080). Create `.qa-reports/screenshots/` only if the browser tool can save screenshots to disk. If it only returns inline images (no file-save capability), skip the directory — use described-observation evidence in Phase 4 instead of a path.
+
+6. **Record start time** (`date +%H:%M`). This is the basis for **Duration** in Phase 6 — never leave it unrecorded.
 
 ---
 
@@ -116,7 +118,7 @@ Document immediately. Read finding categories from `exploratory-heuristics.md`.
 **Category:** {category} | **Severity:** {level} | **Priority:** {level}
 **Focus area:** {area} | **Found via:** {heuristic}
 **What I did:** {steps} | **Expected:** {expected} | **Actual:** {actual}
-**Screenshot:** {path} | **Console:** {errors or clean}
+**Evidence:** {screenshot path, or a described observation if no file-save tool is available} | **Console:** {errors or clean}
 **Action:** {add test / file bug / discuss / UX improvement}
 ```
 
@@ -127,8 +129,9 @@ Document immediately. Read finding categories from `exploratory-heuristics.md`.
 - [ ] Every charter focus area has findings or explicit "unexplored" note
 - [ ] No "new test scenario" duplicates existing KB/repo tests
 - [ ] Severities consistent; Blocker/Critical have evidence
-- [ ] Every finding has specific steps, distinct expected/actual, screenshot, action
-- [ ] Fix issues: reclassify, remove duplicates, capture missing screenshots. One pass.
+- [ ] Every finding has specific steps, distinct expected/actual, evidence (screenshot path or described observation), action
+- [ ] Duration reflects the Phase 1 start timestamp — never "not tracked"
+- [ ] Fix issues: reclassify, remove duplicates, capture missing evidence. One pass.
 
 ---
 
@@ -162,6 +165,8 @@ Document immediately. Read finding categories from `exploratory-heuristics.md`.
 **Summary:** {one line}
 **Next steps:** {next action}
 ```
+
+Before filling **Duration**, compute elapsed time from the Phase 1 start timestamp to now (`date +%H:%M`) — report actual minutes, never "not tracked".
 
 Save to `.qa-reports/exploratory-{EPIC-KEY}-{YYYY-MM-DD}.md`. Update KB: add edge cases to `feature.md`, flag new scenarios for `/qa-test-cases --update`, update `index.json`.
 

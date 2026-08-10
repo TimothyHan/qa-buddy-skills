@@ -1,6 +1,6 @@
 {
   "skill": "exploratory",
-  "version": "0.4.1",
+  "version": "0.4.2",
   "fixtures": [
     {
       "id": "fx-001",
@@ -60,7 +60,7 @@
         {
           "field": "output",
           "op": "contains",
-          "value": "Screenshot"
+          "value": "Evidence"
         }
       ],
       "tags": [
