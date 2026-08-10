@@ -625,6 +625,66 @@ function testKbPathHygiene() {
   );
 }
 
+// Every suite above derives its expectations from whatever is on disk, so a
+// deleted skill deletes its own checks along with it (proven: removing
+// core/skills/test-plan/ left the run green at 669/0, and removing it from
+// dist/ left it green at 707/0). EXPECTED_SKILLS is the fixed point — unlike
+// the installer arrays this replaced in v0.2.1, a stale list here fails loudly
+// instead of silently skipping work, so adding a skill must be a deliberate
+// edit in this file.
+const EXPECTED_SKILLS = [
+  'e2e-pom', 'e2e-setup', 'e2e-write', 'eval', 'exploratory', 'improve',
+  'qa', 'review-ticket', 'setup', 'sprint-status', 'start', 'test-cases',
+  'test-plan', 'verify-fix',
+];
+
+function testSkillManifest() {
+  console.log('\n🧾 Skill Manifest');
+
+  const found = getSkillDirs();
+  check(
+    found.length === EXPECTED_SKILLS.length,
+    `core/skills has ${EXPECTED_SKILLS.length} skills`,
+    `Found ${found.length}: ${found.join(', ')}`
+  );
+  for (const skill of EXPECTED_SKILLS) {
+    check(found.includes(skill), `core: ${skill} present`, 'Skill directory is missing');
+  }
+  for (const extra of found.filter(f => !EXPECTED_SKILLS.includes(f))) {
+    check(false, `core: ${extra} is unexpected`, 'Add it to EXPECTED_SKILLS in test.js');
+  }
+
+  // Every skill must survive the build into every platform dir that exists,
+  // including locale builds (dist/ko/<platform>) — a build that silently drops
+  // a skill ships an installer that happily installs one fewer skill.
+  const platformDirs = [];
+  if (fs.existsSync(DIST_DIR)) {
+    for (const platform of PLATFORMS) {
+      const direct = path.join(DIST_DIR, platform);
+      if (fs.existsSync(direct)) platformDirs.push([platform, direct]);
+      for (const entry of fs.readdirSync(DIST_DIR)) {
+        const nested = path.join(DIST_DIR, entry, platform);
+        if (fs.existsSync(nested)) platformDirs.push([`${entry}/${platform}`, nested]);
+      }
+    }
+  }
+  for (const [label, dir] of platformDirs) {
+    const skillsDir = path.join(dir, 'skills');
+    if (!fs.existsSync(skillsDir)) {
+      check(false, `${label}: has a skills/ directory`, `Missing ${skillsDir}`);
+      continue;
+    }
+    const shipped = fs.readdirSync(skillsDir);
+    const missing = EXPECTED_SKILLS.filter(s => !shipped.includes(s) && !shipped.includes(`qa-${s}`));
+    check(
+      missing.length === 0,
+      `${label}: ships all ${EXPECTED_SKILLS.length} skills`,
+      `Missing from build: ${missing.join(', ')}`
+    );
+  }
+}
+
+testSkillManifest();
 testExcludeConditions();
 testEvalFixtures();
 testCrlfTolerance();

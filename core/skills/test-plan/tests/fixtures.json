@@ -1,6 +1,6 @@
 {
   "skill": "test-plan",
-  "version": "0.5.2",
+  "version": "0.5.3",
   "fixtures": [
     {
       "id": "fx-001",
@@ -113,6 +113,29 @@
       "tags": [
         "gap-analysis",
         "verified-only"
+      ]
+    },
+    {
+      "id": "fx-005",
+      "description": "Automation strategy states how the suite's detection power gets proven (test-suite-verification.md)",
+      "input": {
+        "epic": "epic whose scope includes building a new automated regression suite from scratch"
+      },
+      "assertions": [
+        {
+          "field": "output",
+          "op": "matches",
+          "value": "mutation smoke|detection power|뮤테이션 스모크|검출력"
+        },
+        {
+          "field": "output",
+          "op": "matches",
+          "value": "vacuous|red|공허|빨간"
+        }
+      ],
+      "tags": [
+        "suite-verification",
+        "detection-power"
       ]
     }
   ]

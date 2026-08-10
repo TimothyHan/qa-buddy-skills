@@ -3,7 +3,7 @@
 모든 QABuddy 스킬이 공유하는 방법론입니다. 각 스킬은 필요한 파일만
 참조합니다 -- 모든 파일을 한꺼번에 로드하지 마세요.
 
-**Version:** 0.3.0
+**Version:** 0.4.0
 
 ## 파일 목록
 
@@ -20,6 +20,7 @@
 | `defect-lifecycle.md`       | 결함 유형, Jira 상태, SLA 기대치, 회귀 테스트 요구사항                                    | qa, test-plan, review-ticket, verify-fix                     |
 | `maintenance-and-ci.md`     | 테스트 소유권, 불안정 테스트 처리 절차, 15분 시간 예산, CI 게이트, 브라우저 매트릭스       | test-cases, sprint-status, qa                                |
 | `exploratory-heuristics.md` | 10가지 휴리스틱 범주, 휴리스틱별 기법 체크리스트, 발견 항목 분류                           | exploratory                                                  |
+| `test-suite-verification.md` | 검출력, 뮤테이션 스모크, 공허 단언, 자기파생 기대치                                       | test-plan, test-cases, e2e-write                             |
 
 ## 팀 프랙티스 (프로젝트별)
 

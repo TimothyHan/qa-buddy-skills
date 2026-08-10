@@ -10,7 +10,7 @@
 [![Skills: 14](https://img.shields.io/badge/Skills-14-green.svg)](#스킬)
 [![Platform: Claude Code](https://img.shields.io/badge/Platform-Claude_Code-purple.svg)](#작동-방식)
 [![Locales: en, ko](https://img.shields.io/badge/Locales-en_|_ko-orange.svg)](#로케일)
-[![Tests: 694](https://img.shields.io/badge/Tests-694_passing-brightgreen.svg)](#테스트)
+[![Structural checks: 740](https://img.shields.io/badge/Structural_checks-740-brightgreen.svg)](#작동-방식)
 
 스크럼 팀에서 일하는 SDT(Software Developers in Test)를 위한 AI 파트너입니다.<br>
 에픽 테스트 계획 수립부터 스프린트 실행, 릴리스 검증까지 전체 워크플로우를 지원합니다.<br>
@@ -304,8 +304,14 @@ flowchart LR
 ```bash
 node build.js all                  # 모든 플랫폼용 빌드
 node build.js all --locale ko      # 한국어 버전 빌드
-node test.js                       # 694개 구조 테스트 실행
+node test.js                       # 740개 구조 검사 실행
 ```
+
+> **구조 검사와 동작 검증은 다릅니다.** `node test.js`는 빌드 산출물의 형태를
+> 검사합니다 — 프론트매터, 로케일 대칭, 플레이스홀더 치환, dist BOM, 설치
+> 스크립트에 소유권 로직이 존재하는지. 설치 스크립트가 실제로 **올바르게 동작하는지**는
+> CI의 실행 잡이 검증합니다: 외부 도구 스킬을 심어두는 디코이 테스트, 재설치 멱등성,
+> `--adopt` 마이그레이션 스모크, PowerShell 5.1/7 전체 사이클.
 
 <details>
 <summary><strong>프로젝트 구조</strong></summary>
@@ -313,9 +319,9 @@ node test.js                       # 694개 구조 테스트 실행
 ```
 QABuddy/
 ├── build.js                     # 빌드 스크립트 (node, 의존성 없음)
-├── test.js                      # 구조 테스트 스위트 (694개 검사)
+├── test.js                      # 구조 검사 스위트 (740개 검사)
 ├── core/                        # 단일 소스 — 여기서 편집
-│   ├── skills/ (11)             # {{플레이스홀더}} 포함 스킬 템플릿
+│   ├── skills/ (14)             # {{플레이스홀더}} 포함 스킬 템플릿
 │   ├── references/playbook/     # 10개 방법론 파일
 │   ├── preamble-base.md         # Tier 1 프리앰블 (모든 스킬)
 │   ├── preamble-full.md         # Tier 2 추가 사항

@@ -10,7 +10,7 @@
 [![Skills: 14](https://img.shields.io/badge/Skills-14-green.svg)](#skills)
 [![Platform: Claude Code](https://img.shields.io/badge/Platform-Claude_Code-purple.svg)](#how-it-works)
 [![Locales: en, ko](https://img.shields.io/badge/Locales-en_|_ko-orange.svg)](#locales)
-[![Tests: 694](https://img.shields.io/badge/Tests-694_passing-brightgreen.svg)](#testing)
+[![Structural checks: 740](https://img.shields.io/badge/Structural_checks-740-brightgreen.svg)](#how-it-works)
 
 An AI partner for Software Developers in Test (SDTs) working in Scrum teams.<br>
 Covers the full workflow — from epic test planning through sprint execution to release verification.<br>
@@ -304,8 +304,15 @@ Skills are authored once in `core/skills/`. The build script generates platform-
 ```bash
 node build.js all                  # Build for all platforms
 node build.js all --locale ko      # Build Korean version
-node test.js                       # Run 694 structural tests
+node test.js                       # Run 740 structural checks
 ```
+
+> **Structural checks are not behavioural verification.** `node test.js` inspects
+> the *shape* of the build output — frontmatter, locale parity, placeholder
+> substitution, dist BOM, and whether the setup scripts contain their ownership
+> logic. Whether those scripts actually *behave* correctly is verified by the CI
+> execution jobs: the foreign-decoy test, reinstall idempotency, the `--adopt`
+> migration smokes, and full PowerShell 5.1/7 cycles.
 
 <details>
 <summary><strong>Project Structure</strong></summary>
@@ -313,9 +320,9 @@ node test.js                       # Run 694 structural tests
 ```
 QABuddy/
 ├── build.js                     # Build script (node, zero deps)
-├── test.js                      # Structural test suite (694 checks)
+├── test.js                      # Structural check suite (740 checks)
 ├── core/                        # Single source of truth — edit here
-│   ├── skills/ (11)             # Skill templates with {{placeholders}}
+│   ├── skills/ (14)             # Skill templates with {{placeholders}}
 │   ├── references/playbook/     # 10 methodology files
 │   ├── preamble-base.md         # Tier 1 preamble (all skills)
 │   ├── preamble-full.md         # Tier 2 additions

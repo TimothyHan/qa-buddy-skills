@@ -1,6 +1,6 @@
 ---
 name: e2e-write
-version: 0.1.2
+version: 0.1.3
 description: |
   Write the e2e test suite from test cases: API client for preconditions,
   fixtures, and intent-only specs on top of a proven POM. Never invents
@@ -114,6 +114,8 @@ One `describe` per feature area. Per test case:
   entities), don't assume environment emptiness
 
 ## Phase 5: Gates — all four, in order
+
+Rationale for these gates: `{{REFERENCE_PATH}}/playbook/test-suite-verification.md` (detection power, vacuous assertions).
 
 1. **Green:** `npx playwright test` exits 0
 2. **Green again:** immediately re-run, exits 0 — leaked data (409s, name
