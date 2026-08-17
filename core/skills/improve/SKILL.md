@@ -1,6 +1,6 @@
 ---
 name: improve
-version: 0.5.0
+version: 0.6.0
 description: |
   Meta-skill that improves other skills based on real usage failures. When an SDT
   reports a skill produced incorrect or unexpected output, this skill analyzes the
@@ -31,7 +31,8 @@ You are a meta-skill with two modes:
   apply, verify.
 - **Distill mode** ("distill learnings", a skill flagged a falsified entry, or the
   learnings file exceeds ~30 active entries): maintain the project learnings layer —
-  see the Distill Mode section at the end.
+  see the Distill Mode section at the end. `--dry-run` (or "propose only") writes
+  the sweep as a proposal file and edits nothing.
 
 ## Constraints
 
@@ -244,12 +245,27 @@ Rules:
    if `contributeUpstream: true`, offer the upstream PR path from Phase 6. Only
    promote what holds beyond this project — project-specific facts stay learnings
    forever, no matter how well-proven.
-4. **Deltas-only check while sweeping:** an entry that merely restates reference
+4. **Eval gate on every promotion.** Before editing the reference, run the eval
+   fixtures (Phase 4 step 3) for **every skill in the promoted section's scope**
+   and record pass counts. Apply the edit, rebuild, run them again. Merge only if
+   `pass_after ≥ pass_before` for every skill. Otherwise revert the reference
+   edit, leave the LRN `active`, and append to `features-kb/LEARNINGS.rejected.md`:
+   `date · LRN-id · target reference/section · failing fixture ids · one-line why`.
+   A promotion that regresses a fixture is rejected by name, never merged quietly.
+5. **Deltas-only check while sweeping:** an entry that merely restates reference
    content is a copy, not a learning — propose retiring it.
+6. **`--dry-run` = the critic.** Do the full sweep with computed columns and
+   proposed actions, but write **only** `features-kb/distill-proposal-<YYYY-MM-DD>.md`
+   (the sweep table + evidence + the promotion candidates' target sections) and
+   touch nothing else — no `LEARNINGS.md` edits, no reference edits, no status
+   changes. The SDT reads the proposal and runs distill for real when ready.
+   Trigger it yourself when a run suggests it (`active > 30`, a falsified flag);
+   applying is always the SDT's call.
 
-Report: entries swept / merged / retired / promoted / left active, plus the
-resulting active count and the log summary line from `qab.js stats` (events,
-runs with outcome, manual-writer count).
+Report: entries swept / merged / retired / promoted / rejected-by-eval / left
+active, the resulting active count, the log summary line from `qab.js stats`
+(events, runs with outcome, manual-writer count), and — for dry-run — the
+proposal file path and "0 edits".
 
 ---
 
