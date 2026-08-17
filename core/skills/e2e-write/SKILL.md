@@ -1,6 +1,6 @@
 ---
 name: e2e-write
-version: 0.1.4
+version: 0.1.5
 description: |
   Write the e2e test suite from test cases: API client for preconditions,
   fixtures, and intent-only specs on top of a proven POM. Never invents

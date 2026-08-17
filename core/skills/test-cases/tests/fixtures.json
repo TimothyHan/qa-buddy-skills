@@ -1,6 +1,6 @@
 {
   "skill": "test-cases",
-  "version": "0.3.5",
+  "version": "0.3.7",
   "fixtures": [
     {
       "id": "fx-001",
@@ -232,7 +232,8 @@
         {
           "field": "output",
           "op": "matches",
-          "value": "/improve|improve skill"
+          "value": "/(qa-)?improve",
+          "note": "built skills use the `/qa-improve` name; the earlier `/improve|improve skill` only matched by luck of wording (caught 2026-08-17)"
         },
         {
           "field": "output",
