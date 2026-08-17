@@ -1011,17 +1011,22 @@ function testCompile() {
     check(manifestIds[0] === 'REF-playwright-patterns#must-rules' || manifestIds[0] === 'REF-playwright-patterns#never', `must sections packed first (${manifestIds[0]})`);
     const iMust = manifestIds.indexOf('REF-playwright-patterns#must-rules');
     check(manifestIds[iMust + 1] === 'LRN-20260801-01', 'learning packed right after the section it Overrides');
-    // verbatim body: the NEVER section text equals the source minus heading + qab comment
-    const src = fs.readFileSync(path.join(CORE_DIR, 'references', 'playwright-patterns.md'), 'utf8').split('\n');
-    const i0 = src.findIndex(l => l.startsWith('## NEVER')); let i1 = i0 + 1; while (i1 < src.length && !/^##? /.test(src[i1])) i1++;
+    // verbatim body: compare against the SAME references dir the shipped helper reads (en or ko-only dist),
+    // locating headings via index.json (heading text is locale-specific; ids are not)
+    const refsDir = path.join(resolvePlatformDir('claude'), 'references');
+    const src = fs.readFileSync(path.join(refsDir, 'playwright-patterns.md'), 'utf8').replace(/\r\n/g, '\n').split('\n');
+    const neverHeading = index['REF-playwright-patterns#never'].heading;
+    const i0 = src.findIndex(l => l.replace(/^#+\s*/, '').trim() === neverHeading); let i1 = i0 + 1; while (i1 < src.length && !/^##? /.test(src[i1])) i1++;
     const expectedBody = src.slice(i0 + 1, i1).filter(l => !/^<!--\s*qab:/.test(l)).join('\n').trim();
-    const m = slice.match(/^## REF-playwright-patterns#never — NEVER\n([\s\S]*?)\n## /m);
-    check(!!m && m[1].trim() === expectedBody, 'slice body is verbatim source text (NEVER section)', m ? 'text differs' : 'section header not found');
+    const afterNever = slice.split(`## REF-playwright-patterns#never — ${neverHeading}\n`)[1];
+    const gotNever = afterNever ? afterNever.split('\n## ')[0].trim() : null;
+    check(gotNever !== null && gotNever === expectedBody, 'slice body is verbatim source text (NEVER section)', gotNever !== null ? 'text differs' : 'section header not found');
     check(!/<!--\s*qab:/.test(slice.split('\n---\n').slice(1).join('')), 'qab metadata comments stripped from slice body');
     // …and the LAST section of a file (runs to EOF — off-by-one territory): pitfalls
-    const j0 = src.findIndex(l => l.startsWith('## Pitfalls'));
+    const pitfallsHeading = index['REF-playwright-patterns#pitfalls'].heading;
+    const j0 = src.findIndex(l => l.replace(/^#+\s*/, '').trim() === pitfallsHeading);
     const expectedLast = src.slice(j0 + 1).filter(l => !/^<!--\s*qab:/.test(l)).join('\n').trim();
-    const afterHeader = slice.split(/^## REF-playwright-patterns#pitfalls — [^\n]*\n/m)[1];
+    const afterHeader = slice.split(`## REF-playwright-patterns#pitfalls — ${pitfallsHeading}\n`)[1];
     const gotLast = afterHeader ? afterHeader.split('\n## ')[0].trim() : null;
     check(gotLast !== null && gotLast === expectedLast, 'slice body is verbatim for a file\'s LAST section (pitfalls, runs to EOF)', gotLast !== null ? `got ${gotLast.split('\n').length} lines, expected ${expectedLast.split('\n').length}` : 'header not found');
     // profile + events + scratchpad
