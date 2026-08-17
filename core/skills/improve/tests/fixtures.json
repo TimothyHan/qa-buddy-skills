@@ -1,6 +1,6 @@
 {
   "skill": "improve",
-  "version": "0.5.0",
+  "version": "0.6.0",
   "fixtures": [
     {
       "id": "fx-001",
@@ -204,6 +204,107 @@
         "self-improve",
         "distill",
         "computed-columns"
+      ]
+    },
+    {
+      "id": "fx-008",
+      "mode": "execute",
+      "description": "SELF-IMPROVE distill --dry-run is the critic: writes features-kb/distill-proposal-<date>.md with computed columns and edits nothing. Wrong output this catches: a 'dry run' that flips a Status or skips the proposal file.",
+      "input": {
+        "task": "No fixture app needed. In the workspace create features-kb/LEARNINGS.md with two active entries — LRN-20260801-01 (Scope: qa; Statement: seed carts via API) and LRN-20260801-02 (Scope: e2e-write; Statement: use data-test selectors) — and features-kb/learnings-log.jsonl where LRN-20260801-01 has applied=4 across 4 runs / contradicted=0 and LRN-20260801-02 has contradicted=2 (2026-08-11, 2026-08-12) with no applied after. Then run /qa-improve distill --dry-run in the workspace."
+      },
+      "assertions": [
+        {
+          "field": "cmd:ls features-kb/distill-proposal-*.md",
+          "op": "exit_code",
+          "value": 0,
+          "note": "the proposal file exists"
+        },
+        {
+          "field": "cmd:cat features-kb/distill-proposal-*.md",
+          "op": "output_matches",
+          "value": "LRN-20260801-01[^\\n]*(promot|승격)"
+        },
+        {
+          "field": "cmd:cat features-kb/distill-proposal-*.md",
+          "op": "output_matches",
+          "value": "LRN-20260801-02[^\\n]*(falsif|retire|반증|은퇴)"
+        },
+        {
+          "field": "cmd:cat features-kb/distill-proposal-*.md",
+          "op": "output_matches",
+          "value": "applied[^\\n]*contradicted|contradicted[^\\n]*applied",
+          "note": "computed columns present"
+        },
+        {
+          "field": "cmd:grep -c 'Status:\\*\\* active' features-kb/LEARNINGS.md",
+          "op": "output_matches",
+          "value": "^2\\s*$",
+          "note": "zero edits: both seeded entries still active"
+        },
+        {
+          "field": "cmd:grep -c 'retired' features-kb/LEARNINGS.md",
+          "op": "output_matches",
+          "value": "^0\\s*$",
+          "note": "dry-run wrote no status change"
+        },
+        {
+          "field": "output",
+          "op": "matches",
+          "value": "0 edits|zero edits|편집 0"
+        }
+      ],
+      "tags": [
+        "self-improve",
+        "distill",
+        "dry-run",
+        "critic"
+      ]
+    },
+    {
+      "id": "fx-009",
+      "description": "SELF-IMPROVE promotion eval gate: a promotion whose reference edit regresses a scoped skill's fixture is reverted, named in LEARNINGS.rejected.md, and the LRN stays active. Wrong output this catches: merging the reference edit anyway, or rejecting without naming the fixture.",
+      "input": {
+        "request": "distill learnings",
+        "precondition": "LRN-20260801-03 (Scope: e2e-pom, e2e-write; applied=5 across 5 runs, contradicted=0) is a promotion candidate targeting playwright-patterns.md §selectors. SDT approves promotion. Eval before edit: e2e-pom 4/4, e2e-write 4/4. Eval after edit: e2e-pom 4/4, e2e-write 3/4 — fx-003 fails."
+      },
+      "assertions": [
+        {
+          "field": "output",
+          "op": "matches",
+          "value": "pass_after|before[^\\n]*after|전후"
+        },
+        {
+          "field": "output",
+          "op": "contains",
+          "value": "fx-003"
+        },
+        {
+          "field": "output",
+          "op": "contains",
+          "value": "LEARNINGS.rejected.md"
+        },
+        {
+          "field": "output",
+          "op": "matches",
+          "value": "revert|reverted|rolled back|되돌"
+        },
+        {
+          "field": "output",
+          "op": "matches",
+          "value": "LRN-20260801-03[^\\n]*(active|stays|remains|유지)"
+        },
+        {
+          "field": "output",
+          "op": "not_contains",
+          "value": "LRN-20260801-03 → promoted",
+          "note": "must not mark promoted after a regression"
+        }
+      ],
+      "tags": [
+        "self-improve",
+        "distill",
+        "eval-gate"
       ]
     }
   ]

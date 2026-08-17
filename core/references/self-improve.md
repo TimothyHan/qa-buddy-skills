@@ -143,3 +143,21 @@ file exceeds ~30 active entries. Distill computes from the log, not from
 |---|---|
 | **Promotion candidate** | `applied ≥ 3` across `≥ 3` distinct runs ∧ `contradicted = 0` — then the human judgment: generalizable beyond this project? |
 | **Falsified** | `contradicted ≥ 2` ∧ no `applied` after the last contradiction |
+
+## Gates (what can change the library, and who)
+
+1. **Human gate** — every status change and every reference edit is proposed,
+   shown with its evidence, and applied only after the SDT says so.
+2. **Eval gate on promotion** — a learning promoted into references must not
+   regress any skill in that section's scope: run each scoped skill's
+   `tests/fixtures.json` before and after the edit; merge only if
+   `pass_after ≥ pass_before` for every skill. Otherwise the edit is reverted,
+   the LRN stays `active`, and `features-kb/LEARNINGS.rejected.md` records
+   `date · LRN · target · failing fixture ids · why`. Rejections are named, never silent.
+3. **Critic (`--dry-run`)** — the full distill sweep written to
+   `features-kb/distill-proposal-<date>.md` with **zero edits**. Detection and
+   proposal are automatic; application is human. Suggested by any run that sees
+   `active > 30` or a falsified flag; never self-launched.
+4. **Never** — no LLM writes to `references/` outside gate 2; no auto status
+   changes (a later opt-in, off by default, may retire fingerprint-falsified
+   entries with an audit line — reference edits stay human forever).

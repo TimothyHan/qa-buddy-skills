@@ -798,8 +798,53 @@ function testRuntimeHelper() {
   }
 }
 
+function testLearningsGates() {
+  console.log('\n🚧 Learnings gates (RFC 0001 PR2 — eval-gated promotion + dry-run critic)');
+  // These are procedure obligations in improve/SKILL.md and the protocol; simulate fixtures
+  // (fx-008/009) exercise them at eval time, this guards the text itself in both locales.
+  const files = {
+    'core/skills/improve/SKILL.md': [
+      [/`pass_after ≥ pass_before`/, 'promotion eval gate rule (exact: `pass_after ≥ pass_before`)'],
+      [/LEARNINGS\.rejected\.md/, 'rejection file named'],
+      [/distill-proposal-<YYYY-MM-DD>\.md/, 'dry-run proposal file named'],
+      [/--dry-run/, 'dry-run entry point'],
+    ],
+    'locales/ko/skills/improve/SKILL.md': [
+      [/`pass_after ≥ pass_before`/, 'promotion eval gate rule (ko, exact)'],
+      [/LEARNINGS\.rejected\.md/, 'rejection file named (ko)'],
+      [/distill-proposal-<YYYY-MM-DD>\.md/, 'dry-run proposal file named (ko)'],
+      [/--dry-run/, 'dry-run entry point (ko)'],
+    ],
+    'core/references/self-improve.md': [
+      [/^## Gates/m, '§Gates section'],
+      [/`pass_after ≥ pass_before`/, 'gate rule in protocol (exact)'],
+      [/zero edits/, 'critic writes zero edits'],
+    ],
+    'locales/ko/references/self-improve.md': [
+      [/^## 게이트/m, '§게이트 section (ko)'],
+      [/`pass_after ≥ pass_before`/, 'gate rule in protocol (ko, exact)'],
+      [/편집 0건/, 'critic writes zero edits (ko)'],
+    ],
+  };
+  for (const [rel, checks] of Object.entries(files)) {
+    const content = readFile(path.join(ROOT, rel)) || '';
+    for (const [re, label] of checks) {
+      check(re.test(content), `${rel}: ${label}`, `Pattern not found: ${re}`);
+    }
+  }
+  // The gate must be a numbered rule of Distill Mode, after the promotion rule and before the report line
+  const en = readFile(path.join(CORE_DIR, 'skills', 'improve', 'SKILL.md')) || '';
+  const distill = en.slice(en.indexOf('## Distill Mode'));
+  const iPromo = distill.indexOf('**Promotion is a reference edit**');
+  const iGate = distill.indexOf('**Eval gate on every promotion.**');
+  const iDry = distill.indexOf('**`--dry-run` = the critic.**');
+  const iReport = distill.indexOf('\nReport:');
+  check(iPromo >= 0 && iGate > iPromo && iDry > iGate && iReport > iDry, 'improve Distill Mode order: promotion → eval gate → dry-run critic → report');
+}
+
 testSkillManifest();
 testRuntimeHelper();
+testLearningsGates();
 testExcludeConditions();
 testEvalFixtures();
 testCrlfTolerance();
