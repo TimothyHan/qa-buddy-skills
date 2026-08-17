@@ -269,12 +269,14 @@ The LLM's role shrinks to two judgments: *generalizable beyond this project?* an
 | 11 | Phase 0 | a rule, not a count: every new obligation ships an execute-mode fixture on the artifact it writes + mutation smoke in the PR body | simulate fixtures are model-graded |
 | 12 | Order | P2a (LRN log) before P1 (REF ids); REF citation (P2b) after, compliance-gated | P2a needs no ids; ids without data = guessed tiers |
 | 13 | Skills stay authored | see Appendix B | attribution needs a control; fixtures key on procedure contracts |
+| 14 | Locale cadence (2026-08-17) | **runtime-facing** files (preambles, `self-improve.md`, `run-protocol.md`, skill bodies, any new reference file) get their ko twin **in the same PR**; **human-facing docs** (CONTRIBUTING, README) get one ko parity pass on the integration branch before the final merge to main; RFC stays en + ko summary | the maintainer dogfoods on `dist/ko` — ko drift in runtime text means the test runs measure a different tool; docs churn until the sequence settles |
+| 15 | Integration branch (2026-08-17) | all RFC PRs target `feat/context-compiler`; `main` receives one merge after all phases + testing | keeps `main` releasable; one release for the whole change |
 
 ---
 
 ## 8. Implementation sequence — 9 PRs
 
-Rules for every PR: en + ko for any shipped file; version bump on every changed skill; `node build.js all` + `node test.js` green; **PR body shows the mutation smoke** for each new obligation (remove the obligation → fixture red → restore → green); CI green before merge; behaviour change column must say *none* for PR0–PR6.
+Rules for every PR: target `feat/context-compiler` (decision 15); en + ko for any runtime-facing file, docs ko deferred to the final pass (decision 14); version bump on every changed skill; `node build.js all` + `node test.js` green; **PR body shows the mutation smoke** for each new obligation (remove the obligation → fixture red → restore → green); CI green before merge; behaviour change column must say *none* for PR0–PR6.
 
 | PR | Status | Contents | Behaviour |
 |---|---|---|---|
@@ -324,7 +326,7 @@ Rules for every PR: en + ko for any shipped file; version bump on every changed 
 2. `build.js`: parse comments → `references/index.json` (§3.6) into every dist; fail on duplicate id; fail if en and ko id sets differ.
 3. `self-improve.md` (+ ko): §Source IDs; entry template gains optional `Fingerprint:` / `Profile:`; `Overrides:` uses IDs or `none`/`없음`.
 4. `features-kb/LEARNINGS.md` (this repo's dogfood file): migrate the two real `Overrides:` pointers to IDs.
-5. `test.js`: every `Overrides:` in `LEARNINGS.md` resolves to an id in `index.json` or is `none`/`없음`; `index.json` present in every dist; en/ko id sets equal (extends `testKoreanCompleteness`).
+5. `test.js`: every `Overrides:` in `LEARNINGS.md` resolves to an id in `index.json` or is `none`/`없음`; `index.json` present in every dist; en/ko id sets equal (extends `testKoreanCompleteness`); **every file under `core/references/**` has a same-named file under `locales/ko/references/**`** — `build.js` resolves the references *directory* per locale, so an en-only new file would silently never reach `dist/ko` (decision 14).
 6. `CONTRIBUTING(-en).md`: "Authoring Knowledge" section (section format, rules), "Adding a New Locale" anchor rule, checklist rows.
 - **Acceptance:** build emits index; parity test green; `Overrides:` resolve. **Behaviour:** none.
 
