@@ -74,6 +74,9 @@ function logPath() { return path.join(kbDir(), 'learnings-log.jsonl'); }
 function fpPath() { return path.join(kbDir(), 'fingerprints.jsonl'); }
 function scoreboardPath() { return path.join(kbDir(), '.cache', 'scoreboard.json'); }
 
+// Display-only relative path with forward slashes on every OS (tests and humans read these lines).
+function rel(p) { return path.relative(CWD, p).split(path.sep).join('/'); }
+
 function nowIso() {
   if (process.env.QAB_TS) return process.env.QAB_TS;
   return new Date().toISOString().replace(/\.\d{3}Z$/, 'Z');
@@ -196,7 +199,7 @@ function cmdLog(args) {
   if (args.writer && args.writer !== true) line.writer = String(args.writer);
 
   appendEvent(line, marker);
-  process.stdout.write(`${path.relative(CWD, logPath())} += ${event}${line.src ? ' ' + line.src : ''}${line.status ? ' ' + line.status : ''}\n`);
+  process.stdout.write(`${rel(logPath())} += ${event}${line.src ? ' ' + line.src : ''}${line.status ? ' ' + line.status : ''}\n`);
 }
 
 // Append to the project log and, if this run has a directory, mirror into <run>/events.jsonl.
@@ -362,8 +365,8 @@ function cmdCompile(args) {
   if (!fs.existsSync(scratch)) fs.writeFileSync(scratch, `# ${run.run}\n\n## Plan\n\n## State\n\n## Findings\n\n## Candidate learnings\n<!-- anything noteworthy, no evidence bar; the three capture triggers are applied to THESE at close -->\n`);
 
   appendEvent({ v: 1, ts: nowIso(), run: run.run, skill, pfp, event: 'compiled', sources: sources.map(x => x.id), used, max: 0, dropped: dropped.map(d => d.id) }, marker);
-  process.stdout.write(`${path.relative(CWD, slicePath)}\n`);
-  process.stdout.write(`  run ${run.run} · ${sources.length} sources (${sources.filter(x => x.tier === 'must').length} must, ${sources.filter(x => x.tier === 'lrn').length} learnings) · ${used} lines · scratchpad ${path.relative(CWD, scratch)}\n`);
+  process.stdout.write(`${rel(slicePath)}\n`);
+  process.stdout.write(`  run ${run.run} · ${sources.length} sources (${sources.filter(x => x.tier === 'must').length} must, ${sources.filter(x => x.tier === 'lrn').length} learnings) · ${used} lines · scratchpad ${rel(scratch)}\n`);
 }
 
 // ─── fp (RFC 0001 §3.4, PR6: failure fingerprints) ───────────────────────
@@ -453,7 +456,7 @@ function cmdFp(args) {
   fs.mkdirSync(path.dirname(target), { recursive: true });
   fs.appendFileSync(target, JSON.stringify(line) + '\n');
   if (fs.existsSync(dir)) fs.appendFileSync(path.join(dir, 'fingerprints.jsonl'), JSON.stringify(line) + '\n');
-  process.stdout.write(`${path.relative(CWD, target)} += ${kind} ffp=${ffp}${active.length ? ` active=[${active.join(', ')}]` : ''}\n`);
+  process.stdout.write(`${rel(target)} += ${kind} ffp=${ffp}${active.length ? ` active=[${active.join(', ')}]` : ''}\n`);
   if (active.length) process.stdout.write(`  ↳ falsification evidence for ${active.join(', ')} — flag it in the report; distill lists it as falsified (fingerprint)\n`);
 }
 
@@ -576,7 +579,7 @@ function cmdStats(args) {
   const fpsAll = readFps();
   const fps = since ? fpsAll.lines.filter(f => !f.ts || f.ts.slice(0, 10) >= since) : fpsAll.lines;
   const stats = computeStats(lines, fps, parseLearnings());
-  const summary = { ...stats, events: lines.length, malformed, manual_writer: manual, log: path.relative(CWD, logPath()), fingerprint_lines: fps.length, fingerprints_file: path.relative(CWD, fpPath()) };
+  const summary = { ...stats, events: lines.length, malformed, manual_writer: manual, log: rel(logPath()), fingerprint_lines: fps.length, fingerprints_file: rel(fpPath()) };
   if (args.json) { process.stdout.write(JSON.stringify(summary, null, 2) + '\n'); return; }
 
   const out = [];
@@ -622,7 +625,7 @@ function cmdScoreboard() {
   const target = scoreboardPath();
   fs.mkdirSync(path.dirname(target), { recursive: true });
   fs.writeFileSync(target, JSON.stringify(board, null, 2) + '\n');
-  process.stdout.write(`${path.relative(CWD, target)} rebuilt — ${Object.keys(per_source).length} sources, ${Object.keys(per_fingerprint).length} fingerprint classes (derived from ${lines.length} log events + ${fps.length} fingerprint lines; gitignore ${path.relative(CWD, path.dirname(target))}/)\n`);
+  process.stdout.write(`${rel(target)} rebuilt — ${Object.keys(per_source).length} sources, ${Object.keys(per_fingerprint).length} fingerprint classes (derived from ${lines.length} log events + ${fps.length} fingerprint lines; gitignore ${rel(path.dirname(target))}/)\n`);
 }
 
 // ─── main ───────────────────────────────────────────────────────────────
