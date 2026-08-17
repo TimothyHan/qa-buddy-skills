@@ -103,6 +103,8 @@ the AI has read, consolidated, and structured the information into a consistent 
 ```
 features-kb/
 ├── config.json                          # KB configuration
+├── LEARNINGS.md                         # Project learnings (self-improve.md); committed
+├── learnings-log.jsonl                  # Append-only run log: applied/contradicted/captured/outcome; committed
 ├── index.json                           # Feature index for fast lookup
 ├── features/
 │   ├── {EPIC-KEY}/

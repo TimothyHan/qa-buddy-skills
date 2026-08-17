@@ -103,6 +103,8 @@ KB에는 **가공된 요약만** 저장하며, Jira 원본 데이터를 그대�
 ```
 features-kb/
 ├── config.json                          # KB configuration
+├── LEARNINGS.md                         # Project learnings (self-improve.md); committed
+├── learnings-log.jsonl                  # Append-only run log: applied/contradicted/captured/outcome; committed
 ├── index.json                           # Feature index for fast lookup
 ├── features/
 │   ├── {EPIC-KEY}/

@@ -1,6 +1,6 @@
 {
   "skill": "improve",
-  "version": "0.4.1",
+  "version": "0.5.0",
   "fixtures": [
     {
       "id": "fx-001",
@@ -163,6 +163,47 @@
         "self-improve",
         "distill",
         "approval-gate"
+      ]
+    },
+    {
+      "id": "fx-007",
+      "description": "SELF-IMPROVE distill computes from the log: runs qab.js stats, shows applied/contradicted/runs columns, and does NOT promote an entry whose prose says '3 runs' when the log shows applied=1. Wrong output this catches: promotion decided from Evidence: prose.",
+      "input": {
+        "request": "distill learnings",
+        "precondition": "LEARNINGS.md has LRN-20260808-02 with Evidence: 'seen in 3 runs' and learnings-log.jsonl where LRN-20260808-02 has applied=1 across 1 run, contradicted=0; LRN-20260808-05 has applied=4 across 4 runs, contradicted=0"
+      },
+      "assertions": [
+        {
+          "field": "output",
+          "op": "matches",
+          "value": "qab\\.js stats|learnings-log"
+        },
+        {
+          "field": "output",
+          "op": "matches",
+          "value": "applied[^\\n]*contradicted|contradicted[^\\n]*applied"
+        },
+        {
+          "field": "output",
+          "op": "matches",
+          "value": "LRN-20260808-05[^\\n]*(promot|승격)"
+        },
+        {
+          "field": "output",
+          "op": "not_contains",
+          "value": "LRN-20260808-02 → promoted",
+          "note": "applied=1 in the log; prose '3 runs' must not promote"
+        },
+        {
+          "field": "output",
+          "op": "matches",
+          "value": "LRN-20260808-02[^\\n]*(applied[^\\n]*1|1[^\\n]*applied|not a promotion|승격 후보가 아)"
+        }
+      ],
+      "tags": [
+        "self-improve",
+        "distill",
+        "computed-columns"
       ]
     }
   ]

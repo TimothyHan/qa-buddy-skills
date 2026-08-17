@@ -221,6 +221,22 @@ Cursor and Copilot ignore `tool-groups` — their agents auto-discover tools.
 
 ---
 
+## Runtime Obligations (every skill)
+
+The preamble enforces these on every skill run; skill authors must not contradict them and should not restate them. Design: [RFC 0001](docs/rfc/0001-context-compiler.md). Sections marked ▸ land with a later RFC phase.
+
+| When | Obligation | Written to |
+|---|---|---|
+| Start | `qab.js run-id --skill <name>`; read references, then the learnings file (skill-scoped, `active`) — learning beats reference on conflict | `.qa-reports/.qab-run` |
+| Whenever a learning shapes output | Cite its ID; `qab.js log applied LRN-…` | `learnings-log.jsonl` |
+| Live observation contradicts an active learning | Do not apply it; `qab.js log contradicted LRN-… --note`; flag in report | `learnings-log.jsonl` |
+| Completion | Apply the three capture triggers; if one fires, write the LRN and `log captured`; then `log outcome --status <S>` | `LEARNINGS.md`, `learnings-log.jsonl` |
+| ▸ Start (compile) / phase boundaries / failure kinds | Compiled slice, scratchpad, fingerprints | RFC 0001 PR5 / PR6 |
+
+`bin/qab.js` is the only writer of `learnings-log.jsonl` — the model passes bare arguments and never hand-writes JSON. It ships to `dist/<platform>/references/bin/` and is tested behaviourally in `test.js` (`testRuntimeHelper`). Schema: `self-improve.md` §Learnings log (`"v": 1`; readers accept every earlier version — logs are append-only and live in users' repos for years). Runtime files (`LEARNINGS.md`, `learnings-log.jsonl`, `.qa-reports/`) are project content: never in this repo, never dual-locale.
+
+---
+
 ## SDT Playbook: Editing and Adding Knowledge
 
 The playbook lives in `core/references/playbook/` as focused files (~35-70 lines each). See `index.md` for the full map.

@@ -50,10 +50,13 @@ ID 형식은 `LRN-YYYYMMDD-NN` (생성일 + 순번). ID는 영구적 — 은퇴 
    있으므로 이중 적용 금지.
 3. **충돌 시 학습이 이깁니다.** 더 최신이고 프로젝트 특화이기 때문입니다;
    레퍼런스는 그 외 모든 곳에서 기본값으로 유지됩니다.
-4. **적용한 것은 인용하세요.** 학습이 출력을 결정했으면 보고서에 ID를 명시
-   (예: "LRN-20260807-01에 따라 `data-test` 사용"). 인용이 이 레이어를 감사
-   가능하게 만듭니다 — 조용한 적용은 드리프트로 보입니다.
-5. active 학습이 **실행 중 관찰한 현실과 모순되면** 적용하지 마세요. 보고서에
+4. **적용한 것은 인용하고 — 로그하세요.** 학습이 출력을 결정했으면 보고서에
+   ID를 명시하고 (예: "LRN-20260807-01에 따라 `data-test` 사용") **또한**
+   `qab.js log applied LRN-…`를 실행하세요 (아래 *학습 로그* 참조). 인용이 이
+   레이어를 감사 가능하게 만들고 — 조용한 적용은 드리프트로 보입니다 — 로그가
+   셀 수 있게 만듭니다.
+5. active 학습이 **실행 중 관찰한 현실과 모순되면** 적용하지 마세요.
+   `qab.js log contradicted LRN-… --note "<관찰한 것>"`을 실행하고, 보고서에
    반증 증거로 플래그하고 `/qa-improve` 정제를 제안하세요. 관찰된 현실은 기록된
    학습보다 우선합니다 — 레퍼런스보다 우선하는 것과 같은 원리입니다.
 
@@ -79,7 +82,8 @@ ID 형식은 `LRN-YYYYMMDD-NN` (생성일 + 순번). ID는 영구적 — 은퇴 
   기술합니다 (**Overrides** 필드 사용). 레퍼런스 내용을 학습에 붙여넣지 마세요 —
   오래된 포크가 갱신된 정본을 조용히 가리는 것이 바로 이 레이어가 막으려는 실패입니다.
 - **항목당 사실 하나.** 한 실행에서 학습 둘 = 항목 둘.
-- 보고서에 포착을 언급: "LRN-{id} 포착: {한 줄 요약}."
+- 보고서에 포착을 언급: "LRN-{id} 포착: {한 줄 요약}." 그리고
+  `qab.js log captured LRN-{id}`를 실행하세요.
 
 ### 포착 금지 대상
 
@@ -92,6 +96,35 @@ ID 형식은 `LRN-YYYYMMDD-NN` (생성일 + 순번). ID는 영구적 — 은퇴 
 - SDT가 팀 컨벤션으로 확인하지 않은 스타일 취향
 - 시크릿, 자격 증명, 토큰 — 어떤 형태로든, 증거로도 금지
 
+## 학습 로그 (읽기 경로는 쓰기 경로다)
+
+`LEARNINGS.md`는 학습이 *무엇을 말하는지*를 기록하고, 로그는 그 학습에 *무슨 일이
+있었는지*를 기록합니다. 경로: 학습 파일 옆의 `learnings-log.jsonl` (기본
+`features-kb/`). append-only, 한 줄에 JSON 객체 하나, 저장소에 커밋, 절대 제자리
+편집 금지 — 리더는 모든 이전 `v`를 영원히 수용합니다.
+
+함께 배포되는 헬퍼로 쓰고, 절대 손으로 쓰지 마세요:
+
+```bash
+node <references>/bin/qab.js run-id --skill <this-skill> [--ticket <KEY>]   # 시작 시 한 번; 실행 id 출력
+node <references>/bin/qab.js log applied LRN-20260807-01                    # 학습이 출력을 결정함
+node <references>/bin/qab.js log contradicted LRN-… --note "<관찰한 것>"    # 실행 중 현실이 어긋남
+node <references>/bin/qab.js log captured LRN-…                             # 새 항목을 추가함
+node <references>/bin/qab.js log outcome --status DONE                      # 상태 블록 직전 마지막
+```
+
+`<references>`는 플랫폼의 레퍼런스 경로입니다 (정확한 명령은 프리앰블에 있음).
+`run-id`는 현재 실행을 `.qa-reports/.qab-run`에 기억합니다; 스킬을 병렬로 실행할
+때는 각 `log` 호출에 `--run <id>`를 넘기세요.
+스키마 v1: `{"v":1,"ts":"<UTC ISO>","run":"<skill>-<ticket|branch>-<6hex>","skill":"…","event":"…","src":"LRN-…"}`
++ `note`(contradicted) 또는 `status`(outcome). 이벤트 `compiled` / `escalated`는
+컴파일 단계용으로 예약. Node를 쓸 수 없으면 같은 형태를 `echo … >>`로 추가하되
+`"writer":"manual"`을 넣어 정제가 비율을 보고할 수 있게 하세요.
+
+`qab.js stats`는 로그를 소스별 카운트(`applied`, `contradicted`, `runs`,
+`last_applied`)와 아래 두 계산 판정으로 바꿉니다. 스킬은 로그를 읽지 않습니다;
+정제만 읽습니다.
+
 ## 라이프사이클
 
 `active` → 매칭되는 모든 실행에 적용.
@@ -102,4 +135,9 @@ ID 형식은 `LRN-YYYYMMDD-NN` (생성일 + 순번). ID는 영구적 — 은퇴 
 
 정제(중복 제거, 은퇴, 승격)는 `/qa-improve`의 역할입니다 — "학습 정제해줘"로
 트리거하거나, 스킬이 반증된 항목을 플래그했을 때, 또는 active 항목이 ~30개를
-넘었을 때 실행하세요.
+넘었을 때 실행하세요. 정제는 `Evidence:` 산문이 아니라 로그로 계산합니다:
+
+| 판정 | 규칙 (`qab.js stats` 기준) |
+|---|---|
+| **승격 후보** | `applied ≥ 3` (서로 다른 실행 `≥ 3`) ∧ `contradicted = 0` — 그 다음 사람의 판단: 이 프로젝트 밖에서도 일반화되는가? |
+| **반증됨** | `contradicted ≥ 2` ∧ 마지막 모순 이후 `applied` 없음 |

@@ -221,6 +221,22 @@ Cursor와 Copilot은 `tool-groups`를 무시합니다 — 해당 에이전트가
 
 ---
 
+## 런타임 의무 (모든 스킬)
+
+프리앰블이 모든 스킬 실행에서 이를 강제합니다; 스킬 작성자는 이를 거스르거나 다시 쓰지 마세요. 설계: [RFC 0001](docs/rfc/0001-context-compiler.md). ▸ 표시는 이후 RFC 단계에서 들어옵니다.
+
+| 시점 | 의무 | 기록 위치 |
+|---|---|---|
+| 시작 | `qab.js run-id --skill <name>`; 레퍼런스를 읽은 뒤 학습 파일(스킬 스코프, `active`) — 충돌 시 학습이 레퍼런스를 이김 | `.qa-reports/.qab-run` |
+| 학습이 출력을 결정할 때마다 | ID 인용; `qab.js log applied LRN-…` | `learnings-log.jsonl` |
+| 실행 중 관찰이 active 학습과 모순 | 적용하지 않음; `qab.js log contradicted LRN-… --note`; 보고서에 플래그 | `learnings-log.jsonl` |
+| 완료 | 세 가지 포착 트리거 확인; 발화하면 LRN 작성 + `log captured`; 그 다음 `log outcome --status <S>` | `LEARNINGS.md`, `learnings-log.jsonl` |
+| ▸ 시작(컴파일) / 페이즈 경계 / 실패 종류 | 컴파일된 슬라이스, 스크래치패드, 지문 | RFC 0001 PR5 / PR6 |
+
+`bin/qab.js`가 `learnings-log.jsonl`의 유일한 작성자입니다 — 모델은 인자만 넘기고 JSON을 손으로 쓰지 않습니다. `dist/<platform>/references/bin/`으로 배포되며 `test.js`(`testRuntimeHelper`)가 동작을 검증합니다. 스키마: `self-improve.md` §학습 로그 (`"v": 1`; 리더는 모든 이전 버전을 수용 — 로그는 append-only이고 사용자 저장소에 수년간 남습니다). 런타임 파일(`LEARNINGS.md`, `learnings-log.jsonl`, `.qa-reports/`)은 프로젝트 콘텐츠입니다: 이 저장소에 없고, 이중 로케일도 아닙니다.
+
+---
+
 ## SDT 플레이북: 지식 편집 및 추가
 
 플레이북은 `core/references/playbook/`에 집중된 파일(파일당 ~35-70줄)로 관리됩니다. 전체 목록은 `index.md`를 참조하세요.

@@ -684,7 +684,122 @@ function testSkillManifest() {
   }
 }
 
+function testRuntimeHelper() {
+  console.log('\n🧾 Runtime helper (bin/qab.js — RFC 0001 PR1)');
+  const { execFileSync } = require('child_process');
+  const os = require('os');
+
+  const src = path.join(ROOT, 'bin', 'qab.js');
+  check(fs.existsSync(src), 'bin/qab.js exists in repo');
+
+  // Shipped under references/bin/ on every platform (reachable via {{REFERENCE_PATH}}/bin)
+  for (const platform of PLATFORMS) {
+    const shipped = path.join(resolvePlatformDir(platform), 'references', 'bin', 'qab.js');
+    check(fs.existsSync(shipped), `dist/${platform}/references/bin/qab.js shipped`, 'build.js must copy bin/ into references/bin/');
+    if (fs.existsSync(shipped) && fs.existsSync(src)) {
+      check(fs.readFileSync(shipped, 'utf8') === fs.readFileSync(src, 'utf8'), `dist/${platform}/references/bin/qab.js matches source`);
+    }
+  }
+  // Preamble wiring: the helper path must be assigned unquoted (QAB=~/… expands; QAB="node ~/…" hands
+  // Node a literal "~" — caught live while building PR1), and every call goes through `node $QAB`.
+  for (const platform of PLATFORMS) {
+    const distSkill = readFile(path.join(resolvePlatformDir(platform), 'skills', 'qa', 'SKILL.md')) || '';
+    check(/`QAB=[^"'`\s]+\/bin\/qab\.js`/.test(distSkill), `dist/${platform}: preamble assigns QAB=<path>/bin/qab.js unquoted`);
+    check(!/QAB="node/.test(distSkill), `dist/${platform}: preamble does not quote "node ~/…" (tilde would not expand)`);
+    check((distSkill.match(/node \$QAB (run-id|log)/g) || []).length >= 4, `dist/${platform}: preamble calls node $QAB for run-id/log (≥4 sites)`);
+  }
+  if (!fs.existsSync(src)) return;
+
+  // Behavioural: run the helper against a scratch project and read back what it wrote.
+  // This is a real detection-power test — break the JSON writer and these go red.
+  const tmp = fs.mkdtempSync(path.join(os.tmpdir(), 'qab-test-'));
+  const env = { ...process.env, QAB_CWD: tmp, QAB_TS: '2026-08-17T00:00:00Z' };
+  const run = (args, extraEnv) => execFileSync(process.execPath, [src, ...args], { env: { ...env, ...(extraEnv || {}) }, encoding: 'utf8', stdio: ['ignore', 'pipe', 'pipe'] });
+  const runFails = (args) => { try { run(args); return false; } catch (e) { return e.status !== 0; } };
+
+  try {
+    // .qabuddy.json with a custom learningsPath → log lands next to it
+    fs.mkdirSync(path.join(tmp, 'kb'), { recursive: true });
+    fs.writeFileSync(path.join(tmp, '.qabuddy.json'), JSON.stringify({ learningsPath: 'kb/LEARNINGS.md' }));
+
+    const runId = run(['run-id', '--skill', 'qa', '--ticket', 'PROJ-1']).trim();
+    check(/^qa-PROJ-1-[0-9a-f]{6}$/.test(runId), `run-id prints <skill>-<ticket>-<6hex> (${runId})`);
+    check(fs.existsSync(path.join(tmp, '.qa-reports', '.qab-run')), 'run-id writes .qa-reports/.qab-run marker');
+
+    run(['log', 'applied', 'LRN-20260808-03']);
+    run(['log', 'contradicted', 'LRN-20260808-04', '--note', 'script uses --prefix']);
+    run(['log', 'outcome', '--status', 'DONE']);
+    // a second run, id via env — must append, not rewrite
+    run(['log', 'applied', 'LRN-20260808-03', '--skill', 'test-cases'], { QAB_RUN: 'test-cases-x-abcdef' });
+    run(['log', 'outcome', '--status', 'DONE'], { QAB_RUN: 'test-cases-x-abcdef' });
+    run(['log', 'applied', 'LRN-20260808-03'], { QAB_RUN: 'third-run-000001' });
+    run(['log', 'outcome', '--status', 'DONE_WITH_CONCERNS'], { QAB_RUN: 'third-run-000001' });
+    // boundary data: LRN-07 applied twice across two runs (NOT a candidate: needs ≥3);
+    // LRN-08 contradicted twice with no applied afterwards (falsified)
+    run(['log', 'applied', 'LRN-20260808-07'], { QAB_RUN: 'test-cases-x-abcdef' });
+    run(['log', 'applied', 'LRN-20260808-07'], { QAB_RUN: 'third-run-000001' });
+    run(['log', 'applied', 'LRN-20260808-08'], { QAB_TS: '2026-08-10T00:00:00Z' });
+    run(['log', 'contradicted', 'LRN-20260808-08', '--note', 'first'], { QAB_TS: '2026-08-11T00:00:00Z' });
+    run(['log', 'contradicted', 'LRN-20260808-08', '--note', 'second'], { QAB_RUN: 'third-run-000001', QAB_TS: '2026-08-12T00:00:00Z' });
+    // LRN-09: contradicted twice but applied again afterwards → NOT falsified (the "no applied since" clause)
+    run(['log', 'contradicted', 'LRN-20260808-09', '--note', 'a'], { QAB_TS: '2026-08-11T00:00:00Z' });
+    run(['log', 'contradicted', 'LRN-20260808-09', '--note', 'b'], { QAB_TS: '2026-08-12T00:00:00Z' });
+    run(['log', 'applied', 'LRN-20260808-09'], { QAB_RUN: 'third-run-000001', QAB_TS: '2026-08-13T00:00:00Z' });
+
+    const logFile = path.join(tmp, 'kb', 'learnings-log.jsonl');
+    check(fs.existsSync(logFile), 'log writes learnings-log.jsonl next to learningsPath');
+    const lines = fs.existsSync(logFile) ? fs.readFileSync(logFile, 'utf8').trim().split('\n') : [];
+    check(lines.length === 15, `log appends one line per event (${lines.length}/15)`);
+    let parsed = [];
+    let allJson = true;
+    for (const l of lines) { try { parsed.push(JSON.parse(l)); } catch { allJson = false; } }
+    check(allJson, 'every log line is valid JSON');
+    const first = parsed[0] || {};
+    check(first.v === 1 && first.ts === '2026-08-17T00:00:00Z' && first.run === runId && first.skill === 'qa' && first.event === 'applied' && first.src === 'LRN-20260808-03',
+      'first line has v/ts/run/skill/event/src from marker + args', JSON.stringify(first));
+    check(parsed[1] && parsed[1].note === 'script uses --prefix', 'contradicted line carries --note');
+    check(parsed[2] && parsed[2].status === 'DONE' && parsed[2].event === 'outcome', 'outcome line carries --status');
+    check(parsed[3] && parsed[3].run === 'test-cases-x-abcdef' && parsed[3].skill === 'test-cases', 'QAB_RUN / --skill override the marker');
+
+    // Validation: bad input exits non-zero and writes nothing
+    const before = fs.readFileSync(logFile, 'utf8');
+    check(runFails(['log', 'applied']), 'log applied without src exits non-zero');
+    check(runFails(['log', 'outcome']), 'log outcome without --status exits non-zero');
+    check(runFails(['log', 'outcome', '--status', 'FINISHED']), 'log outcome with unknown status exits non-zero');
+    check(runFails(['log', 'contradicted', 'LRN-1']), 'log contradicted without --note exits non-zero');
+    check(runFails(['log', 'bogus', 'LRN-1']), 'log with unknown event exits non-zero');
+    check(fs.readFileSync(logFile, 'utf8') === before, 'rejected log calls append nothing');
+
+    // stats: computed columns + RFC §6.2 findings
+    const stats = JSON.parse(run(['stats', '--json']));
+    const row03 = (stats.rows || []).find(r => r.src === 'LRN-20260808-03') || {};
+    const row04 = (stats.rows || []).find(r => r.src === 'LRN-20260808-04') || {};
+    check(row03.applied === 3 && row03.runs === 3 && row03.contradicted === 0, `stats: LRN-03 applied=3 runs=3 contradicted=0 (${JSON.stringify(row03)})`);
+    check(row03.promotion_candidate === true, 'stats: applied>=3 across >=3 runs, contradicted=0 → promotion candidate');
+    check(row04.contradicted === 1 && row04.promotion_candidate === false && row04.falsified === false, 'stats: single contradiction is neither candidate nor falsified');
+    const row07 = (stats.rows || []).find(r => r.src === 'LRN-20260808-07') || {};
+    const row08 = (stats.rows || []).find(r => r.src === 'LRN-20260808-08') || {};
+    check(row07.applied === 2 && row07.runs === 2 && row07.promotion_candidate === false, 'stats: applied=2 across 2 runs is NOT a promotion candidate (threshold is 3 — mutation M2 guard)');
+    check(row08.contradicted === 2 && row08.applied === 1 && row08.falsified === true, 'stats: contradicted≥2 with no applied afterwards → falsified');
+    check(row08.promotion_candidate === false, 'stats: a falsified source is never a promotion candidate');
+    const row09 = (stats.rows || []).find(r => r.src === 'LRN-20260808-09') || {};
+    check(row09.contradicted === 2 && row09.falsified === false, 'stats: contradicted≥2 but applied afterwards → NOT falsified (mutation M4 guard)');
+    check(stats.runs_with_outcome === 3 && stats.outcomes.DONE === 2 && stats.outcomes.DONE_WITH_CONCERNS === 1, 'stats: outcome counts per status');
+    const table = run(['stats']);
+    check(/\| source \| applied \| contradicted \| runs \| last_applied \|/.test(table), 'stats prints the computed-columns table');
+    check(/LRN-20260808-03[^\n]*promotion candidate/.test(table) && /LRN-20260808-08[^\n]*falsified/.test(table), 'stats table labels findings per row');
+
+    // Malformed line tolerance: skipped and counted, never crashes
+    fs.appendFileSync(logFile, '{not json\n');
+    const stats2 = JSON.parse(run(['stats', '--json']));
+    check(stats2.malformed === 1 && stats2.events === 15, 'stats skips and counts malformed lines');
+  } finally {
+    fs.rmSync(tmp, { recursive: true, force: true });
+  }
+}
+
 testSkillManifest();
+testRuntimeHelper();
 testExcludeConditions();
 testEvalFixtures();
 testCrlfTolerance();

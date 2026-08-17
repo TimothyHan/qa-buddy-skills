@@ -51,13 +51,15 @@ never reused, even after retirement.
    are already in references — don't double-apply.
 3. **On conflict, the learning wins.** It is newer and project-specific; the
    reference stays the default everywhere else.
-4. **Cite what you apply.** When a learning shapes output, name its ID in the
-   report (e.g., "using `data-test` per LRN-20260807-01"). Citation is what makes
-   the layer auditable — silent application looks like drift.
+4. **Cite what you apply — and log it.** When a learning shapes output, name its
+   ID in the report (e.g., "using `data-test` per LRN-20260807-01") **and** run
+   `qab.js log applied LRN-…` (see *Learnings log* below). Citation makes the
+   layer auditable — silent application looks like drift; the log makes it
+   countable.
 5. If an active learning is **contradicted by what you observe live**, do not
-   apply it. Flag it in your report as falsification evidence and suggest
-   `/qa-improve` distill. Observed reality outranks recorded learnings, same as
-   it outranks references.
+   apply it. Run `qab.js log contradicted LRN-… --note "<what you saw>"`, flag it
+   in your report as falsification evidence, and suggest `/qa-improve` distill.
+   Observed reality outranks recorded learnings, same as it outranks references.
 
 ## Capture protocol (end of every skill run)
 
@@ -83,6 +85,7 @@ If one occurred, append an entry:
   this layer exists to avoid.
 - **One fact per entry.** Two learnings from one run = two entries.
 - Mention the capture in your report: "Captured LRN-{id}: {one-line statement}."
+  and run `qab.js log captured LRN-{id}`.
 
 ### Do NOT capture
 
@@ -95,6 +98,35 @@ If one occurred, append an entry:
 - Style preferences the SDT hasn't confirmed as team convention
 - Secrets, credentials, tokens — in any form, even as evidence
 
+## Learnings log (the read path is a write path)
+
+`LEARNINGS.md` records what a learning *says*; the log records what happened to
+it. Path: `learnings-log.jsonl` next to the learnings file (so `features-kb/`
+by default). Append-only, one JSON object per line, committed with the repo,
+never edited in place — readers accept every earlier `v` forever.
+
+Write it with the shipped helper, never by hand:
+
+```bash
+node <references>/bin/qab.js run-id --skill <this-skill> [--ticket <KEY>]   # once, at start; prints the run id
+node <references>/bin/qab.js log applied LRN-20260807-01                    # a learning shaped output
+node <references>/bin/qab.js log contradicted LRN-… --note "<what you saw>" # live reality disagreed
+node <references>/bin/qab.js log captured LRN-…                             # you appended a new entry
+node <references>/bin/qab.js log outcome --status DONE                      # last thing before the status block
+```
+
+`<references>` is the platform's reference path (the preamble gives the exact
+command). `run-id` remembers the current run in `.qa-reports/.qab-run`; when
+running skills in parallel, pass `--run <id>` to each `log` call instead.
+Schema v1: `{"v":1,"ts":"<UTC ISO>","run":"<skill>-<ticket|branch>-<6hex>","skill":"…","event":"…","src":"LRN-…"}`
+plus `note` (contradicted) or `status` (outcome). Events `compiled` / `escalated`
+are reserved for the compile step. If Node is unavailable, append the same
+shape with `echo … >>` and add `"writer":"manual"` so distill can report the ratio.
+
+`qab.js stats` turns the log into per-source counts (`applied`, `contradicted`,
+`runs`, `last_applied`) and the two computed findings below. A skill never
+reads the log; only distill does.
+
 ## Lifecycle
 
 `active` → applied on every matching run.
@@ -104,4 +136,10 @@ Entries are falsifiable statements: contradicting evidence retires them.
 
 Distillation (dedupe, retirement, promotion) is `/qa-improve`'s job — trigger it
 with "distill learnings", or when a skill flags a falsified entry, or when the
-file exceeds ~30 active entries.
+file exceeds ~30 active entries. Distill computes from the log, not from
+`Evidence:` prose:
+
+| Finding | Rule (from `qab.js stats`) |
+|---|---|
+| **Promotion candidate** | `applied ≥ 3` across `≥ 3` distinct runs ∧ `contradicted = 0` — then the human judgment: generalizable beyond this project? |
+| **Falsified** | `contradicted ≥ 2` ∧ no `applied` after the last contradiction |
