@@ -1,9 +1,11 @@
 # Risk-Based Testing
+<!-- qab: scope=qa,test-plan,test-cases,review-ticket,exploratory,sprint-status -->
 
 Every test case must have **severity** and **priority** values. These two dimensions
 together determine testing effort allocation.
 
 ## Severity Scale
+<!-- qab: id=severity-scale -->
 
 Severity measures the **impact** of a failure on the user and the business.
 
@@ -17,6 +19,7 @@ Severity measures the **impact** of a failure on the user and the business.
 | **Trivial** | Minor visual defects or minor text errors | Typo in label, 1px alignment, cosmetic-only issues |
 
 ## Priority Scale
+<!-- qab: id=priority-scale -->
 
 Priority measures **urgency** based on severity + blast radius (how many users affected).
 
@@ -27,6 +30,7 @@ Priority measures **urgency** based on severity + blast radius (how many users a
 | **Low** | Normal severity with infrequent impact, OR any Minor or Trivial severity |
 
 ## Effort Allocation
+<!-- qab: id=effort-allocation -->
 
 - **Create test cases** for all identified scenarios regardless of priority.
 - **When time is limited,** deprioritize test cases with lower-tier priority and severity.
@@ -35,6 +39,7 @@ Priority measures **urgency** based on severity + blast radius (how many users a
 - **Full test suite** = all test cases including Low priority.
 
 ## Priority-Severity Decision Matrix
+<!-- qab: id=decision-matrix -->
 
 ```
                     High Priority    Medium Priority    Low Priority

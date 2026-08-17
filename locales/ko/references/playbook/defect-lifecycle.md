@@ -1,6 +1,8 @@
 # 결함 생명주기
+<!-- qab: scope=qa,test-plan,review-ticket,verify-fix,start -->
 
 ## 결함 유형
+<!-- qab: id=defect-types -->
 
 | 유형 | 정의 | 사용자 영향 | 발견 주체 |
 |------|------|------------|----------|
@@ -8,6 +10,7 @@
 | **Pre-release bug** | 내부 테스트 중 발견한 결함 | 최종 사용자에게 영향이 없습니다 | SDT, 개발자, CI 파이프라인 |
 
 ## 결함 상태
+<!-- qab: id=defect-states -->
 
 Production bug과 Pre-release bug 모두 Jira에서 동일한 생명주기를 따릅니다:
 
@@ -30,6 +33,7 @@ New -> Issue Verified -> Investigation -> Development in Progress
 | **Closed** | 자동/보고자 | 운영 환경에서 정상 동작을 확인합니다 |
 
 ## SLA 기대치
+<!-- qab: id=sla-expectations -->
 
 | 심각도 | 대응 시간 | 해결 목표 |
 |--------|----------|----------|
@@ -41,6 +45,7 @@ New -> Issue Verified -> Investigation -> Development in Progress
 | **Trivial** | 백로그 | 여유 있을 때 처리 |
 
 ## 회귀 테스트 요구사항
+<!-- qab: id=regression-test-requirements -->
 
 | 결함 유형 | 회귀 테스트 필요 여부 | 근거 |
 |----------|---------------------|------|
@@ -48,6 +53,7 @@ New -> Issue Verified -> Investigation -> Development in Progress
 | **Pre-release bug** | 아니오 (단, CI가 커버) | CI 파이프라인이 회귀 테스트 스위트를 실행하여 커버리지를 제공합니다 |
 
 ## 팀별 프로세스
+<!-- qab: id=team-specific-processes -->
 
 **결함 트리아지/접수:** `features-kb/team-practices/bug-triage.md` 파일이 정의되어 있으면 참고합니다. 초기 평가, 재현 절차, 심각도 지정, 트리아지 주기를 다룹니다.
 

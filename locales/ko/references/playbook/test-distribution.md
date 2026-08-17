@@ -1,6 +1,8 @@
 # 테스트 분포 (테스트 피라미드)
+<!-- qab: scope=test-plan,test-cases,review-ticket,exploratory,start -->
 
 ## 기본 목표: 테스트 피라미드
+<!-- qab: id=test-pyramid -->
 
 ```
          /‾‾‾‾‾‾\
@@ -19,6 +21,7 @@
 | E2E | 10% | Playwright | SDT |
 
 ## 변형: 테스트 다이아몬드
+<!-- qab: id=test-diamond -->
 
 단위 테스트 가능한 코드가 적은 프로젝트도 있습니다 (예: 통합 중심 서비스,
 복잡한 API 위의 얇은 UI). 이 경우 다이아몬드 형태를 사용할 수 있습니다:
@@ -36,6 +39,7 @@
 ```
 
 ## 중복 제거 규칙
+<!-- qab: id=deduplication-rules -->
 
 **계층 간 중복 테스트를 만들지 않습니다.**
 
@@ -49,6 +53,7 @@
    릴리스 신뢰도를 높이기 위해 계층 간 중복을 허용합니다.
 
 ## 테스트 케이스 생성 시 적용
+<!-- qab: id=test-case-generation -->
 
 `/test-cases`로 테스트 케이스를 생성할 때:
 - 각 테스트 케이스를 **가장 낮은 적절한 계층**에 먼저 배정합니다.

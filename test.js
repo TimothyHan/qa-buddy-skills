@@ -331,10 +331,12 @@ function testPlaybookBudget() {
   for (const file of files) {
     const content = readFile(path.join(playbookDir, file));
     if (!content) continue;
-    const lines = content.split('\n').length;
+    // `<!-- qab: … -->` lines are section metadata (RFC 0001 §3.1), not model-facing
+    // knowledge — the compiler strips them from slices — so they don't count against the budget.
+    const lines = content.split('\n').filter(l => !/^<!--\s*qab:/.test(l)).length;
     check(
       lines <= 70,
-      `playbook/${file}: ${lines} lines (≤70)`,
+      `playbook/${file}: ${lines} lines (≤70, excluding qab metadata)`,
       `${lines} lines — over budget`
     );
   }
@@ -842,9 +844,67 @@ function testLearningsGates() {
   check(iPromo >= 0 && iGate > iPromo && iDry > iGate && iReport > iDry, 'improve Distill Mode order: promotion → eval gate → dry-run critic → report');
 }
 
+function testReferenceIndex() {
+  console.log('\n🔖 Reference ids + index (RFC 0001 PR3)');
+  const { parseReferenceIndex, referenceParityErrors, listRefFiles } = require('./build.js');
+  const enDir = path.join(CORE_DIR, 'references');
+  const koDir = path.join(LOCALES_DIR, 'ko', 'references');
+
+  // Every `##` (outside fences) is tagged; ids kebab-case; no duplicates
+  const en = parseReferenceIndex(enDir);
+  check(en.errors.length === 0, 'core/references: every ## has a qab id, no duplicates', en.errors.join(' | '));
+  const enIds = Object.keys(en.index);
+  check(enIds.length >= 60, `core/references: ${enIds.length} addressable sections (≥60)`);
+  check(enIds.every(k => /^REF-[a-z0-9-]+(\/[a-z0-9-]+)?#[a-z0-9-]+$/.test(k)), 'every id matches REF-<stem>#<id> / REF-playbook/<stem>#<id>');
+  const must = enIds.filter(k => en.index[k].tier === 'must');
+  check(must.includes('REF-playwright-patterns#never') && must.includes('REF-playwright-patterns#must-rules'), 'playwright-patterns NEVER + MUST rules are tier=must');
+  check(must.every(k => !en.index[k].scope.includes('all')), 'no tier=must section is scoped to all (must is expensive — rails only)', must.filter(k => en.index[k].scope.includes('all')).join(','));
+  check(enIds.every(k => Array.isArray(en.index[k].scope) && en.index[k].scope.length > 0 && typeof en.index[k].lines === 'number' && en.index[k].lines > 0), 'every entry has scope[] and positive line count');
+
+  // ko parity: same files, same id set (build.js resolves the references *directory* per locale)
+  const ko = parseReferenceIndex(koDir);
+  check(ko.errors.length === 0, 'locales/ko/references: every ## has a qab id, no duplicates', ko.errors.join(' | '));
+  const parity = referenceParityErrors(en.index, ko.index, 'ko');
+  check(parity.length === 0, 'en/ko reference id sets are identical', parity.join(' | '));
+  const enFiles = listRefFiles(enDir), koFiles = new Set(listRefFiles(koDir));
+  const missing = enFiles.filter(f => !koFiles.has(f));
+  check(missing.length === 0, 'every core/references file has a same-named ko twin', missing.join(', '));
+  for (const k of enIds) {
+    if (!ko.index[k]) continue;
+    check(ko.index[k].tier === en.index[k].tier && ko.index[k].scope.join() === en.index[k].scope.join(), `${k}: ko tier/scope match en`);
+  }
+
+  // Shipped index.json in every dist (en) and dist/ko
+  for (const platform of PLATFORMS) {
+    for (const [label, dir] of [[`dist/${platform}`, path.join(DIST_DIR, platform)], [`dist/ko/${platform}`, path.join(DIST_DIR, 'ko', platform)]]) {
+      const p = path.join(dir, 'references', 'index.json');
+      if (!fs.existsSync(dir)) continue;
+      check(fs.existsSync(p), `${label}/references/index.json shipped`);
+      if (!fs.existsSync(p)) continue;
+      let parsed = null;
+      try { parsed = JSON.parse(fs.readFileSync(p, 'utf8')); } catch {}
+      check(parsed && Object.keys(parsed).length === enIds.length, `${label}/references/index.json parses with ${enIds.length} entries`);
+    }
+  }
+
+  // Overrides: in this repo's dogfood LEARNINGS.md resolve to a real id, a skill, or none
+  const learnings = readFile(path.join(ROOT, 'features-kb', 'LEARNINGS.md')) || '';
+  const skills = new Set(getSkillDirs());
+  const overrides = [...learnings.matchAll(/\*\*Overrides:\*\*\s*(.+)/g)].map(m => m[1].trim());
+  check(overrides.length > 0, `features-kb/LEARNINGS.md has Overrides: lines (${overrides.length})`);
+  for (const o of overrides) {
+    const none = /^(none|없음)(?![A-Za-z0-9-])/.test(o);
+    const refs = [...o.matchAll(/REF-[a-z0-9-]+(?:\/[a-z0-9-]+)?#[a-z0-9-]+/g)].map(m => m[0]);
+    const skillRef = (o.match(/^SKILL:([a-z0-9-]+)/) || [])[1];
+    const ok = none || (refs.length > 0 && refs.every(r => en.index[r])) || (skillRef && skills.has(skillRef));
+    check(ok, `Overrides resolves: "${o.slice(0, 60)}"`, refs.filter(r => !en.index[r]).map(r => `unknown ${r}`).join(', ') || 'must be none/없음, a REF- id, or SKILL:<name>');
+  }
+}
+
 testSkillManifest();
 testRuntimeHelper();
 testLearningsGates();
+testReferenceIndex();
 testExcludeConditions();
 testEvalFixtures();
 testCrlfTolerance();

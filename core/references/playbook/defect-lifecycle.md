@@ -1,6 +1,8 @@
 # Defect Lifecycle
+<!-- qab: scope=qa,test-plan,review-ticket,verify-fix,start -->
 
 ## Defect Types
+<!-- qab: id=defect-types -->
 
 | Type | Definition | User Impact | Found By |
 |------|-----------|-------------|----------|
@@ -8,6 +10,7 @@
 | **Pre-release bug** | Bug found during internal testing | Does not affect end users | SDTs, developers, CI pipeline |
 
 ## Defect States
+<!-- qab: id=defect-states -->
 
 Both production and pre-release bugs follow the same lifecycle in Jira:
 
@@ -30,6 +33,7 @@ New -> Issue Verified -> Investigation -> Development in Progress
 | **Closed** | Auto/Reporter | Confirmed working in production |
 
 ## SLA Expectations
+<!-- qab: id=sla-expectations -->
 
 | Severity | Response Time | Resolution Target |
 |----------|-------------|-------------------|
@@ -41,6 +45,7 @@ New -> Issue Verified -> Investigation -> Development in Progress
 | **Trivial** | Backlog | Address when convenient |
 
 ## Regression Test Requirements
+<!-- qab: id=regression-test-requirements -->
 
 | Defect Type | Regression Test Required? | Rationale |
 |-------------|--------------------------|-----------|
@@ -48,6 +53,7 @@ New -> Issue Verified -> Investigation -> Development in Progress
 | **Pre-release bug** | No (but CI covers it) | CI pipeline runs regression suite, providing coverage |
 
 ## Team-Specific Processes
+<!-- qab: id=team-specific-processes -->
 
 **Bug triage / intake:** See `features-kb/team-practices/bug-triage.md` if defined. Covers: initial assessment, reproduction steps, severity assignment, triage cadence.
 

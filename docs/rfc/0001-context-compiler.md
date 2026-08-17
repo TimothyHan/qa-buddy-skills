@@ -114,6 +114,7 @@ All runtime files are **project content**: they live in the user's repo, are nev
 - `##` is addressable by default. A `###` is addressable **only** if it carries its own `qab:` comment; otherwise it belongs to its parent.
 - `scope=` comma-separated skill names or `all` (default `all`). `tier=` `must | should | context` (default `should`; `must` only for rails and sections a skill structurally depends on).
 - Korean twin copies the `qab:` comment verbatim. `build.js` fails on duplicate id or en/ko id-set mismatch — **not** on missing tier.
+- **Settled in PR3:** the H1 comment carries file-level defaults (`scope=`, `tier=`) that sections inherit, and may carry `id=` for files whose knowledge sits directly under the H1 (`terminology.md` → `REF-playbook/terminology#terms`, `execution-sequence.md` → `#sequence`); `README.md` and `index.md` are navigation, excluded; `##` inside fenced code is not a heading; `index.json` is emitted into `dist/<…>/references/` only (not into `core/`); `qab:` lines are excluded from the 70-line playbook budget; `Overrides:` accepts `REF-…`, `SKILL:<name> "…"` (a skill-procedure override), or `none`/`없음`.
 - Learnings gain two optional fields: `**Fingerprint:** ffp-…` and `**Profile:** surface=web` (AND-ed with `Scope:`). `Overrides:` uses IDs (`REF-playwright-patterns#preconditions (extends)`) or `none`/`없음`.
 
 ### 3.2 Profile v0 — four fields, all deterministic
@@ -280,11 +281,11 @@ Rules for every PR: target `feat/context-compiler` (decision 15); en + ko for an
 
 | PR | Status | Contents | Behaviour |
 |---|---|---|---|
-| **PR0** | this PR | RFC in repo; CONTRIBUTING roadmap pointer | none |
-| **PR1** | next | learnings log + `qab.js run-id/log/stats` + preamble cite-and-log + distill computed columns + execute fixture | none |
-| **PR2** | | eval-gated promotion + `--dry-run` proposal | none |
-| **PR3** | | REF ids (`qab:` comments) + `index.json` + locale parity + `Overrides:` migration | none |
-| **PR4** | | REF citation + REF `applied` events + compliance gate | none (tokens) |
+| **PR0** | done | RFC in repo; CONTRIBUTING roadmap pointer | none |
+| **PR1** | done | learnings log + `qab.js run-id/log/stats` + preamble cite-and-log + distill computed columns + execute fixture | none |
+| **PR2** | done | eval-gated promotion + `--dry-run` proposal | none |
+| **PR3** | done | REF ids (`qab:` comments) + `index.json` + locale parity + `Overrides:` migration | none |
+| **PR4** | next | REF citation + REF `applied` events + compliance gate | none (tokens) |
 | **PR5** | | `qab.js compile` unscored + run dir + scratchpad-lite + `run-protocol.md` | none (set-equality) |
 | **PR6** | | fingerprints + scoreboard cache + falsified/duplicate-by-fp | heal-mode preference only |
 | **gate** | | §9.3 | |

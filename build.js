@@ -149,6 +149,115 @@ function resolveToolGroups(groups, toolGroupDefs) {
   return tools;
 }
 
+// ─── Reference index (RFC 0001 §3.1 / §3.6) ───────────────────────────────
+//
+// Every reference section is an addressable source: `REF-<stem>#<id>` (or
+// `REF-playbook/<stem>#<id>` under playbook/). The id lives in an HTML comment on
+// the line right after the heading — never in the heading text:
+//
+//   ## Selectors
+//   <!-- qab: id=selectors tier=must -->
+//
+// Rules: `##` headings outside fenced code are addressable and MUST carry a comment.
+// The H1 may carry a comment with file-level defaults (scope=, tier=) that sections
+// inherit, and optionally id= for files whose knowledge sits directly under the H1
+// (terminology, execution-sequence). scope defaults to `all`, tier to `should`.
+// README.md and index.md are navigation, not knowledge — excluded. The build fails
+// on a `##` without a comment, a duplicate id, or an en/ko id-set mismatch — the
+// references *directory* is resolved per locale, so an untagged or missing ko
+// section would otherwise silently diverge (RFC decision 14).
+
+const REF_EXCLUDE = new Set(['README.md', 'index.md']);
+const REF_TIERS = new Set(['must', 'should', 'context']);
+
+function parseQabComment(line) {
+  const m = line.match(/^<!--\s*qab:\s*(.*?)\s*-->\s*$/);
+  if (!m) return null;
+  const out = {};
+  for (const tok of m[1].split(/\s+/).filter(Boolean)) {
+    const kv = tok.match(/^([a-z_]+)=(.+)$/);
+    if (!kv) return { error: `bad token "${tok}"` };
+    out[kv[1]] = kv[2];
+  }
+  return out;
+}
+
+function listRefFiles(dir, prefix = '') {
+  const out = [];
+  if (!fs.existsSync(dir)) return out;
+  for (const entry of fs.readdirSync(dir, { withFileTypes: true }).sort((a, b) => a.name.localeCompare(b.name))) {
+    if (entry.isDirectory()) { out.push(...listRefFiles(path.join(dir, entry.name), prefix + entry.name + '/')); continue; }
+    if (!entry.name.endsWith('.md') || REF_EXCLUDE.has(entry.name)) continue;
+    out.push(prefix + entry.name);
+  }
+  return out;
+}
+
+// Returns { index: { 'REF-…': {file, heading, scope, tier, lines} }, errors: [] }
+function parseReferenceIndex(refsDir) {
+  const index = {};
+  const errors = [];
+  for (const rel of listRefFiles(refsDir)) {
+    const stem = rel.replace(/\.md$/, '');
+    const lines = fs.readFileSync(path.join(refsDir, rel), 'utf8').replace(/\r\n/g, '\n').split('\n');
+    let fence = false;
+    let fileScope = 'all';
+    let fileTier = 'should';
+    let seenH1 = false;
+    const sections = []; // {id, heading, start, scope, tier}
+    for (let i = 0; i < lines.length; i++) {
+      const l = lines[i];
+      if (l.startsWith('```')) { fence = !fence; continue; }
+      if (fence) continue;
+      const isH1 = l.startsWith('# ') && !seenH1;
+      const isH2 = l.startsWith('## ');
+      if (!isH1 && !isH2) continue;
+      const heading = l.replace(/^#+\s*/, '').trim();
+      const c = i + 1 < lines.length ? parseQabComment(lines[i + 1]) : null;
+      if (c && c.error) { errors.push(`${rel}:${i + 2}: ${c.error}`); continue; }
+      if (isH1) {
+        seenH1 = true;
+        if (c) {
+          if (c.scope) fileScope = c.scope;
+          if (c.tier) { if (!REF_TIERS.has(c.tier)) errors.push(`${rel}:${i + 2}: unknown tier "${c.tier}"`); else fileTier = c.tier; }
+          if (c.id) sections.push({ id: c.id, heading, start: i, scope: c.scope || fileScope, tier: c.tier || fileTier, h1: true });
+        }
+        continue;
+      }
+      // close the H1 section at the first ## (its lines run from H1 to here)
+      if (sections.length && sections[sections.length - 1].h1 && sections[sections.length - 1].end === undefined) sections[sections.length - 1].end = i;
+      if (!c || !c.id) { errors.push(`${rel}:${i + 1}: "## ${heading}" has no <!-- qab: id=… --> comment on the next line`); continue; }
+      if (c.tier && !REF_TIERS.has(c.tier)) errors.push(`${rel}:${i + 2}: unknown tier "${c.tier}"`);
+      if (sections.length && !sections[sections.length - 1].h1) sections[sections.length - 1].end = i;
+      sections.push({ id: c.id, heading, start: i, scope: c.scope || fileScope, tier: c.tier || fileTier });
+    }
+    for (const s of sections) {
+      if (s.end === undefined) s.end = lines.length;
+      if (!/^[a-z0-9][a-z0-9-]*$/.test(s.id)) errors.push(`${rel}: id "${s.id}" must be kebab-case`);
+      const key = `REF-${stem}#${s.id}`;
+      if (index[key]) { errors.push(`duplicate id ${key} (${rel} and ${index[key].file})`); continue; }
+      index[key] = {
+        file: rel,
+        heading: s.heading,
+        scope: s.scope === 'all' ? ['all'] : s.scope.split(',').map(x => x.trim()).filter(Boolean),
+        tier: s.tier,
+        lines: s.end - s.start,
+      };
+    }
+  }
+  return { index, errors };
+}
+
+// Compare id sets across locales; returns error strings (empty = parity)
+function referenceParityErrors(enIndex, otherIndex, label) {
+  const a = Object.keys(enIndex).sort();
+  const b = Object.keys(otherIndex).sort();
+  const errs = [];
+  for (const k of a) if (!(k in otherIndex)) errs.push(`${label} is missing ${k}`);
+  for (const k of b) if (!(k in enIndex)) errs.push(`${label} has extra ${k}`);
+  return errs;
+}
+
 // ─── Build logic ──────────────────────────────────────────────────────────
 
 function loadPreambles(locale) {
@@ -272,6 +381,20 @@ function buildPlatform(platform, locale) {
     console.log(`    OK  references/ (${refCount} files)`);
   }
 
+  // Emit the reference index for this locale (RFC 0001 §3.6). Ids are locale-
+  // independent; heading text and line counts are per-locale.
+  {
+    const { index, errors } = parseReferenceIndex(refsDir);
+    if (errors.length) {
+      console.error('  ERROR: reference index');
+      for (const e of errors) console.error(`    - ${e}`);
+      process.exit(1);
+    }
+    const idxPath = path.join(outDir, 'references', 'index.json');
+    fs.writeFileSync(idxPath, JSON.stringify(index, null, 1) + '\n');
+    console.log(`    OK  references/index.json (${Object.keys(index).length} sections)`);
+  }
+
   // Ship the runtime helper under references/bin/ — reachable on every platform as
   // {{REFERENCE_PATH}}/bin/qab.js via the existing references symlink, so setup
   // scripts need no change. Locale-independent (RFC 0001 §4).
@@ -311,6 +434,11 @@ function buildPlatform(platform, locale) {
 
 // ─── CLI ──────────────────────────────────────────────────────────────────
 
+module.exports = { parseReferenceIndex, referenceParityErrors, listRefFiles, parseQabComment };
+
+if (require.main === module) main();
+
+function main() {
 const args = process.argv.slice(2);
 
 if (args.length === 0 || args[0] === '--help' || args[0] === '-h') {
@@ -378,6 +506,32 @@ console.log('QABuddy — Build');
 console.log('==================');
 console.log(`Platforms: ${platforms.join(', ')}${locale ? ` | Locale: ${locale}` : ''}`);
 
+// Reference-id parity across every locale (RFC decision 14): fail loudly before
+// writing anything, whichever locale is being built.
+{
+  const en = parseReferenceIndex(path.join(CORE_DIR, 'references'));
+  const errs = [...en.errors];
+  if (fs.existsSync(LOCALES_DIR)) {
+    for (const loc of fs.readdirSync(LOCALES_DIR).filter(d => fs.statSync(path.join(LOCALES_DIR, d)).isDirectory())) {
+      const locRefs = path.join(LOCALES_DIR, loc, 'references');
+      if (!fs.existsSync(locRefs)) continue;
+      const other = parseReferenceIndex(locRefs);
+      errs.push(...other.errors.map(e => `${loc}: ${e}`));
+      errs.push(...referenceParityErrors(en.index, other.index, `locales/${loc}`));
+      // the references *directory* is resolved per locale — an en-only file never reaches dist/<loc>
+      const enFiles = listRefFiles(path.join(CORE_DIR, 'references'));
+      const locFiles = new Set(listRefFiles(locRefs));
+      for (const f of enFiles) if (!locFiles.has(f)) errs.push(`locales/${loc}/references is missing ${f} (dist/${loc} would silently drop it)`);
+    }
+  }
+  if (errs.length) {
+    console.error('\nERROR: reference ids / locale parity');
+    for (const e of errs) console.error(`  - ${e}`);
+    process.exit(1);
+  }
+  console.log(`References: ${Object.keys(en.index).length} sections, locale parity OK`);
+}
+
 for (const p of platforms) {
   buildPlatform(p, locale);
 }
@@ -385,3 +539,4 @@ for (const p of platforms) {
 const outPath = locale ? `dist/${locale}/` : 'dist/';
 console.log('\n==================');
 console.log(`Done. Output in ${outPath}`);
+}

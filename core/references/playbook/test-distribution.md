@@ -1,6 +1,8 @@
 # Test Distribution (Test Pyramid)
+<!-- qab: scope=test-plan,test-cases,review-ticket,exploratory,start -->
 
 ## Default Target: Test Pyramid
+<!-- qab: id=test-pyramid -->
 
 ```
          /‾‾‾‾‾‾\
@@ -19,6 +21,7 @@
 | E2E | 10% | Playwright | SDT |
 
 ## Variant: Test Diamond
+<!-- qab: id=test-diamond -->
 
 Some projects have less unit-testable code (e.g., integration-heavy services, thin
 UI over complex API). In that case, the diamond shape is acceptable:
@@ -36,6 +39,7 @@ UI over complex API). In that case, the diamond shape is acceptable:
 ```
 
 ## Deduplication Rules
+<!-- qab: id=deduplication-rules -->
 
 **No redundant tests across layers.**
 
@@ -49,6 +53,7 @@ UI over complex API). In that case, the diamond shape is acceptable:
    redundancy across layers is acceptable to increase release confidence.
 
 ## Applying This to Test Case Generation
+<!-- qab: id=test-case-generation -->
 
 When `/test-cases` generates test cases, it should:
 - Assign each test case to the **lowest appropriate layer** first.

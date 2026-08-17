@@ -1,8 +1,10 @@
 # Exploratory Testing Heuristics
+<!-- qab: scope=exploratory tier=must -->
 
 Techniques for systematic exploration. Used by `/exploratory` when generating charters and executing sessions.
 
 ## Heuristic Categories
+<!-- qab: id=heuristic-categories -->
 
 Select relevant categories based on the feature type:
 
@@ -20,6 +22,7 @@ Select relevant categories based on the feature type:
 | **Performance feel** | Perceived speed, loading indicators, responsiveness under interaction |
 
 ## Techniques Per Heuristic
+<!-- qab: id=techniques-per-heuristic -->
 
 **Input variation:** Empty submission, single character, max length + 1, special characters (`< > " ' & ; -- {} [] () / \`), unicode (emoji, CJK, RTL, zero-width), numbers (0, -1, 99999999, 0.001, NaN), paste vs type, browser autofill.
 
@@ -32,6 +35,7 @@ Select relevant categories based on the feature type:
 **User personas:** New user (no data, first-time), power user (lots of data), restricted permissions, empty → populated state transition.
 
 ## Finding Categories
+<!-- qab: id=finding-categories -->
 
 | Category | What it is | Example |
 |----------|-----------|---------|

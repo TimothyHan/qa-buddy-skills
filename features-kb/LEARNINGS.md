@@ -22,7 +22,7 @@ QABuddy가 실제 실행에서 포착한 프로젝트 고유 규칙. 모든 스�
 - **Statement:** 설치 관련 테스트를 설계할 때 깨끗한 환경만 가정하지 말 것.
   `~/.claude/skills`에는 타 도구의 동명 스킬이 실존한다 — 디코이(외부 대상을
   가리키는 `setup` 링크)를 심고 생존을 단언하는 것이 이 프로젝트의 표준 패턴.
-- **Overrides:** playbook/maintenance-and-ci.md (확장: CI 환경 구성에 오염 재현 추가)
+- **Overrides:** REF-playbook/maintenance-and-ci#ci-cd-pipeline (확장: CI 환경 구성에 오염 재현 추가)
 - **Evidence:** 2026-08-08 이슈 #6 — 깨끗한 CI는 green인데 리포터의 실환경에서
   oh-my-claudecode의 `setup` 스킬이 실제로 삭제됨. 디코이 CI 추가 후 재발 차단.
 
@@ -55,7 +55,7 @@ QABuddy가 실제 실행에서 포착한 프로젝트 고유 규칙. 모든 스�
 - **Statement:** 회귀 안전망 자체를 기술하는 AC(예: "test.js가 X를 검증한다")는
   별도 TC를 만들지 않고, 매핑에 `META — <해당 인프라>가 매 실행마다 스스로 수행`
   행으로 기록한다. 테스트를 테스트하는 무한 회귀 방지.
-- **Overrides:** test-cases SKILL의 "모든 AC에 최소 1개 TC" (확장: 메타 AC 예외)
+- **Overrides:** SKILL:test-cases "모든 AC에 최소 1개 TC" (확장: 메타 AC 예외)
 - **Evidence:** 2026-08-08 /qa-test-plan 검증 실행 — AC5.1/5.2가 매핑에 없는데
   unmapped_requirements도 비어 있는 불일치 발견, 이 관례로 해소.
 
