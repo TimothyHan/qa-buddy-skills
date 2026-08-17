@@ -1,6 +1,6 @@
 ---
 name: improve
-version: 0.4.1
+version: 0.5.0
 description: |
   Meta-skill that improves other skills based on real usage failures. When an SDT
   reports a skill produced incorrect or unexpected output, this skill analyzes the
@@ -211,16 +211,24 @@ Skip upstream contribution if:
 ## Distill Mode: Learnings Layer Maintenance
 
 Read the protocol first: `{{REFERENCE_PATH}}/self-improve.md`. Then read the
-learnings file (`learningsPath` from `.qabuddy.json`, default `features-kb/LEARNINGS.md`).
+learnings file (`learningsPath` from `.qabuddy.json`, default `features-kb/LEARNINGS.md`)
+and run `node {{REFERENCE_PATH}}/bin/qab.js stats` — the log's per-source counts.
+Numbers come from the log, not from `Evidence:` prose; if the log is absent or a
+source has no rows, say so and fall back to prose for that entry only.
 
-Sweep every `active` entry and classify:
+Sweep every `active` entry and classify. Show the computed columns
+(`applied · contradicted · runs · last_applied`) next to each entry:
 
-| Finding | Action proposed |
-|---|---|
-| **Duplicate** — two entries state the same fact | Merge evidence into the older ID; mark the newer `retired` with reason "duplicate of LRN-…" |
-| **Falsified** — newer evidence (another entry, a skill's drift flag, or live observation) contradicts it | Mark `retired` with the contradicting evidence as reason |
-| **Promotion candidate** — evidence from 3+ separate dated runs AND the rule is generalizable beyond this project | Propose adding it to the matching reference (e.g., `playwright-patterns.md`); mark `promoted` with a pointer to where it landed |
-| **Healthy** | Leave untouched |
+| Finding | Computed from | Action proposed |
+|---|---|---|
+| **Duplicate** — two entries state the same fact | LLM check | Merge evidence into the older ID; mark the newer `retired` with reason "duplicate of LRN-…" |
+| **Falsified** — contradicted by reality | `contradicted ≥ 2` and no `applied` after the last contradiction; or a skill's live drift flag | Mark `retired` with the contradicting log line / evidence as reason |
+| **Promotion candidate** — proven and general | `applied ≥ 3` across `≥ 3` distinct runs AND `contradicted = 0` — then the LLM judgment: generalizable beyond this project? | Propose adding it to the matching reference (e.g., `playwright-patterns.md`); mark `promoted` with a pointer to where it landed |
+| **Copy** — restates a reference | LLM check vs reference text | Retire (rule 4) |
+| **Healthy** | — | Leave untouched |
+
+An entry with prose evidence from "3+ runs" but `applied < 3` in the log is
+**not** a promotion candidate — the log is the record; say what the log shows.
 
 Rules:
 
@@ -240,7 +248,8 @@ Rules:
    content is a copy, not a learning — propose retiring it.
 
 Report: entries swept / merged / retired / promoted / left active, plus the
-resulting active count.
+resulting active count and the log summary line from `qab.js stats` (events,
+runs with outcome, manual-writer count).
 
 ---
 

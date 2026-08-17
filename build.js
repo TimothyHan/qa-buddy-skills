@@ -272,6 +272,17 @@ function buildPlatform(platform, locale) {
     console.log(`    OK  references/ (${refCount} files)`);
   }
 
+  // Ship the runtime helper under references/bin/ — reachable on every platform as
+  // {{REFERENCE_PATH}}/bin/qab.js via the existing references symlink, so setup
+  // scripts need no change. Locale-independent (RFC 0001 §4).
+  const binSrc = path.join(ROOT, 'bin');
+  if (!fs.existsSync(path.join(binSrc, 'qab.js'))) {
+    console.error('  ERROR: bin/qab.js missing — the runtime helper must ship with references');
+    process.exit(1);
+  }
+  copyDirRecursive(binSrc, path.join(outDir, 'references', 'bin'));
+  console.log('    OK  references/bin/qab.js');
+
   // Build project instructions file (locale-aware)
   const projectContent = buildProjectFile(config, locale);
   if (projectContent && config.project_file) {
