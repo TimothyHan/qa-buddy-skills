@@ -1,4 +1,5 @@
 # 자기 개선 프로토콜: 프로젝트 학습 레이어
+<!-- qab: scope=improve,setup tier=must -->
 
 <!--
   정본: QABuddy core/references/self-improve.md (en).
@@ -23,6 +24,7 @@ QABuddy는 완성품이 아니라 파운데이션입니다. 모든 프로젝트�
 (업스트림 PR 포함 가능). 학습 레이어는 정본으로 가는 대기소입니다.
 
 ## 학습 파일
+<!-- qab: id=learnings-file -->
 
 기본 `features-kb/LEARNINGS.md`; `.qabuddy.json`의 `learningsPath`로 변경 가능.
 프로젝트 저장소에 커밋됩니다 — 학습은 팀 지식이며 git으로 전파됩니다.
@@ -35,14 +37,41 @@ QABuddy는 완성품이 아니라 파운데이션입니다. 모든 프로젝트�
 - **Scope:** test-cases, e2e-write   <!-- 적용 스킬, 또는 `all` -->
 - **Statement:** 장바구니 상태는 세션 토큰과 함께 `POST /api/cart`로 시딩.
   테스트에서 UI 클릭으로 장바구니 담기 금지 — 이 앱에서는 플레이키.
-- **Overrides:** playwright-patterns.md §사전조건 (확장: API 우선, 엔드포인트 추가)
+- **Overrides:** REF-playwright-patterns#must-rules (확장: API 우선, 엔드포인트 추가)
 - **Evidence:** 2026-08-07 /qa-test-cases 실행 — SDT가 초안 수정; UI 시딩이
   스프린트 14에서 플레이키한 체크아웃 스펙의 원인이었음.
+- **Fingerprint:** ffp-a3f9c21b0e44   <!-- 선택: 이 규칙이 막는 실패 클래스 -->
+- **Profile:** surface=web            <!-- 선택: Scope보다 좁힘; AND 결합 -->
 ```
 
 ID 형식은 `LRN-YYYYMMDD-NN` (생성일 + 순번). ID는 영구적 — 은퇴 후에도 재사용 금지.
+`Overrides:`는 이 학습이 무엇을 확장·대체하는지 가리킵니다: 레퍼런스 섹션 id
+(`REF-…`, 아래), 스킬 규칙(`SKILL:test-cases "…"`), 또는 `없음`. `Fingerprint:`와
+`Profile:`은 선택이며 기계가 읽습니다 (지문과 프로파일은 RFC 0001의 이후 단계에서 정의).
+
+## 소스 ID
+<!-- qab: id=source-ids -->
+
+모든 레퍼런스 섹션은 학습처럼 주소를 갖는 **소스**입니다:
+
+- **Id 형식:** `REF-<file-stem>#<id>`; `playbook/` 아래는 `REF-playbook/<stem>#<id>`.
+  예: `REF-playwright-patterns#never`, `REF-playbook/risk-and-priority#severity-scale`.
+- **위치:** 제목 바로 다음 줄의 HTML 주석 — `## Selectors` / `<!-- qab: id=selectors tier=must -->`.
+  제목 텍스트에는 절대 넣지 않습니다. 코드 펜스 밖의 `##` 제목이 주소를 가지며, H1
+  주석에는 섹션이 상속하는 파일 기본값(`scope=`, `tier=`)과, 지식이 H1 바로 아래
+  있는 파일을 위한 `id=`를 둘 수 있습니다.
+- **scope** = 쉼표로 구분한 스킬 이름 또는 `all`(기본). **tier** = `must`(스코프된
+  스킬의 슬라이스에 항상 포함 — 레일, NEVER 목록, 스킬이 구조적으로 의존하는 템플릿)
+  | `should`(기본) | `context`.
+- **Id는 영구적.** 제목은 자유롭게 바꾸되 id는 바꾸지 않습니다. 한국어 쌍둥이는
+  `qab:` 주석을 그대로 복사합니다 — 빌드는 중복 id나 en/ko id 집합 불일치에
+  실패하고, 도구용 `references/index.json`(id → 파일, 제목, scope, tier, 줄 수)을
+  배포합니다.
+- **학습처럼 인용하세요.** 섹션이 출력을 결정하면 `LRN-…`을 인용하듯 id를 인용합니다
+  (`REF-` id의 로그 의무는 RFC 0001 PR4에서 도입).
 
 ## 읽기 프로토콜 (모든 스킬 실행 시작 시)
+<!-- qab: id=read-protocol -->
 
 1. 레퍼런스를 읽은 후 학습 파일을 읽습니다 (없으면 조용히 건너뜀).
 2. **Scope**에 현재 스킬(또는 `all`)이 포함되고 **Status**가 `active`인 항목만
@@ -61,6 +90,7 @@ ID 형식은 `LRN-YYYYMMDD-NN` (생성일 + 순번). ID는 영구적 — 은퇴 
    학습보다 우선합니다 — 레퍼런스보다 우선하는 것과 같은 원리입니다.
 
 ## 포착 프로토콜 (모든 스킬 실행 종료 시)
+<!-- qab: id=capture-protocol -->
 
 질문: 정확히 세 가지 트리거 중 하나가 발생했는가?
 
@@ -97,6 +127,7 @@ ID 형식은 `LRN-YYYYMMDD-NN` (생성일 + 순번). ID는 영구적 — 은퇴 
 - 시크릿, 자격 증명, 토큰 — 어떤 형태로든, 증거로도 금지
 
 ## 학습 로그 (읽기 경로는 쓰기 경로다)
+<!-- qab: id=learnings-log -->
 
 `LEARNINGS.md`는 학습이 *무엇을 말하는지*를 기록하고, 로그는 그 학습에 *무슨 일이
 있었는지*를 기록합니다. 경로: 학습 파일 옆의 `learnings-log.jsonl` (기본
@@ -126,6 +157,7 @@ node <references>/bin/qab.js log outcome --status DONE                      # �
 정제만 읽습니다.
 
 ## 라이프사이클
+<!-- qab: id=lifecycle -->
 
 `active` → 매칭되는 모든 실행에 적용.
 `promoted` → 정제가 레퍼런스로 이동시킴 (업스트림 포함 가능); 어디로 갔는지
@@ -143,6 +175,7 @@ node <references>/bin/qab.js log outcome --status DONE                      # �
 | **반증됨** | `contradicted ≥ 2` ∧ 마지막 모순 이후 `applied` 없음 |
 
 ## 게이트 (무엇이 라이브러리를 바꿀 수 있고, 누가)
+<!-- qab: id=gates -->
 
 1. **사람 게이트** -- 모든 상태 변경과 모든 레퍼런스 편집은 증거와 함께 제안되고,
    SDT가 승인한 뒤에만 적용됩니다.

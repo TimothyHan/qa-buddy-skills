@@ -1,9 +1,11 @@
 # Shift-Left and Communication
+<!-- qab: scope=test-plan,review-ticket,start -->
 
 Testing starts from communication. The earliest and most cost-effective testing
 is verifying alignment before code is written.
 
 ## Principles
+<!-- qab: id=principles -->
 
 - **Verify alignment.** Ensure everyone is on the same page about what the client
   requires and what the team is building.
@@ -15,6 +17,7 @@ is verifying alignment before code is written.
   handling, and user workflows naturally tests the team's understanding.
 
 ## How Claude Applies This
+<!-- qab: id=application -->
 
 When reviewing tickets (`/review-ticket`):
 - Cross-reference the ticket with the test knowledge base and existing Jira context

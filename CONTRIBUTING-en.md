@@ -265,12 +265,30 @@ The playbook lives in `core/references/playbook/` as focused files (~35-70 lines
 
 **Editing:** Stay within scope, keep under 70 lines, run `node build.js all`.
 
+**Every `##` section is an addressable source** (RFC 0001 PR3). The id lives in an HTML comment on the line right after the heading — never in the heading text:
+
+```markdown
+## Selectors
+<!-- qab: id=selectors tier=must -->
+- rule
+```
+
+| Field | Values | Meaning |
+|---|---|---|
+| `id=` | kebab-case, **permanent** | Forms `REF-<file-stem>#<id>` (`REF-playbook/<stem>#<id>` under `playbook/`). Rename the heading freely; never the id |
+| `scope=` | comma-separated skill names, or `all` (default) | Which skills may receive this section. Usually set once in the H1 comment as a file default; sections inherit it |
+| `tier=` | `must` / `should` (default) / `context` | `must` = always in a scoped skill's slice, packed first — rails, NEVER lists, templates a skill structurally depends on. `must` is expensive; never scope it to `all` |
+
+Rules: `##` headings outside code fences must carry a comment (`###` belong to their parent); the H1 comment holds file defaults and may carry `id=` for files whose knowledge sits directly under the H1 (`terminology.md`, `execution-sequence.md`); `README.md`/`index.md` are navigation and excluded. Korean twins copy the `qab:` comment **verbatim** — `node build.js all` fails on a duplicate id, an untagged `##`, an en/ko id-set mismatch, or a `core/references` file with no same-named ko twin (the references *directory* is resolved per locale, so an en-only file would silently never reach `dist/ko`). The build ships `references/index.json` (id → file, heading, scope, tier, lines) into every dist. `qab:` lines don't count against the 70-line playbook budget.
+
 **Adding new knowledge:**
-1. Fits an existing file? Add there. New topic? Create a file.
-2. Keep under 70 lines. Tables for data, bullets for rules. Write for the AI, not humans.
-3. Update `index.md` with file name, description, "Used by" skills.
-4. Wire into skills — add to Phase 1 methodology references. Only skills that need it.
-5. Verify context budget: `wc -l core/skills/*/SKILL.md`
+1. Fits an existing file? Add a section there. New topic? Create a file — **and its ko twin**.
+2. Keep files under 70 lines and sections under ~25. Tables for data, bullets for rules. Write for the AI, not humans.
+3. Add the `qab:` comment: choose a permanent id; set `scope=` to the skills that should receive it (or rely on the file default); choose `tier` honestly.
+4. Update `index.md` with file name, description, "Used by" skills; until RFC 0001 PR5 lands, also wire the file into the skills' Phase 1 methodology references. Only skills that need it.
+5. `node build.js all` (regenerates `index.json`, checks parity) → `node test.js`.
+
+**Learnings point at sources by id.** A learning's `Overrides:` names a section id (`REF-playwright-patterns#must-rules`), a skill rule (`SKILL:test-cases "…"`), or `none` — `test.js` checks that this repo's `features-kb/LEARNINGS.md` resolves.
 
 **What NOT to put in the playbook:** Tool-specific instructions, project config, skill workflow details, preamble duplicates.
 

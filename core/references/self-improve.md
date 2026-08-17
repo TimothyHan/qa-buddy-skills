@@ -1,4 +1,5 @@
 # Self-Improve Protocol: The Project Learnings Layer
+<!-- qab: scope=improve,setup tier=must -->
 
 <!--
   Canonical copy: QABuddy core/references/self-improve.md (en).
@@ -23,6 +24,7 @@ Flow: a learning proves itself repeatedly → `/qa-improve` distill promotes it 
 references (and upstream via PR). Learnings are the staging area for canon.
 
 ## The learnings file
+<!-- qab: id=learnings-file -->
 
 Default `features-kb/LEARNINGS.md`; override with `learningsPath` in `.qabuddy.json`.
 It is committed to the project repo — learnings are team knowledge, they travel via git.
@@ -35,15 +37,43 @@ Entry template (one `##` block per learning):
 - **Scope:** test-cases, e2e-write   <!-- skills this applies to, or `all` -->
 - **Statement:** Seed cart state via `POST /api/cart` with a session token.
   Never UI-click items into the cart in tests — flaky in this app.
-- **Overrides:** playwright-patterns.md §preconditions (extends: API-first, adds the endpoint)
+- **Overrides:** REF-playwright-patterns#must-rules (extends: API-first, adds the endpoint)
 - **Evidence:** 2026-08-07 /qa-test-cases run — SDT corrected draft; UI seeding
   had caused flaky checkout specs in sprint 14.
+- **Fingerprint:** ffp-a3f9c21b0e44   <!-- optional: failure class this rule prevents -->
+- **Profile:** surface=web            <!-- optional: narrows beyond Scope; AND-ed -->
 ```
 
 ID format `LRN-YYYYMMDD-NN` (date created, then sequence). IDs are permanent —
-never reused, even after retirement.
+never reused, even after retirement. `Overrides:` names what the learning
+extends or replaces: a reference section id (`REF-…`, below), a skill rule
+(`SKILL:test-cases "…"`), or `none`. `Fingerprint:` and `Profile:` are optional
+and machine-read (fingerprints and profiles are defined by later phases of RFC 0001).
+
+## Source IDs
+<!-- qab: id=source-ids -->
+
+Every reference section is an addressable **source**, like a learning:
+
+- **Id form:** `REF-<file-stem>#<id>`; under `playbook/` → `REF-playbook/<stem>#<id>`.
+  Example: `REF-playwright-patterns#never`, `REF-playbook/risk-and-priority#severity-scale`.
+- **Where it lives:** an HTML comment on the line right after the heading —
+  `## Selectors` / `<!-- qab: id=selectors tier=must -->`. Never in the heading
+  text. `##` headings outside code fences are addressable; the H1 comment may
+  carry file-level defaults (`scope=`, `tier=`) that sections inherit, and an
+  `id=` for files whose knowledge sits under the H1.
+- **scope** = comma-separated skill names or `all` (default). **tier** =
+  `must` (always in a scoped skill's slice — rails, NEVER lists, templates a
+  skill structurally depends on) | `should` (default) | `context`.
+- **Ids are permanent.** Rename the heading freely; never the id. Korean twins
+  copy the `qab:` comment verbatim — the build fails on a duplicate id or an
+  en/ko id-set mismatch, and ships `references/index.json` (id → file, heading,
+  scope, tier, lines) for tools.
+- **Cite them like learnings.** When a section shapes output, cite its id the
+  way you cite `LRN-…` (the log obligation for `REF-` ids arrives with RFC 0001 PR4).
 
 ## Read protocol (start of every skill run)
+<!-- qab: id=read-protocol -->
 
 1. After reading references, read the learnings file (skip silently if absent).
 2. Apply entries whose **Scope** includes the current skill (or `all`) and whose
@@ -62,6 +92,7 @@ never reused, even after retirement.
    Observed reality outranks recorded learnings, same as it outranks references.
 
 ## Capture protocol (end of every skill run)
+<!-- qab: id=capture-protocol -->
 
 Ask: did one of exactly three triggers occur?
 
@@ -99,6 +130,7 @@ If one occurred, append an entry:
 - Secrets, credentials, tokens — in any form, even as evidence
 
 ## Learnings log (the read path is a write path)
+<!-- qab: id=learnings-log -->
 
 `LEARNINGS.md` records what a learning *says*; the log records what happened to
 it. Path: `learnings-log.jsonl` next to the learnings file (so `features-kb/`
@@ -128,6 +160,7 @@ shape with `echo … >>` and add `"writer":"manual"` so distill can report the r
 reads the log; only distill does.
 
 ## Lifecycle
+<!-- qab: id=lifecycle -->
 
 `active` → applied on every matching run.
 `promoted` → distill moved it into references (and optionally upstream); kept for provenance with a pointer to where it landed.
@@ -145,6 +178,7 @@ file exceeds ~30 active entries. Distill computes from the log, not from
 | **Falsified** | `contradicted ≥ 2` ∧ no `applied` after the last contradiction |
 
 ## Gates (what can change the library, and who)
+<!-- qab: id=gates -->
 
 1. **Human gate** — every status change and every reference edit is proposed,
    shown with its evidence, and applied only after the SDT says so.

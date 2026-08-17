@@ -1,4 +1,5 @@
 # Test Execution Sequence
+<!-- qab: id=sequence scope=sprint-status -->
 
 For a feature moving through the sprint, testing follows this order:
 
@@ -35,5 +36,6 @@ Merge to main
 ```
 
 ## Team-Specific Processes
+<!-- qab: id=team-specific-processes -->
 
 **Release workflow:** See `features-kb/team-practices/release-workflow.md` if defined. Covers: release freeze rules, cutoff times, rollback process, canary strategy.

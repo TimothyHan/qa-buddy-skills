@@ -1,4 +1,5 @@
 # Playwright Patterns — code standards for generated suites
+<!-- qab: scope=e2e-setup,e2e-pom,e2e-write,test-cases -->
 
 Distilled field rules layered on top of the [official Playwright best
 practices](https://playwright.dev/docs/best-practices). The official docs are
@@ -17,6 +18,7 @@ code-level knowledge that is too large to inline there.
 ---
 
 ## MUST rules
+<!-- qab: id=must-rules tier=must -->
 
 ### Structure
 - All Playwright files under one `playwright/` parent folder (config at repo
@@ -85,6 +87,7 @@ code-level knowledge that is too large to inline there.
 | Subset of object fields | `toMatchObject` / `objectContaining` |
 
 ## NEVER
+<!-- qab: id=never tier=must -->
 
 `waitForTimeout` · committed `test.only` (config: `forbidOnly: !!CI`) · global
 count assertions · hardcoded entity names · inline teardown at body end ·
@@ -96,6 +99,7 @@ test-env-only endpoints.
 ---
 
 ## Parallelism (min-2-workers policy)
+<!-- qab: id=parallelism -->
 
 `workers = clamp(floor(cores/2), min 2, max usable accounts)` — a suite that
 only passes serially is hiding ordering bugs. Isolation strategy by situation:
@@ -170,6 +174,7 @@ account's seed data.
 ---
 
 ## Templates
+<!-- qab: id=templates -->
 
 ### Stateless functional POM
 ```ts
@@ -259,6 +264,7 @@ error/empty/edge/role states belong to `page.route`-mocked tests.)
 ---
 
 ## Anti-pattern → correction
+<!-- qab: id=anti-pattern-correction -->
 
 | ❌ | ✅ |
 | --- | --- |
@@ -279,6 +285,7 @@ error/empty/edge/role states belong to `page.route`-mocked tests.)
 | per-test `newContext({ storageState })` | override the `storageState` option fixture |
 
 ## Pitfalls (debugging accelerators)
+<!-- qab: id=pitfalls -->
 
 - `request.newContext()` does **not** inherit `use.baseURL` — pass it explicitly.
 - Base URLs with a path need a trailing slash + relative paths; `/items`

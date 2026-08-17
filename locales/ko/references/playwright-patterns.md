@@ -1,4 +1,5 @@
 # Playwright 패턴 — 생성되는 스위트의 코드 표준
+<!-- qab: scope=e2e-setup,e2e-pom,e2e-write,test-cases -->
 
 [Playwright 공식 베스트 프랙티스](https://playwright.dev/docs/best-practices)를
 기본 전제로 두고, 실전 프로젝트에서 얻은 추가 규칙을 얹습니다. 두 문서가
@@ -15,6 +16,7 @@
 ---
 
 ## 필수 규칙 (MUST)
+<!-- qab: id=must-rules tier=must -->
 
 ### 구조
 - 모든 Playwright 파일은 단일 `playwright/` 부모 폴더 아래에(설정 파일은 bare
@@ -80,6 +82,7 @@
 | 객체 일부 필드만 확인 | `toMatchObject` / `objectContaining` |
 
 ## 금지 (NEVER)
+<!-- qab: id=never tier=must -->
 
 `waitForTimeout` · `test.only` 커밋(`forbidOnly: !!CI`) · 전역 개수 단언 ·
 하드코딩된 데이터 이름 · 본문 끝 인라인 정리 · 자동으로 사라지는 컴포넌트에
@@ -90,6 +93,7 @@
 ---
 
 ## 병렬 실행 (최소 2 워커 정책)
+<!-- qab: id=parallelism -->
 
 `workers = clamp(floor(cores/2), 최소 2, 최대 사용 가능 계정 수)` — 직렬로만
 통과하는 스위트는 순서 의존 버그를 숨기고 있다. 상황별 격리 전략:
@@ -151,6 +155,7 @@ export const test = base.extend<{ account: Account }>({
 ---
 
 ## 템플릿
+<!-- qab: id=templates -->
 
 ### 무상태 함수형 POM
 ```ts
@@ -239,6 +244,7 @@ await expect(row.getByTestId('delete-button')).toHaveCount(0);
 ---
 
 ## 안티패턴 → 교정
+<!-- qab: id=anti-pattern-correction -->
 
 | ❌ | ✅ |
 | --- | --- |
@@ -259,6 +265,7 @@ await expect(row.getByTestId('delete-button')).toHaveCount(0);
 | 테스트마다 `newContext({ storageState })` | `storageState` 옵션 fixture 오버라이드 |
 
 ## 함정 (알아두면 디버깅이 빨라지는 것들)
+<!-- qab: id=pitfalls -->
 
 - `request.newContext()`는 `use.baseURL`을 상속하지 않는다 — 명시적으로 지정.
 - 경로 포함 base URL은 트레일링 슬래시 + 상대 경로. `/items`는 base의 `/api`를

@@ -1,11 +1,14 @@
 # Manual vs Automation and Test Types
+<!-- qab: scope=test-plan,test-cases,exploratory,start -->
 
 ## Core Principle
+<!-- qab: id=core-principle -->
 
 **Do not aim for 100% automation.** This is unrealistic and does not challenge
 whether quality can be improved through other means.
 
 ## Automation Guidelines
+<!-- qab: id=automation-guidelines -->
 
 | Guideline | Detail |
 |-----------|--------|
@@ -15,6 +18,7 @@ whether quality can be improved through other means.
 | **Match test to layer** | Don't automate at E2E what can be tested at unit or API level |
 
 ## When to Create Manual Test Cases
+<!-- qab: id=manual-test-cases -->
 
 | Type | Purpose | When Created | When Executed |
 |------|---------|-------------|---------------|
@@ -24,6 +28,7 @@ whether quality can be improved through other means.
 | **Exploratory tests** | Unscripted discovery | At feature-ready state | Before UAT, after functional |
 
 ## UAT vs Functional Testing
+<!-- qab: id=uat-vs-functional -->
 
 | Aspect | Functional Test (E2E) | UAT |
 |--------|----------------------|-----|
@@ -33,6 +38,7 @@ whether quality can be improved through other means.
 | Example | "Submit form with valid data -> success message" | "New employee can complete onboarding end-to-end" |
 
 ## Exploratory Testing
+<!-- qab: id=exploratory-testing -->
 
 Exploratory testing is NOT manual functional testing. It is:
 - **Unscripted:** No predefined steps. Tester explores freely.
@@ -43,6 +49,7 @@ Exploratory testing is NOT manual functional testing. It is:
 See `/exploratory` skill for the template and execution guide.
 
 ## Team-Specific Processes
+<!-- qab: id=team-specific-processes -->
 
 **Test data management:** See `features-kb/team-practices/test-data.md` if defined. Covers: seeding, cleanup, fixtures, isolation, shared vs personal test data.
 
