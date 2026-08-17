@@ -793,10 +793,10 @@ function testRuntimeHelper() {
     check(/LRN-20260808-03[^\n]*promotion candidate/.test(table) && /LRN-20260808-08[^\n]*falsified/.test(table), 'stats table labels findings per row');
 
     // ── PR4: REF citation. Validation needs index.json next to the helper, so exercise the SHIPPED copy.
-    const shipped = path.join(DIST_DIR, 'claude', 'references', 'bin', 'qab.js');
+    const shipped = path.join(resolvePlatformDir('claude'), 'references', 'bin', 'qab.js'); // en or ko-only dist
     const runS = (args, extraEnv) => execFileSync(process.execPath, [shipped, ...args], { env: { ...env, ...(extraEnv || {}) }, encoding: 'utf8', stdio: ['ignore', 'pipe', 'pipe'] });
     const failsS = (args) => { try { runS(args); return null; } catch (e) { return e.status !== 0 ? String(e.stderr || '') : null; } };
-    if (fs.existsSync(shipped) && fs.existsSync(path.join(DIST_DIR, 'claude', 'references', 'index.json'))) {
+    if (fs.existsSync(shipped) && fs.existsSync(path.join(resolvePlatformDir('claude'), 'references', 'index.json'))) {
       const beforeRef = fs.readFileSync(logFile, 'utf8');
       runS(['log', 'applied', 'REF-playwright-patterns#never'], { QAB_RUN: 'ref-run-000001' });
       runS(['log', 'applied', 'REF-playbook/test-types#automation-guidelines'], { QAB_RUN: 'ref-run-000001' });
@@ -828,9 +828,10 @@ function testRuntimeHelper() {
     }
 
     // Malformed line tolerance: skipped and counted, never crashes
+    const eventsBefore = JSON.parse(run(['stats', '--json'])).events;
     fs.appendFileSync(logFile, '{not json\n');
     const stats2 = JSON.parse(run(['stats', '--json']));
-    check(stats2.malformed === 1 && stats2.events === 18, 'stats skips and counts malformed lines');
+    check(stats2.malformed === 1 && stats2.events === eventsBefore, `stats skips and counts malformed lines (${stats2.events} events, 1 malformed)`);
   } finally {
     fs.rmSync(tmp, { recursive: true, force: true });
   }
