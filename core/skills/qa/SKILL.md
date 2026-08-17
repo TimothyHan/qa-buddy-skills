@@ -1,6 +1,6 @@
 ---
 name: qa
-version: 0.3.2
+version: 0.3.3
 description: |
   SDT test execution skill. Executes test cases from the knowledge base, verifies
   acceptance criteria in the browser, files bugs in Jira for failures, and updates
@@ -47,6 +47,8 @@ Jira bugs for anything medium+ severity.
 10. **Always use the browser.** Never refuse browser testing when /qa-qa is invoked.
 
 ---
+
+**Scratchpad (run protocol):** write `## Plan` to the run's `scratchpad.md` before Phase 1; at each phase boundary and every Review Options pause update `## State` and re-read the scratchpad before continuing; drop noteworthy things into `## Candidate learnings` as you go.
 
 ## Phase 1: Load Context
 

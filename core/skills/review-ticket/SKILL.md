@@ -1,6 +1,6 @@
 ---
 name: review-ticket
-version: 0.3.1
+version: 0.3.2
 description: |
   Review a Jira ticket during backlog grooming or refinement. Audits the ticket
   for testability, AC completeness, missing edge cases, and potential blockers.
@@ -36,6 +36,8 @@ requirements, and potential blockers BEFORE development starts.
 5. **Connect to the epic.** Reference parent epic's test plan if it exists.
 
 ---
+
+**Scratchpad (run protocol):** write `## Plan` to the run's `scratchpad.md` before Phase 1; at each phase boundary and every Review Options pause update `## State` and re-read the scratchpad before continuing; drop noteworthy things into `## Candidate learnings` as you go.
 
 ## Phase 1: Pull Ticket Context
 

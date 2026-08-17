@@ -1,6 +1,6 @@
 ---
 name: start
-version: 0.3.2
+version: 0.3.3
 description: |
   Guided end-to-end QA workflow. Chains test planning, ticket reviews, and test
   case generation in sequence, pausing after each phase for SDT review. Resumes
@@ -38,6 +38,8 @@ each phase for SDT review and approval before continuing.
 5. **One epic at a time.** Each run covers one epic or feature.
 
 ---
+
+**Scratchpad (run protocol):** write `## Plan` to the run's `scratchpad.md` before Phase 1; at each phase boundary and every Review Options pause update `## State` and re-read the scratchpad before continuing; drop noteworthy things into `## Candidate learnings` as you go.
 
 ## Phase 1: Initialize
 

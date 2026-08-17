@@ -81,6 +81,24 @@
           "op": "output_matches",
           "value": "\"run\":\"e2e-setup-",
           "note": "run id came from qab.js run-id --skill e2e-setup, not hand-written"
+        },
+        {
+          "field": "cmd:ls .qa-reports/runs/*/slice.md",
+          "op": "exit_code",
+          "value": 0,
+          "note": "preamble item 1: the run compiled a slice (RFC 0001 PR5)"
+        },
+        {
+          "field": "cmd:grep -l 'Candidate learnings' .qa-reports/runs/*/scratchpad.md",
+          "op": "exit_code",
+          "value": 0,
+          "note": "run dir has a scratchpad with the candidates section"
+        },
+        {
+          "field": "cmd:head -1 .qa-reports/runs/*/slice.md",
+          "op": "output_matches",
+          "value": "^---",
+          "note": "slice starts with the manifest front matter"
         }
       ],
       "tags": [

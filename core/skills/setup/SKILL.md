@@ -1,6 +1,6 @@
 ---
 name: setup
-version: 0.4.3
+version: 0.4.4
 description: |
   First-run configuration wizard for QABuddy. Sets up context source (Jira, spec
   docs, chat, custom), team mode (solo vs PR-based), and project preferences.
@@ -114,6 +114,8 @@ Build the config object from answers:
   "githubCli": true/false,
   "contributeUpstream": true/false,
   "learningsPath": "features-kb/LEARNINGS.md",
+  "runsDir": ".qa-reports/runs",
+  "retainRuns": "captured",
   "upstreamRepo": "TimothyHan/qa-buddy-skills",
   "defaultBranch": "main",
   "createdAt": "{ISO timestamp}"

@@ -231,11 +231,13 @@ The preamble enforces these on every skill run; skill authors must not contradic
 
 | When | Obligation | Written to |
 |---|---|---|
-| Start | `qab.js run-id --skill <name>`; read references, then the learnings file (skill-scoped, `active`) — learning beats reference on conflict | `.qa-reports/.qab-run` |
 | Whenever a learning shapes output | Cite its ID; `qab.js log applied LRN-…` | `learnings-log.jsonl` |
 | Live observation contradicts an active learning | Do not apply it; `qab.js log contradicted LRN-… --note`; flag in report | `learnings-log.jsonl` |
 | Completion | Apply the three capture triggers; if one fires, write the LRN and `log captured`; then `log outcome --status <S>` | `LEARNINGS.md`, `learnings-log.jsonl` |
-| ▸ Start (compile) / phase boundaries / failure kinds | Compiled slice, scratchpad, fingerprints | RFC 0001 PR5 / PR6 |
+| Start | `qab.js compile --skill <name>` → read `slice.md` (replaces reading the learnings file + the reference sections it lists); fallback: references + `LEARNINGS.md` | `.qa-reports/runs/<run>/{slice.md,profile.json,scratchpad.md,events.jsonl}` |
+| Mid-run | Anything noteworthy → `## Candidate learnings` (no evidence bar); tier-2 skills also keep `## Plan` / `## State` and re-read at pauses | `scratchpad.md` |
+| Completion | The three capture triggers are applied to the **candidates** only | `LEARNINGS.md`, `learnings-log.jsonl` |
+| ▸ Failure kinds | Fingerprints | RFC 0001 PR6 |
 
 `bin/qab.js` is the only writer of `learnings-log.jsonl` — the model passes bare arguments and never hand-writes JSON. It ships to `dist/<platform>/references/bin/` and is tested behaviourally in `test.js` (`testRuntimeHelper`). Schema: `self-improve.md` §Learnings log (`"v": 1`; readers accept every earlier version — logs are append-only and live in users' repos for years). Runtime files (`LEARNINGS.md`, `learnings-log.jsonl`, `.qa-reports/`) are project content: never in this repo, never dual-locale.
 
