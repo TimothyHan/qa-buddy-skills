@@ -46,20 +46,24 @@ QABuddy에 관심을 가져주셔서 감사합니다! 이 가이드는 스킬 �
 ## 프로젝트 구조
 
 ```
-agents/
+qa-buddy-skills/
 ├── build.js                     # Build script (node, zero deps)
-├── test.js                      # 475 structural tests
+├── test.js                      # 740 structural checks
 ├── core/                        # Edit here — single source of truth
-│   ├── skills/ (11)             # Skill templates
-│   ├── references/playbook/     # 10 methodology files
+│   ├── skills/ (14)             # Skill templates (procedure)
+│   ├── references/              # Knowledge: playwright-patterns, self-improve, KB spec
+│   │   └── playbook/            # 11 methodology files + index
 │   ├── preamble-base.md         # Tier 1 (all skills)
 │   └── preamble-full.md         # Tier 2 additions
 ├── platforms/                   # 3 configs + 6 setup scripts
 ├── locales/ko/                  # Korean translation
+├── docs/rfc/                    # Design records (accepted RFCs)
 └── dist/                        # Generated — never edit directly
 ```
 
 **핵심 규칙:** `core/`와 `platforms/`에서 편집하세요. `dist/`는 절대 편집하지 마세요. `node build.js all`을 실행하여 재생성하세요.
+
+**로드맵:** 학습 레이어를 산문 판단에서 측정 기반으로 옮기는 중입니다 — 실행별 컴파일된 지식 슬라이스, append-only 학습 로그, 산술 기반 distill, eval 게이트 승격. 설계와 단계별 순서는 [RFC 0001 — Context Compiler](docs/rfc/0001-context-compiler.md)(영문, 한국어 요약 포함)에 있습니다. 이 가이드에서 특정 단계와 함께 바뀌는 섹션은 해당 단계의 PR에서 갱신합니다 — 미리 바꾸지 않습니다.
 
 ---
 

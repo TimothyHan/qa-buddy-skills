@@ -46,20 +46,24 @@ Skills are designed for **Claude Sonnet** as the minimum. Every skill must work 
 ## Project Structure
 
 ```
-agents/
+qa-buddy-skills/
 ├── build.js                     # Build script (node, zero deps)
-├── test.js                      # 475 structural tests
+├── test.js                      # 740 structural checks
 ├── core/                        # Edit here — single source of truth
-│   ├── skills/ (11)             # Skill templates
-│   ├── references/playbook/     # 10 methodology files
+│   ├── skills/ (14)             # Skill templates (procedure)
+│   ├── references/              # Knowledge: playwright-patterns, self-improve, KB spec
+│   │   └── playbook/            # 11 methodology files + index
 │   ├── preamble-base.md         # Tier 1 (all skills)
 │   └── preamble-full.md         # Tier 2 additions
 ├── platforms/                   # 3 configs + 6 setup scripts
 ├── locales/ko/                  # Korean translation
+├── docs/rfc/                    # Design records (accepted RFCs)
 └── dist/                        # Generated — never edit directly
 ```
 
 **Key rule:** Edit `core/` and `platforms/`. Never edit `dist/`. Run `node build.js all` to regenerate.
+
+**Roadmap:** the learnings layer is being moved from prose-judged to measured — per-run compiled knowledge slices, an append-only learnings log, computed distill, eval-gated promotion. The design and the phase-by-phase sequence are in [RFC 0001 — Context Compiler](docs/rfc/0001-context-compiler.md). Sections of this guide that change with a phase are updated in that phase's PR, not before.
 
 ---
 
