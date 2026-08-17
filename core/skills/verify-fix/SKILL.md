@@ -1,6 +1,6 @@
 ---
 name: verify-fix
-version: 0.3.1
+version: 0.3.2
 description: |
   Re-test a bug fix after a developer resolves it. Pulls the original bug from Jira,
   re-executes the repro steps in the browser, checks for regressions, and updates
@@ -40,6 +40,8 @@ status based on the outcome.
 7. **Always use the browser.** Never verify by reading code alone.
 
 ---
+
+**Scratchpad (run protocol):** write `## Plan` to the run's `scratchpad.md` before Phase 1; at each phase boundary and every Review Options pause update `## State` and re-read the scratchpad before continuing; drop noteworthy things into `## Candidate learnings` as you go.
 
 ## Phase 1: Load Bug Context
 

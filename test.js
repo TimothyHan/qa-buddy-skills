@@ -938,10 +938,131 @@ function testReferenceIndex() {
   }
 }
 
+function testCompile() {
+  console.log('\n🧩 Compile step (RFC 0001 PR5 — unscored slice, run dir, scratchpad)');
+  const { execFileSync } = require('child_process');
+  const os = require('os');
+  const shipped = path.join(resolvePlatformDir('claude'), 'references', 'bin', 'qab.js');
+  const indexPath = path.join(resolvePlatformDir('claude'), 'references', 'index.json');
+  if (!fs.existsSync(shipped) || !fs.existsSync(indexPath)) { fail('shipped qab.js + index.json present for compile tests', 'run node build.js all'); return; }
+  const index = JSON.parse(fs.readFileSync(indexPath, 'utf8'));
+
+  // Preamble wiring: item 1 compiles, item 2 mentions candidates, recovery scans runs/
+  for (const platform of PLATFORMS) {
+    const distSkill = readFile(path.join(resolvePlatformDir(platform), 'skills', 'qa', 'SKILL.md')) || '';
+    check(/node \$QAB compile --skill/.test(distSkill), `dist/${platform}: preamble item 1 runs qab.js compile`);
+    check(/Candidate learnings/.test(distSkill), `dist/${platform}: preamble mentions ## Candidate learnings`);
+    check(/\.qa-reports\/runs\//.test(distSkill), `dist/${platform}: Context Recovery scans .qa-reports/runs/`);
+    check(fs.existsSync(path.join(resolvePlatformDir(platform), 'references', 'run-protocol.md')), `dist/${platform}: run-protocol.md shipped`);
+  }
+  // Tier-2 multi-phase skills carry the scratchpad line; tier-1 do not (decision 8)
+  for (const skill of getSkillDirs()) {
+    const content = readFile(path.join(CORE_DIR, 'skills', skill, 'SKILL.md')) || '';
+    const { fields } = parseFrontmatter(content);
+    const has = /Scratchpad \(run protocol\)/.test(content);
+    if (fields['preamble-tier'] === '2') check(has, `${skill} (tier 2): has the scratchpad line`);
+    else check(!has, `${skill} (tier 1): no scratchpad Plan/State line`);
+  }
+
+  // Behavioural: compile in a scratch project with a fixture learnings file
+  const tmp = fs.mkdtempSync(path.join(os.tmpdir(), 'qab-compile-'));
+  const env = { ...process.env, QAB_CWD: tmp, QAB_TS: '2026-08-17T00:00:00Z' };
+  const run = (args) => execFileSync(process.execPath, [shipped, ...args], { env, encoding: 'utf8', stdio: ['ignore', 'pipe', 'pipe'] });
+  try {
+    fs.mkdirSync(path.join(tmp, 'features-kb'), { recursive: true });
+    fs.mkdirSync(path.join(tmp, 'playwright', 'pom'), { recursive: true });
+    fs.writeFileSync(path.join(tmp, 'playwright', 'AUTOMATION.md'), '# decisions\n');
+    fs.writeFileSync(path.join(tmp, 'playwright', 'pom', 'x.page.ts'), '');
+    fs.writeFileSync(path.join(tmp, 'features-kb', 'LEARNINGS.md'), [
+      '# Project Learnings', '',
+      '## LRN-20260801-01: applies to test-cases', '- **Status:** active', '- **Scope:** test-cases, qa', '- **Statement:** seed via API', '- **Overrides:** REF-playwright-patterns#must-rules (extends)', '- **Evidence:** run', '',
+      '## LRN-20260801-02: retired one', '- **Status:** retired', '- **Scope:** all', '- **Statement:** old', '- **Overrides:** none', '- **Evidence:** run', '',
+      '## LRN-20260801-03: profile-narrowed (surface=api) — must be dropped for a web profile', '- **Status:** active', '- **Scope:** all', '- **Statement:** api only', '- **Overrides:** none', '- **Evidence:** run', '- **Profile:** surface=api', '',
+      '## LRN-20260801-04: scope all, no profile', '- **Status:** active', '- **Scope:** all', '- **Statement:** everywhere', '- **Overrides:** none', '- **Evidence:** run', '',
+    ].join('\n'));
+
+    const out = run(['compile', '--skill', 'test-cases', '--ticket', 'PROJ-1']);
+    const slicePath = path.join(tmp, out.split('\n')[0].trim());
+    check(fs.existsSync(slicePath), 'compile prints an existing slice.md path');
+    const runDir = path.dirname(slicePath);
+    for (const f of ['profile.json', 'scratchpad.md', 'events.jsonl']) check(fs.existsSync(path.join(runDir, f)), `run dir has ${f}`);
+    check(/test-cases-PROJ-1-[0-9a-f]{6}$/.test(runDir), 'run dir name = <skill>-<ticket>-<6hex>');
+    const slice = fs.readFileSync(slicePath, 'utf8');
+    const fm = slice.split('\n---\n')[0];
+    check(/^---\nmanifest: 1\n/.test(slice) && /scoring: off/.test(fm) && /budget: \{max: 0, used: \d+\}/.test(fm), 'manifest: version, scoring off, uncapped budget with used lines');
+    // Parse the two manifest blocks SEPARATELY — a compiler that packs a section and also lists it as dropped
+    // must not slip through (mutation smoke 2026-08-17 caught the subtraction-based version of this test).
+    const sourcesBlock = (fm.split('\nsources:\n')[1] || '').split('\ndropped:')[0];
+    const droppedBlock = fm.split('\ndropped:')[1] || '';
+    const manifestIds = [...sourcesBlock.matchAll(/^  - id: (\S+)/gm)].map(m => m[1]);
+    const droppedIds = [...droppedBlock.matchAll(/^  - id: (\S+)/gm)].map(m => m[1]);
+    const inSlice = manifestIds;
+    check(inSlice.every(id => !droppedIds.includes(id)), 'no id is both packed and dropped');
+
+    // Set-equality vs the declared read set: explicit-scope sections ∪ (scope=all ∧ must) ∪ active scoped LRNs
+    const expectedRefs = Object.entries(index).filter(([, e]) => e.scope.includes('test-cases') || (e.scope.includes('all') && e.tier === 'must')).map(([id]) => id).sort();
+    const gotRefs = inSlice.filter(id => id.startsWith('REF-')).sort();
+    check(JSON.stringify(gotRefs) === JSON.stringify(expectedRefs), `slice REF set == declared read set for test-cases (${gotRefs.length})`, `missing: ${expectedRefs.filter(x => !gotRefs.includes(x)).join(',')} extra: ${gotRefs.filter(x => !expectedRefs.includes(x)).join(',')}`);
+    const gotLrns = inSlice.filter(id => id.startsWith('LRN-')).sort();
+    check(JSON.stringify(gotLrns) === JSON.stringify(['LRN-20260801-01', 'LRN-20260801-04']), `slice LRN set = active ∩ scoped ∩ profile-compatible (${gotLrns.join(',')})`);
+    check(droppedIds.includes('LRN-20260801-03'), 'profile-narrowed learning (surface=api) is dropped for a web profile and listed');
+    check(droppedIds.some(id => id.startsWith('REF-feature-knowledge-base-spec#')), 'scope=all non-must sections listed under dropped (general-scope), not packed');
+    // must first; LRN placed right after the REF it overrides
+    check(manifestIds[0] === 'REF-playwright-patterns#must-rules' || manifestIds[0] === 'REF-playwright-patterns#never', `must sections packed first (${manifestIds[0]})`);
+    const iMust = manifestIds.indexOf('REF-playwright-patterns#must-rules');
+    check(manifestIds[iMust + 1] === 'LRN-20260801-01', 'learning packed right after the section it Overrides');
+    // verbatim body: the NEVER section text equals the source minus heading + qab comment
+    const src = fs.readFileSync(path.join(CORE_DIR, 'references', 'playwright-patterns.md'), 'utf8').split('\n');
+    const i0 = src.findIndex(l => l.startsWith('## NEVER')); let i1 = i0 + 1; while (i1 < src.length && !/^##? /.test(src[i1])) i1++;
+    const expectedBody = src.slice(i0 + 1, i1).filter(l => !/^<!--\s*qab:/.test(l)).join('\n').trim();
+    const m = slice.match(/^## REF-playwright-patterns#never — NEVER\n([\s\S]*?)\n## /m);
+    check(!!m && m[1].trim() === expectedBody, 'slice body is verbatim source text (NEVER section)', m ? 'text differs' : 'section header not found');
+    check(!/<!--\s*qab:/.test(slice.split('\n---\n').slice(1).join('')), 'qab metadata comments stripped from slice body');
+    // …and the LAST section of a file (runs to EOF — off-by-one territory): pitfalls
+    const j0 = src.findIndex(l => l.startsWith('## Pitfalls'));
+    const expectedLast = src.slice(j0 + 1).filter(l => !/^<!--\s*qab:/.test(l)).join('\n').trim();
+    const afterHeader = slice.split(/^## REF-playwright-patterns#pitfalls — [^\n]*\n/m)[1];
+    const gotLast = afterHeader ? afterHeader.split('\n## ')[0].trim() : null;
+    check(gotLast !== null && gotLast === expectedLast, 'slice body is verbatim for a file\'s LAST section (pitfalls, runs to EOF)', gotLast !== null ? `got ${gotLast.split('\n').length} lines, expected ${expectedLast.split('\n').length}` : 'header not found');
+    // profile + events + scratchpad
+    const profile = JSON.parse(fs.readFileSync(path.join(runDir, 'profile.json'), 'utf8'));
+    check(profile.schema === 'profile/1' && profile.surface === 'web' && profile.pom === 'exists' && /^[0-9a-f]{12}$/.test(profile.pfp), `profile v0 deterministic (${profile.surface}/${profile.pom}/${profile.ticket_kind}, pfp ${profile.pfp})`);
+    const events = fs.readFileSync(path.join(runDir, 'events.jsonl'), 'utf8').trim().split('\n').map(l => JSON.parse(l));
+    check(events.length === 1 && events[0].event === 'compiled' && events[0].pfp === profile.pfp && Array.isArray(events[0].sources), 'compiled event mirrored into the run dir with pfp + sources');
+    const projLog = fs.readFileSync(path.join(tmp, 'features-kb', 'learnings-log.jsonl'), 'utf8').trim().split('\n');
+    check(projLog.length === 1 && JSON.parse(projLog[0]).event === 'compiled', 'compiled event also in the project log');
+    const scratch = fs.readFileSync(path.join(runDir, 'scratchpad.md'), 'utf8');
+    check(['## Plan', '## State', '## Findings', '## Candidate learnings'].every(h => scratch.includes(h)), 'scratchpad has the four sections');
+    // a subsequent log call lands in BOTH logs (same run via marker)
+    run(['log', 'applied', 'LRN-20260801-01']);
+    check(fs.readFileSync(path.join(runDir, 'events.jsonl'), 'utf8').trim().split('\n').length === 2, 'later log lines are mirrored into the run dir');
+    // recompiling the same skill reuses the run (marker) instead of starting a new one
+    const out2 = run(['compile', '--skill', 'test-cases']);
+    check(path.dirname(path.join(tmp, out2.split('\n')[0].trim())) === runDir, 'recompile for the current run reuses its directory');
+    // fallback path is documented, not required: compile without index next to helper → clear error (source copy has no index)
+    let errText = ''; try { execFileSync(process.execPath, [path.join(ROOT, 'bin', 'qab.js'), 'compile', '--skill', 'qa'], { env, encoding: 'utf8', stdio: ['ignore', 'pipe', 'pipe'] }); } catch (e) { errText = String(e.stderr || ''); }
+    check(/index\.json not found/.test(errText), 'compile without a shipped index fails loudly (fallback is the model reading files, not a silent empty slice)');
+  } finally {
+    fs.rmSync(tmp, { recursive: true, force: true });
+  }
+
+  // Coverage proof on the real skills: every reference file a skill hard-lists has ≥1 section in that skill's declared read set
+  for (const skill of getSkillDirs()) {
+    const content = readFile(path.join(CORE_DIR, 'skills', skill, 'SKILL.md')) || '';
+    const listed = [...content.matchAll(/\{\{REFERENCE_PATH\}\}\/((?:playbook\/)?[a-z0-9-]+)\.md/g)].map(m => m[1]);
+    for (const stem of [...new Set(listed)]) {
+      if (['self-improve', 'run-protocol'].includes(stem)) continue; // protocol pointers, not knowledge scope
+      const covered = Object.entries(index).some(([id, e]) => id.startsWith(`REF-${stem}#`) && (e.scope.includes(skill) || (e.scope.includes('all') && e.tier === 'must')));
+      check(covered, `${skill}: hard-listed ${stem}.md is in its compiled read set (scope covers it)`, `add ${skill} to the qab: scope of ${stem}.md`);
+    }
+  }
+}
+
 testSkillManifest();
 testRuntimeHelper();
 testLearningsGates();
 testReferenceIndex();
+testCompile();
 testExcludeConditions();
 testEvalFixtures();
 testCrlfTolerance();

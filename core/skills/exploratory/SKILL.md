@@ -1,6 +1,6 @@
 ---
 name: exploratory
-version: 0.4.3
+version: 0.4.4
 description: |
   Generate and guide exploratory testing sessions. Produces a session charter,
   executes time-boxed unscripted testing using heuristic techniques, captures
@@ -38,6 +38,8 @@ discovers what scripted tests miss.
 8. **Always use the browser.** Never refuse browser testing when /qa-exploratory is invoked.
 
 ---
+
+**Scratchpad (run protocol):** write `## Plan` to the run's `scratchpad.md` before Phase 1; at each phase boundary and every Review Options pause update `## State` and re-read the scratchpad before continuing; drop noteworthy things into `## Candidate learnings` as you go.
 
 ## Phase 1: Setup
 

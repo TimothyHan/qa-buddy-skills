@@ -95,7 +95,7 @@ ID 형식은 `LRN-YYYYMMDD-NN` (생성일 + 순번). ID는 영구적 — 은퇴 
 ## 포착 프로토콜 (모든 스킬 실행 종료 시)
 <!-- qab: id=capture-protocol -->
 
-질문: 정확히 세 가지 트리거 중 하나가 발생했는가?
+질문 -- 이 실행의 `## Candidate learnings`(스크래치패드, `run-protocol.md` 참조)에 대해 -- 정확히 세 가지 트리거 중 하나가 발생했는가?
 
 1. **문서화된 규칙이 현실 앞에서 깨짐** — 레퍼런스나 학습이 X라 했는데
    앱/환경이 명백히 Y로 동작.
@@ -152,8 +152,9 @@ node <references>/bin/qab.js log outcome --status DONE                      # �
 `run-id`는 현재 실행을 `.qa-reports/.qab-run`에 기억합니다; 스킬을 병렬로 실행할
 때는 각 `log` 호출에 `--run <id>`를 넘기세요.
 스키마 v1: `{"v":1,"ts":"<UTC ISO>","run":"<skill>-<ticket|branch>-<6hex>","skill":"…","event":"…","src":"LRN-…"}`
-+ `note`(contradicted) 또는 `status`(outcome). 이벤트 `compiled` / `escalated`는
-컴파일 단계용으로 예약. Node를 쓸 수 없으면 같은 형태를 `echo … >>`로 추가하되
++ `note`(contradicted) 또는 `status`(outcome). `compiled`는 `qab.js compile`이 씁니다
+(`pfp`, `sources[]`, `used`, `dropped[]`); `escalated`는 예약. 모든 라인은 실행의
+`events.jsonl`에도 미러됩니다(`run-protocol.md`). Node를 쓸 수 없으면 같은 형태를 `echo … >>`로 추가하되
 `"writer":"manual"`을 넣어 정제가 비율을 보고할 수 있게 하세요.
 
 `qab.js stats`는 로그를 소스별 카운트(`applied`, `contradicted`, `runs`,

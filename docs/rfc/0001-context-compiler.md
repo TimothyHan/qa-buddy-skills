@@ -285,8 +285,8 @@ Rules for every PR: target `feat/context-compiler` (decision 15); en + ko for an
 | **PR1** | done | learnings log + `qab.js run-id/log/stats` + preamble cite-and-log + distill computed columns + execute fixture | none |
 | **PR2** | done | eval-gated promotion + `--dry-run` proposal | none |
 | **PR3** | done | REF ids (`qab:` comments) + `index.json` + locale parity + `Overrides:` migration | none |
-| **PR4** | shipped — **gate open**: needs ≥ 4/5 real runs with REF `applied` (`qab.js stats` prints it) | REF citation + REF `applied` events + compliance gate | none (tokens) |
-| **PR5** | next (after PR4 gate) | `qab.js compile` unscored + run dir + scratchpad-lite + `run-protocol.md` | none (set-equality) |
+| **PR4** | done — gate met 5/5 REF, 4/5 LRN (skills-test, 5 real runs 2026-08-17) | REF citation + REF `applied` events + compliance gate | none (tokens) |
+| **PR5** | shipped (PR4 gate met 5/5 REF, 2026-08-17) | `qab.js compile` unscored + run dir + scratchpad-lite + `run-protocol.md` | none (set-equality) |
 | **PR6** | | fingerprints + scoreboard cache + falsified/duplicate-by-fp | heal-mode preference only |
 | **gate** | | §9.3 | |
 | **PR7** | | scored selection behind `compiler.scoring` | yes, flagged |
@@ -349,6 +349,7 @@ Rules for every PR: target `feat/context-compiler` (decision 15); en + ko for an
 6. `test.js`: behavioural — `qab.js compile` on a fixture library produces a slice whose source set equals the skill-scoped active set; `must` first; manifest parses.
 7. Fixtures: execute-mode — `file:.qa-reports/runs/*/slice.md exists`; scratchpad has `## Candidate learnings`.
 - **Acceptance:** set-equality on 3 skills; candidates → only trigger-passing reach `LEARNINGS.md`. **Behaviour:** none.
+- **Settled in PR5:** (a) the unscored compile has **no budget cap** (`budget: {max: 0, used: N}`) — set-equality holds by construction, `used` still flows into metrics; caps arrive with scoring (PR7); (b) `scope=all` sections that are not `must` (KB spec, terminology) are **not packed** — no skill reads them per run today — and are listed under `dropped: general-scope` so distill's never-selected column can raise them; (c) `compile` implies `run-id` (reuses the marker's run if it is this skill's); (d) slice bodies render as `## <REF-id> — <heading>` with the section's own heading and `qab:` comment removed; LRN bodies = Statement + Overrides; (e) hard-listed reference files stay in skills, but the preamble says the slice already contains their sections (open a file only if the manifest has none from it) — `test.js` proves every hard-listed file is in the skill's declared read set; (f) profile v0 has no LLM step: `surface` from `playwright/AUTOMATION.md` presence, `pom` from `playwright/pom/*.page.ts`, `ticket_kind` from key prefix (`BUG-`) else `unknown`; (g) scratchpad `## Plan/## State` line only in the 7 tier-2 skills (`exploratory qa review-ticket start test-cases test-plan verify-fix`); the e2e-* skills are tier-1 (RFC text listing them was wrong).
 
 ### PR6 — Fingerprints + scoreboard (P4)
 

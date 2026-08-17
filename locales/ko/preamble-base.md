@@ -7,7 +7,7 @@
 3. **최근 지식 베이스(KB) 산출물을 확인합니다:**
    - `features-kb/index.json` -- 추적 중인 기능 목록과 상태, 워크플로우 진행 상황을 읽습니다.
    - `features-kb/` -- 최근 수정된 파일이 있는지 확인합니다 (테스트 계획, 테스트 케이스, 리뷰, QA 리포트).
-   - `.qa-reports/` -- 미해결 이슈가 포함된 최근 QA 리포트를 확인합니다.
+   - `.qa-reports/` -- 미해결 이슈가 포함된 최근 QA 리포트를 확인합니다; `.qa-reports/runs/` -- 가장 최근 실행 디렉터리의 `scratchpad.md`(`## State`, `## Candidate learnings`)가 중단된 실행이 어디서 멈췄는지 보여줍니다.
 4. **워크플로우 상태를 확인합니다** -- `features-kb/index.json`에 에픽의 `workflow` 필드가 있으면, 가이드 워크플로우가 어디까지 진행되었는지 보고합니다 (예: "테스트 계획 완료, EPIC-123 티켓 리뷰 진행 중").
 5. **팀 관행을 확인합니다** -- `features-kb/team-practices/`에 문서화된 절차가 있는지 읽습니다 (버그 트리아지, 핫픽스 테스트, 테스트 데이터, 릴리스 워크플로우, 접근성). 절차 파일이 있으면 관련 상황에서 따릅니다. 없으면 SDT에게 직접 확인합니다.
 6. **git log를 읽습니다** -- 최근 수정 이력을 파악하기 위해 최근 5-10개 커밋을 확인합니다.
@@ -44,9 +44,9 @@
 
 이 프로젝트는 학습 레이어를 유지합니다 -- 실제 실행에서 포착된 프로젝트 고유 규칙과, 그 학습에 무슨 일이 있었는지의 로그입니다. 프로토콜: `{{REFERENCE_PATH}}/self-improve.md`. 헬퍼: `QAB={{REFERENCE_PATH}}/bin/qab.js` (`~`가 확장되도록 따옴표 없이 대입). **모든** 스킬 실행에서 세 가지 의무:
 
-1. **시작 시 읽기:** `node $QAB run-id --skill <this-skill> [--ticket <KEY>]`를 실행한 뒤, 레퍼런스를 읽은 후 학습 파일을 읽습니다 (`.qabuddy.json`의 `learningsPath`, 기본 `features-kb/LEARNINGS.md`; 없으면 조용히 건너뜀). 이 스킬에 스코프된 `active` 항목을 적용합니다 -- **레퍼런스와 충돌하면 학습이 이깁니다.** `retired`/`promoted`는 무시합니다.
-2. **인용하고 로그:** 소스가 출력을 결정하면 -- 학습(`LRN-…`) 또는 레퍼런스 섹션(`REF-<file-stem>#<id>`, id는 제목 아래 `<!-- qab: id=… -->` 주석에 있음; playbook/ 아래는 `REF-playbook/<stem>#<id>`) -- 그 ID를 인용하고 `node $QAB log applied <ID>`를 실행합니다 (실행당 소스당 한 번; 헬퍼는 모르는 REF id를 거부하고 가장 가까운 것을 제안). 실행 중 관찰한 현실이 active 소스와 모순되면 적용하지 말고 -- `node $QAB log contradicted <ID> --note "<관찰한 것>"`을 실행하고 보고서에 플래그합니다.
-3. **마무리:** 완료 상태를 쓰기 전에 세 가지 포착 트리거를 확인합니다 (문서화된 규칙이 현실 앞에서 깨짐 / 문서화되지 않은 결정을 내림 / SDT가 프로젝트 지식이 담긴 수정을 함). 하나라도 발생했으면 프로토콜에 따라 증거가 담긴 항목을 추가하고, 언급하고, `node $QAB log captured LRN-…`를 실행합니다; **아무것도 발생하지 않았으면 아무것도 쓰지 말고 아무 말도 하지 마세요.** 그 다음 `node $QAB log outcome --status <DONE|DONE_WITH_CONCERNS|BLOCKED|NEEDS_CONTEXT>`를 실행합니다. 트리거의 원인이 프로젝트 특성이 아니라 QABuddy 자체의 지침에서 비롯된 것이면 학습이 아닙니다 -- **Next steps**에 증거와 함께 "`/qa-improve` 실행"을 추가하세요; 반증된 학습이 플래그되었거나 active 항목이 ~30개를 넘으면 `/qa-improve` distill을 제안합니다. 감지는 자동이지만, `/qa-improve` 실행은 언제나 SDT의 결정입니다.
+1. **시작 시 컴파일:** `node $QAB compile --skill <this-skill> [--ticket <KEY>]`를 실행하고 출력된 `slice.md`를 읽습니다 -- 이 스킬에 스코프된 레퍼런스 섹션과 `active` 학습이 각각 ID 아래 있고, 무엇이 들어가고 빠졌는지의 매니페스트가 붙어 있습니다; 학습 파일 읽기와 매니페스트에 나열된 레퍼런스 파일 읽기를 **대체**합니다 (스킬이 이름 붙인 레퍼런스 파일은 매니페스트에 그 파일의 섹션이 없을 때만 엽니다). 헬퍼를 쓸 수 없으면 레퍼런스 + 학습 파일(`learningsPath`, 기본 `features-kb/LEARNINGS.md`; 스킬 스코프, `active`)을 직접 읽습니다. **레퍼런스와 충돌하면 학습이 이깁니다.** 상세: `{{REFERENCE_PATH}}/run-protocol.md`.
+2. **인용하고 로그:** 소스가 출력을 결정하면 -- 학습(`LRN-…`) 또는 레퍼런스 섹션(`REF-<file-stem>#<id>`, id는 제목 아래 `<!-- qab: id=… -->` 주석에 있음; playbook/ 아래는 `REF-playbook/<stem>#<id>`) -- 그 ID를 인용하고 `node $QAB log applied <ID>`를 실행합니다 (실행당 소스당 한 번; 헬퍼는 모르는 REF id를 거부하고 가장 가까운 것을 제안). 실행 중 관찰한 현실이 active 소스와 모순되면 적용하지 말고 -- `node $QAB log contradicted <ID> --note "<관찰한 것>"`을 실행하고 보고서에 플래그합니다. 실행 중 눈에 띄는 것은 실행 `scratchpad.md`의 `## Candidate learnings`에 적습니다 -- 증거 문턱 없이.
+3. **마무리:** 완료 상태를 쓰기 전에 세 가지 포착 트리거(문서화된 규칙이 현실 앞에서 깨짐 / 문서화되지 않은 결정을 내림 / SDT가 프로젝트 지식이 담긴 수정을 함)를 **스크래치패드의 후보들에게** 적용합니다. 하나라도 발화했으면 프로토콜에 따라 증거가 담긴 항목을 추가하고, 언급하고, `node $QAB log captured LRN-…`를 실행합니다; 나머지는 실행 디렉터리에 남습니다. **아무것도 발화하지 않았으면 아무것도 쓰지 말고 아무 말도 하지 마세요.** 그 다음 `node $QAB log outcome --status <DONE|DONE_WITH_CONCERNS|BLOCKED|NEEDS_CONTEXT>`를 실행합니다. 트리거의 원인이 프로젝트 특성이 아니라 QABuddy 자체의 지침에서 비롯된 것이면 학습이 아닙니다 -- **Next steps**에 증거와 함께 "`/qa-improve` 실행"을 추가하세요; 반증된 학습이 플래그되었거나 active 항목이 ~30개를 넘으면 `/qa-improve` distill을 제안합니다. 감지는 자동이지만, `/qa-improve` 실행은 언제나 SDT의 결정입니다.
 
 ---
 

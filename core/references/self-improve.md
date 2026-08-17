@@ -97,7 +97,7 @@ Every reference section is an addressable **source**, like a learning:
 ## Capture protocol (end of every skill run)
 <!-- qab: id=capture-protocol -->
 
-Ask: did one of exactly three triggers occur?
+Ask — of the run's `## Candidate learnings` (scratchpad, see `run-protocol.md`) — did one of exactly three triggers occur?
 
 1. **A documented rule failed against reality** — a reference or learning said X,
    the app/environment demonstrably did Y.
@@ -155,8 +155,9 @@ node <references>/bin/qab.js log outcome --status DONE                      # la
 command). `run-id` remembers the current run in `.qa-reports/.qab-run`; when
 running skills in parallel, pass `--run <id>` to each `log` call instead.
 Schema v1: `{"v":1,"ts":"<UTC ISO>","run":"<skill>-<ticket|branch>-<6hex>","skill":"…","event":"…","src":"LRN-…"}`
-plus `note` (contradicted) or `status` (outcome). Events `compiled` / `escalated`
-are reserved for the compile step. If Node is unavailable, append the same
+plus `note` (contradicted) or `status` (outcome). `compiled` is written by `qab.js compile`
+(`pfp`, `sources[]`, `used`, `dropped[]`); `escalated` is reserved. Every line is also mirrored
+into the run's `events.jsonl` (`run-protocol.md`). If Node is unavailable, append the same
 shape with `echo … >>` and add `"writer":"manual"` so distill can report the ratio.
 
 `qab.js stats` turns the log into per-source counts (`applied`, `contradicted`,
