@@ -1,6 +1,6 @@
 ---
 name: qa
-version: 0.3.3
+version: 0.3.4
 description: |
   SDT test execution skill. Executes test cases from the knowledge base, verifies
   acceptance criteria in the browser, files bugs in Jira for failures, and updates
@@ -129,6 +129,14 @@ Execute test cases from KB in priority order (P0 first).
 | **BLOCKED** | Cannot execute — precondition/environment/dependency issue |
 | **SKIPPED** | Intentionally skipped with reason |
 
+Fingerprint the failure class as you record it (one line per distinct class per
+run, not per test case): a FAIL whose actual result contradicts the expected →
+`node $QAB fp assertion-mismatch "<TICKET>/<TC id>"`; BLOCKED because the app or
+a dependency was unreachable → `node $QAB fp env-unreachable "<url or service>"`;
+BLOCKED at login / expired session → `node $QAB fp auth-failed "<url or account role>"`.
+If the helper lists a learning under `active`, that rule failed to prevent this
+class — flag it in the report.
+
 ### After formal test cases (unless `--quick`):
 
 - Edge cases not covered by test cases (empty state, error state, invalid input)
@@ -153,7 +161,8 @@ For each AC on the ticket:
 - **PASS** — all related test cases pass
 - **FAIL** — any related test case fails
 - **PARTIALLY TESTED** — some pass, some blocked/skipped
-- **NOT TESTED** — no test cases exist for this AC (flag as coverage gap)
+- **NOT TESTED** — no test cases exist for this AC (flag as coverage gap); also
+  `node $QAB fp ac-unmapped "<TICKET>/AC<n>"` so the recurrence is countable
 - **BLOCKED** — cannot verify due to environment or dependency issue
 
 ### Ticket-level verdict:

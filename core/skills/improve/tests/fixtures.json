@@ -1,6 +1,6 @@
 {
   "skill": "improve",
-  "version": "0.6.1",
+  "version": "0.7.0",
   "fixtures": [
     {
       "id": "fx-001",
@@ -305,6 +305,64 @@
         "self-improve",
         "distill",
         "eval-gate"
+      ]
+    },
+    {
+      "id": "fx-010",
+      "description": "SELF-IMPROVE distill reads fingerprint findings from qab.js stats: an entry named in a fingerprint line's `active` is listed as falsified (fingerprint) with the ffp; a same-Fingerprint same-Scope pair is a duplicate of the older id; an entry with in_slice ≥ 10 and applied 0 is never-applied; a class recurring across runs with no learning in `active` is called out as a capture candidate, not written. Wrong output this catches: judging falsification from prose, marking the OLDER entry as the duplicate, promoting the fingerprint-falsified entry, or the sweep silently authoring a new LRN for the recurring class.",
+      "input": {
+        "request": "distill learnings",
+        "precondition": "qab.js stats shows: LRN-20260801-01 (Fingerprint ffp-a3f9c21b0e44, Scope e2e-pom) applied=4 across 4 runs, contradicted=0, finding 'falsified (fingerprint a3f9c21b0e44 ×2)'; LRN-20260801-03 (same Fingerprint, same Scope) finding 'duplicate (fingerprint) of LRN-20260801-01'; LRN-20260801-04 in_slice=12 applied=0 finding 'never applied (in_slice 12)'; recurrence table has ffp 5fef5ee66732 locator-not-found checkout/cancel-btn count=3 runs=3 active —."
+      },
+      "assertions": [
+        {
+          "field": "output",
+          "op": "matches",
+          "value": "LRN-20260801-01[^\\n]*(falsified|반증)[^\\n]*(fingerprint|지문|a3f9c21b0e44)"
+        },
+        {
+          "field": "output",
+          "op": "not_contains",
+          "value": "LRN-20260801-01 → promoted",
+          "note": "fingerprint-falsified entries are never promotion candidates"
+        },
+        {
+          "field": "output",
+          "op": "matches",
+          "value": "LRN-20260801-03[^\\n]*(duplicate|중복)[^\\n]*LRN-20260801-01"
+        },
+        {
+          "field": "output",
+          "op": "not_contains",
+          "value": "LRN-20260801-01 → retired (duplicate of LRN-20260801-03)",
+          "note": "the older id stays; only the newer is the duplicate"
+        },
+        {
+          "field": "output",
+          "op": "matches",
+          "value": "LRN-20260801-04[^\\n]*(never applied|적용된 적 없음|in_slice)"
+        },
+        {
+          "field": "output",
+          "op": "matches",
+          "value": "5fef5ee66732|checkout/cancel-btn"
+        },
+        {
+          "field": "output",
+          "op": "matches",
+          "value": "(capture candidate|포착 후보|candidate for capture|worth capturing|포착할 만)"
+        },
+        {
+          "field": "output",
+          "op": "not_contains",
+          "value": "## LRN-20260817",
+          "note": "distill proposes; it never authors the learning for the recurring class itself"
+        }
+      ],
+      "tags": [
+        "self-improve",
+        "distill",
+        "fingerprints"
       ]
     }
   ]

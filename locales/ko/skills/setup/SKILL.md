@@ -1,6 +1,6 @@
 ---
 name: setup
-version: 0.4.4
+version: 0.4.5
 description: |
   QABuddy 초기 설정 마법사. 컨텍스트 소스(Jira, 스펙 문서, 채팅, 커스텀),
   팀 모드(솔로 vs PR 기반), 프로젝트 환경설정을 구성합니다.
@@ -153,7 +153,16 @@ QABuddy가 실제 실행에서 포착한 프로젝트 고유 규칙. 모든 스�
 SDT에게 안내한다: "`{learningsPath}`를 생성했습니다 -- QABuddy는 모든 스킬 실행에서
 학습을 포착해 이 프로젝트에 맞게 진화합니다. 팀 지식이니 커밋하세요. 첫 실행 때
 옆에 `learnings-log.jsonl`이 생깁니다 -- 각 실행이 무엇을 적용·모순·포착했고 어떻게
-끝났는지의 append-only 기록입니다. 그것도 커밋하세요."
+끝났는지의 append-only 기록입니다 -- 그리고 첫 지문 실패 때 `fingerprints.jsonl`이
+생깁니다. 둘 다 커밋하세요."
+
+그 다음 `.gitignore`에 이 두 줄이 있는지 확인합니다 (없으면 추가 -- 파생·로컬
+파일이라 절대 커밋하지 않음):
+
+```
+.qa-reports/
+features-kb/.cache/
+```
 
 ---
 

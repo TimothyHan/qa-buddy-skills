@@ -1,6 +1,6 @@
 ---
 name: setup
-version: 0.4.4
+version: 0.4.5
 description: |
   First-run configuration wizard for QABuddy. Sets up context source (Jira, spec
   docs, chat, custom), team mode (solo vs PR-based), and project preferences.
@@ -153,7 +153,16 @@ Entry format — `## LRN-YYYYMMDD-NN: title` with **Status** (active|promoted|re
 Tell the SDT: "Created `{learningsPath}` — QABuddy will evolve to fit this project
 by capturing learnings there on every skill run. Commit it; it's team knowledge.
 A sibling `learnings-log.jsonl` will appear on the first run — append-only record of
-what each run applied, contradicted, captured, and how it ended. Commit that too."
+what each run applied, contradicted, captured, and how it ended — and
+`fingerprints.jsonl` on the first fingerprinted failure. Commit both."
+
+Then make sure `.gitignore` has these two lines (add them if missing — derived
+and local, never committed):
+
+```
+.qa-reports/
+features-kb/.cache/
+```
 
 ---
 

@@ -789,7 +789,7 @@ function testRuntimeHelper() {
     check(row09.contradicted === 2 && row09.falsified === false, 'stats: contradicted≥2 but applied afterwards → NOT falsified (mutation M4 guard)');
     check(stats.runs_with_outcome === 3 && stats.outcomes.DONE === 2 && stats.outcomes.DONE_WITH_CONCERNS === 1, 'stats: outcome counts per status');
     const table = run(['stats']);
-    check(/\| source \| kind \| applied \| contradicted \| runs \| last_applied \|/.test(table), 'stats prints the computed-columns table (with kind)');
+    check(/\| source \| kind \| in_slice \| applied \| contradicted \| runs \| last_applied \|/.test(table), 'stats prints the computed-columns table (with kind, in_slice)');
     check(/LRN-20260808-03[^\n]*promotion candidate/.test(table) && /LRN-20260808-08[^\n]*falsified/.test(table), 'stats table labels findings per row');
 
     // ── PR4: REF citation. Validation needs index.json next to the helper, so exercise the SHIPPED copy.
@@ -1063,11 +1063,205 @@ function testCompile() {
   }
 }
 
+function testFingerprints() {
+  console.log('\n🫆 Fingerprints + scoreboard (RFC 0001 PR6 — failure classes, falsified/duplicate-by-fp, in_slice)');
+  const { execFileSync } = require('child_process');
+  const os = require('os');
+  const crypto = require('crypto');
+  const shipped = path.join(resolvePlatformDir('claude'), 'references', 'bin', 'qab.js');
+  const indexPath = path.join(resolvePlatformDir('claude'), 'references', 'index.json');
+  if (!fs.existsSync(shipped) || !fs.existsSync(indexPath)) { fail('shipped qab.js + index.json present for fingerprint tests', 'run node build.js all'); return; }
+  const helper = require(path.join(ROOT, 'bin', 'qab.js'));
+
+  // ── Text guards: vocabulary + emission points + distill rows, en and ko (runtime-facing → same PR, decision 14)
+  const KINDS = ['locator-not-found', 'ac-unmapped', 'spec-flaky', 'ci-step-failed', 'env-unreachable', 'auth-failed', 'fixture-missing', 'assertion-mismatch', 'tool-unavailable'];
+  check(JSON.stringify(helper.FP_KINDS) === JSON.stringify(KINDS), 'qab.js FP_KINDS is the closed vocabulary from RFC 0001 §3.4');
+  for (const [label, refPath] of [['en', 'core/references/self-improve.md'], ['ko', 'locales/ko/references/self-improve.md']]) {
+    const t = readFile(path.join(ROOT, refPath)) || '';
+    check(/<!--\s*qab:\s*id=fingerprints\b/.test(t), `self-improve.md (${label}): has the fingerprints section (qab: id=fingerprints)`);
+    for (const k of KINDS) check(t.includes(`\`${k}\``), `self-improve.md (${label}): names kind ${k}`);
+    check(/qab\.js fp --list/.test(t) && /Fingerprint:/.test(t), `self-improve.md (${label}): capture rule links Fingerprint: via fp --list`);
+    check(/qab\.js scoreboard/.test(t) && /\.cache\/scoreboard\.json/.test(t), `self-improve.md (${label}): names qab.js scoreboard + cache path`);
+    check(/in_slice ≥ 10/.test(t) && /applied = 0/.test(t), `self-improve.md (${label}): never-applied rule = in_slice ≥ 10 ∧ applied = 0`);
+  }
+  const EMIT = { 'e2e-pom': ['locator-not-found'], 'e2e-write': ['spec-flaky', 'fixture-missing'], qa: ['ac-unmapped', 'env-unreachable', 'auth-failed', 'assertion-mismatch'], 'verify-fix': ['ci-step-failed'] };
+  for (const [skill, kinds] of Object.entries(EMIT)) {
+    for (const [label, base] of [['core', CORE_DIR], ['ko', path.join(ROOT, 'locales', 'ko')]]) {
+      const t = readFile(path.join(base, 'skills', skill, 'SKILL.md')) || '';
+      for (const k of kinds) check(new RegExp(`node \\$QAB fp ${k} `).test(t), `${skill} (${label}): emits fp ${k} via node $QAB`);
+    }
+  }
+  for (const skill of getSkillDirs()) {
+    if (EMIT[skill]) continue;
+    const t = readFile(path.join(CORE_DIR, 'skills', skill, 'SKILL.md')) || '';
+    check(!/node \$QAB fp /.test(t), `${skill}: no fingerprint emission (only the four detection-point skills emit)`);
+  }
+  for (const [label, p] of [['en', 'core/skills/improve/SKILL.md'], ['ko', 'locales/ko/skills/improve/SKILL.md']]) {
+    const t = readFile(path.join(ROOT, p)) || '';
+    check(/\*\*(Falsified|반증됨) \((fingerprint|지문)\)\*\*/.test(t) && /\*\*(Duplicate|중복) \((fingerprint|지문)\)\*\*/.test(t) && /\*\*(Never applied|적용된 적 없음)\*\*/.test(t), `improve (${label}): distill table has falsified/duplicate-by-fingerprint + never-applied rows`);
+    check(/in_slice · applied · contradicted · runs · last_applied/.test(t), `improve (${label}): computed columns include in_slice`);
+    check(/qab\.js scoreboard/.test(t), `improve (${label}): rebuilds the scoreboard after applying changes`);
+  }
+  for (const [label, p] of [['en', 'core/skills/setup/SKILL.md'], ['ko', 'locales/ko/skills/setup/SKILL.md']]) {
+    const t = readFile(path.join(ROOT, p)) || '';
+    check(/features-kb\/\.cache\//.test(t) && /fingerprints\.jsonl/.test(t), `setup (${label}): gitignore template has features-kb/.cache/ and names fingerprints.jsonl`);
+  }
+  for (const platform of PLATFORMS) {
+    const idx = JSON.parse(readFile(path.join(resolvePlatformDir(platform), 'references', 'index.json')) || '{}');
+    check(!!idx['REF-self-improve#fingerprints'], `dist/${platform}: index.json has REF-self-improve#fingerprints`);
+  }
+
+  // ── Behavioural: shipped helper against a scratch project
+  const tmp = fs.mkdtempSync(path.join(os.tmpdir(), 'qab-fp-'));
+  const env = { ...process.env, QAB_CWD: tmp, QAB_TS: '2026-08-17T00:00:00Z' };
+  const run = (args, extraEnv) => execFileSync(process.execPath, [shipped, ...args], { env: { ...env, ...(extraEnv || {}) }, encoding: 'utf8', stdio: ['ignore', 'pipe', 'pipe'] });
+  const fails = (args, extraEnv) => { try { run(args, extraEnv); return null; } catch (e) { return e.status !== 0 ? String(e.stderr || '') : null; } };
+  const sha12 = s => crypto.createHash('sha256').update(s).digest('hex').slice(0, 12);
+  const F1 = sha12('locator-not-found\ncheckout/place-order-btn');   // the ffp contract: sha256(kind + "\n" + normalized key)[:12]
+  const F2 = sha12('assertion-mismatch\nproj-9/tc-03');
+  const F3 = sha12('auth-failed\nadmin/login');
+  const F4 = sha12('spec-flaky\nx.spec.ts › tc-01');
+  const F5 = sha12('ci-step-failed\ndeploy/smoke');
+  try {
+    fs.mkdirSync(path.join(tmp, 'features-kb'), { recursive: true });
+    fs.mkdirSync(path.join(tmp, 'playwright', 'pom'), { recursive: true });
+    fs.writeFileSync(path.join(tmp, 'playwright', 'AUTOMATION.md'), '# decisions\n');
+    fs.writeFileSync(path.join(tmp, 'playwright', 'pom', 'x.page.ts'), '');
+    const lrn = (id, scope, extra) => [`## ${id}: t`, '- **Status:** active', `- **Scope:** ${scope}`, '- **Statement:** s', '- **Overrides:** none', '- **Evidence:** e', ...(extra || []), ''];
+    fs.writeFileSync(path.join(tmp, 'features-kb', 'LEARNINGS.md'), ['# Project Learnings', '',
+      ...lrn('LRN-20260801-01', 'e2e-pom, qa', [`- **Fingerprint:** ffp-${F1}   <!-- prevents place-order drift -->`]),
+      ...lrn('LRN-20260801-02', 'e2e-pom', [`- **Fingerprint:** ${F1}`]),            // same ffp, DIFFERENT scope → not a duplicate
+      ...lrn('LRN-20260801-03', 'qa, e2e-pom', [`- **Fingerprint:** ffp-${F1}`]),    // same ffp, same scope set (other order) → duplicate of -01
+      ...lrn('LRN-20260801-04', 'all'),
+      ...lrn('LRN-20260801-05', 'qa', [`- **Fingerprint:** ffp-${F2}`]),             // qa-only: not in the e2e-pom slice
+      ...lrn('LRN-20260801-06', 'qa', [`- **Fingerprint:** ffp-${F3}`]),
+      ...lrn('LRN-20260801-07', 'e2e-pom', [`- **Fingerprint:** ffp-${F1}`, '- **Profile:** surface=api']),   // scoped to e2e-pom but profile-dropped from the slice
+      ...lrn('LRN-20260801-08', 'e2e-write', [`- **Fingerprint:** ffp-${F4}`]),
+      ...lrn('LRN-20260820-09', 'e2e-write', [`- **Fingerprint:** ffp-${F5}`]),                                // dated AFTER the fp line below
+    ].join('\n'));
+
+    const out = run(['compile', '--skill', 'e2e-pom', '--ticket', 'PROJ-9']);
+    const runDir = path.dirname(path.join(tmp, out.split('\n')[0].trim()));
+    const runId = path.basename(runDir);
+    // emit
+    const o1 = run(['fp', 'locator-not-found', 'checkout/place-order-btn']);
+    const o2 = run(['fp', 'locator-not-found', 'Checkout / place-order-btn 5f5c55ab7 2026-08-17T10:00:00Z']);   // same class, incident noise
+    run(['fp', 'locator-not-found', 'checkout/cancel-btn']);
+    run(['fp', 'assertion-mismatch', 'PROJ-9/TC-03']);   // ffp F2 — LRN-05 carries it but is NOT in this slice
+    run(['fp', 'spec-flaky', 'x.spec.ts › TC-01']);       // ffp F4 — LRN-08 (e2e-write) not in this slice → active [], but the class recurred
+    run(['fp', 'ci-step-failed', 'deploy/smoke']);        // ffp F5 — dated 2026-08-17, BEFORE LRN-20260820-09 exists
+    const fpFile = path.join(tmp, 'features-kb', 'fingerprints.jsonl');
+    check(fs.existsSync(fpFile), 'fp writes fingerprints.jsonl next to the learnings file');
+    const fps = fs.readFileSync(fpFile, 'utf8').trim().split('\n').map(l => JSON.parse(l));
+    check(fps.length === 6, `fp appends one line per call (${fps.length}/6)`);
+    const l1 = fps[0] || {};
+    check(l1.v === 1 && l1.ts === '2026-08-17T00:00:00Z' && l1.run === runId && l1.skill === 'e2e-pom' && l1.kind === 'locator-not-found' && l1.key === 'checkout/place-order-btn' && /^[0-9a-f]{12}$/.test(l1.pfp || ''), 'fp line has v/ts/run/skill/pfp/kind/key from marker + args', JSON.stringify(l1));
+    check(l1.ffp === F1, `ffp = sha256(kind + "\\n" + key)[:12] (${l1.ffp} vs ${F1})`);
+    check(fps[1].ffp === F1, 'normalization: case, spaces around /, a hex hash and a timestamp do not change the ffp (mutation guard: unnormalized key)');
+    check(fps[2].ffp !== F1, 'a different element hashes to a different ffp');
+    check(JSON.stringify([...(l1.active || [])].sort()) === JSON.stringify(['LRN-20260801-01', 'LRN-20260801-02', 'LRN-20260801-03']), `active = slice learnings whose Fingerprint: == ffp (${JSON.stringify(l1.active)})`);
+    check(!(l1.active || []).includes('LRN-20260801-07'), 'active excludes a same-scope learning the compile dropped (profile mismatch) — active comes from the slice, not the scope (mutation guard)');
+    check(Array.isArray(fps[2].active) && fps[2].active.length === 0, 'no matching Fingerprint: → active []');
+    check(fps[3].ffp === F2 && fps[3].active.length === 0, 'active is computed from THIS run\'s slice, not from every learning (LRN-05 has the ffp but is qa-only) — mutation guard');
+    check(/active=\[LRN-20260801-01/.test(o1) && /falsification evidence/.test(o1), 'fp prints the falsified learnings and says so');
+    check((run(['fp', '--list']).match(/^[0-9a-f]{12}  /gm) || []).length === 6, 'fp --list prints this run\'s fingerprints (ffp kind key [active])');
+    const mirrorFile = path.join(runDir, 'fingerprints.jsonl');
+    check(fs.existsSync(mirrorFile) && fs.readFileSync(mirrorFile, 'utf8').trim().split('\n').length === 6, 'fp lines are mirrored into the run directory');
+    // fallback without a slice: a plain run-id (no compile) → active from the skill's active read set
+    run(['run-id', '--skill', 'qa', '--ticket', 'PROJ-9']);
+    const o5 = run(['fp', 'assertion-mismatch', 'PROJ-9/TC-03']);
+    check(/active=\[LRN-20260801-05\]/.test(o5), 'without a slice, active falls back to the skill\'s scoped active learnings (qa → LRN-05)');
+    // validation
+    const before = fs.readFileSync(fpFile, 'utf8');
+    const e1 = fails(['fp', 'selector-broke', 'x']);
+    check(e1 !== null && /Closed vocabulary/.test(e1) && /locator-not-found/.test(e1), 'unknown kind is rejected and the vocabulary printed', e1 || 'accepted');
+    check(fails(['fp', 'locator-not-found']) !== null, 'fp without a key exits non-zero');
+    check(fs.readFileSync(fpFile, 'utf8') === before, 'rejected fp calls append nothing');
+
+    // ── stats: in_slice, never-applied (threshold), falsified/duplicate by fingerprint, promotion column
+    const logFile = path.join(tmp, 'features-kb', 'learnings-log.jsonl');
+    // 9 more compiled events naming LRN-04 (→ in_slice 10) and LRN-02 (→ 9: below threshold); written directly = the reader under test
+    for (let i = 0; i < 9; i++) fs.appendFileSync(logFile, JSON.stringify({ v: 1, ts: '2026-08-10T00:00:00Z', run: `x-${i}`, skill: 'qa', event: 'compiled', sources: ['LRN-20260801-04', 'LRN-20260801-02', 'REF-playwright-patterns#never'], used: 1, max: 0, dropped: [] }) + '\n');
+    for (const [r, ts] of [['a', '2026-08-11T00:00:00Z'], ['b', '2026-08-12T00:00:00Z'], ['c', '2026-08-13T00:00:00Z']]) {
+      run(['log', 'applied', 'LRN-20260801-05', '--skill', 'qa'], { QAB_RUN: `qa-${r}`, QAB_TS: ts });
+      run(['log', 'applied', 'LRN-20260801-06', '--skill', 'qa'], { QAB_RUN: `qa-${r}`, QAB_TS: ts });
+      run(['log', 'applied', 'LRN-20260801-08', '--skill', 'qa'], { QAB_RUN: `qa-${r}`, QAB_TS: ts });
+      run(['log', 'applied', 'LRN-20260820-09', '--skill', 'qa'], { QAB_RUN: `qa-${r}`, QAB_TS: ts });
+      run(['log', 'applied', 'REF-playwright-patterns#never', '--skill', 'qa'], { QAB_RUN: `qa-${r}`, QAB_TS: ts });
+      run(['log', 'outcome', '--status', 'DONE', '--skill', 'qa'], { QAB_RUN: `qa-${r}`, QAB_TS: ts });
+    }
+    const st = JSON.parse(run(['stats', '--json']));
+    const row = id => (st.rows || []).find(r => r.src === id) || {};
+    check(row('LRN-20260801-04').in_slice === 10 && row('LRN-20260801-04').applied === 0 && row('LRN-20260801-04').never_applied === true, `never-applied: in_slice 10 ∧ applied 0 (${JSON.stringify(row('LRN-20260801-04'))})`);
+    check(row('LRN-20260801-02').in_slice === 10 && row('LRN-20260801-02').never_applied === true, 'in_slice = own compile (1) + 9 synthetic compiled events = 10; applied 0 → never-applied');
+    check(row('LRN-20260801-01').in_slice === 1 && row('LRN-20260801-01').never_applied === false, 'in_slice 1 is far below the dormancy threshold');
+    check(row('REF-playwright-patterns#never').in_slice === 10 && row('REF-playwright-patterns#never').applied === 3 && row('REF-playwright-patterns#never').never_applied === false, 'applied > 0 is never dormant however often it was in the slice');
+    // threshold boundary: exactly 9 compiled events → not never-applied
+    fs.appendFileSync(logFile, Array.from({ length: 9 }, (_, i) => JSON.stringify({ v: 1, ts: '2026-08-10T00:00:00Z', run: `z-${i}`, skill: 'qa', event: 'compiled', sources: ['LRN-20260801-98'], used: 1, max: 0, dropped: [] })).join('\n') + '\n');
+    const st2 = JSON.parse(run(['stats', '--json']));
+    const row2 = id => (st2.rows || []).find(r => r.src === id) || {};
+    check(row2('LRN-20260801-98').in_slice === 9 && row2('LRN-20260801-98').never_applied === false, 'never-applied threshold boundary: in_slice 9 is NOT dormant (mutation guard: ≥10)');
+    // falsified / duplicate by fingerprint
+    check(row2('LRN-20260801-01').falsified_by_fingerprint === 2 && JSON.stringify(row2('LRN-20260801-01').fingerprint_ffps) === JSON.stringify([F1]), 'falsified (fingerprint): count of fp lines naming the LRN in active, with the ffp');
+    check(row2('LRN-20260801-04').falsified_by_fingerprint === 0, 'no fp line names LRN-04 → not falsified by fingerprint');
+    check(row2('LRN-20260801-03').duplicate_of === 'LRN-20260801-01', 'duplicate (fingerprint): same Fingerprint ∧ same Scope set → newer names the older id');
+    check(row2('LRN-20260801-02').duplicate_of === null, 'same Fingerprint but different Scope is NOT a duplicate (mutation guard: dedupe ignores Scope)');
+    check(row2('LRN-20260801-01').duplicate_of === null, 'the oldest entry of a duplicate group is not itself marked duplicate');
+    // promotion column: LRN-06 (3 applied / 3 runs, ffp silent) is a candidate; LRN-05 has the same numbers but its ffp recurred after its date → not
+    check(row2('LRN-20260801-06').applied === 3 && row2('LRN-20260801-06').promotion_candidate === true, 'promotion candidate: applied≥3 across ≥3 runs, contradicted 0, ffp silent');
+    check(row2('LRN-20260801-05').applied === 3 && row2('LRN-20260801-05').promotion_candidate === false, 'a fingerprint-falsified LRN with 3 applied is not a candidate (LRN-05: F2 named it in active)');
+    check(row2('LRN-20260801-08').applied === 3 && row2('LRN-20260801-08').falsified_by_fingerprint === 0 && row2('LRN-20260801-08').promotion_candidate === false, 'promotion needs the LRN\'s own ffp silent since its date — F4 recurred (active [] because LRN-08 was not in that slice) → not a candidate (mutation guard: recurrence ignored)');
+    check(row2('LRN-20260820-09').applied === 3 && row2('LRN-20260820-09').promotion_candidate === true, 'an fp line dated BEFORE the LRN existed does not count against it (silent since activation, not since forever)');
+    check(row2('REF-playwright-patterns#never').promotion_candidate === false, 'REF rows are never promotion candidates (already references)');
+    check(row2('LRN-20260801-01').promotion_candidate === false, 'a fingerprint-falsified LRN is never a promotion candidate');
+    // recurrence table
+    const fpr = (st2.fingerprints || []).find(f => f.ffp === F1) || {};
+    check(fpr.count === 2 && fpr.runs === 1 && JSON.stringify(fpr.active) === JSON.stringify(['LRN-20260801-01', 'LRN-20260801-02', 'LRN-20260801-03']) && fpr.kind === 'locator-not-found', `stats.fingerprints aggregates per ffp (count, runs, active) — ${JSON.stringify(fpr)}`);
+    check((st2.fingerprints || []).length === 5, `stats.fingerprints lists every distinct class — F1 ×2, cancel-btn, F2 ×2, F4, F5 = 5 classes over 7 lines (${(st2.fingerprints || []).length}/5)`);
+    check(st2.fingerprint_lines === 7, 'stats counts fingerprint lines');
+    const table = run(['stats']);
+    check(/\| LRN-20260801-01 \|[^\n]*falsified \(fingerprint [0-9a-f]{12} ×2\)/.test(table), 'stats table labels falsified (fingerprint <ffp> ×n)');
+    check(/\| LRN-20260801-03 \|[^\n]*duplicate \(fingerprint\) of LRN-20260801-01/.test(table), 'stats table labels duplicate (fingerprint) of <older id>');
+    check(/\| LRN-20260801-04 \|[^\n]*never applied \(in_slice 10\)/.test(table), 'stats table labels never applied (in_slice N)');
+    check(/fingerprint recurrence/.test(table) && new RegExp(`\\| ${F1} \\| locator-not-found \\|`).test(table), 'stats prints the recurrence table');
+    // --since filters fingerprints too
+    const st3 = JSON.parse(run(['stats', '--json', '--since', '2026-08-18']));
+    check(st3.fingerprint_lines === 0 && (st3.rows.find(r => r.src === 'LRN-20260801-01') || {}).falsified_by_fingerprint === 0, 'stats --since applies to fingerprint lines as well');
+
+    // ── scoreboard: derived cache from both logs
+    const sbOut = run(['scoreboard']);
+    const sbPath = path.join(tmp, 'features-kb', '.cache', 'scoreboard.json');
+    check(fs.existsSync(sbPath) && /\.cache\/scoreboard\.json rebuilt/.test(sbOut), 'scoreboard writes features-kb/.cache/scoreboard.json');
+    const sb = JSON.parse(fs.readFileSync(sbPath, 'utf8'));
+    check(sb.v === 1 && sb.rebuilt_at === '2026-08-17T00:00:00Z' && sb.per_source && sb.per_fingerprint, 'scoreboard v1 has rebuilt_at, per_source, per_fingerprint');
+    const s04 = sb.per_source['LRN-20260801-04'] || {};
+    check(s04.in_slice === 10 && s04.applied === 0 && s04.contradicted === 0 && s04.runs === 0 && s04.last_applied === null, `per_source has in_slice/applied/contradicted/last_applied/runs (${JSON.stringify(s04)})`);
+    const s05 = sb.per_source['LRN-20260801-05'] || {};
+    check(s05.applied === 3 && s05.runs === 3 && s05.last_applied === '2026-08-13', 'per_source applied/runs/last_applied from applied events');
+    check(Object.values(sb.per_source).every(x => !('wins' in x) && !('losses' in x)), 'scoreboard v1 has no wins/losses (RFC decision 4)');
+    check((sb.per_fingerprint[F1] || {}).count === 2 && (sb.per_fingerprint[F1] || {}).active.includes('LRN-20260801-01'), 'per_fingerprint carries recurrence + falsified learnings');
+    // in_slice comes from compiled events, not from applied (mutation guard): a source applied but never compiled has in_slice 0
+    run(['log', 'applied', 'LRN-20260801-77', '--skill', 'qa'], { QAB_RUN: 'qa-z' });
+    run(['scoreboard']);
+    const sb2 = JSON.parse(fs.readFileSync(sbPath, 'utf8'));
+    check((sb2.per_source['LRN-20260801-77'] || {}).in_slice === 0 && (sb2.per_source['LRN-20260801-77'] || {}).applied === 1, 'in_slice counts compiled events only — an applied-but-never-compiled source has in_slice 0');
+    // rebuild is idempotent (same inputs → same file)
+    const a = fs.readFileSync(sbPath, 'utf8'); run(['scoreboard']);
+    check(fs.readFileSync(sbPath, 'utf8') === a, 'scoreboard rebuild is deterministic for the same inputs');
+    // malformed fingerprint line: skipped, counted, never crashes
+    fs.appendFileSync(fpFile, '{nope\n');
+    check(/malformed/.test(run(['stats'])), 'stats reports malformed fingerprint lines and continues');
+  } finally {
+    fs.rmSync(tmp, { recursive: true, force: true });
+  }
+}
+
 testSkillManifest();
 testRuntimeHelper();
 testLearningsGates();
 testReferenceIndex();
 testCompile();
+testFingerprints();
 testExcludeConditions();
 testEvalFixtures();
 testCrlfTolerance();

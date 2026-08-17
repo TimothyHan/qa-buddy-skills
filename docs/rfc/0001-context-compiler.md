@@ -208,6 +208,7 @@ Zero-dependency Node script, source at repo `bin/qab.js`, shipped by `build.js` 
 | `log <event> [<src>] [--note …] [--status …] [--run <id>] [--skill <s>]` | PR1 | appends one v1 line; `run`/`skill` from flags → `QAB_RUN` env → marker → `unknown` |
 | `stats [--since <date>]` | PR1 | per-source table from the log: `applied, contradicted, last_applied, runs` (+ `in_slice` after PR5) |
 | `compile --skill <s> [--ticket <k>]` | PR5 | §5; unscored until PR7 |
+| `fp <kind> <key>` / `fp --list` | PR6 | append a §3.4 line (`active` from the current slice); list this run's fingerprints |
 | `scoreboard` | PR6 | rebuild `.cache/scoreboard.json` from both logs |
 
 Fallback when Node is absent (rare — `build.js` already requires it): documented `echo` recipe with `"writer":"manual"`; distill reports the manual ratio.
@@ -287,7 +288,7 @@ Rules for every PR: target `feat/context-compiler` (decision 15); en + ko for an
 | **PR3** | done | REF ids (`qab:` comments) + `index.json` + locale parity + `Overrides:` migration | none |
 | **PR4** | done — gate met 5/5 REF, 4/5 LRN (skills-test, 5 real runs 2026-08-17) | REF citation + REF `applied` events + compliance gate | none (tokens) |
 | **PR5** | shipped (PR4 gate met 5/5 REF, 2026-08-17) | `qab.js compile` unscored + run dir + scratchpad-lite + `run-protocol.md` | none (set-equality) |
-| **PR6** | | fingerprints + scoreboard cache + falsified/duplicate-by-fp | heal-mode preference only |
+| **PR6** | shipped 2026-08-17 (`fp`, `scoreboard`, `stats` findings; 8/8 mutants red) | fingerprints + scoreboard cache + falsified/duplicate-by-fp | none (`pom-stats.jsonl` heal preference deferred) |
 | **gate** | | §9.3 | |
 | **PR7** | | scored selection behind `compiler.scoring` | yes, flagged |
 | **PR8** | | `autoStatusChanges` opt-in | yes, opt-in |
@@ -359,6 +360,7 @@ Rules for every PR: target `feat/context-compiler` (decision 15); en + ko for an
 4. Distill (+ ko): Falsified-by-fingerprint, Duplicate-by-fingerprint, recurrence table.
 5. Optional: `e2e-pom` heal strategy stats sidecar (`pom-stats.jsonl`), preferred when `tries ≥ MIN_SAMPLES`.
 - **Acceptance:** fixture-app recurring failure → fp line with LRN in `active` → distill lists it falsified. **Behaviour:** heal-mode preference only.
+- **Settled in PR6:** (a) `key` normalization is a safety net, not a parser — lowercase; ISO timestamps/dates, UUIDs, hex hashes (≥ 7 with a digit), `:port`, digit runs ≥ 5 removed; whitespace and dangling separators collapsed; `checkout / btn` ≡ `checkout/btn`. Keys are meant to be class-level (`screen/element`, `TICKET/AC#`, `spec › TC-id`, `pipeline/step`). (b) `active` = LRNs in **this run's slice manifest** with the matching `Fingerprint:`; without a slice (plain `run-id`) it falls back to the skill's scoped active learnings — a profile-dropped learning is therefore not "active" for that run and is not falsified by it. (c) fp lines are mirrored into `<run>/fingerprints.jsonl`; `pfp` is copied from the run's `profile.json` when present. (d) `stats` rows now include every `active` LRN (zero rows are shown, not omitted) and an `in_slice` column from `compiled` events; findings: `falsified (fingerprint <ffp> ×n)`, `duplicate (fingerprint) of <oldest id>` (same `Fingerprint:` ∧ same `Scope:` set), `never applied (in_slice N)` at `in_slice ≥ 10 ∧ applied = 0`; the promotion column additionally requires the LRN's own ffp silent **since the LRN's date** (id date) and is LRN-only (REF rows are never promotion candidates). (e) scoreboard v1 = `{v, rebuilt_at, per_source{in_slice, applied, contradicted, last_applied, runs}, per_fingerprint{kind, key, count, runs, active, first, last}}`; `runs` keeps the `stats` meaning (distinct runs with `applied`); no `wins/losses` (decision 4); rebuilt on demand, gitignored (`features-kb/.cache/`, setup skill adds it). (f) `pom-stats.jsonl` (heal-strategy preference) not built — no heal data yet to prefer on; PR6 behaviour change is therefore *none*.
 
 ### Gate — before PR7 (§9.3)
 

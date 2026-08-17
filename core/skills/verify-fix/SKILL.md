@@ -1,6 +1,6 @@
 ---
 name: verify-fix
-version: 0.3.2
+version: 0.3.3
 description: |
   Re-test a bug fix after a developer resolves it. Pulls the original bug from Jira,
   re-executes the repro steps in the browser, checks for regressions, and updates
@@ -70,6 +70,9 @@ Before testing, confirm the fix is reachable:
 - Staging: confirm deployment includes the fix (commit hash, deploy logs, or ask SDT)
 
 If not deployed, report BLOCKED: "The fix for {BUG-KEY} doesn't appear to be deployed to {URL}."
+If the reason is a failed pipeline or deploy step (CI red, build broken, deploy
+job failed), fingerprint it first: `node $QAB fp ci-step-failed "<pipeline>/<step>"` —
+a learning that claimed to prevent this class shows up under `active`; flag it.
 
 ---
 

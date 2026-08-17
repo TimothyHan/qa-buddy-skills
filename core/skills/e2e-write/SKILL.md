@@ -1,6 +1,6 @@
 ---
 name: e2e-write
-version: 0.1.3
+version: 0.1.4
 description: |
   Write the e2e test suite from test cases: API client for preconditions,
   fixtures, and intent-only specs on top of a proven POM. Never invents
@@ -143,6 +143,13 @@ Gate failed after honest attempts to fix → report DONE_WITH_CONCERNS or
 BLOCKED with the failing gate's output. Flaky ≠ done: a suite that passed
 once but fails `--repeat-each` is reported as flaky, with the failing test
 named — never as DONE.
+
+Fingerprint what the gates caught (one line per distinct failure, after the
+fix attempts, before the report): a test that fails only under gate 2/3 →
+`node $QAB fp spec-flaky "<spec file> › <TC id>"`; a fixture, storageState or
+seeded precondition the spec needed but could not get →
+`node $QAB fp fixture-missing "<fixture or precondition>"`. If the helper
+lists a learning under `active`, that rule failed to prevent it — flag it.
 
 ## Phase 6: Report
 
