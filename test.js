@@ -709,6 +709,7 @@ function testRuntimeHelper() {
     check(/`QAB=[^"'`\s]+\/bin\/qab\.js`/.test(distSkill), `dist/${platform}: preamble assigns QAB=<path>/bin/qab.js unquoted`);
     check(!/QAB="node/.test(distSkill), `dist/${platform}: preamble does not quote "node ~/…" (tilde would not expand)`);
     check((distSkill.match(/node \$QAB (run-id|log)/g) || []).length >= 4, `dist/${platform}: preamble calls node $QAB for run-id/log (≥4 sites)`);
+    check(/REF-<file-stem>#<id>/.test(distSkill) && /REF-playbook\/<stem>#<id>/.test(distSkill), `dist/${platform}: preamble item 2 tells the model the REF id form (PR4 citation obligation)`);
   }
   if (!fs.existsSync(src)) return;
 
@@ -788,13 +789,49 @@ function testRuntimeHelper() {
     check(row09.contradicted === 2 && row09.falsified === false, 'stats: contradicted≥2 but applied afterwards → NOT falsified (mutation M4 guard)');
     check(stats.runs_with_outcome === 3 && stats.outcomes.DONE === 2 && stats.outcomes.DONE_WITH_CONCERNS === 1, 'stats: outcome counts per status');
     const table = run(['stats']);
-    check(/\| source \| applied \| contradicted \| runs \| last_applied \|/.test(table), 'stats prints the computed-columns table');
+    check(/\| source \| kind \| applied \| contradicted \| runs \| last_applied \|/.test(table), 'stats prints the computed-columns table (with kind)');
     check(/LRN-20260808-03[^\n]*promotion candidate/.test(table) && /LRN-20260808-08[^\n]*falsified/.test(table), 'stats table labels findings per row');
 
+    // ── PR4: REF citation. Validation needs index.json next to the helper, so exercise the SHIPPED copy.
+    const shipped = path.join(resolvePlatformDir('claude'), 'references', 'bin', 'qab.js'); // en or ko-only dist
+    const runS = (args, extraEnv) => execFileSync(process.execPath, [shipped, ...args], { env: { ...env, ...(extraEnv || {}) }, encoding: 'utf8', stdio: ['ignore', 'pipe', 'pipe'] });
+    const failsS = (args) => { try { runS(args); return null; } catch (e) { return e.status !== 0 ? String(e.stderr || '') : null; } };
+    if (fs.existsSync(shipped) && fs.existsSync(path.join(resolvePlatformDir('claude'), 'references', 'index.json'))) {
+      const beforeRef = fs.readFileSync(logFile, 'utf8');
+      runS(['log', 'applied', 'REF-playwright-patterns#never'], { QAB_RUN: 'ref-run-000001' });
+      runS(['log', 'applied', 'REF-playbook/test-types#automation-guidelines'], { QAB_RUN: 'ref-run-000001' });
+      runS(['log', 'outcome', '--status', 'DONE'], { QAB_RUN: 'ref-run-000001' });
+      const afterRef = fs.readFileSync(logFile, 'utf8').trim().split('\n');
+      const refLine = JSON.parse(afterRef[afterRef.length - 3]);
+      check(refLine.event === 'applied' && refLine.src === 'REF-playwright-patterns#never', 'log applied accepts a REF id that exists in index.json');
+      const e1 = failsS(['log', 'applied', 'REF-playwright-patterns#nevr']);
+      check(e1 !== null && /unknown REF id/.test(e1) && /REF-playwright-patterns#never/.test(e1), 'unknown REF id is rejected with the nearest suggestion (nevr → never)', e1 || 'accepted');
+      const e2 = failsS(['log', 'applied', 'REF-test-types#automation-guidelines']);
+      check(e2 !== null && /REF-playbook\/test-types#automation-guidelines/.test(e2), 'missing playbook/ prefix is rejected and the playbook id is suggested', e2 || 'accepted');
+      const e3 = failsS(['log', 'applied', 'REF-Bad']);
+      check(e3 !== null && /malformed REF id/.test(e3), 'malformed REF id is rejected');
+      const e4 = failsS(['log', 'applied', 'not-an-id']);
+      check(e4 !== null, 'non LRN/REF source id is rejected');
+      check(fs.readFileSync(logFile, 'utf8').split('\n').length === beforeRef.split('\n').length + 3, 'rejected REF ids append nothing');
+      const st = JSON.parse(runS(['stats', '--json']));
+      const refRow = (st.rows || []).find(r => r.src === 'REF-playwright-patterns#never') || {};
+      check(refRow.kind === 'REF' && refRow.applied === 1, 'stats: REF rows carry kind=REF and counts');
+      // compliance: runs with outcome so far — qa (marker run, LRN only), test-cases-x (LRN only), third-run (LRN only), ref-run (REF)
+      const comp = st.compliance || {};
+      const total = Object.values(comp).reduce((a, c) => a + c.runs, 0);
+      const withRef = Object.values(comp).reduce((a, c) => a + c.with_ref, 0);
+      check(total === 4 && withRef === 1, `stats: citation compliance counts runs with outcome and those with a REF applied (${withRef}/${total}, expected 1/4)`, JSON.stringify(comp));
+      const table2 = runS(['stats']);
+      check(/citation compliance/.test(table2) && /overall: 1\/4 REF/.test(table2), 'stats prints the compliance readout with the PR4 gate');
+    } else {
+      fail('shipped qab.js + index.json present for REF validation test', 'run node build.js all');
+    }
+
     // Malformed line tolerance: skipped and counted, never crashes
+    const eventsBefore = JSON.parse(run(['stats', '--json'])).events;
     fs.appendFileSync(logFile, '{not json\n');
     const stats2 = JSON.parse(run(['stats', '--json']));
-    check(stats2.malformed === 1 && stats2.events === 15, 'stats skips and counts malformed lines');
+    check(stats2.malformed === 1 && stats2.events === eventsBefore, `stats skips and counts malformed lines (${stats2.events} events, 1 malformed)`);
   } finally {
     fs.rmSync(tmp, { recursive: true, force: true });
   }

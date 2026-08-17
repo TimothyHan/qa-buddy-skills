@@ -1,6 +1,6 @@
 ---
 name: improve
-version: 0.6.0
+version: 0.6.1
 description: |
   Meta-skill that improves other skills based on real usage failures. When an SDT
   reports a skill produced incorrect or unexpected output, this skill analyzes the
@@ -213,7 +213,8 @@ Skip upstream contribution if:
 
 Read the protocol first: `{{REFERENCE_PATH}}/self-improve.md`. Then read the
 learnings file (`learningsPath` from `.qabuddy.json`, default `features-kb/LEARNINGS.md`)
-and run `node {{REFERENCE_PATH}}/bin/qab.js stats` — the log's per-source counts.
+and run `node {{REFERENCE_PATH}}/bin/qab.js stats` — the log's per-source counts
+(LRN and REF rows) plus citation compliance; report the compliance line as-is.
 Numbers come from the log, not from `Evidence:` prose; if the log is absent or a
 source has no rows, say so and fall back to prose for that entry only.
 
