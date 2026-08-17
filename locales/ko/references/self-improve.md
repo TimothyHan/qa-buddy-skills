@@ -40,14 +40,16 @@ QABuddy는 완성품이 아니라 파운데이션입니다. 모든 프로젝트�
 - **Overrides:** REF-playwright-patterns#must-rules (확장: API 우선, 엔드포인트 추가)
 - **Evidence:** 2026-08-07 /qa-test-cases 실행 — SDT가 초안 수정; UI 시딩이
   스프린트 14에서 플레이키한 체크아웃 스펙의 원인이었음.
-- **Fingerprint:** ffp-a3f9c21b0e44   <!-- 선택: 이 규칙이 막는 실패 클래스 -->
+- **Fingerprint:** ffp-a3f9c21b0e44   <!-- 선택: 이 규칙이 막는 실패 클래스 (실패 지문 참조) -->
 - **Profile:** surface=web            <!-- 선택: Scope보다 좁힘; AND 결합 -->
 ```
 
 ID 형식은 `LRN-YYYYMMDD-NN` (생성일 + 순번). ID는 영구적 — 은퇴 후에도 재사용 금지.
 `Overrides:`는 이 학습이 무엇을 확장·대체하는지 가리킵니다: 레퍼런스 섹션 id
 (`REF-…`, 아래), 스킬 규칙(`SKILL:test-cases "…"`), 또는 `없음`. `Fingerprint:`와
-`Profile:`은 선택이며 기계가 읽습니다 (지문과 프로파일은 RFC 0001의 이후 단계에서 정의).
+`Profile:`은 선택이며 기계가 읽습니다: `Fingerprint:`는 이 규칙이 막는다고 주장하는
+실패 클래스의 `ffp`(아래 *실패 지문*); `Profile:`은 학습을 실행 프로파일로 좁힙니다
+(`surface=web`, `pom=exists`, `ticket_kind=bug`).
 
 ## 소스 ID
 <!-- qab: id=source-ids -->
@@ -115,6 +117,10 @@ ID 형식은 `LRN-YYYYMMDD-NN` (생성일 + 순번). ID는 영구적 — 은퇴 
   기술합니다 (**Overrides** 필드 사용). 레퍼런스 내용을 학습에 붙여넣지 마세요 —
   오래된 포크가 갱신된 정본을 조용히 가리는 것이 바로 이 레이어가 막으려는 실패입니다.
 - **항목당 사실 하나.** 한 실행에서 학습 둘 = 항목 둘.
+- **지문을 연결하세요.** 트리거 1이 발화했고 이 실행이 그 실패의 지문을 냈다면
+  (`qab.js fp --list`가 보여줌), 새 항목의 `Fingerprint:`를 그 `ffp`로 설정합니다 —
+  같은 클래스를 다시 만나는 다음 실행이 누구의 재판단 없이 그 항목을 자동으로
+  반증합니다.
 - 보고서에 포착을 언급: "LRN-{id} 포착: {한 줄 요약}." 그리고
   `qab.js log captured LRN-{id}`를 실행하세요.
 
@@ -145,6 +151,7 @@ node <references>/bin/qab.js log applied LRN-20260807-01                    # �
 node <references>/bin/qab.js log applied REF-playwright-patterns#never       # 레퍼런스 섹션이 출력을 결정함
 node <references>/bin/qab.js log contradicted LRN-… --note "<관찰한 것>"    # 실행 중 현실이 어긋남
 node <references>/bin/qab.js log captured LRN-…                             # 새 항목을 추가함
+node <references>/bin/qab.js fp locator-not-found "checkout/place-order-btn" # 이름 붙은 실패 클래스를 만남 (아래 실패 지문)
 node <references>/bin/qab.js log outcome --status DONE                      # 상태 블록 직전 마지막
 ```
 
@@ -157,10 +164,43 @@ node <references>/bin/qab.js log outcome --status DONE                      # �
 `events.jsonl`에도 미러됩니다(`run-protocol.md`). Node를 쓸 수 없으면 같은 형태를 `echo … >>`로 추가하되
 `"writer":"manual"`을 넣어 정제가 비율을 보고할 수 있게 하세요.
 
-`qab.js stats`는 로그를 소스별 카운트(`applied`, `contradicted`, `runs`,
-`last_applied`, LRN·REF 행 모두), 아래 두 계산 판정, 그리고 **인용 준수율** --
-outcome이 있는 실행 중 REF `applied`를 하나 이상 로그한 비율(RFC 0001 PR4 게이트:
-≥ 4/5) -- 로 바꿉니다. 스킬은 로그를 읽지 않습니다; 정제만 읽습니다.
+`qab.js stats`는 로그를 소스별 카운트(`in_slice`, `applied`, `contradicted`,
+`runs`, `last_applied`, LRN·REF 행 모두), 아래 계산 판정들, 지문 재발 표, 그리고
+**인용 준수율** -- outcome이 있는 실행 중 REF `applied`를 하나 이상 로그한 비율(RFC
+0001 PR4 게이트: ≥ 4/5) -- 로 바꿉니다. `qab.js scoreboard`는 같은 숫자를 학습 파일
+옆 `.cache/scoreboard.json`에 씁니다 -- 파생 캐시(`features-kb/.cache/`를 gitignore)이며,
+필요할 때마다 두 로그에서 다시 만들어지고, 절대 진실의 원천이 아닙니다. 스킬은
+로그도 스코어보드도 읽지 않습니다; 정제(그리고 나중에는 점수 컴파일러)만 읽습니다.
+
+## 실패 지문
+<!-- qab: id=fingerprints -->
+
+지문은 실패 **클래스**의 이름이지 사건의 이름이 아닙니다. 그래서 같은 실패가 이후
+실행에서 재발하면 셀 수 있고 -- 그것을 막는다고 주장한 학습에 불리하게 집계됩니다.
+스킬이 닫힌 종류 중 하나를 만나면 실행합니다:
+
+```bash
+node <references>/bin/qab.js fp <kind> "<key>"       # 예: fp locator-not-found "checkout/place-order-btn"
+node <references>/bin/qab.js fp --list               # 이 실행의 지문들 (ffp · kind · key · active)
+```
+
+- **kind** -- 닫힌 어휘, 신중하게 늘리고, 즉흥적으로 만들지 않습니다:
+  `locator-not-found` (e2e-pom heal) · `spec-flaky`, `fixture-missing` (e2e-write
+  게이트) · `ac-unmapped`, `env-unreachable`, `auth-failed`, `assertion-mismatch`
+  (qa) · `ci-step-failed` (verify-fix) · `tool-unavailable` (모든 스킬).
+- **key** -- 규칙이 다룰 수준에서 클래스를 명명합니다: `화면/요소`, `TICKET/AC#`,
+  `spec › TC-id`, `pipeline/step`. 헬퍼가 정규화하고(소문자; 타임스탬프, UUID, 해시,
+  포트, 긴 숫자열 제거) `ffp = sha256(kind + "\n" + key)[:12]`로 해시하므로, 실행
+  id나 엔티티 엔트로피만 다른 사건은 같은 `ffp`에 떨어집니다.
+- **active** -- 이 실행의 슬라이스에 있는 학습 중 `Fingerprint:`가 새 `ffp`와 같은
+  것들. 비어 있지 않으면 이 클래스를 막는다고 주장한 규칙이 막지 못한 것입니다:
+  헬퍼가 그렇게 말하고, 당신은 보고서에 플래그하고, 정제는 그 항목을 *반증됨(지문)*
+  으로 나열합니다 -- 감지에 사람의 재판단이 필요 없습니다.
+- 라인은 학습 파일 옆 `fingerprints.jsonl`에 쌓이고(커밋, append-only, `v: 1`) 실행
+  디렉터리에도 미러됩니다. 실행당 서로 다른 실패마다 한 줄; 같은 클래스가 한 실행에서
+  세 번 실패해도 지문은 하나입니다.
+- 스킬이 이름 붙인 감지 지점에서만 냅니다; 지문은 증거이지 메모가 아닙니다. 그 외는
+  `## Candidate learnings`로 갑니다.
 
 ## 라이프사이클
 <!-- qab: id=lifecycle -->
@@ -177,8 +217,11 @@ outcome이 있는 실행 중 REF `applied`를 하나 이상 로그한 비율(RFC
 
 | 판정 | 규칙 (`qab.js stats` 기준) |
 |---|---|
-| **승격 후보** | `applied ≥ 3` (서로 다른 실행 `≥ 3`) ∧ `contradicted = 0` — 그 다음 사람의 판단: 이 프로젝트 밖에서도 일반화되는가? |
-| **반증됨** | `contradicted ≥ 2` ∧ 마지막 모순 이후 `applied` 없음 |
+| **승격 후보** | `applied ≥ 3` (서로 다른 실행 `≥ 3`) ∧ `contradicted = 0` ∧ (`Fingerprint:`가 있으면) 그 `ffp`가 항목 날짜 이후 조용함 — 그 다음 사람의 판단: 이 프로젝트 밖에서도 일반화되는가? |
+| **반증됨 (모순)** | `contradicted ≥ 2` ∧ 마지막 모순 이후 `applied` 없음 |
+| **반증됨 (지문)** | `fingerprints.jsonl`의 어떤 라인이든 `active`에 이 항목을 명명 — 막는다고 주장한 실패 클래스가 규칙이 유효한 채로 재발함 |
+| **적용된 적 없음** | `in_slice ≥ 10` ∧ `applied = 0` — 슬라이스에 열 번 컴파일되고도 출력을 한 번도 결정하지 않음 (달력 나이가 아니라 후보 횟수 기준 휴면) |
+| **중복 (지문)** | 두 `active` 항목이 같은 `Fingerprint:` ∧ 같은 `Scope:` — 더 새 항목이 더 오래된 id의 중복 |
 
 ## 게이트 (무엇이 라이브러리를 바꿀 수 있고, 누가)
 <!-- qab: id=gates -->

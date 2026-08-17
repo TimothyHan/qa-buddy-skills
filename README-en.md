@@ -10,7 +10,7 @@
 [![Skills: 14](https://img.shields.io/badge/Skills-14-green.svg)](#skills)
 [![Platform: Claude Code](https://img.shields.io/badge/Platform-Claude_Code-purple.svg)](#how-it-works)
 [![Locales: en, ko](https://img.shields.io/badge/Locales-en_|_ko-orange.svg)](#locales)
-[![Structural checks: 991](https://img.shields.io/badge/Structural_checks-991-brightgreen.svg)](#how-it-works)
+[![Structural checks: 1116](https://img.shields.io/badge/Structural_checks-1116-brightgreen.svg)](#how-it-works)
 
 An AI partner for Software Developers in Test (SDTs) working in Scrum teams.<br>
 Covers the full workflow — from epic test planning through sprint execution to release verification.<br>
@@ -251,7 +251,7 @@ flowchart LR
     C -. proven repeatedly .-> F["/qa-improve distill:<br>promote to references<br>+ upstream PR"]
 ```
 
-**The learnings layer (automatic, every skill run).** Every run reads `features-kb/LEARNINGS.md` at start — active entries are project-specific rules that *override* the shipped references — and checks three capture triggers at the end: a documented rule failed against reality, an undocumented decision was made, or the SDT corrected the output. Entries require evidence; clean runs write nothing. Every run starts by **compiling** the reference sections and learnings scoped to it into one `slice.md` with a manifest (`.qa-reports/runs/<run>/`), then appends what it *applied*, *contradicted*, *captured*, and how it *ended* to `features-kb/learnings-log.jsonl` (append-only, written by the shipped `qab.js` helper — never by hand), so distill decides from counts, not prose. Both files live in your repo, so learnings travel to your whole team via git and survive QABuddy upgrades. Protocol: [`core/references/self-improve.md`](core/references/self-improve.md); design: [RFC 0001](docs/rfc/0001-context-compiler.md).
+**The learnings layer (automatic, every skill run).** Every run reads `features-kb/LEARNINGS.md` at start — active entries are project-specific rules that *override* the shipped references — and checks three capture triggers at the end: a documented rule failed against reality, an undocumented decision was made, or the SDT corrected the output. Entries require evidence; clean runs write nothing. Every run starts by **compiling** the reference sections and learnings scoped to it into one `slice.md` with a manifest (`.qa-reports/runs/<run>/`), then appends what it *applied*, *contradicted*, *captured*, and how it *ended* to `features-kb/learnings-log.jsonl` (append-only, written by the shipped `qab.js` helper — never by hand), and names recurring failure classes in `features-kb/fingerprints.jsonl` so a learning that claimed to prevent one is falsified automatically — distill decides from counts, not prose. Both files live in your repo, so learnings travel to your whole team via git and survive QABuddy upgrades. Protocol: [`core/references/self-improve.md`](core/references/self-improve.md); design: [RFC 0001](docs/rfc/0001-context-compiler.md).
 
 **Skill fixes.** One flow, one owner: `/qa-improve`. Choose **(C) Tool feedback** at any pause point (it dispatches to `/qa-improve` and resumes your workflow), run it directly, or accept the end-of-run suggestion when a captured learning points at a skill defect — structured proposal, targeted fix, eval regression run, PR.
 
@@ -304,7 +304,7 @@ Skills are authored once in `core/skills/`. The build script generates platform-
 ```bash
 node build.js all                  # Build for all platforms
 node build.js all --locale ko      # Build Korean version
-node test.js                       # Run 991 structural checks
+node test.js                       # Run 1116 structural checks
 ```
 
 > **Structural checks are not behavioural verification.** `node test.js` inspects

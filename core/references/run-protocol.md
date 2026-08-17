@@ -16,6 +16,7 @@ exact command). It starts the run if none is current, then writes `<runsDir>/<ru
 | `profile.json` | `{schema: profile/1, skill, surface, pom, ticket_kind, pfp}` — deterministic, `unknown` is a value |
 | `scratchpad.md` | `## Plan` · `## State` · `## Findings` · `## Candidate learnings` |
 | `events.jsonl` | this run's log lines (also appended to the project `learnings-log.jsonl`) |
+| `fingerprints.jsonl` | this run's failure fingerprints, if any (also appended to the project `fingerprints.jsonl`; `self-improve.md` §Failure fingerprints) |
 
 **Candidates** = reference sections whose `scope` names this skill (+ `tier=must` sections scoped
 `all`) ∪ `active` learnings whose `Scope` includes the skill (or `all`) and whose `Profile:` matches.

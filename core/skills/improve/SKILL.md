@@ -1,6 +1,6 @@
 ---
 name: improve
-version: 0.6.1
+version: 0.7.0
 description: |
   Meta-skill that improves other skills based on real usage failures. When an SDT
   reports a skill produced incorrect or unexpected output, this skill analyzes the
@@ -214,23 +214,31 @@ Skip upstream contribution if:
 Read the protocol first: `{{REFERENCE_PATH}}/self-improve.md`. Then read the
 learnings file (`learningsPath` from `.qabuddy.json`, default `features-kb/LEARNINGS.md`)
 and run `node {{REFERENCE_PATH}}/bin/qab.js stats` — the log's per-source counts
-(LRN and REF rows) plus citation compliance; report the compliance line as-is.
-Numbers come from the log, not from `Evidence:` prose; if the log is absent or a
-source has no rows, say so and fall back to prose for that entry only.
+(LRN and REF rows), the fingerprint recurrence table, and citation compliance;
+report the compliance line as-is. Numbers come from the log, not from
+`Evidence:` prose; if the log is absent or a source has no rows, say so and
+fall back to prose for that entry only.
 
 Sweep every `active` entry and classify. Show the computed columns
-(`applied · contradicted · runs · last_applied`) next to each entry:
+(`in_slice · applied · contradicted · runs · last_applied`) next to each entry:
 
 | Finding | Computed from | Action proposed |
 |---|---|---|
 | **Duplicate** — two entries state the same fact | LLM check | Merge evidence into the older ID; mark the newer `retired` with reason "duplicate of LRN-…" |
-| **Falsified** — contradicted by reality | `contradicted ≥ 2` and no `applied` after the last contradiction; or a skill's live drift flag | Mark `retired` with the contradicting log line / evidence as reason |
-| **Promotion candidate** — proven and general | `applied ≥ 3` across `≥ 3` distinct runs AND `contradicted = 0` — then the LLM judgment: generalizable beyond this project? | Propose adding it to the matching reference (e.g., `playwright-patterns.md`); mark `promoted` with a pointer to where it landed |
+| **Duplicate (fingerprint)** — same failure class, same scope | same `Fingerprint:` ∧ same `Scope:` (`stats` names the older id) | Same as above — the older ID stays |
+| **Falsified (contradiction)** — contradicted by reality | `contradicted ≥ 2` and no `applied` after the last contradiction; or a skill's live drift flag | Mark `retired` with the contradicting log line / evidence as reason |
+| **Falsified (fingerprint)** — the failure it claimed to prevent recurred | any `fingerprints.jsonl` line with the entry in `active` (`stats` shows ffp × count) | Mark `retired` with the fingerprint line as reason — or, if the rule is right but incomplete, propose the amended statement as a new entry |
+| **Never applied** — compiled, never used | `in_slice ≥ 10` ∧ `applied = 0` | Propose `retired` ("never applied in N slices") unless the SDT names a reason to keep it; REF rows: report as never-selected, no action |
+| **Promotion candidate** — proven and general | `applied ≥ 3` across `≥ 3` distinct runs AND `contradicted = 0` AND (if `Fingerprint:`) its ffp silent since the entry's date — then the LLM judgment: generalizable beyond this project? | Propose adding it to the matching reference (e.g., `playwright-patterns.md`); mark `promoted` with a pointer to where it landed |
 | **Copy** — restates a reference | LLM check vs reference text | Retire (rule 4) |
 | **Healthy** | — | Leave untouched |
 
 An entry with prose evidence from "3+ runs" but `applied < 3` in the log is
 **not** a promotion candidate — the log is the record; say what the log shows.
+Include the **recurrence table** from `stats` (ffp · kind · key · count · runs ·
+active) in the sweep: a class recurring across runs with no learning in `active`
+is the strongest capture candidate this project has — say so, don't write the
+entry yourself.
 
 Rules:
 
@@ -265,8 +273,9 @@ Rules:
 
 Report: entries swept / merged / retired / promoted / rejected-by-eval / left
 active, the resulting active count, the log summary line from `qab.js stats`
-(events, runs with outcome, manual-writer count), and — for dry-run — the
-proposal file path and "0 edits".
+(events, runs with outcome, manual-writer count, fingerprint lines), and — for
+dry-run — the proposal file path and "0 edits". After any applied change run
+`node {{REFERENCE_PATH}}/bin/qab.js scoreboard` so the cache reflects the new state.
 
 ---
 

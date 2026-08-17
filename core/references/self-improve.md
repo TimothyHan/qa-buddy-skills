@@ -40,7 +40,7 @@ Entry template (one `##` block per learning):
 - **Overrides:** REF-playwright-patterns#must-rules (extends: API-first, adds the endpoint)
 - **Evidence:** 2026-08-07 /qa-test-cases run — SDT corrected draft; UI seeding
   had caused flaky checkout specs in sprint 14.
-- **Fingerprint:** ffp-a3f9c21b0e44   <!-- optional: failure class this rule prevents -->
+- **Fingerprint:** ffp-a3f9c21b0e44   <!-- optional: failure class this rule prevents (see Failure fingerprints) -->
 - **Profile:** surface=web            <!-- optional: narrows beyond Scope; AND-ed -->
 ```
 
@@ -48,7 +48,9 @@ ID format `LRN-YYYYMMDD-NN` (date created, then sequence). IDs are permanent —
 never reused, even after retirement. `Overrides:` names what the learning
 extends or replaces: a reference section id (`REF-…`, below), a skill rule
 (`SKILL:test-cases "…"`), or `none`. `Fingerprint:` and `Profile:` are optional
-and machine-read (fingerprints and profiles are defined by later phases of RFC 0001).
+and machine-read: `Fingerprint:` is the `ffp` of the failure class the rule
+claims to prevent (*Failure fingerprints* below); `Profile:` narrows the
+learning to a run profile (`surface=web`, `pom=exists`, `ticket_kind=bug`).
 
 ## Source IDs
 <!-- qab: id=source-ids -->
@@ -118,6 +120,10 @@ If one occurred, append an entry:
   a learning — a stale fork silently shadowing updated canon is the exact failure
   this layer exists to avoid.
 - **One fact per entry.** Two learnings from one run = two entries.
+- **Link the fingerprint.** If trigger 1 fired and this run emitted a fingerprint
+  for that failure (`qab.js fp --list` shows them), set the new entry's
+  `Fingerprint:` to that `ffp` — the next run that hits the same class then
+  falsifies the entry automatically, without anyone re-judging it.
 - Mention the capture in your report: "Captured LRN-{id}: {one-line statement}."
   and run `qab.js log captured LRN-{id}`.
 
@@ -148,6 +154,7 @@ node <references>/bin/qab.js log applied LRN-20260807-01                    # a 
 node <references>/bin/qab.js log applied REF-playwright-patterns#never       # a reference section shaped output
 node <references>/bin/qab.js log contradicted LRN-… --note "<what you saw>" # live reality disagreed
 node <references>/bin/qab.js log captured LRN-…                             # you appended a new entry
+node <references>/bin/qab.js fp locator-not-found "checkout/place-order-btn" # a named failure class hit (Failure fingerprints, below)
 node <references>/bin/qab.js log outcome --status DONE                      # last thing before the status block
 ```
 
@@ -160,11 +167,47 @@ plus `note` (contradicted) or `status` (outcome). `compiled` is written by `qab.
 into the run's `events.jsonl` (`run-protocol.md`). If Node is unavailable, append the same
 shape with `echo … >>` and add `"writer":"manual"` so distill can report the ratio.
 
-`qab.js stats` turns the log into per-source counts (`applied`, `contradicted`,
-`runs`, `last_applied`, LRN and REF rows alike), the two computed findings
-below, and **citation compliance** — of runs with an outcome, how many logged at
-least one REF `applied` (RFC 0001 PR4 gate: ≥ 4/5). A skill never reads the
-log; only distill does.
+`qab.js stats` turns the log into per-source counts (`in_slice`, `applied`,
+`contradicted`, `runs`, `last_applied`, LRN and REF rows alike), the computed
+findings below, the fingerprint recurrence table, and **citation compliance** —
+of runs with an outcome, how many logged at least one REF `applied` (RFC 0001
+PR4 gate: ≥ 4/5). `qab.js scoreboard` writes the same numbers to
+`.cache/scoreboard.json` next to the learnings file — a derived cache (gitignore
+`features-kb/.cache/`), rebuilt from the two logs whenever needed, never a
+source of truth. A skill never reads the log or the scoreboard; only distill
+(and, later, the scored compiler) does.
+
+## Failure fingerprints
+<!-- qab: id=fingerprints -->
+
+A fingerprint names a failure **class**, not an incident, so the same failure
+recurring in a later run is countable — and counts against the learning that
+claimed to prevent it. When a skill hits one of the closed kinds, it runs:
+
+```bash
+node <references>/bin/qab.js fp <kind> "<key>"       # e.g. fp locator-not-found "checkout/place-order-btn"
+node <references>/bin/qab.js fp --list               # this run's fingerprints (ffp · kind · key · active)
+```
+
+- **kind** — closed vocabulary, grown deliberately, never ad hoc:
+  `locator-not-found` (e2e-pom heal) · `spec-flaky`, `fixture-missing` (e2e-write
+  gates) · `ac-unmapped`, `env-unreachable`, `auth-failed`, `assertion-mismatch`
+  (qa) · `ci-step-failed` (verify-fix) · `tool-unavailable` (any skill).
+- **key** — names the class at the level a rule would address: `screen/element`,
+  `TICKET/AC#`, `spec › TC-id`, `pipeline/step`. The helper normalizes it
+  (lowercase; timestamps, UUIDs, hashes, ports, long digit runs removed) and
+  hashes `ffp = sha256(kind + "\n" + key)[:12]`, so incidents that differ only
+  in run id or entity entropy land on the same `ffp`.
+- **active** — the learnings in this run's slice whose `Fingerprint:` equals the
+  new `ffp`. Non-empty means a rule that claimed to prevent this class did not:
+  the helper says so, you flag it in the report, and distill lists the entry as
+  *falsified (fingerprint)* — no human re-judgment needed to detect it.
+- Lines land in `fingerprints.jsonl` next to the learnings file (committed,
+  append-only, `v: 1`) and are mirrored into the run directory. One line per
+  distinct failure per run; the same class failing three times in one run is one
+  fingerprint.
+- Emit only at the skill's named detection points; a fingerprint is evidence,
+  not a note. Anything else goes in `## Candidate learnings`.
 
 ## Lifecycle
 <!-- qab: id=lifecycle -->
@@ -181,8 +224,11 @@ file exceeds ~30 active entries. Distill computes from the log, not from
 
 | Finding | Rule (from `qab.js stats`) |
 |---|---|
-| **Promotion candidate** | `applied ≥ 3` across `≥ 3` distinct runs ∧ `contradicted = 0` — then the human judgment: generalizable beyond this project? |
-| **Falsified** | `contradicted ≥ 2` ∧ no `applied` after the last contradiction |
+| **Promotion candidate** | `applied ≥ 3` across `≥ 3` distinct runs ∧ `contradicted = 0` ∧ (if `Fingerprint:`) its `ffp` silent since the entry's date — then the human judgment: generalizable beyond this project? |
+| **Falsified (contradiction)** | `contradicted ≥ 2` ∧ no `applied` after the last contradiction |
+| **Falsified (fingerprint)** | any `fingerprints.jsonl` line naming the entry in `active` — the failure class it claimed to prevent recurred with the rule in force |
+| **Never applied** | `in_slice ≥ 10` ∧ `applied = 0` — compiled into the slice ten times, never shaped output (candidate-count dormancy, not calendar age) |
+| **Duplicate (fingerprint)** | two `active` entries with the same `Fingerprint:` ∧ the same `Scope:` — the newer duplicates the older id |
 
 ## Gates (what can change the library, and who)
 <!-- qab: id=gates -->

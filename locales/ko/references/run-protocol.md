@@ -16,6 +16,7 @@
 | `profile.json` | `{schema: profile/1, skill, surface, pom, ticket_kind, pfp}` — 결정적, `unknown`도 값 |
 | `scratchpad.md` | `## Plan` · `## State` · `## Findings` · `## Candidate learnings` |
 | `events.jsonl` | 이 실행의 로그 라인 (프로젝트 `learnings-log.jsonl`에도 추가됨) |
+| `fingerprints.jsonl` | 이 실행의 실패 지문 (있는 경우; 프로젝트 `fingerprints.jsonl`에도 추가됨; `self-improve.md` §실패 지문) |
 
 **후보** = `scope`가 이 스킬을 지명하는 레퍼런스 섹션(+ `all` 스코프의 `tier=must` 섹션) ∪ `Scope`에
 이 스킬(또는 `all`)이 있고 `Profile:`이 맞는 `active` 학습.

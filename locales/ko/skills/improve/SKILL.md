@@ -1,6 +1,6 @@
 ---
 name: improve
-version: 0.6.1
+version: 0.7.0
 description: |
   실제 사용 실패를 기반으로 다른 스킬을 개선하는 메타 스킬입니다. SDT가
   스킬의 출력이 잘못되었거나 예상과 다르다고 보고하면, 근본 원인을 분석하고,
@@ -214,23 +214,29 @@ SDT에게 물어봅니다:
 먼저 프로토콜을 읽습니다: `{{REFERENCE_PATH}}/self-improve.md`. 그 다음 학습
 파일을 읽고 (`.qabuddy.json`의 `learningsPath`, 기본 `features-kb/LEARNINGS.md`)
 `node {{REFERENCE_PATH}}/bin/qab.js stats`를 실행합니다 -- 로그의 소스별 카운트
-(LRN·REF 행)와 인용 준수율; 준수율 줄은 그대로 보고합니다.
+(LRN·REF 행), 지문 재발 표, 인용 준수율; 준수율 줄은 그대로 보고합니다.
 숫자는 `Evidence:` 산문이 아니라 로그에서 옵니다; 로그가 없거나 소스에 행이 없으면
 그렇다고 말하고 해당 항목에 한해 산문으로 대체합니다.
 
 모든 `active` 항목을 훑고 분류합니다. 각 항목 옆에 계산 열
-(`applied · contradicted · runs · last_applied`)을 보여줍니다:
+(`in_slice · applied · contradicted · runs · last_applied`)을 보여줍니다:
 
 | 발견 | 계산 근거 | 제안 액션 |
 |---|---|---|
 | **중복** -- 두 항목이 같은 사실을 진술 | LLM 검사 | 증거를 더 오래된 ID로 병합; 더 새 항목을 "duplicate of LRN-…" 사유와 함께 `retired`로 표시 |
-| **반증됨** -- 현실과 모순 | `contradicted ≥ 2` 이고 마지막 모순 이후 `applied` 없음; 또는 스킬의 실시간 드리프트 플래그 | 모순 로그 라인/증거를 사유로 `retired` 표시 |
-| **승격 후보** -- 증명되었고 일반적 | `applied ≥ 3` (서로 다른 실행 `≥ 3`) AND `contradicted = 0` -- 그 다음 LLM 판단: 이 프로젝트 너머로 일반화 가능한가? | 해당 레퍼런스(예: `playwright-patterns.md`)에 추가 제안; 어디로 갔는지 포인터와 함께 `promoted` 표시 |
+| **중복 (지문)** -- 같은 실패 클래스, 같은 스코프 | 같은 `Fingerprint:` ∧ 같은 `Scope:` (`stats`가 더 오래된 id를 명명) | 위와 동일 -- 더 오래된 ID가 남음 |
+| **반증됨 (모순)** -- 현실과 모순 | `contradicted ≥ 2` 이고 마지막 모순 이후 `applied` 없음; 또는 스킬의 실시간 드리프트 플래그 | 모순 로그 라인/증거를 사유로 `retired` 표시 |
+| **반증됨 (지문)** -- 막는다고 주장한 실패가 재발 | `fingerprints.jsonl`의 어떤 라인이든 `active`에 이 항목 포함 (`stats`가 ffp × 횟수 표시) | 지문 라인을 사유로 `retired` 표시 -- 또는 규칙이 옳지만 불완전하면 보완된 진술을 새 항목으로 제안 |
+| **적용된 적 없음** -- 컴파일됐지만 쓰인 적 없음 | `in_slice ≥ 10` ∧ `applied = 0` | SDT가 유지 이유를 대지 않는 한 `retired` 제안 ("N개 슬라이스에서 한 번도 적용 안 됨"); REF 행은 never-selected로 보고만, 액션 없음 |
+| **승격 후보** -- 증명되었고 일반적 | `applied ≥ 3` (서로 다른 실행 `≥ 3`) AND `contradicted = 0` AND (`Fingerprint:`가 있으면) 그 ffp가 항목 날짜 이후 조용함 -- 그 다음 LLM 판단: 이 프로젝트 너머로 일반화 가능한가? | 해당 레퍼런스(예: `playwright-patterns.md`)에 추가 제안; 어디로 갔는지 포인터와 함께 `promoted` 표시 |
 | **복사본** -- 레퍼런스를 재진술 | 레퍼런스 텍스트 대비 LLM 검사 | 은퇴 (규칙 4) |
 | **건강함** | -- | 그대로 둠 |
 
 산문 증거가 "3회 이상 실행"이라 해도 로그의 `applied < 3`이면 승격 후보가
 **아닙니다** -- 로그가 기록입니다; 로그가 보여주는 것을 말하세요.
+`stats`의 **재발 표**(ffp · kind · key · count · runs · active)를 정제에 포함하세요:
+`active`에 학습이 없는데 여러 실행에 걸쳐 재발하는 클래스는 이 프로젝트가 가진 가장
+강한 포착 후보입니다 -- 그렇게 말하되, 항목을 직접 쓰지는 마세요.
 
 규칙:
 
@@ -263,7 +269,9 @@ SDT에게 물어봅니다:
 
 보고: 훑은 / 병합된 / 은퇴된 / 승격된 / eval로 거부된 / active로 남은 항목 수,
 최종 active 개수, `qab.js stats`의 로그 요약 줄 (이벤트 수, outcome이 있는 실행
-수, manual-writer 수), 그리고 -- dry-run이면 -- 제안 파일 경로와 "0 edits".
+수, manual-writer 수, 지문 라인 수), 그리고 -- dry-run이면 -- 제안 파일 경로와
+"0 edits". 변경을 적용한 뒤에는 `node {{REFERENCE_PATH}}/bin/qab.js scoreboard`를
+실행해 캐시가 새 상태를 반영하게 합니다.
 
 ---
 
