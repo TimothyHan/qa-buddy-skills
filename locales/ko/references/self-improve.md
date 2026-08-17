@@ -67,8 +67,11 @@ ID 형식은 `LRN-YYYYMMDD-NN` (생성일 + 순번). ID는 영구적 — 은퇴 
   `qab:` 주석을 그대로 복사합니다 — 빌드는 중복 id나 en/ko id 집합 불일치에
   실패하고, 도구용 `references/index.json`(id → 파일, 제목, scope, tier, 줄 수)을
   배포합니다.
-- **학습처럼 인용하세요.** 섹션이 출력을 결정하면 `LRN-…`을 인용하듯 id를 인용합니다
-  (`REF-` id의 로그 의무는 RFC 0001 PR4에서 도입).
+- **학습처럼 인용하세요.** 섹션이 출력을 결정하면 `LRN-…`을 인용하듯 id를 인용하고
+  `qab.js log applied REF-…`를 실행합니다 -- 실행당 소스당 한 번. 헬퍼는
+  `index.json`에 없는 id를 거부하고 가장 가까운 것을 제안하므로 오타 id는 로그에
+  들어가지 않습니다. `applied ≠ read`: 읽었지만 아무것도 결정하지 않은 섹션은
+  인용하지 않습니다 -- 그 간극이 정제의 신호입니다.
 
 ## 읽기 프로토콜 (모든 스킬 실행 시작 시)
 <!-- qab: id=read-protocol -->
@@ -139,6 +142,7 @@ ID 형식은 `LRN-YYYYMMDD-NN` (생성일 + 순번). ID는 영구적 — 은퇴 
 ```bash
 node <references>/bin/qab.js run-id --skill <this-skill> [--ticket <KEY>]   # 시작 시 한 번; 실행 id 출력
 node <references>/bin/qab.js log applied LRN-20260807-01                    # 학습이 출력을 결정함
+node <references>/bin/qab.js log applied REF-playwright-patterns#never       # 레퍼런스 섹션이 출력을 결정함
 node <references>/bin/qab.js log contradicted LRN-… --note "<관찰한 것>"    # 실행 중 현실이 어긋남
 node <references>/bin/qab.js log captured LRN-…                             # 새 항목을 추가함
 node <references>/bin/qab.js log outcome --status DONE                      # 상태 블록 직전 마지막
@@ -153,8 +157,9 @@ node <references>/bin/qab.js log outcome --status DONE                      # �
 `"writer":"manual"`을 넣어 정제가 비율을 보고할 수 있게 하세요.
 
 `qab.js stats`는 로그를 소스별 카운트(`applied`, `contradicted`, `runs`,
-`last_applied`)와 아래 두 계산 판정으로 바꿉니다. 스킬은 로그를 읽지 않습니다;
-정제만 읽습니다.
+`last_applied`, LRN·REF 행 모두), 아래 두 계산 판정, 그리고 **인용 준수율** --
+outcome이 있는 실행 중 REF `applied`를 하나 이상 로그한 비율(RFC 0001 PR4 게이트:
+≥ 4/5) -- 로 바꿉니다. 스킬은 로그를 읽지 않습니다; 정제만 읽습니다.
 
 ## 라이프사이클
 <!-- qab: id=lifecycle -->

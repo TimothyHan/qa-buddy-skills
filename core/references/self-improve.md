@@ -70,7 +70,10 @@ Every reference section is an addressable **source**, like a learning:
   en/ko id-set mismatch, and ships `references/index.json` (id → file, heading,
   scope, tier, lines) for tools.
 - **Cite them like learnings.** When a section shapes output, cite its id the
-  way you cite `LRN-…` (the log obligation for `REF-` ids arrives with RFC 0001 PR4).
+  way you cite `LRN-…` and run `qab.js log applied REF-…` — once per source per
+  run. The helper rejects ids that aren't in `index.json` and suggests the nearest,
+  so a mistyped id never enters the log. `applied ≠ read`: a section you read but
+  that didn't shape anything is not cited — that gap is signal for distill.
 
 ## Read protocol (start of every skill run)
 <!-- qab: id=read-protocol -->
@@ -142,6 +145,7 @@ Write it with the shipped helper, never by hand:
 ```bash
 node <references>/bin/qab.js run-id --skill <this-skill> [--ticket <KEY>]   # once, at start; prints the run id
 node <references>/bin/qab.js log applied LRN-20260807-01                    # a learning shaped output
+node <references>/bin/qab.js log applied REF-playwright-patterns#never       # a reference section shaped output
 node <references>/bin/qab.js log contradicted LRN-… --note "<what you saw>" # live reality disagreed
 node <references>/bin/qab.js log captured LRN-…                             # you appended a new entry
 node <references>/bin/qab.js log outcome --status DONE                      # last thing before the status block
@@ -156,8 +160,10 @@ are reserved for the compile step. If Node is unavailable, append the same
 shape with `echo … >>` and add `"writer":"manual"` so distill can report the ratio.
 
 `qab.js stats` turns the log into per-source counts (`applied`, `contradicted`,
-`runs`, `last_applied`) and the two computed findings below. A skill never
-reads the log; only distill does.
+`runs`, `last_applied`, LRN and REF rows alike), the two computed findings
+below, and **citation compliance** — of runs with an outcome, how many logged at
+least one REF `applied` (RFC 0001 PR4 gate: ≥ 4/5). A skill never reads the
+log; only distill does.
 
 ## Lifecycle
 <!-- qab: id=lifecycle -->

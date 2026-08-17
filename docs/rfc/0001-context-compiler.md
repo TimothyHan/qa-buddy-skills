@@ -285,8 +285,8 @@ Rules for every PR: target `feat/context-compiler` (decision 15); en + ko for an
 | **PR1** | done | learnings log + `qab.js run-id/log/stats` + preamble cite-and-log + distill computed columns + execute fixture | none |
 | **PR2** | done | eval-gated promotion + `--dry-run` proposal | none |
 | **PR3** | done | REF ids (`qab:` comments) + `index.json` + locale parity + `Overrides:` migration | none |
-| **PR4** | next | REF citation + REF `applied` events + compliance gate | none (tokens) |
-| **PR5** | | `qab.js compile` unscored + run dir + scratchpad-lite + `run-protocol.md` | none (set-equality) |
+| **PR4** | shipped — **gate open**: needs ≥ 4/5 real runs with REF `applied` (`qab.js stats` prints it) | REF citation + REF `applied` events + compliance gate | none (tokens) |
+| **PR5** | next (after PR4 gate) | `qab.js compile` unscored + run dir + scratchpad-lite + `run-protocol.md` | none (set-equality) |
 | **PR6** | | fingerprints + scoreboard cache + falsified/duplicate-by-fp | heal-mode preference only |
 | **gate** | | §9.3 | |
 | **PR7** | | scored selection behind `compiler.scoring` | yes, flagged |
@@ -335,7 +335,8 @@ Rules for every PR: target `feat/context-compiler` (decision 15); en + ko for an
 
 1. `preamble-base.md` (+ ko) item 2: "cite every source (`LRN-…` or `REF-…`)". `self-improve.md`: REF citation obligation.
 2. `improve` distill: `stats` table includes REF rows; never-applied placeholder (needs `in_slice`, PR5).
-3. **Compliance gate (acceptance):** over 5 real runs, ≥ 4 have REF `applied` lines at section granularity for skills whose read set includes REFs. If not met, coarsen ids to file level (`REF-playwright-patterns`) in a follow-up before PR5 packs by section.
+3. **Compliance gate (acceptance):** over 5 real runs, ≥ 4 have REF `applied` lines at section granularity for skills whose read set includes REFs. `qab.js stats` prints this as "citation compliance … overall: x/y REF" — read it before starting PR5. If not met, coarsen ids to file level (`REF-playwright-patterns`) in a follow-up before PR5 packs by section.
+4. **Settled in PR4:** `qab.js log applied REF-…` validates the id against the shipped `references/index.json` (next to the helper) and rejects unknown/malformed ids with the nearest suggestions — a mistyped id never enters the log; LRN ids are project content and pass on form alone.
 - **Behaviour:** none (small token cost).
 
 ### PR5 — Unscored compile + run dir + scratchpad-lite (P3)

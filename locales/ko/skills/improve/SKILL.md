@@ -1,6 +1,6 @@
 ---
 name: improve
-version: 0.6.0
+version: 0.6.1
 description: |
   실제 사용 실패를 기반으로 다른 스킬을 개선하는 메타 스킬입니다. SDT가
   스킬의 출력이 잘못되었거나 예상과 다르다고 보고하면, 근본 원인을 분석하고,
@@ -213,7 +213,8 @@ SDT에게 물어봅니다:
 
 먼저 프로토콜을 읽습니다: `{{REFERENCE_PATH}}/self-improve.md`. 그 다음 학습
 파일을 읽고 (`.qabuddy.json`의 `learningsPath`, 기본 `features-kb/LEARNINGS.md`)
-`node {{REFERENCE_PATH}}/bin/qab.js stats`를 실행합니다 -- 로그의 소스별 카운트.
+`node {{REFERENCE_PATH}}/bin/qab.js stats`를 실행합니다 -- 로그의 소스별 카운트
+(LRN·REF 행)와 인용 준수율; 준수율 줄은 그대로 보고합니다.
 숫자는 `Evidence:` 산문이 아니라 로그에서 옵니다; 로그가 없거나 소스에 행이 없으면
 그렇다고 말하고 해당 항목에 한해 산문으로 대체합니다.
 
