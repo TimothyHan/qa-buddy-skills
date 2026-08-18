@@ -67,6 +67,13 @@ code-level knowledge that is too large to inline there.
   test-env-only reset hooks.
 - Seeding and preconditions via API, not UI (slow, fragile). UI seeding only
   when no API exists — and flag it as debt.
+- **Shared or public environments** (staging, demo sites, anything other
+  users or teams also write to): never modify or delete seed/default data;
+  give every entity the suite creates a run-identifying prefix so cleanup and
+  triage can tell it from real data; date-bound entities (bookings, schedules)
+  take far-future windows, one per worker, so runs never overlap each other or
+  real users. Deleting shared fixtures stays manual. (Promoted from a project
+  learning, 2026-08-17.)
 
 ### Fail loudly
 - Guard `findIndex` before `nth()`: `-1` silently becomes "last element".

@@ -1,6 +1,6 @@
 ---
 name: e2e-write
-version: 0.1.4
+version: 0.1.5
 description: |
   테스트 케이스로부터 e2e 테스트 스위트를 작성합니다: 사전 조건용 API
   클라이언트, fixture, 그리고 증명된 POM 위의 의도만 담은 스펙. 로케이터를
