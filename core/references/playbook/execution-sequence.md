@@ -16,13 +16,13 @@ PR Created
   |
 Feature ready (merged to develop or feature branch)
   |
-  |-- SDT runs /qa (executes test cases, verifies ACs, files bugs)
-  |-- SDT conducts /exploratory (charter-driven discovery)
+  |-- SDT runs /qa-qa (executes test cases, verifies ACs, files bugs)
+  |-- SDT conducts /qa-exploratory (charter-driven discovery)
   |-- SDT creates UAT scenarios
   |
 Bugs fixed by devs
   |
-  |-- SDT runs /verify-fix (re-tests each bug fix, checks regression)
+  |-- SDT runs /qa-verify-fix (re-tests each bug fix, checks regression)
   |
 Pre-release
   |

@@ -30,7 +30,7 @@
 |------|----------|------|----------|
 | **결함 유출률** | 운영 환경 결함 / 전체 발견 결함 | <10% | Jira 레이블 (`production-bug` vs `pre-release-bug`) 또는 KB 결함 파일. 스프린트별로 집계합니다. |
 | **심각도 분포** | 스프린트별 심각도 기준 결함 분포 | Normal/Minor가 대다수. Blocker/Critical은 소수여야 합니다. | Jira 또는 KB `bugs/` 파일을 스프린트별로 확인합니다. |
-| **MTTR (평균 해결 시간)** | 결함 등록부터 수정 검증까지 평균 소요 시간 | Blocker: 당일. Critical: 동일 스프린트 내. | Jira에서 `bug created`부터 `/verify-fix VERIFIED` 일자까지 측정합니다. |
+| **MTTR (평균 해결 시간)** | 결함 등록부터 수정 검증까지 평균 소요 시간 | Blocker: 당일. Critical: 동일 스프린트 내. | Jira에서 `bug created`부터 `/qa-verify-fix VERIFIED` 일자까지 측정합니다. |
 
 ### 선택
 

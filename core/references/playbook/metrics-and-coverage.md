@@ -30,7 +30,7 @@ Test coverage = (requirements and ACs covered by test cases) / (all requirements
 |--------|---------|--------|----------------|
 | **Defect escape rate** | production bugs / total bugs found | <10% | Jira label (`production-bug` vs `pre-release-bug`) or KB bug files. Count per sprint. |
 | **Severity distribution** | breakdown of bugs by severity per sprint | Mostly Normal/Minor. Few Blocker/Critical. | Jira or KB `bugs/` files per sprint. |
-| **MTTR (mean time to resolve)** | avg time from bug filed → bug verified fixed | Blocker: same day. Critical: same sprint. | Jira: `bug created` to `/verify-fix VERIFIED` date. |
+| **MTTR (mean time to resolve)** | avg time from bug filed → bug verified fixed | Blocker: same day. Critical: same sprint. | Jira: `bug created` to `/qa-verify-fix VERIFIED` date. |
 
 ### Nice-to-have
 

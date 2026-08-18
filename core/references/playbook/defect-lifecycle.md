@@ -26,7 +26,7 @@ New -> Issue Verified -> Investigation -> Development in Progress
 | **Investigation** | Developer | Developer investigates root cause |
 | **Development in Progress** | Developer | Fix is being implemented |
 | **Code Review** | Developer + Reviewer | Fix is reviewed via PR |
-| **Testing** | SDT or Developer | Fix is verified via `/verify-fix` |
+| **Testing** | SDT or Developer | Fix is verified via `/qa-verify-fix` |
 | **Final Review** | Bug Reporter | Original reporter confirms the fix |
 | **Resolved** | Auto/Developer | Fix is merged |
 | **Released** | Auto/Release Manager | Fix is deployed to production |

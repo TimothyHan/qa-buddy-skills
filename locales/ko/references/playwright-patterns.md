@@ -6,7 +6,7 @@
 충돌하면: 이 문서가 명시적으로 다른 선택을 한 경우(예: 셀렉터 우선순위)는 이
 문서를, 그 외에는 공식 문서를 따릅니다.
 
-사용처: `/e2e-setup`, `/e2e-pom`, `/e2e-write`, `/test-cases`(Playwright 스케치).
+사용처: `/qa-e2e-setup`, `/qa-e2e-pom`, `/qa-e2e-write`, `/qa-test-cases`(Playwright 스케치).
 워크플로는 각 스킬의 SKILL.md가, 코드 수준 지식은 이 문서가 담당합니다.
 
 > 출처: 저자의 `playwright-test-patterns` 스킬(slowhama/playwright-best-practices)
