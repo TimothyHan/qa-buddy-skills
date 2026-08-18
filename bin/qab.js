@@ -303,7 +303,9 @@ function cmdCompile(args) {
   // run: reuse the current marker if it is this skill's run, else start one
   let marker = readMarker();
   let run;
-  if (marker && marker.skill === skill && marker.dir && fs.existsSync(marker.dir)) run = { run: marker.run, skill, ticket: marker.ticket || ticket, dir: marker.dir };
+  // reuse only if it is the same skill AND the same ticket (a bug-keyed run must not inherit a story-keyed run's profile — caught live 2026-08-17)
+  const sameTicket = !ticket || !marker || !marker.ticket || marker.ticket === ticket;
+  if (marker && marker.skill === skill && sameTicket && marker.dir && fs.existsSync(marker.dir)) run = { run: marker.run, skill, ticket: marker.ticket || ticket, dir: marker.dir };
   else {
     const scope = ticket || gitBranch();
     const hex = crypto.createHash('sha256').update(`${nowIso()}|${process.pid}|${Math.random()}`).digest('hex').slice(0, 6);
