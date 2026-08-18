@@ -213,7 +213,7 @@ node <references>/bin/qab.js fp --list               # this run's fingerprints (
 <!-- qab: id=lifecycle -->
 
 `active` → applied on every matching run.
-`promoted` → distill moved it into references (and optionally upstream); kept for provenance with a pointer to where it landed.
+`promoted` → distill moved it into references (and optionally upstream); kept for provenance with a pointer to where it landed and to the residue entry that keeps its project-specific values. A promoted entry is not compiled — never leave a live rule only inside it.
 `retired` → falsified or obsolete; kept with a one-line reason, never deleted.
 Entries are falsifiable statements: contradicting evidence retires them.
 

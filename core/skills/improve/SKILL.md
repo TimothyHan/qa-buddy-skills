@@ -1,6 +1,6 @@
 ---
 name: improve
-version: 0.7.0
+version: 0.7.1
 description: |
   Meta-skill that improves other skills based on real usage failures. When an SDT
   reports a skill produced incorrect or unexpected output, this skill analyzes the
@@ -253,7 +253,15 @@ Rules:
    rebuild — they're read from the project repo at runtime; references do), and
    if `contributeUpstream: true`, offer the upstream PR path from Phase 6. Only
    promote what holds beyond this project — project-specific facts stay learnings
-   forever, no matter how well-proven.
+   forever, no matter how well-proven. **Kernel-only promotion:** when only part
+   of an entry generalizes, (a) in the same sweep split the app-specific residue
+   into a **new `active` entry** whose `Overrides:` names the promoted section, and
+   point the promoted entry's `Status:` line at both (section + residue LRN);
+   (b) check the target section's `scope` (`references/index.json`) covers
+   **every** skill in the entry's `Scope:` — if not, widen the section's `qab:`
+   scope (en+ko) *or* keep the residue/pointer entry scoped to the uncovered
+   skills. A `promoted` entry is never compiled again: anything left only inside
+   it is lost to every later run (caught live 2026-08-17: LRN-02 → LRN-09).
 4. **Eval gate on every promotion.** Before editing the reference, run the eval
    fixtures (Phase 4 step 3) for **every skill in the promoted section's scope**
    and record pass counts. Apply the edit, rebuild, run them again. Merge only if
@@ -271,8 +279,8 @@ Rules:
    Trigger it yourself when a run suggests it (`active > 30`, a falsified flag);
    applying is always the SDT's call.
 
-Report: entries swept / merged / retired / promoted / rejected-by-eval / left
-active, the resulting active count, the log summary line from `qab.js stats`
+Report: entries swept / merged / retired / promoted (+ residue entries created,
+scope gaps found) / rejected-by-eval / left active, the resulting active count, the log summary line from `qab.js stats`
 (events, runs with outcome, manual-writer count, fingerprint lines), and — for
 dry-run — the proposal file path and "0 edits". After any applied change run
 `node {{REFERENCE_PATH}}/bin/qab.js scoreboard` so the cache reflects the new state.
