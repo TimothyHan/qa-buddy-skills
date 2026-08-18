@@ -1,7 +1,7 @@
 # Exploratory Testing Heuristics
 <!-- qab: scope=exploratory tier=must -->
 
-Techniques for systematic exploration. Used by `/exploratory` when generating charters and executing sessions.
+Techniques for systematic exploration. Used by `/qa-exploratory` when generating charters and executing sessions.
 
 ## Heuristic Categories
 <!-- qab: id=heuristic-categories -->

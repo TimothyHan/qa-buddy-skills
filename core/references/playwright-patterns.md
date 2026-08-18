@@ -6,7 +6,7 @@ practices](https://playwright.dev/docs/best-practices). The official docs are
 the baseline; this file adds the rules that come from running suites in anger.
 Where the two conflict deliberately (selector priority), this file wins.
 
-Consumed by: `/e2e-setup`, `/e2e-pom`, `/e2e-write`, `/test-cases` (Playwright
+Consumed by: `/qa-e2e-setup`, `/qa-e2e-pom`, `/qa-e2e-write`, `/qa-test-cases` (Playwright
 sketches). The e2e SKILL.md files carry the workflow; this file carries the
 code-level knowledge that is too large to inline there.
 

@@ -26,7 +26,7 @@ New -> Issue Verified -> Investigation -> Development in Progress
 | **Investigation** | 개발자 | 근본 원인을 조사합니다 |
 | **Development in Progress** | 개발자 | 수정 작업을 진행합니다 |
 | **Code Review** | 개발자 + 리뷰어 | PR을 통해 수정 코드를 리뷰합니다 |
-| **Testing** | SDT 또는 개발자 | `/verify-fix`로 수정 사항을 검증합니다 |
+| **Testing** | SDT 또는 개발자 | `/qa-verify-fix`로 수정 사항을 검증합니다 |
 | **Final Review** | 결함 보고자 | 최초 보고자가 수정 결과를 확인합니다 |
 | **Resolved** | 자동/개발자 | 수정 사항을 머지합니다 |
 | **Released** | 자동/릴리스 관리자 | 수정 사항을 운영 환경에 배포합니다 |

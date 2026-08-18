@@ -46,7 +46,7 @@ Exploratory testing is NOT manual functional testing. It is:
 - **Output:** New test scenarios to add to the test suite, UI/UX improvement suggestions.
 - **Timing:** Conducted at feature-ready state, before UAT.
 
-See `/exploratory` skill for the template and execution guide.
+See `/qa-exploratory` skill for the template and execution guide.
 
 ## Team-Specific Processes
 <!-- qab: id=team-specific-processes -->

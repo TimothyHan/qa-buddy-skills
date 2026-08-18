@@ -55,7 +55,7 @@ UI over complex API). In that case, the diamond shape is acceptable:
 ## Applying This to Test Case Generation
 <!-- qab: id=test-case-generation -->
 
-When `/test-cases` generates test cases, it should:
+When `/qa-test-cases` generates test cases, it should:
 - Assign each test case to the **lowest appropriate layer** first.
 - Only promote to a higher layer when the lower layer cannot adequately test it.
 - Flag redundancies and explain why they exist.
