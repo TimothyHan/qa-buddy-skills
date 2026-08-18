@@ -331,10 +331,12 @@ function testPlaybookBudget() {
   for (const file of files) {
     const content = readFile(path.join(playbookDir, file));
     if (!content) continue;
-    const lines = content.split('\n').length;
+    // `<!-- qab: … -->` lines are section metadata (RFC 0001 §3.1), not model-facing
+    // knowledge — the compiler strips them from slices — so they don't count against the budget.
+    const lines = content.split('\n').filter(l => !/^<!--\s*qab:/.test(l)).length;
     check(
       lines <= 70,
-      `playbook/${file}: ${lines} lines (≤70)`,
+      `playbook/${file}: ${lines} lines (≤70, excluding qab metadata)`,
       `${lines} lines — over budget`
     );
   }
@@ -684,7 +686,582 @@ function testSkillManifest() {
   }
 }
 
+function testRuntimeHelper() {
+  console.log('\n🧾 Runtime helper (bin/qab.js — RFC 0001 PR1)');
+  const { execFileSync } = require('child_process');
+  const os = require('os');
+
+  const src = path.join(ROOT, 'bin', 'qab.js');
+  check(fs.existsSync(src), 'bin/qab.js exists in repo');
+
+  // Shipped under references/bin/ on every platform (reachable via {{REFERENCE_PATH}}/bin)
+  for (const platform of PLATFORMS) {
+    const shipped = path.join(resolvePlatformDir(platform), 'references', 'bin', 'qab.js');
+    check(fs.existsSync(shipped), `dist/${platform}/references/bin/qab.js shipped`, 'build.js must copy bin/ into references/bin/');
+    if (fs.existsSync(shipped) && fs.existsSync(src)) {
+      check(fs.readFileSync(shipped, 'utf8') === fs.readFileSync(src, 'utf8'), `dist/${platform}/references/bin/qab.js matches source`);
+    }
+  }
+  // Preamble wiring: the helper path must be assigned unquoted (QAB=~/… expands; QAB="node ~/…" hands
+  // Node a literal "~" — caught live while building PR1), and every call goes through `node $QAB`.
+  for (const platform of PLATFORMS) {
+    const distSkill = readFile(path.join(resolvePlatformDir(platform), 'skills', 'qa', 'SKILL.md')) || '';
+    check(/`QAB=[^"'`\s]+\/bin\/qab\.js`/.test(distSkill), `dist/${platform}: preamble assigns QAB=<path>/bin/qab.js unquoted`);
+    check(!/QAB="node/.test(distSkill), `dist/${platform}: preamble does not quote "node ~/…" (tilde would not expand)`);
+    check((distSkill.match(/node \$QAB (run-id|log)/g) || []).length >= 4, `dist/${platform}: preamble calls node $QAB for run-id/log (≥4 sites)`);
+    check(/REF-<file-stem>#<id>/.test(distSkill) && /REF-playbook\/<stem>#<id>/.test(distSkill), `dist/${platform}: preamble item 2 tells the model the REF id form (PR4 citation obligation)`);
+  }
+  if (!fs.existsSync(src)) return;
+
+  // Behavioural: run the helper against a scratch project and read back what it wrote.
+  // This is a real detection-power test — break the JSON writer and these go red.
+  const tmp = fs.mkdtempSync(path.join(os.tmpdir(), 'qab-test-'));
+  const env = { ...process.env, QAB_CWD: tmp, QAB_TS: '2026-08-17T00:00:00Z' };
+  const run = (args, extraEnv) => execFileSync(process.execPath, [src, ...args], { env: { ...env, ...(extraEnv || {}) }, encoding: 'utf8', stdio: ['ignore', 'pipe', 'pipe'] });
+  const runFails = (args) => { try { run(args); return false; } catch (e) { return e.status !== 0; } };
+
+  try {
+    // .qabuddy.json with a custom learningsPath → log lands next to it
+    fs.mkdirSync(path.join(tmp, 'kb'), { recursive: true });
+    fs.writeFileSync(path.join(tmp, '.qabuddy.json'), JSON.stringify({ learningsPath: 'kb/LEARNINGS.md' }));
+
+    const runId = run(['run-id', '--skill', 'qa', '--ticket', 'PROJ-1']).trim();
+    check(/^qa-PROJ-1-[0-9a-f]{6}$/.test(runId), `run-id prints <skill>-<ticket>-<6hex> (${runId})`);
+    check(fs.existsSync(path.join(tmp, '.qa-reports', '.qab-run')), 'run-id writes .qa-reports/.qab-run marker');
+
+    run(['log', 'applied', 'LRN-20260808-03']);
+    run(['log', 'contradicted', 'LRN-20260808-04', '--note', 'script uses --prefix']);
+    run(['log', 'outcome', '--status', 'DONE']);
+    // a second run, id via env — must append, not rewrite
+    run(['log', 'applied', 'LRN-20260808-03', '--skill', 'test-cases'], { QAB_RUN: 'test-cases-x-abcdef' });
+    run(['log', 'outcome', '--status', 'DONE'], { QAB_RUN: 'test-cases-x-abcdef' });
+    run(['log', 'applied', 'LRN-20260808-03'], { QAB_RUN: 'third-run-000001' });
+    run(['log', 'outcome', '--status', 'DONE_WITH_CONCERNS'], { QAB_RUN: 'third-run-000001' });
+    // boundary data: LRN-07 applied twice across two runs (NOT a candidate: needs ≥3);
+    // LRN-08 contradicted twice with no applied afterwards (falsified)
+    run(['log', 'applied', 'LRN-20260808-07'], { QAB_RUN: 'test-cases-x-abcdef' });
+    run(['log', 'applied', 'LRN-20260808-07'], { QAB_RUN: 'third-run-000001' });
+    run(['log', 'applied', 'LRN-20260808-08'], { QAB_TS: '2026-08-10T00:00:00Z' });
+    run(['log', 'contradicted', 'LRN-20260808-08', '--note', 'first'], { QAB_TS: '2026-08-11T00:00:00Z' });
+    run(['log', 'contradicted', 'LRN-20260808-08', '--note', 'second'], { QAB_RUN: 'third-run-000001', QAB_TS: '2026-08-12T00:00:00Z' });
+    // LRN-09: contradicted twice but applied again afterwards → NOT falsified (the "no applied since" clause)
+    run(['log', 'contradicted', 'LRN-20260808-09', '--note', 'a'], { QAB_TS: '2026-08-11T00:00:00Z' });
+    run(['log', 'contradicted', 'LRN-20260808-09', '--note', 'b'], { QAB_TS: '2026-08-12T00:00:00Z' });
+    run(['log', 'applied', 'LRN-20260808-09'], { QAB_RUN: 'third-run-000001', QAB_TS: '2026-08-13T00:00:00Z' });
+
+    const logFile = path.join(tmp, 'kb', 'learnings-log.jsonl');
+    check(fs.existsSync(logFile), 'log writes learnings-log.jsonl next to learningsPath');
+    const lines = fs.existsSync(logFile) ? fs.readFileSync(logFile, 'utf8').trim().split('\n') : [];
+    check(lines.length === 15, `log appends one line per event (${lines.length}/15)`);
+    let parsed = [];
+    let allJson = true;
+    for (const l of lines) { try { parsed.push(JSON.parse(l)); } catch { allJson = false; } }
+    check(allJson, 'every log line is valid JSON');
+    const first = parsed[0] || {};
+    check(first.v === 1 && first.ts === '2026-08-17T00:00:00Z' && first.run === runId && first.skill === 'qa' && first.event === 'applied' && first.src === 'LRN-20260808-03',
+      'first line has v/ts/run/skill/event/src from marker + args', JSON.stringify(first));
+    check(parsed[1] && parsed[1].note === 'script uses --prefix', 'contradicted line carries --note');
+    check(parsed[2] && parsed[2].status === 'DONE' && parsed[2].event === 'outcome', 'outcome line carries --status');
+    check(parsed[3] && parsed[3].run === 'test-cases-x-abcdef' && parsed[3].skill === 'test-cases', 'QAB_RUN / --skill override the marker');
+
+    // Validation: bad input exits non-zero and writes nothing
+    const before = fs.readFileSync(logFile, 'utf8');
+    check(runFails(['log', 'applied']), 'log applied without src exits non-zero');
+    check(runFails(['log', 'outcome']), 'log outcome without --status exits non-zero');
+    check(runFails(['log', 'outcome', '--status', 'FINISHED']), 'log outcome with unknown status exits non-zero');
+    check(runFails(['log', 'contradicted', 'LRN-1']), 'log contradicted without --note exits non-zero');
+    check(runFails(['log', 'bogus', 'LRN-1']), 'log with unknown event exits non-zero');
+    check(fs.readFileSync(logFile, 'utf8') === before, 'rejected log calls append nothing');
+
+    // stats: computed columns + RFC §6.2 findings
+    const stats = JSON.parse(run(['stats', '--json']));
+    const row03 = (stats.rows || []).find(r => r.src === 'LRN-20260808-03') || {};
+    const row04 = (stats.rows || []).find(r => r.src === 'LRN-20260808-04') || {};
+    check(row03.applied === 3 && row03.runs === 3 && row03.contradicted === 0, `stats: LRN-03 applied=3 runs=3 contradicted=0 (${JSON.stringify(row03)})`);
+    check(row03.promotion_candidate === true, 'stats: applied>=3 across >=3 runs, contradicted=0 → promotion candidate');
+    check(row04.contradicted === 1 && row04.promotion_candidate === false && row04.falsified === false, 'stats: single contradiction is neither candidate nor falsified');
+    const row07 = (stats.rows || []).find(r => r.src === 'LRN-20260808-07') || {};
+    const row08 = (stats.rows || []).find(r => r.src === 'LRN-20260808-08') || {};
+    check(row07.applied === 2 && row07.runs === 2 && row07.promotion_candidate === false, 'stats: applied=2 across 2 runs is NOT a promotion candidate (threshold is 3 — mutation M2 guard)');
+    check(row08.contradicted === 2 && row08.applied === 1 && row08.falsified === true, 'stats: contradicted≥2 with no applied afterwards → falsified');
+    check(row08.promotion_candidate === false, 'stats: a falsified source is never a promotion candidate');
+    const row09 = (stats.rows || []).find(r => r.src === 'LRN-20260808-09') || {};
+    check(row09.contradicted === 2 && row09.falsified === false, 'stats: contradicted≥2 but applied afterwards → NOT falsified (mutation M4 guard)');
+    check(stats.runs_with_outcome === 3 && stats.outcomes.DONE === 2 && stats.outcomes.DONE_WITH_CONCERNS === 1, 'stats: outcome counts per status');
+    const table = run(['stats']);
+    check(/\| source \| kind \| in_slice \| applied \| contradicted \| runs \| last_applied \|/.test(table), 'stats prints the computed-columns table (with kind, in_slice)');
+    check(/LRN-20260808-03[^\n]*promotion candidate/.test(table) && /LRN-20260808-08[^\n]*falsified/.test(table), 'stats table labels findings per row');
+
+    // ── PR4: REF citation. Validation needs index.json next to the helper, so exercise the SHIPPED copy.
+    const shipped = path.join(resolvePlatformDir('claude'), 'references', 'bin', 'qab.js'); // en or ko-only dist
+    const runS = (args, extraEnv) => execFileSync(process.execPath, [shipped, ...args], { env: { ...env, ...(extraEnv || {}) }, encoding: 'utf8', stdio: ['ignore', 'pipe', 'pipe'] });
+    const failsS = (args) => { try { runS(args); return null; } catch (e) { return e.status !== 0 ? String(e.stderr || '') : null; } };
+    if (fs.existsSync(shipped) && fs.existsSync(path.join(resolvePlatformDir('claude'), 'references', 'index.json'))) {
+      const beforeRef = fs.readFileSync(logFile, 'utf8');
+      runS(['log', 'applied', 'REF-playwright-patterns#never'], { QAB_RUN: 'ref-run-000001' });
+      runS(['log', 'applied', 'REF-playbook/test-types#automation-guidelines'], { QAB_RUN: 'ref-run-000001' });
+      runS(['log', 'outcome', '--status', 'DONE'], { QAB_RUN: 'ref-run-000001' });
+      const afterRef = fs.readFileSync(logFile, 'utf8').trim().split('\n');
+      const refLine = JSON.parse(afterRef[afterRef.length - 3]);
+      check(refLine.event === 'applied' && refLine.src === 'REF-playwright-patterns#never', 'log applied accepts a REF id that exists in index.json');
+      const e1 = failsS(['log', 'applied', 'REF-playwright-patterns#nevr']);
+      check(e1 !== null && /unknown REF id/.test(e1) && /REF-playwright-patterns#never/.test(e1), 'unknown REF id is rejected with the nearest suggestion (nevr → never)', e1 || 'accepted');
+      const e2 = failsS(['log', 'applied', 'REF-test-types#automation-guidelines']);
+      check(e2 !== null && /REF-playbook\/test-types#automation-guidelines/.test(e2), 'missing playbook/ prefix is rejected and the playbook id is suggested', e2 || 'accepted');
+      const e3 = failsS(['log', 'applied', 'REF-Bad']);
+      check(e3 !== null && /malformed REF id/.test(e3), 'malformed REF id is rejected');
+      const e4 = failsS(['log', 'applied', 'not-an-id']);
+      check(e4 !== null, 'non LRN/REF source id is rejected');
+      check(fs.readFileSync(logFile, 'utf8').split('\n').length === beforeRef.split('\n').length + 3, 'rejected REF ids append nothing');
+      const st = JSON.parse(runS(['stats', '--json']));
+      const refRow = (st.rows || []).find(r => r.src === 'REF-playwright-patterns#never') || {};
+      check(refRow.kind === 'REF' && refRow.applied === 1, 'stats: REF rows carry kind=REF and counts');
+      // compliance: runs with outcome so far — qa (marker run, LRN only), test-cases-x (LRN only), third-run (LRN only), ref-run (REF)
+      const comp = st.compliance || {};
+      const total = Object.values(comp).reduce((a, c) => a + c.runs, 0);
+      const withRef = Object.values(comp).reduce((a, c) => a + c.with_ref, 0);
+      check(total === 4 && withRef === 1, `stats: citation compliance counts runs with outcome and those with a REF applied (${withRef}/${total}, expected 1/4)`, JSON.stringify(comp));
+      const table2 = runS(['stats']);
+      check(/citation compliance/.test(table2) && /overall: 1\/4 REF/.test(table2), 'stats prints the compliance readout with the PR4 gate');
+    } else {
+      fail('shipped qab.js + index.json present for REF validation test', 'run node build.js all');
+    }
+
+    // Malformed line tolerance: skipped and counted, never crashes
+    const eventsBefore = JSON.parse(run(['stats', '--json'])).events;
+    fs.appendFileSync(logFile, '{not json\n');
+    const stats2 = JSON.parse(run(['stats', '--json']));
+    check(stats2.malformed === 1 && stats2.events === eventsBefore, `stats skips and counts malformed lines (${stats2.events} events, 1 malformed)`);
+  } finally {
+    fs.rmSync(tmp, { recursive: true, force: true });
+  }
+}
+
+function testLearningsGates() {
+  console.log('\n🚧 Learnings gates (RFC 0001 PR2 — eval-gated promotion + dry-run critic)');
+  // These are procedure obligations in improve/SKILL.md and the protocol; simulate fixtures
+  // (fx-008/009) exercise them at eval time, this guards the text itself in both locales.
+  const files = {
+    'core/skills/improve/SKILL.md': [
+      [/`pass_after ≥ pass_before`/, 'promotion eval gate rule (exact: `pass_after ≥ pass_before`)'],
+      [/LEARNINGS\.rejected\.md/, 'rejection file named'],
+      [/distill-proposal-<YYYY-MM-DD>\.md/, 'dry-run proposal file named'],
+      [/--dry-run/, 'dry-run entry point'],
+    ],
+    'locales/ko/skills/improve/SKILL.md': [
+      [/`pass_after ≥ pass_before`/, 'promotion eval gate rule (ko, exact)'],
+      [/LEARNINGS\.rejected\.md/, 'rejection file named (ko)'],
+      [/distill-proposal-<YYYY-MM-DD>\.md/, 'dry-run proposal file named (ko)'],
+      [/--dry-run/, 'dry-run entry point (ko)'],
+    ],
+    'core/references/self-improve.md': [
+      [/^## Gates/m, '§Gates section'],
+      [/`pass_after ≥ pass_before`/, 'gate rule in protocol (exact)'],
+      [/zero edits/, 'critic writes zero edits'],
+    ],
+    'locales/ko/references/self-improve.md': [
+      [/^## 게이트/m, '§게이트 section (ko)'],
+      [/`pass_after ≥ pass_before`/, 'gate rule in protocol (ko, exact)'],
+      [/편집 0건/, 'critic writes zero edits (ko)'],
+    ],
+  };
+  for (const [rel, checks] of Object.entries(files)) {
+    const content = readFile(path.join(ROOT, rel)) || '';
+    for (const [re, label] of checks) {
+      check(re.test(content), `${rel}: ${label}`, `Pattern not found: ${re}`);
+    }
+  }
+  // The gate must be a numbered rule of Distill Mode, after the promotion rule and before the report line
+  const en = readFile(path.join(CORE_DIR, 'skills', 'improve', 'SKILL.md')) || '';
+  const distill = en.slice(en.indexOf('## Distill Mode'));
+  const iPromo = distill.indexOf('**Promotion is a reference edit**');
+  const iGate = distill.indexOf('**Eval gate on every promotion.**');
+  const iDry = distill.indexOf('**`--dry-run` = the critic.**');
+  const iReport = distill.indexOf('\nReport:');
+  check(iPromo >= 0 && iGate > iPromo && iDry > iGate && iReport > iDry, 'improve Distill Mode order: promotion → eval gate → dry-run critic → report');
+}
+
+function testReferenceIndex() {
+  console.log('\n🔖 Reference ids + index (RFC 0001 PR3)');
+  const { parseReferenceIndex, referenceParityErrors, listRefFiles } = require('./build.js');
+  const enDir = path.join(CORE_DIR, 'references');
+  const koDir = path.join(LOCALES_DIR, 'ko', 'references');
+
+  // Every `##` (outside fences) is tagged; ids kebab-case; no duplicates
+  const en = parseReferenceIndex(enDir);
+  check(en.errors.length === 0, 'core/references: every ## has a qab id, no duplicates', en.errors.join(' | '));
+  const enIds = Object.keys(en.index);
+  check(enIds.length >= 60, `core/references: ${enIds.length} addressable sections (≥60)`);
+  check(enIds.every(k => /^REF-[a-z0-9-]+(\/[a-z0-9-]+)?#[a-z0-9-]+$/.test(k)), 'every id matches REF-<stem>#<id> / REF-playbook/<stem>#<id>');
+  const must = enIds.filter(k => en.index[k].tier === 'must');
+  check(must.includes('REF-playwright-patterns#never') && must.includes('REF-playwright-patterns#must-rules'), 'playwright-patterns NEVER + MUST rules are tier=must');
+  check(must.every(k => !en.index[k].scope.includes('all')), 'no tier=must section is scoped to all (must is expensive — rails only)', must.filter(k => en.index[k].scope.includes('all')).join(','));
+  check(enIds.every(k => Array.isArray(en.index[k].scope) && en.index[k].scope.length > 0 && typeof en.index[k].lines === 'number' && en.index[k].lines > 0), 'every entry has scope[] and positive line count');
+
+  // ko parity: same files, same id set (build.js resolves the references *directory* per locale)
+  const ko = parseReferenceIndex(koDir);
+  check(ko.errors.length === 0, 'locales/ko/references: every ## has a qab id, no duplicates', ko.errors.join(' | '));
+  const parity = referenceParityErrors(en.index, ko.index, 'ko');
+  check(parity.length === 0, 'en/ko reference id sets are identical', parity.join(' | '));
+  const enFiles = listRefFiles(enDir), koFiles = new Set(listRefFiles(koDir));
+  const missing = enFiles.filter(f => !koFiles.has(f));
+  check(missing.length === 0, 'every core/references file has a same-named ko twin', missing.join(', '));
+  for (const k of enIds) {
+    if (!ko.index[k]) continue;
+    check(ko.index[k].tier === en.index[k].tier && ko.index[k].scope.join() === en.index[k].scope.join(), `${k}: ko tier/scope match en`);
+  }
+
+  // Shipped index.json in every dist (en) and dist/ko
+  for (const platform of PLATFORMS) {
+    for (const [label, dir] of [[`dist/${platform}`, path.join(DIST_DIR, platform)], [`dist/ko/${platform}`, path.join(DIST_DIR, 'ko', platform)]]) {
+      const p = path.join(dir, 'references', 'index.json');
+      if (!fs.existsSync(dir)) continue;
+      check(fs.existsSync(p), `${label}/references/index.json shipped`);
+      if (!fs.existsSync(p)) continue;
+      let parsed = null;
+      try { parsed = JSON.parse(fs.readFileSync(p, 'utf8')); } catch {}
+      check(parsed && Object.keys(parsed).length === enIds.length, `${label}/references/index.json parses with ${enIds.length} entries`);
+    }
+  }
+
+  // Overrides: in this repo's dogfood LEARNINGS.md resolve to a real id, a skill, or none
+  const learnings = readFile(path.join(ROOT, 'features-kb', 'LEARNINGS.md')) || '';
+  const skills = new Set(getSkillDirs());
+  const overrides = [...learnings.matchAll(/\*\*Overrides:\*\*\s*(.+)/g)].map(m => m[1].trim());
+  check(overrides.length > 0, `features-kb/LEARNINGS.md has Overrides: lines (${overrides.length})`);
+  for (const o of overrides) {
+    const none = /^(none|없음)(?![A-Za-z0-9-])/.test(o);
+    const refs = [...o.matchAll(/REF-[a-z0-9-]+(?:\/[a-z0-9-]+)?#[a-z0-9-]+/g)].map(m => m[0]);
+    const skillRef = (o.match(/^SKILL:([a-z0-9-]+)/) || [])[1];
+    const ok = none || (refs.length > 0 && refs.every(r => en.index[r])) || (skillRef && skills.has(skillRef));
+    check(ok, `Overrides resolves: "${o.slice(0, 60)}"`, refs.filter(r => !en.index[r]).map(r => `unknown ${r}`).join(', ') || 'must be none/없음, a REF- id, or SKILL:<name>');
+  }
+}
+
+function testCompile() {
+  console.log('\n🧩 Compile step (RFC 0001 PR5 — unscored slice, run dir, scratchpad)');
+  const { execFileSync } = require('child_process');
+  const os = require('os');
+  const shipped = path.join(resolvePlatformDir('claude'), 'references', 'bin', 'qab.js');
+  const indexPath = path.join(resolvePlatformDir('claude'), 'references', 'index.json');
+  if (!fs.existsSync(shipped) || !fs.existsSync(indexPath)) { fail('shipped qab.js + index.json present for compile tests', 'run node build.js all'); return; }
+  const index = JSON.parse(fs.readFileSync(indexPath, 'utf8'));
+
+  // Preamble wiring: item 1 compiles, item 2 mentions candidates, recovery scans runs/
+  for (const platform of PLATFORMS) {
+    const distSkill = readFile(path.join(resolvePlatformDir(platform), 'skills', 'qa', 'SKILL.md')) || '';
+    check(/node \$QAB compile --skill/.test(distSkill), `dist/${platform}: preamble item 1 runs qab.js compile`);
+    check(/Candidate learnings/.test(distSkill), `dist/${platform}: preamble mentions ## Candidate learnings`);
+    check(/\.qa-reports\/runs\//.test(distSkill), `dist/${platform}: Context Recovery scans .qa-reports/runs/`);
+    check(fs.existsSync(path.join(resolvePlatformDir(platform), 'references', 'run-protocol.md')), `dist/${platform}: run-protocol.md shipped`);
+  }
+  // Tier-2 multi-phase skills carry the scratchpad line; tier-1 do not (decision 8)
+  for (const skill of getSkillDirs()) {
+    const content = readFile(path.join(CORE_DIR, 'skills', skill, 'SKILL.md')) || '';
+    const { fields } = parseFrontmatter(content);
+    const has = /Scratchpad \(run protocol\)/.test(content);
+    if (fields['preamble-tier'] === '2') check(has, `${skill} (tier 2): has the scratchpad line`);
+    else check(!has, `${skill} (tier 1): no scratchpad Plan/State line`);
+  }
+
+  // Behavioural: compile in a scratch project with a fixture learnings file
+  const tmp = fs.mkdtempSync(path.join(os.tmpdir(), 'qab-compile-'));
+  const env = { ...process.env, QAB_CWD: tmp, QAB_TS: '2026-08-17T00:00:00Z' };
+  const run = (args) => execFileSync(process.execPath, [shipped, ...args], { env, encoding: 'utf8', stdio: ['ignore', 'pipe', 'pipe'] });
+  try {
+    fs.mkdirSync(path.join(tmp, 'features-kb'), { recursive: true });
+    fs.mkdirSync(path.join(tmp, 'playwright', 'pom'), { recursive: true });
+    fs.writeFileSync(path.join(tmp, 'playwright', 'AUTOMATION.md'), '# decisions\n');
+    fs.writeFileSync(path.join(tmp, 'playwright', 'pom', 'x.page.ts'), '');
+    fs.writeFileSync(path.join(tmp, 'features-kb', 'LEARNINGS.md'), [
+      '# Project Learnings', '',
+      '## LRN-20260801-01: applies to test-cases', '- **Status:** active', '- **Scope:** test-cases, qa', '- **Statement:** seed via API', '- **Overrides:** REF-playwright-patterns#must-rules (extends)', '- **Evidence:** run', '',
+      '## LRN-20260801-02: retired one', '- **Status:** retired', '- **Scope:** all', '- **Statement:** old', '- **Overrides:** none', '- **Evidence:** run', '',
+      '## LRN-20260801-03: profile-narrowed (surface=api) — must be dropped for a web profile', '- **Status:** active', '- **Scope:** all', '- **Statement:** api only', '- **Overrides:** none', '- **Evidence:** run', '- **Profile:** surface=api', '',
+      '## LRN-20260801-04: scope all, no profile', '- **Status:** active', '- **Scope:** all', '- **Statement:** everywhere', '- **Overrides:** none', '- **Evidence:** run', '',
+    ].join('\n'));
+
+    const out = run(['compile', '--skill', 'test-cases', '--ticket', 'PROJ-1']);
+    const slicePath = path.join(tmp, out.split('\n')[0].trim());
+    check(fs.existsSync(slicePath), 'compile prints an existing slice.md path');
+    const runDir = path.dirname(slicePath);
+    for (const f of ['profile.json', 'scratchpad.md', 'events.jsonl']) check(fs.existsSync(path.join(runDir, f)), `run dir has ${f}`);
+    check(/test-cases-PROJ-1-[0-9a-f]{6}$/.test(runDir), 'run dir name = <skill>-<ticket>-<6hex>');
+    const slice = fs.readFileSync(slicePath, 'utf8');
+    const fm = slice.split('\n---\n')[0];
+    check(/^---\nmanifest: 1\n/.test(slice) && /scoring: off/.test(fm) && /budget: \{max: 0, used: \d+\}/.test(fm), 'manifest: version, scoring off, uncapped budget with used lines');
+    // Parse the two manifest blocks SEPARATELY — a compiler that packs a section and also lists it as dropped
+    // must not slip through (mutation smoke 2026-08-17 caught the subtraction-based version of this test).
+    const sourcesBlock = (fm.split('\nsources:\n')[1] || '').split('\ndropped:')[0];
+    const droppedBlock = fm.split('\ndropped:')[1] || '';
+    const manifestIds = [...sourcesBlock.matchAll(/^  - id: (\S+)/gm)].map(m => m[1]);
+    const droppedIds = [...droppedBlock.matchAll(/^  - id: (\S+)/gm)].map(m => m[1]);
+    const inSlice = manifestIds;
+    check(inSlice.every(id => !droppedIds.includes(id)), 'no id is both packed and dropped');
+
+    // Set-equality vs the declared read set: explicit-scope sections ∪ (scope=all ∧ must) ∪ active scoped LRNs
+    const expectedRefs = Object.entries(index).filter(([, e]) => e.scope.includes('test-cases') || (e.scope.includes('all') && e.tier === 'must')).map(([id]) => id).sort();
+    const gotRefs = inSlice.filter(id => id.startsWith('REF-')).sort();
+    check(JSON.stringify(gotRefs) === JSON.stringify(expectedRefs), `slice REF set == declared read set for test-cases (${gotRefs.length})`, `missing: ${expectedRefs.filter(x => !gotRefs.includes(x)).join(',')} extra: ${gotRefs.filter(x => !expectedRefs.includes(x)).join(',')}`);
+    const gotLrns = inSlice.filter(id => id.startsWith('LRN-')).sort();
+    check(JSON.stringify(gotLrns) === JSON.stringify(['LRN-20260801-01', 'LRN-20260801-04']), `slice LRN set = active ∩ scoped ∩ profile-compatible (${gotLrns.join(',')})`);
+    check(droppedIds.includes('LRN-20260801-03'), 'profile-narrowed learning (surface=api) is dropped for a web profile and listed');
+    check(droppedIds.some(id => id.startsWith('REF-feature-knowledge-base-spec#')), 'scope=all non-must sections listed under dropped (general-scope), not packed');
+    // must first; LRN placed right after the REF it overrides
+    check(manifestIds[0] === 'REF-playwright-patterns#must-rules' || manifestIds[0] === 'REF-playwright-patterns#never', `must sections packed first (${manifestIds[0]})`);
+    const iMust = manifestIds.indexOf('REF-playwright-patterns#must-rules');
+    check(manifestIds[iMust + 1] === 'LRN-20260801-01', 'learning packed right after the section it Overrides');
+    // verbatim body: compare against the SAME references dir the shipped helper reads (en or ko-only dist),
+    // locating headings via index.json (heading text is locale-specific; ids are not)
+    const refsDir = path.join(resolvePlatformDir('claude'), 'references');
+    const src = fs.readFileSync(path.join(refsDir, 'playwright-patterns.md'), 'utf8').replace(/\r\n/g, '\n').split('\n');
+    const neverHeading = index['REF-playwright-patterns#never'].heading;
+    const i0 = src.findIndex(l => l.replace(/^#+\s*/, '').trim() === neverHeading); let i1 = i0 + 1; while (i1 < src.length && !/^##? /.test(src[i1])) i1++;
+    const expectedBody = src.slice(i0 + 1, i1).filter(l => !/^<!--\s*qab:/.test(l)).join('\n').trim();
+    const afterNever = slice.split(`## REF-playwright-patterns#never — ${neverHeading}\n`)[1];
+    const gotNever = afterNever ? afterNever.split('\n## ')[0].trim() : null;
+    check(gotNever !== null && gotNever === expectedBody, 'slice body is verbatim source text (NEVER section)', gotNever !== null ? 'text differs' : 'section header not found');
+    check(!/<!--\s*qab:/.test(slice.split('\n---\n').slice(1).join('')), 'qab metadata comments stripped from slice body');
+    // …and the LAST section of a file (runs to EOF — off-by-one territory): pitfalls
+    const pitfallsHeading = index['REF-playwright-patterns#pitfalls'].heading;
+    const j0 = src.findIndex(l => l.replace(/^#+\s*/, '').trim() === pitfallsHeading);
+    const expectedLast = src.slice(j0 + 1).filter(l => !/^<!--\s*qab:/.test(l)).join('\n').trim();
+    const afterHeader = slice.split(`## REF-playwright-patterns#pitfalls — ${pitfallsHeading}\n`)[1];
+    const gotLast = afterHeader ? afterHeader.split('\n## ')[0].trim() : null;
+    check(gotLast !== null && gotLast === expectedLast, 'slice body is verbatim for a file\'s LAST section (pitfalls, runs to EOF)', gotLast !== null ? `got ${gotLast.split('\n').length} lines, expected ${expectedLast.split('\n').length}` : 'header not found');
+    // profile + events + scratchpad
+    const profile = JSON.parse(fs.readFileSync(path.join(runDir, 'profile.json'), 'utf8'));
+    check(profile.schema === 'profile/1' && profile.surface === 'web' && profile.pom === 'exists' && /^[0-9a-f]{12}$/.test(profile.pfp), `profile v0 deterministic (${profile.surface}/${profile.pom}/${profile.ticket_kind}, pfp ${profile.pfp})`);
+    const events = fs.readFileSync(path.join(runDir, 'events.jsonl'), 'utf8').trim().split('\n').map(l => JSON.parse(l));
+    check(events.length === 1 && events[0].event === 'compiled' && events[0].pfp === profile.pfp && Array.isArray(events[0].sources), 'compiled event mirrored into the run dir with pfp + sources');
+    const projLog = fs.readFileSync(path.join(tmp, 'features-kb', 'learnings-log.jsonl'), 'utf8').trim().split('\n');
+    check(projLog.length === 1 && JSON.parse(projLog[0]).event === 'compiled', 'compiled event also in the project log');
+    const scratch = fs.readFileSync(path.join(runDir, 'scratchpad.md'), 'utf8');
+    check(['## Plan', '## State', '## Findings', '## Candidate learnings'].every(h => scratch.includes(h)), 'scratchpad has the four sections');
+    // a subsequent log call lands in BOTH logs (same run via marker)
+    run(['log', 'applied', 'LRN-20260801-01']);
+    check(fs.readFileSync(path.join(runDir, 'events.jsonl'), 'utf8').trim().split('\n').length === 2, 'later log lines are mirrored into the run dir');
+    // recompiling the same skill reuses the run (marker) instead of starting a new one
+    const out2 = run(['compile', '--skill', 'test-cases']);
+    check(path.dirname(path.join(tmp, out2.split('\n')[0].trim())) === runDir, 'recompile for the current run reuses its directory');
+    // fallback path is documented, not required: compile without index next to helper → clear error (source copy has no index)
+    let errText = ''; try { execFileSync(process.execPath, [path.join(ROOT, 'bin', 'qab.js'), 'compile', '--skill', 'qa'], { env, encoding: 'utf8', stdio: ['ignore', 'pipe', 'pipe'] }); } catch (e) { errText = String(e.stderr || ''); }
+    check(/index\.json not found/.test(errText), 'compile without a shipped index fails loudly (fallback is the model reading files, not a silent empty slice)');
+  } finally {
+    fs.rmSync(tmp, { recursive: true, force: true });
+  }
+
+  // Coverage proof on the real skills: every reference file a skill hard-lists has ≥1 section in that skill's declared read set
+  for (const skill of getSkillDirs()) {
+    const content = readFile(path.join(CORE_DIR, 'skills', skill, 'SKILL.md')) || '';
+    const listed = [...content.matchAll(/\{\{REFERENCE_PATH\}\}\/((?:playbook\/)?[a-z0-9-]+)\.md/g)].map(m => m[1]);
+    for (const stem of [...new Set(listed)]) {
+      if (['self-improve', 'run-protocol'].includes(stem)) continue; // protocol pointers, not knowledge scope
+      const covered = Object.entries(index).some(([id, e]) => id.startsWith(`REF-${stem}#`) && (e.scope.includes(skill) || (e.scope.includes('all') && e.tier === 'must')));
+      check(covered, `${skill}: hard-listed ${stem}.md is in its compiled read set (scope covers it)`, `add ${skill} to the qab: scope of ${stem}.md`);
+    }
+  }
+}
+
+function testFingerprints() {
+  console.log('\n🫆 Fingerprints + scoreboard (RFC 0001 PR6 — failure classes, falsified/duplicate-by-fp, in_slice)');
+  const { execFileSync } = require('child_process');
+  const os = require('os');
+  const crypto = require('crypto');
+  const shipped = path.join(resolvePlatformDir('claude'), 'references', 'bin', 'qab.js');
+  const indexPath = path.join(resolvePlatformDir('claude'), 'references', 'index.json');
+  if (!fs.existsSync(shipped) || !fs.existsSync(indexPath)) { fail('shipped qab.js + index.json present for fingerprint tests', 'run node build.js all'); return; }
+  const helper = require(path.join(ROOT, 'bin', 'qab.js'));
+
+  // ── Text guards: vocabulary + emission points + distill rows, en and ko (runtime-facing → same PR, decision 14)
+  const KINDS = ['locator-not-found', 'ac-unmapped', 'spec-flaky', 'ci-step-failed', 'env-unreachable', 'auth-failed', 'fixture-missing', 'assertion-mismatch', 'tool-unavailable'];
+  check(JSON.stringify(helper.FP_KINDS) === JSON.stringify(KINDS), 'qab.js FP_KINDS is the closed vocabulary from RFC 0001 §3.4');
+  for (const [label, refPath] of [['en', 'core/references/self-improve.md'], ['ko', 'locales/ko/references/self-improve.md']]) {
+    const t = readFile(path.join(ROOT, refPath)) || '';
+    check(/<!--\s*qab:\s*id=fingerprints\b/.test(t), `self-improve.md (${label}): has the fingerprints section (qab: id=fingerprints)`);
+    for (const k of KINDS) check(t.includes(`\`${k}\``), `self-improve.md (${label}): names kind ${k}`);
+    check(/qab\.js fp --list/.test(t) && /Fingerprint:/.test(t), `self-improve.md (${label}): capture rule links Fingerprint: via fp --list`);
+    check(/qab\.js scoreboard/.test(t) && /\.cache\/scoreboard\.json/.test(t), `self-improve.md (${label}): names qab.js scoreboard + cache path`);
+    check(/in_slice ≥ 10/.test(t) && /applied = 0/.test(t), `self-improve.md (${label}): never-applied rule = in_slice ≥ 10 ∧ applied = 0`);
+  }
+  const EMIT = { 'e2e-pom': ['locator-not-found'], 'e2e-write': ['spec-flaky', 'fixture-missing'], qa: ['ac-unmapped', 'env-unreachable', 'auth-failed', 'assertion-mismatch'], 'verify-fix': ['ci-step-failed'] };
+  for (const [skill, kinds] of Object.entries(EMIT)) {
+    for (const [label, base] of [['core', CORE_DIR], ['ko', path.join(ROOT, 'locales', 'ko')]]) {
+      const t = readFile(path.join(base, 'skills', skill, 'SKILL.md')) || '';
+      for (const k of kinds) check(new RegExp(`node \\$QAB fp ${k} `).test(t), `${skill} (${label}): emits fp ${k} via node $QAB`);
+    }
+  }
+  for (const skill of getSkillDirs()) {
+    if (EMIT[skill]) continue;
+    const t = readFile(path.join(CORE_DIR, 'skills', skill, 'SKILL.md')) || '';
+    check(!/node \$QAB fp /.test(t), `${skill}: no fingerprint emission (only the four detection-point skills emit)`);
+  }
+  for (const [label, p] of [['en', 'core/skills/improve/SKILL.md'], ['ko', 'locales/ko/skills/improve/SKILL.md']]) {
+    const t = readFile(path.join(ROOT, p)) || '';
+    check(/\*\*(Falsified|반증됨) \((fingerprint|지문)\)\*\*/.test(t) && /\*\*(Duplicate|중복) \((fingerprint|지문)\)\*\*/.test(t) && /\*\*(Never applied|적용된 적 없음)\*\*/.test(t), `improve (${label}): distill table has falsified/duplicate-by-fingerprint + never-applied rows`);
+    check(/in_slice · applied · contradicted · runs · last_applied/.test(t), `improve (${label}): computed columns include in_slice`);
+    check(/qab\.js scoreboard/.test(t), `improve (${label}): rebuilds the scoreboard after applying changes`);
+  }
+  for (const [label, p] of [['en', 'core/skills/setup/SKILL.md'], ['ko', 'locales/ko/skills/setup/SKILL.md']]) {
+    const t = readFile(path.join(ROOT, p)) || '';
+    check(/features-kb\/\.cache\//.test(t) && /fingerprints\.jsonl/.test(t), `setup (${label}): gitignore template has features-kb/.cache/ and names fingerprints.jsonl`);
+  }
+  for (const platform of PLATFORMS) {
+    const idx = JSON.parse(readFile(path.join(resolvePlatformDir(platform), 'references', 'index.json')) || '{}');
+    check(!!idx['REF-self-improve#fingerprints'], `dist/${platform}: index.json has REF-self-improve#fingerprints`);
+  }
+
+  // ── Behavioural: shipped helper against a scratch project
+  const tmp = fs.mkdtempSync(path.join(os.tmpdir(), 'qab-fp-'));
+  const env = { ...process.env, QAB_CWD: tmp, QAB_TS: '2026-08-17T00:00:00Z' };
+  const run = (args, extraEnv) => execFileSync(process.execPath, [shipped, ...args], { env: { ...env, ...(extraEnv || {}) }, encoding: 'utf8', stdio: ['ignore', 'pipe', 'pipe'] });
+  const fails = (args, extraEnv) => { try { run(args, extraEnv); return null; } catch (e) { return e.status !== 0 ? String(e.stderr || '') : null; } };
+  const sha12 = s => crypto.createHash('sha256').update(s).digest('hex').slice(0, 12);
+  const F1 = sha12('locator-not-found\ncheckout/place-order-btn');   // the ffp contract: sha256(kind + "\n" + normalized key)[:12]
+  const F2 = sha12('assertion-mismatch\nproj-9/tc-03');
+  const F3 = sha12('auth-failed\nadmin/login');
+  const F4 = sha12('spec-flaky\nx.spec.ts › tc-01');
+  const F5 = sha12('ci-step-failed\ndeploy/smoke');
+  try {
+    fs.mkdirSync(path.join(tmp, 'features-kb'), { recursive: true });
+    fs.mkdirSync(path.join(tmp, 'playwright', 'pom'), { recursive: true });
+    fs.writeFileSync(path.join(tmp, 'playwright', 'AUTOMATION.md'), '# decisions\n');
+    fs.writeFileSync(path.join(tmp, 'playwright', 'pom', 'x.page.ts'), '');
+    const lrn = (id, scope, extra) => [`## ${id}: t`, '- **Status:** active', `- **Scope:** ${scope}`, '- **Statement:** s', '- **Overrides:** none', '- **Evidence:** e', ...(extra || []), ''];
+    fs.writeFileSync(path.join(tmp, 'features-kb', 'LEARNINGS.md'), ['# Project Learnings', '',
+      ...lrn('LRN-20260801-01', 'e2e-pom, qa', [`- **Fingerprint:** ffp-${F1}   <!-- prevents place-order drift -->`]),
+      ...lrn('LRN-20260801-02', 'e2e-pom', [`- **Fingerprint:** ${F1}`]),            // same ffp, DIFFERENT scope → not a duplicate
+      ...lrn('LRN-20260801-03', 'qa, e2e-pom', [`- **Fingerprint:** ffp-${F1}`]),    // same ffp, same scope set (other order) → duplicate of -01
+      ...lrn('LRN-20260801-04', 'all'),
+      ...lrn('LRN-20260801-05', 'qa', [`- **Fingerprint:** ffp-${F2}`]),             // qa-only: not in the e2e-pom slice
+      ...lrn('LRN-20260801-06', 'qa', [`- **Fingerprint:** ffp-${F3}`]),
+      ...lrn('LRN-20260801-07', 'e2e-pom', [`- **Fingerprint:** ffp-${F1}`, '- **Profile:** surface=api']),   // scoped to e2e-pom but profile-dropped from the slice
+      ...lrn('LRN-20260801-08', 'e2e-write', [`- **Fingerprint:** ffp-${F4}`]),
+      ...lrn('LRN-20260820-09', 'e2e-write', [`- **Fingerprint:** ffp-${F5}`]),                                // dated AFTER the fp line below
+    ].join('\n'));
+
+    const out = run(['compile', '--skill', 'e2e-pom', '--ticket', 'PROJ-9']);
+    const runDir = path.dirname(path.join(tmp, out.split('\n')[0].trim()));
+    const runId = path.basename(runDir);
+    // emit
+    const o1 = run(['fp', 'locator-not-found', 'checkout/place-order-btn']);
+    const o2 = run(['fp', 'locator-not-found', 'Checkout / place-order-btn 5f5c55ab7 2026-08-17T10:00:00Z']);   // same class, incident noise
+    run(['fp', 'locator-not-found', 'checkout/cancel-btn']);
+    run(['fp', 'assertion-mismatch', 'PROJ-9/TC-03']);   // ffp F2 — LRN-05 carries it but is NOT in this slice
+    run(['fp', 'spec-flaky', 'x.spec.ts › TC-01']);       // ffp F4 — LRN-08 (e2e-write) not in this slice → active [], but the class recurred
+    run(['fp', 'ci-step-failed', 'deploy/smoke']);        // ffp F5 — dated 2026-08-17, BEFORE LRN-20260820-09 exists
+    const fpFile = path.join(tmp, 'features-kb', 'fingerprints.jsonl');
+    check(fs.existsSync(fpFile), 'fp writes fingerprints.jsonl next to the learnings file');
+    const fps = fs.readFileSync(fpFile, 'utf8').trim().split('\n').map(l => JSON.parse(l));
+    check(fps.length === 6, `fp appends one line per call (${fps.length}/6)`);
+    const l1 = fps[0] || {};
+    check(l1.v === 1 && l1.ts === '2026-08-17T00:00:00Z' && l1.run === runId && l1.skill === 'e2e-pom' && l1.kind === 'locator-not-found' && l1.key === 'checkout/place-order-btn' && /^[0-9a-f]{12}$/.test(l1.pfp || ''), 'fp line has v/ts/run/skill/pfp/kind/key from marker + args', JSON.stringify(l1));
+    check(l1.ffp === F1, `ffp = sha256(kind + "\\n" + key)[:12] (${l1.ffp} vs ${F1})`);
+    check(fps[1].ffp === F1, 'normalization: case, spaces around /, a hex hash and a timestamp do not change the ffp (mutation guard: unnormalized key)');
+    check(fps[2].ffp !== F1, 'a different element hashes to a different ffp');
+    check(JSON.stringify([...(l1.active || [])].sort()) === JSON.stringify(['LRN-20260801-01', 'LRN-20260801-02', 'LRN-20260801-03']), `active = slice learnings whose Fingerprint: == ffp (${JSON.stringify(l1.active)})`);
+    check(!(l1.active || []).includes('LRN-20260801-07'), 'active excludes a same-scope learning the compile dropped (profile mismatch) — active comes from the slice, not the scope (mutation guard)');
+    check(Array.isArray(fps[2].active) && fps[2].active.length === 0, 'no matching Fingerprint: → active []');
+    check(fps[3].ffp === F2 && fps[3].active.length === 0, 'active is computed from THIS run\'s slice, not from every learning (LRN-05 has the ffp but is qa-only) — mutation guard');
+    check(/active=\[LRN-20260801-01/.test(o1) && /falsification evidence/.test(o1), 'fp prints the falsified learnings and says so');
+    check((run(['fp', '--list']).match(/^[0-9a-f]{12}  /gm) || []).length === 6, 'fp --list prints this run\'s fingerprints (ffp kind key [active])');
+    const mirrorFile = path.join(runDir, 'fingerprints.jsonl');
+    check(fs.existsSync(mirrorFile) && fs.readFileSync(mirrorFile, 'utf8').trim().split('\n').length === 6, 'fp lines are mirrored into the run directory');
+    // fallback without a slice: a plain run-id (no compile) → active from the skill's active read set
+    run(['run-id', '--skill', 'qa', '--ticket', 'PROJ-9']);
+    const o5 = run(['fp', 'assertion-mismatch', 'PROJ-9/TC-03']);
+    check(/active=\[LRN-20260801-05\]/.test(o5), 'without a slice, active falls back to the skill\'s scoped active learnings (qa → LRN-05)');
+    // validation
+    const before = fs.readFileSync(fpFile, 'utf8');
+    const e1 = fails(['fp', 'selector-broke', 'x']);
+    check(e1 !== null && /Closed vocabulary/.test(e1) && /locator-not-found/.test(e1), 'unknown kind is rejected and the vocabulary printed', e1 || 'accepted');
+    check(fails(['fp', 'locator-not-found']) !== null, 'fp without a key exits non-zero');
+    check(fs.readFileSync(fpFile, 'utf8') === before, 'rejected fp calls append nothing');
+
+    // ── stats: in_slice, never-applied (threshold), falsified/duplicate by fingerprint, promotion column
+    const logFile = path.join(tmp, 'features-kb', 'learnings-log.jsonl');
+    // 9 more compiled events naming LRN-04 (→ in_slice 10) and LRN-02 (→ 9: below threshold); written directly = the reader under test
+    for (let i = 0; i < 9; i++) fs.appendFileSync(logFile, JSON.stringify({ v: 1, ts: '2026-08-10T00:00:00Z', run: `x-${i}`, skill: 'qa', event: 'compiled', sources: ['LRN-20260801-04', 'LRN-20260801-02', 'REF-playwright-patterns#never'], used: 1, max: 0, dropped: [] }) + '\n');
+    for (const [r, ts] of [['a', '2026-08-11T00:00:00Z'], ['b', '2026-08-12T00:00:00Z'], ['c', '2026-08-13T00:00:00Z']]) {
+      run(['log', 'applied', 'LRN-20260801-05', '--skill', 'qa'], { QAB_RUN: `qa-${r}`, QAB_TS: ts });
+      run(['log', 'applied', 'LRN-20260801-06', '--skill', 'qa'], { QAB_RUN: `qa-${r}`, QAB_TS: ts });
+      run(['log', 'applied', 'LRN-20260801-08', '--skill', 'qa'], { QAB_RUN: `qa-${r}`, QAB_TS: ts });
+      run(['log', 'applied', 'LRN-20260820-09', '--skill', 'qa'], { QAB_RUN: `qa-${r}`, QAB_TS: ts });
+      run(['log', 'applied', 'REF-playwright-patterns#never', '--skill', 'qa'], { QAB_RUN: `qa-${r}`, QAB_TS: ts });
+      run(['log', 'outcome', '--status', 'DONE', '--skill', 'qa'], { QAB_RUN: `qa-${r}`, QAB_TS: ts });
+    }
+    const st = JSON.parse(run(['stats', '--json']));
+    const row = id => (st.rows || []).find(r => r.src === id) || {};
+    check(row('LRN-20260801-04').in_slice === 10 && row('LRN-20260801-04').applied === 0 && row('LRN-20260801-04').never_applied === true, `never-applied: in_slice 10 ∧ applied 0 (${JSON.stringify(row('LRN-20260801-04'))})`);
+    check(row('LRN-20260801-02').in_slice === 10 && row('LRN-20260801-02').never_applied === true, 'in_slice = own compile (1) + 9 synthetic compiled events = 10; applied 0 → never-applied');
+    check(row('LRN-20260801-01').in_slice === 1 && row('LRN-20260801-01').never_applied === false, 'in_slice 1 is far below the dormancy threshold');
+    check(row('REF-playwright-patterns#never').in_slice === 10 && row('REF-playwright-patterns#never').applied === 3 && row('REF-playwright-patterns#never').never_applied === false, 'applied > 0 is never dormant however often it was in the slice');
+    // threshold boundary: exactly 9 compiled events → not never-applied
+    fs.appendFileSync(logFile, Array.from({ length: 9 }, (_, i) => JSON.stringify({ v: 1, ts: '2026-08-10T00:00:00Z', run: `z-${i}`, skill: 'qa', event: 'compiled', sources: ['LRN-20260801-98'], used: 1, max: 0, dropped: [] })).join('\n') + '\n');
+    const st2 = JSON.parse(run(['stats', '--json']));
+    const row2 = id => (st2.rows || []).find(r => r.src === id) || {};
+    check(row2('LRN-20260801-98').in_slice === 9 && row2('LRN-20260801-98').never_applied === false, 'never-applied threshold boundary: in_slice 9 is NOT dormant (mutation guard: ≥10)');
+    // falsified / duplicate by fingerprint
+    check(row2('LRN-20260801-01').falsified_by_fingerprint === 2 && JSON.stringify(row2('LRN-20260801-01').fingerprint_ffps) === JSON.stringify([F1]), 'falsified (fingerprint): count of fp lines naming the LRN in active, with the ffp');
+    check(row2('LRN-20260801-04').falsified_by_fingerprint === 0, 'no fp line names LRN-04 → not falsified by fingerprint');
+    check(row2('LRN-20260801-03').duplicate_of === 'LRN-20260801-01', 'duplicate (fingerprint): same Fingerprint ∧ same Scope set → newer names the older id');
+    check(row2('LRN-20260801-02').duplicate_of === null, 'same Fingerprint but different Scope is NOT a duplicate (mutation guard: dedupe ignores Scope)');
+    check(row2('LRN-20260801-01').duplicate_of === null, 'the oldest entry of a duplicate group is not itself marked duplicate');
+    // promotion column: LRN-06 (3 applied / 3 runs, ffp silent) is a candidate; LRN-05 has the same numbers but its ffp recurred after its date → not
+    check(row2('LRN-20260801-06').applied === 3 && row2('LRN-20260801-06').promotion_candidate === true, 'promotion candidate: applied≥3 across ≥3 runs, contradicted 0, ffp silent');
+    check(row2('LRN-20260801-05').applied === 3 && row2('LRN-20260801-05').promotion_candidate === false, 'a fingerprint-falsified LRN with 3 applied is not a candidate (LRN-05: F2 named it in active)');
+    check(row2('LRN-20260801-08').applied === 3 && row2('LRN-20260801-08').falsified_by_fingerprint === 0 && row2('LRN-20260801-08').promotion_candidate === false, 'promotion needs the LRN\'s own ffp silent since its date — F4 recurred (active [] because LRN-08 was not in that slice) → not a candidate (mutation guard: recurrence ignored)');
+    check(row2('LRN-20260820-09').applied === 3 && row2('LRN-20260820-09').promotion_candidate === true, 'an fp line dated BEFORE the LRN existed does not count against it (silent since activation, not since forever)');
+    check(row2('REF-playwright-patterns#never').promotion_candidate === false, 'REF rows are never promotion candidates (already references)');
+    check(row2('LRN-20260801-01').promotion_candidate === false, 'a fingerprint-falsified LRN is never a promotion candidate');
+    // recurrence table
+    const fpr = (st2.fingerprints || []).find(f => f.ffp === F1) || {};
+    check(fpr.count === 2 && fpr.runs === 1 && JSON.stringify(fpr.active) === JSON.stringify(['LRN-20260801-01', 'LRN-20260801-02', 'LRN-20260801-03']) && fpr.kind === 'locator-not-found', `stats.fingerprints aggregates per ffp (count, runs, active) — ${JSON.stringify(fpr)}`);
+    check((st2.fingerprints || []).length === 5, `stats.fingerprints lists every distinct class — F1 ×2, cancel-btn, F2 ×2, F4, F5 = 5 classes over 7 lines (${(st2.fingerprints || []).length}/5)`);
+    check(st2.fingerprint_lines === 7, 'stats counts fingerprint lines');
+    const table = run(['stats']);
+    check(/\| LRN-20260801-01 \|[^\n]*falsified \(fingerprint [0-9a-f]{12} ×2\)/.test(table), 'stats table labels falsified (fingerprint <ffp> ×n)');
+    check(/\| LRN-20260801-03 \|[^\n]*duplicate \(fingerprint\) of LRN-20260801-01/.test(table), 'stats table labels duplicate (fingerprint) of <older id>');
+    check(/\| LRN-20260801-04 \|[^\n]*never applied \(in_slice 10\)/.test(table), 'stats table labels never applied (in_slice N)');
+    check(/fingerprint recurrence/.test(table) && new RegExp(`\\| ${F1} \\| locator-not-found \\|`).test(table), 'stats prints the recurrence table');
+    // --since filters fingerprints too
+    const st3 = JSON.parse(run(['stats', '--json', '--since', '2026-08-18']));
+    check(st3.fingerprint_lines === 0 && (st3.rows.find(r => r.src === 'LRN-20260801-01') || {}).falsified_by_fingerprint === 0, 'stats --since applies to fingerprint lines as well');
+
+    // ── scoreboard: derived cache from both logs
+    const sbOut = run(['scoreboard']);
+    const sbPath = path.join(tmp, 'features-kb', '.cache', 'scoreboard.json');
+    check(fs.existsSync(sbPath) && /\.cache\/scoreboard\.json rebuilt/.test(sbOut), 'scoreboard writes features-kb/.cache/scoreboard.json');
+    const sb = JSON.parse(fs.readFileSync(sbPath, 'utf8'));
+    check(sb.v === 1 && sb.rebuilt_at === '2026-08-17T00:00:00Z' && sb.per_source && sb.per_fingerprint, 'scoreboard v1 has rebuilt_at, per_source, per_fingerprint');
+    const s04 = sb.per_source['LRN-20260801-04'] || {};
+    check(s04.in_slice === 10 && s04.applied === 0 && s04.contradicted === 0 && s04.runs === 0 && s04.last_applied === null, `per_source has in_slice/applied/contradicted/last_applied/runs (${JSON.stringify(s04)})`);
+    const s05 = sb.per_source['LRN-20260801-05'] || {};
+    check(s05.applied === 3 && s05.runs === 3 && s05.last_applied === '2026-08-13', 'per_source applied/runs/last_applied from applied events');
+    check(Object.values(sb.per_source).every(x => !('wins' in x) && !('losses' in x)), 'scoreboard v1 has no wins/losses (RFC decision 4)');
+    check((sb.per_fingerprint[F1] || {}).count === 2 && (sb.per_fingerprint[F1] || {}).active.includes('LRN-20260801-01'), 'per_fingerprint carries recurrence + falsified learnings');
+    // in_slice comes from compiled events, not from applied (mutation guard): a source applied but never compiled has in_slice 0
+    run(['log', 'applied', 'LRN-20260801-77', '--skill', 'qa'], { QAB_RUN: 'qa-z' });
+    run(['scoreboard']);
+    const sb2 = JSON.parse(fs.readFileSync(sbPath, 'utf8'));
+    check((sb2.per_source['LRN-20260801-77'] || {}).in_slice === 0 && (sb2.per_source['LRN-20260801-77'] || {}).applied === 1, 'in_slice counts compiled events only — an applied-but-never-compiled source has in_slice 0');
+    // rebuild is idempotent (same inputs → same file)
+    const a = fs.readFileSync(sbPath, 'utf8'); run(['scoreboard']);
+    check(fs.readFileSync(sbPath, 'utf8') === a, 'scoreboard rebuild is deterministic for the same inputs');
+    // malformed fingerprint line: skipped, counted, never crashes
+    fs.appendFileSync(fpFile, '{nope\n');
+    check(/malformed/.test(run(['stats'])), 'stats reports malformed fingerprint lines and continues');
+  } finally {
+    fs.rmSync(tmp, { recursive: true, force: true });
+  }
+}
+
 testSkillManifest();
+testRuntimeHelper();
+testLearningsGates();
+testReferenceIndex();
+testCompile();
+testFingerprints();
 testExcludeConditions();
 testEvalFixtures();
 testCrlfTolerance();

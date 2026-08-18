@@ -1,4 +1,5 @@
 # 기능 지식 베이스(KB) 명세
+<!-- qab: scope=all -->
 
 기능 지식 베이스(Knowledge Base, KB)는 기능 컨텍스트를 가공하여 저장하는
 구조화된 저장소입니다. 팀이 작업하는 모든 기능에 대해 통합된 AI 친화적 요약을
@@ -11,6 +12,7 @@
 ---
 
 ## 1. 문제
+<!-- qab: id=problem -->
 
 스킬이 특정 기능을 이해해야 할 때마다 Jira(에픽, 스토리, 태스크, 댓글),
 Confluence(PRD, 설계 문서), 경우에 따라 Figma까지 조회합니다. 이 방식에는
@@ -23,6 +25,7 @@ Confluence(PRD, 설계 문서), 경우에 따라 Figma까지 조회합니다. �
   맥락이 매번 다르게 파싱됩니다.
 
 ## 2. 해결 방안
+<!-- qab: id=solution -->
 
 **가공된 통합 기능 컨텍스트**를 저장하는 버전 관리 KB를 도입합니다.
 스킬은 KB를 먼저 읽고, 누락되었거나 변경된 정보만 Jira에서 조회합니다.
@@ -34,6 +37,7 @@ KB는 스킬을 통해 AI가 관리합니다. 스킬이 기능을 분석하면 K
 ---
 
 ## 3. 저장 위치
+<!-- qab: id=storage-location -->
 
 KB 위치는 설정으로 변경할 수 있습니다. 스킬은 하드코딩된 경로가 아닌,
 확인된 경로를 통해 KB를 참조합니다.
@@ -67,6 +71,7 @@ KB 위치는 설정으로 변경할 수 있습니다. 스킬은 하드코딩된 
 ---
 
 ## 4. 저장 대상 (가공 데이터만 저장)
+<!-- qab: id=what-gets-stored -->
 
 KB에는 **가공된 요약만** 저장하며, Jira 원본 데이터를 그대로 내보내지 않습니다.
 "가공"이란 AI가 정보를 읽고, 통합하고, 일관된 형식으로 구조화했다는 의미입니다.
@@ -99,10 +104,15 @@ KB에는 **가공된 요약만** 저장하며, Jira 원본 데이터를 그대�
 ---
 
 ## 5. 디렉터리 구조
+<!-- qab: id=directory-structure -->
 
 ```
 features-kb/
 ├── config.json                          # KB configuration
+├── LEARNINGS.md                         # Project learnings (self-improve.md); committed
+├── learnings-log.jsonl                  # Append-only run log: applied/contradicted/captured/outcome; committed
+├── fingerprints.jsonl                   # Append-only failure fingerprints (kind/key/ffp/active); committed
+├── .cache/scoreboard.json               # Derived from the two logs by `qab.js scoreboard`; gitignored
 ├── index.json                           # Feature index for fast lookup
 ├── features/
 │   ├── {EPIC-KEY}/
@@ -130,6 +140,7 @@ features-kb/
 ---
 
 ## 6. 파일 스키마
+<!-- qab: id=file-schemas -->
 
 ### 6.1 config.json
 
@@ -378,6 +389,7 @@ AC와 테스트 케이스 간의 추적성 매핑 파일입니다.
 ---
 
 ## 7. 읽기/쓰기 프로토콜
+<!-- qab: id=read-write-protocol -->
 
 ### 7.1 읽기 (모든 스킬 공통)
 
@@ -434,6 +446,7 @@ AC와 테스트 케이스 간의 추적성 매핑 파일입니다.
 ---
 
 ## 8. 기능 간 관계 탐지
+<!-- qab: id=feature-relation-discovery -->
 
 스킬이 기능 간 관계를 탐지하고 유지하는 방법을 설명합니다.
 
@@ -466,6 +479,7 @@ AC와 테스트 케이스 간의 추적성 매핑 파일입니다.
 ---
 
 ## 9. 동기화 전략
+<!-- qab: id=sync-strategy -->
 
 ### 9.1 Jira가 정보 기준인 항목
 
@@ -502,6 +516,7 @@ KB는 **가공된 캐시**이며, Jira를 대체하지 않습니다. Jira와 KB 
 ---
 
 ## 10. 보존 정책
+<!-- qab: id=retention-policy -->
 
 **기능이 서비스에서 퇴역할 때까지 데이터를 유지합니다.**
 
@@ -523,6 +538,7 @@ planning -> in-progress -> testing -> released -> retired
 ---
 
 ## 11. 마이그레이션 경로
+<!-- qab: id=migration-path -->
 
 ### Phase 1: 동일 저장소 (시작점)
 - 서비스 저장소 내 `features-kb/` 디렉터리 사용

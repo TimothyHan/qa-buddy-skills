@@ -1,9 +1,11 @@
 # 리스크 기반 테스트
+<!-- qab: scope=qa,test-plan,test-cases,review-ticket,exploratory,sprint-status -->
 
 모든 테스트 케이스에 **심각도**와 **우선순위** 값을 지정합니다.
 이 두 가지 기준을 조합하여 테스트 공수를 배분합니다.
 
 ## 심각도 척도
+<!-- qab: id=severity-scale -->
 
 심각도는 장애가 사용자와 비즈니스에 미치는 **영향도**를 측정합니다.
 
@@ -17,6 +19,7 @@
 | **Trivial** | 사소한 시각적 결함 또는 텍스트 오류입니다 | 레이블 오타, 1px 정렬, 외관상 문제만 해당 |
 
 ## 우선순위 척도
+<!-- qab: id=priority-scale -->
 
 우선순위는 심각도와 영향 범위(영향받는 사용자 수)를 기반으로 **긴급도**를 측정합니다.
 
@@ -27,6 +30,7 @@
 | **Low** | Normal 심각도이며 발생 빈도가 낮은 경우, 또는 Minor/Trivial 심각도 전체 |
 
 ## 공수 배분
+<!-- qab: id=effort-allocation -->
 
 - 우선순위와 관계없이 식별된 모든 시나리오에 대해 **테스트 케이스를 작성**합니다.
 - **시간이 부족할 때는** 낮은 우선순위 및 심각도의 테스트 케이스를 후순위로 둡니다.
@@ -35,6 +39,7 @@
 - **Full test suite** = Low 우선순위를 포함한 전체 테스트 케이스.
 
 ## 우선순위-심각도 의사결정 매트릭스
+<!-- qab: id=decision-matrix -->
 
 ```
                     High Priority    Medium Priority    Low Priority

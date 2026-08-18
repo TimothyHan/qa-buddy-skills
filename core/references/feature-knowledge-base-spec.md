@@ -1,4 +1,5 @@
 # Feature Knowledge Base Specification
+<!-- qab: scope=all -->
 
 The feature knowledge base is a structured repository of processed feature context.
 It eliminates redundant Jira/Confluence queries by storing consolidated, AI-readable
@@ -11,6 +12,7 @@ summaries of every feature the team works on.
 ---
 
 ## 1. Problem
+<!-- qab: id=problem -->
 
 Every time a skill needs to understand a feature, it queries Jira (epic, stories,
 tasks, comments), Confluence (PRDs, design docs), and potentially Figma. This is:
@@ -22,6 +24,7 @@ tasks, comments), Confluence (PRDs, design docs), and potentially Figma. This is
   Jira comments gets re-parsed inconsistently each time.
 
 ## 2. Solution
+<!-- qab: id=solution -->
 
 A versioned knowledge base that stores **processed, consolidated feature context**.
 Skills read from the knowledge base first and query Jira only for what's missing
@@ -34,6 +37,7 @@ dev review before merge).
 ---
 
 ## 3. Storage Location
+<!-- qab: id=storage-location -->
 
 The knowledge base location is configurable. Skills reference it through a
 resolved path, not a hardcoded location.
@@ -67,6 +71,7 @@ Skills should never hardcode the path. Always resolve it.
 ---
 
 ## 4. What Gets Stored (Processed Data Only)
+<!-- qab: id=what-gets-stored -->
 
 The KB stores **processed summaries only**, not raw Jira exports. "Processed" means
 the AI has read, consolidated, and structured the information into a consistent format.
@@ -99,10 +104,15 @@ the AI has read, consolidated, and structured the information into a consistent 
 ---
 
 ## 5. Directory Structure
+<!-- qab: id=directory-structure -->
 
 ```
 features-kb/
 ├── config.json                          # KB configuration
+├── LEARNINGS.md                         # Project learnings (self-improve.md); committed
+├── learnings-log.jsonl                  # Append-only run log: applied/contradicted/captured/outcome; committed
+├── fingerprints.jsonl                   # Append-only failure fingerprints (kind/key/ffp/active); committed
+├── .cache/scoreboard.json               # Derived from the two logs by `qab.js scoreboard`; gitignored
 ├── index.json                           # Feature index for fast lookup
 ├── features/
 │   ├── {EPIC-KEY}/
@@ -130,6 +140,7 @@ features-kb/
 ---
 
 ## 6. File Schemas
+<!-- qab: id=file-schemas -->
 
 ### 6.1 config.json
 
@@ -377,6 +388,7 @@ Derived from the feature map. Lists which tests to run when a feature changes.
 ---
 
 ## 7. Read/Write Protocol
+<!-- qab: id=read-write-protocol -->
 
 ### 7.1 Reading (every skill)
 
@@ -433,6 +445,7 @@ a single PR where possible.
 ---
 
 ## 8. Feature Relation Discovery
+<!-- qab: id=feature-relation-discovery -->
 
 How skills discover and maintain feature relations:
 
@@ -465,6 +478,7 @@ When processing a feature, look for signals of relation:
 ---
 
 ## 9. Sync Strategy
+<!-- qab: id=sync-strategy -->
 
 ### 9.1 Jira as Source of Truth
 
@@ -501,6 +515,7 @@ If a skill detects a discrepancy between Jira and the KB:
 ---
 
 ## 10. Retention Policy
+<!-- qab: id=retention-policy -->
 
 **Keep knowledge until the feature retires from the service.**
 
@@ -522,6 +537,7 @@ after confirming no other feature depends on them (check feature-map.json).
 ---
 
 ## 11. Migration Path
+<!-- qab: id=migration-path -->
 
 ### Phase 1: Same Repo (starting point)
 - `features-kb/` in the service repo

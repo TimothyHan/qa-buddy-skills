@@ -1,6 +1,6 @@
 ---
 name: test-plan
-version: 0.5.3
+version: 0.5.4
 description: |
   Build a test plan when a new Epic is created. Pulls epic details and linked
   stories from Jira, analyzes scope, and produces a test plan covering strategy,
@@ -53,6 +53,8 @@ test plan that the SDT reviews and refines.
 If Jira MCP is available, verify connectivity with a simple query. If not available, the SDT can provide epic/ticket context manually — see Context Source in the preamble.
 
 ---
+
+**Scratchpad (run protocol):** write `## Plan` to the run's `scratchpad.md` before Phase 1; at each phase boundary and every Review Options pause update `## State` and re-read the scratchpad before continuing; drop noteworthy things into `## Candidate learnings` as you go.
 
 ## Phase 1: Gather Context
 

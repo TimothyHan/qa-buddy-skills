@@ -1,6 +1,6 @@
 {
   "skill": "improve",
-  "version": "0.4.1",
+  "version": "0.7.1",
   "fixtures": [
     {
       "id": "fx-001",
@@ -163,6 +163,255 @@
         "self-improve",
         "distill",
         "approval-gate"
+      ]
+    },
+    {
+      "id": "fx-007",
+      "description": "SELF-IMPROVE distill computes from the log: runs qab.js stats, shows applied/contradicted/runs columns, and does NOT promote an entry whose prose says '3 runs' when the log shows applied=1. Wrong output this catches: promotion decided from Evidence: prose.",
+      "input": {
+        "request": "distill learnings",
+        "precondition": "LEARNINGS.md has LRN-20260808-02 with Evidence: 'seen in 3 runs' and learnings-log.jsonl where LRN-20260808-02 has applied=1 across 1 run, contradicted=0; LRN-20260808-05 has applied=4 across 4 runs, contradicted=0"
+      },
+      "assertions": [
+        {
+          "field": "output",
+          "op": "matches",
+          "value": "qab\\.js stats|learnings-log"
+        },
+        {
+          "field": "output",
+          "op": "matches",
+          "value": "applied[^\\n]*contradicted|contradicted[^\\n]*applied"
+        },
+        {
+          "field": "output",
+          "op": "matches",
+          "value": "LRN-20260808-05[^\\n]*(promot|승격)"
+        },
+        {
+          "field": "output",
+          "op": "not_contains",
+          "value": "LRN-20260808-02 → promoted",
+          "note": "applied=1 in the log; prose '3 runs' must not promote"
+        },
+        {
+          "field": "output",
+          "op": "matches",
+          "value": "LRN-20260808-02[^\\n]*(applied[^\\n]*1|1[^\\n]*applied|not a promotion|승격 후보가 아)"
+        }
+      ],
+      "tags": [
+        "self-improve",
+        "distill",
+        "computed-columns"
+      ]
+    },
+    {
+      "id": "fx-008",
+      "mode": "execute",
+      "description": "SELF-IMPROVE distill --dry-run is the critic: writes features-kb/distill-proposal-<date>.md with computed columns and edits nothing. Wrong output this catches: a 'dry run' that flips a Status or skips the proposal file.",
+      "input": {
+        "task": "No fixture app needed. In the workspace create features-kb/LEARNINGS.md with two active entries — LRN-20260801-01 (Scope: qa; Statement: seed carts via API) and LRN-20260801-02 (Scope: e2e-write; Statement: use data-test selectors) — and features-kb/learnings-log.jsonl where LRN-20260801-01 has applied=4 across 4 runs / contradicted=0 and LRN-20260801-02 has contradicted=2 (2026-08-11, 2026-08-12) with no applied after. Then run /qa-improve distill --dry-run in the workspace."
+      },
+      "assertions": [
+        {
+          "field": "cmd:ls features-kb/distill-proposal-*.md",
+          "op": "exit_code",
+          "value": 0,
+          "note": "the proposal file exists"
+        },
+        {
+          "field": "cmd:cat features-kb/distill-proposal-*.md",
+          "op": "output_matches",
+          "value": "LRN-20260801-01[^\\n]*(promot|승격)"
+        },
+        {
+          "field": "cmd:cat features-kb/distill-proposal-*.md",
+          "op": "output_matches",
+          "value": "LRN-20260801-02[^\\n]*(falsif|retire|반증|은퇴)"
+        },
+        {
+          "field": "cmd:cat features-kb/distill-proposal-*.md",
+          "op": "output_matches",
+          "value": "applied[^\\n]*contradicted|contradicted[^\\n]*applied",
+          "note": "computed columns present"
+        },
+        {
+          "field": "cmd:grep -c 'Status:\\*\\* active' features-kb/LEARNINGS.md",
+          "op": "output_matches",
+          "value": "^2\\s*$",
+          "note": "zero edits: both seeded entries still active"
+        },
+        {
+          "field": "cmd:grep -c 'retired' features-kb/LEARNINGS.md",
+          "op": "output_matches",
+          "value": "^0\\s*$",
+          "note": "dry-run wrote no status change"
+        },
+        {
+          "field": "output",
+          "op": "matches",
+          "value": "0 edits|zero edits|편집 0"
+        }
+      ],
+      "tags": [
+        "self-improve",
+        "distill",
+        "dry-run",
+        "critic"
+      ]
+    },
+    {
+      "id": "fx-009",
+      "description": "SELF-IMPROVE promotion eval gate: a promotion whose reference edit regresses a scoped skill's fixture is reverted, named in LEARNINGS.rejected.md, and the LRN stays active. Wrong output this catches: merging the reference edit anyway, or rejecting without naming the fixture.",
+      "input": {
+        "request": "distill learnings",
+        "precondition": "LRN-20260801-03 (Scope: e2e-pom, e2e-write; applied=5 across 5 runs, contradicted=0) is a promotion candidate targeting playwright-patterns.md §selectors. SDT approves promotion. Eval before edit: e2e-pom 4/4, e2e-write 4/4. Eval after edit: e2e-pom 4/4, e2e-write 3/4 — fx-003 fails."
+      },
+      "assertions": [
+        {
+          "field": "output",
+          "op": "matches",
+          "value": "pass_after|before[^\\n]*after|전후"
+        },
+        {
+          "field": "output",
+          "op": "contains",
+          "value": "fx-003"
+        },
+        {
+          "field": "output",
+          "op": "contains",
+          "value": "LEARNINGS.rejected.md"
+        },
+        {
+          "field": "output",
+          "op": "matches",
+          "value": "revert|reverted|rolled back|되돌"
+        },
+        {
+          "field": "output",
+          "op": "matches",
+          "value": "LRN-20260801-03[^\\n]*(active|stays|remains|유지)"
+        },
+        {
+          "field": "output",
+          "op": "not_contains",
+          "value": "LRN-20260801-03 → promoted",
+          "note": "must not mark promoted after a regression"
+        }
+      ],
+      "tags": [
+        "self-improve",
+        "distill",
+        "eval-gate"
+      ]
+    },
+    {
+      "id": "fx-010",
+      "description": "SELF-IMPROVE distill reads fingerprint findings from qab.js stats: an entry named in a fingerprint line's `active` is listed as falsified (fingerprint) with the ffp; a same-Fingerprint same-Scope pair is a duplicate of the older id; an entry with in_slice ≥ 10 and applied 0 is never-applied; a class recurring across runs with no learning in `active` is called out as a capture candidate, not written. Wrong output this catches: judging falsification from prose, marking the OLDER entry as the duplicate, promoting the fingerprint-falsified entry, or the sweep silently authoring a new LRN for the recurring class.",
+      "input": {
+        "request": "distill learnings",
+        "precondition": "qab.js stats shows: LRN-20260801-01 (Fingerprint ffp-a3f9c21b0e44, Scope e2e-pom) applied=4 across 4 runs, contradicted=0, finding 'falsified (fingerprint a3f9c21b0e44 ×2)'; LRN-20260801-03 (same Fingerprint, same Scope) finding 'duplicate (fingerprint) of LRN-20260801-01'; LRN-20260801-04 in_slice=12 applied=0 finding 'never applied (in_slice 12)'; recurrence table has ffp 5fef5ee66732 locator-not-found checkout/cancel-btn count=3 runs=3 active —."
+      },
+      "assertions": [
+        {
+          "field": "output",
+          "op": "matches",
+          "value": "LRN-20260801-01[^\\n]*(falsified|반증)[^\\n]*(fingerprint|지문|a3f9c21b0e44)"
+        },
+        {
+          "field": "output",
+          "op": "not_contains",
+          "value": "LRN-20260801-01 → promoted",
+          "note": "fingerprint-falsified entries are never promotion candidates"
+        },
+        {
+          "field": "output",
+          "op": "matches",
+          "value": "LRN-20260801-03[^\\n]*(duplicate|중복)[^\\n]*LRN-20260801-01"
+        },
+        {
+          "field": "output",
+          "op": "not_contains",
+          "value": "LRN-20260801-01 → retired (duplicate of LRN-20260801-03)",
+          "note": "the older id stays; only the newer is the duplicate"
+        },
+        {
+          "field": "output",
+          "op": "matches",
+          "value": "LRN-20260801-04[^\\n]*(never applied|적용된 적 없음|in_slice)"
+        },
+        {
+          "field": "output",
+          "op": "matches",
+          "value": "5fef5ee66732|checkout/cancel-btn"
+        },
+        {
+          "field": "output",
+          "op": "matches",
+          "value": "(capture candidate|포착 후보|candidate for capture|worth capturing|포착할 만)"
+        },
+        {
+          "field": "output",
+          "op": "not_contains",
+          "value": "## LRN-20260817",
+          "note": "distill proposes; it never authors the learning for the recurring class itself"
+        }
+      ],
+      "tags": [
+        "self-improve",
+        "distill",
+        "fingerprints"
+      ]
+    },
+    {
+      "id": "fx-011",
+      "description": "SELF-IMPROVE kernel-only promotion: when only part of a learning generalizes, distill splits the app-specific residue into a NEW active entry (Overrides: the promoted section), points the promoted entry at both, and reports a scope gap when the target section's scope does not cover every skill in the entry's Scope. Wrong output this catches: marking the whole entry promoted with nothing split (the residue then vanishes because promoted entries are not compiled), or ignoring that the target section is never compiled for one of the entry's skills.",
+      "input": {
+        "request": "distill learnings",
+        "precondition": "LRN-20260817-02 (Scope: test-cases, e2e-setup, e2e-write, qa, exploratory; applied=3 across 3 runs, contradicted=0) says: shared demo site — never modify rooms 101/102/103, prefix test entities with `QAB-`, book ≥ today+180d in per-worker windows, never automate room deletion. Only the general kernel (protect seed data, run-identifying prefix, far-future per-worker date windows) belongs in REF-playwright-patterns#must-rules; index.json shows that section's scope = e2e-setup,e2e-pom,e2e-write,test-cases. SDT approves promotion; eval gate passes."
+      },
+      "assertions": [
+        {
+          "field": "output",
+          "op": "matches",
+          "value": "LRN-20260817-02[^\\n]*(promoted|승격)"
+        },
+        {
+          "field": "output",
+          "op": "matches",
+          "value": "(residue|잔여|project-specific|앱 고유)[^\\n]*(new|새)[^\\n]*(entry|항목|LRN-)|(new|새)[^\\n]*(entry|항목|LRN-)[^\\n]*(residue|잔여|project-specific|앱 고유)",
+          "note": "the app-specific part is split into a new active entry"
+        },
+        {
+          "field": "output",
+          "op": "matches",
+          "value": "## LRN-\\d{8}-\\d{2}:[^\\n]*(101|QAB-|180)"
+        },
+        {
+          "field": "output",
+          "op": "matches",
+          "value": "Overrides:\\*\\* REF-playwright-patterns#must-rules"
+        },
+        {
+          "field": "output",
+          "op": "matches",
+          "value": "(scope|스코프)[^\\n]*(qa|exploratory)[^\\n]*(not|없|gap|갭|uncovered|빠)|(qa|exploratory)[^\\n]*(not in|없|gap|갭|uncovered|빠)[^\\n]*(scope|스코프)",
+          "note": "target section scope misses qa/exploratory — must be called out"
+        },
+        {
+          "field": "output",
+          "op": "not_contains",
+          "value": "rooms 101/102/103 → promoted",
+          "note": "the app-specific values are never marked promoted"
+        }
+      ],
+      "tags": [
+        "self-improve",
+        "distill",
+        "promotion",
+        "residue"
       ]
     }
   ]

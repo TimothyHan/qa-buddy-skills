@@ -1,6 +1,6 @@
 ---
 name: test-cases
-version: 0.3.5
+version: 0.3.7
 description: |
   Generate test cases from a Jira ticket's acceptance criteria. Produces Playwright
   e2e test scenarios and a unit test checklist for developers. Test cases map back
@@ -39,6 +39,8 @@ ACs from Jira, cross-reference the epic test plan, and produce:
 6. **Prioritize ruthlessly.** A ticket with 3 ACs doesn't need 30 test cases. Focus on what catches real bugs.
 
 ---
+
+**Scratchpad (run protocol):** write `## Plan` to the run's `scratchpad.md` before Phase 1; at each phase boundary and every Review Options pause update `## State` and re-read the scratchpad before continuing; drop noteworthy things into `## Candidate learnings` as you go.
 
 ## Phase 1: Gather Context
 

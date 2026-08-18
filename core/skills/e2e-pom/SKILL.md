@@ -1,6 +1,6 @@
 ---
 name: e2e-pom
-version: 0.1.2
+version: 0.1.3
 description: |
   Build and maintain Page Object Models by live element discovery — never by
   guessing selectors. Build mode pairs with the user: derives the element
@@ -150,6 +150,11 @@ Re-run discovery on affected screens. For each broken inventory entry, decide:
 | Same element, new testid/attributes (role, accessible name, position match) | **Auto-heal:** update selector + inventory (`verified` refreshed), note old → new |
 | Element no longer in the DOM | **Flag, never "fix":** inventory `status: "missing"`, list affected TCs, exclude from verification via `test.fixme` with the flag reason. A human decides if the feature moved or died. |
 | Ambiguous (multiple plausible matches) | **Flag** with the candidates — do not pick one silently |
+
+For every broken entry, before deciding, record the failure class:
+`node $QAB fp locator-not-found "<screen>/<element>"` (one line per element,
+not per attempt) — a learning that claimed to prevent this locator drift is
+falsified automatically if the helper prints it under `active`; flag that in the report.
 
 ### Phase H3: Gate and report
 

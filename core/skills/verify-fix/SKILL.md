@@ -1,6 +1,6 @@
 ---
 name: verify-fix
-version: 0.3.1
+version: 0.3.3
 description: |
   Re-test a bug fix after a developer resolves it. Pulls the original bug from Jira,
   re-executes the repro steps in the browser, checks for regressions, and updates
@@ -41,6 +41,8 @@ status based on the outcome.
 
 ---
 
+**Scratchpad (run protocol):** write `## Plan` to the run's `scratchpad.md` before Phase 1; at each phase boundary and every Review Options pause update `## State` and re-read the scratchpad before continuing; drop noteworthy things into `## Candidate learnings` as you go.
+
 ## Phase 1: Load Bug Context
 
 **Input:** User provides a bug key (e.g., `BUG-123`) or says "verify the fix for PROJ-789."
@@ -68,6 +70,9 @@ Before testing, confirm the fix is reachable:
 - Staging: confirm deployment includes the fix (commit hash, deploy logs, or ask SDT)
 
 If not deployed, report BLOCKED: "The fix for {BUG-KEY} doesn't appear to be deployed to {URL}."
+If the reason is a failed pipeline or deploy step (CI red, build broken, deploy
+job failed), fingerprint it first: `node $QAB fp ci-step-failed "<pipeline>/<step>"` —
+a learning that claimed to prevent this class shows up under `active`; flag it.
 
 ---
 

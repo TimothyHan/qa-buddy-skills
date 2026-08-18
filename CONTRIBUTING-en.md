@@ -46,20 +46,24 @@ Skills are designed for **Claude Sonnet** as the minimum. Every skill must work 
 ## Project Structure
 
 ```
-agents/
+qa-buddy-skills/
 ├── build.js                     # Build script (node, zero deps)
-├── test.js                      # 475 structural tests
+├── test.js                      # 740 structural checks
 ├── core/                        # Edit here — single source of truth
-│   ├── skills/ (11)             # Skill templates
-│   ├── references/playbook/     # 10 methodology files
+│   ├── skills/ (14)             # Skill templates (procedure)
+│   ├── references/              # Knowledge: playwright-patterns, self-improve, KB spec
+│   │   └── playbook/            # 11 methodology files + index
 │   ├── preamble-base.md         # Tier 1 (all skills)
 │   └── preamble-full.md         # Tier 2 additions
 ├── platforms/                   # 3 configs + 6 setup scripts
 ├── locales/ko/                  # Korean translation
+├── docs/rfc/                    # Design records (accepted RFCs)
 └── dist/                        # Generated — never edit directly
 ```
 
 **Key rule:** Edit `core/` and `platforms/`. Never edit `dist/`. Run `node build.js all` to regenerate.
+
+**Roadmap:** the learnings layer is being moved from prose-judged to measured — per-run compiled knowledge slices, an append-only learnings log, computed distill, eval-gated promotion. The design and the phase-by-phase sequence are in [RFC 0001 — Context Compiler](docs/rfc/0001-context-compiler.md). Sections of this guide that change with a phase are updated in that phase's PR, not before.
 
 ---
 
@@ -221,6 +225,25 @@ Cursor and Copilot ignore `tool-groups` — their agents auto-discover tools.
 
 ---
 
+## Runtime Obligations (every skill)
+
+The preamble enforces these on every skill run; skill authors must not contradict them and should not restate them. Design: [RFC 0001](docs/rfc/0001-context-compiler.md). Sections marked ▸ land with a later RFC phase.
+
+| When | Obligation | Written to |
+|---|---|---|
+| Whenever a learning shapes output | Cite its ID; `qab.js log applied LRN-…` | `learnings-log.jsonl` |
+| Live observation contradicts an active learning | Do not apply it; `qab.js log contradicted LRN-… --note`; flag in report | `learnings-log.jsonl` |
+| Completion | Apply the three capture triggers; if one fires, write the LRN and `log captured`; then `log outcome --status <S>` | `LEARNINGS.md`, `learnings-log.jsonl` |
+| Start | `qab.js compile --skill <name>` → read `slice.md` (replaces reading the learnings file + the reference sections it lists); fallback: references + `LEARNINGS.md` | `.qa-reports/runs/<run>/{slice.md,profile.json,scratchpad.md,events.jsonl}` |
+| Mid-run | Anything noteworthy → `## Candidate learnings` (no evidence bar); tier-2 skills also keep `## Plan` / `## State` and re-read at pauses | `scratchpad.md` |
+| Completion | The three capture triggers are applied to the **candidates** only | `LEARNINGS.md`, `learnings-log.jsonl` |
+| Named failure class hit (`e2e-pom` heal → `locator-not-found`; `e2e-write` gates → `spec-flaky`, `fixture-missing`; `qa` → `ac-unmapped`, `env-unreachable`, `auth-failed`, `assertion-mismatch`; `verify-fix` → `ci-step-failed`) | `qab.js fp <kind> "<key>"` — one line per distinct class per run; if the helper lists a learning under `active`, flag it | `fingerprints.jsonl` |
+| Capture after trigger 1 with a fingerprint this run | Set the new LRN's `Fingerprint:` to that ffp (`qab.js fp --list`) | `LEARNINGS.md` |
+
+`bin/qab.js` is the only writer of `learnings-log.jsonl` and `fingerprints.jsonl` — the model passes bare arguments and never hand-writes JSON. It ships to `dist/<platform>/references/bin/` and is tested behaviourally in `test.js` (`testRuntimeHelper`, `testCompile`, `testFingerprints`). Schema: `self-improve.md` §Learnings log and §Failure fingerprints (`"v": 1`; readers accept every earlier version — logs are append-only and live in users' repos for years). The fingerprint `kind` vocabulary is closed (`FP_KINDS` in `qab.js`, mirrored in `self-improve.md`; `test.js` checks they match) — add a kind only with a detection point in a skill and its ko twin. `qab.js scoreboard` writes `features-kb/.cache/scoreboard.json`, a derived cache — never read it as truth, never commit it. Runtime files (`LEARNINGS.md`, `learnings-log.jsonl`, `fingerprints.jsonl`, `.qa-reports/`) are project content: never in this repo, never dual-locale.
+
+---
+
 ## SDT Playbook: Editing and Adding Knowledge
 
 The playbook lives in `core/references/playbook/` as focused files (~35-70 lines each). See `index.md` for the full map.
@@ -245,12 +268,30 @@ The playbook lives in `core/references/playbook/` as focused files (~35-70 lines
 
 **Editing:** Stay within scope, keep under 70 lines, run `node build.js all`.
 
+**Every `##` section is an addressable source** (RFC 0001 PR3). The id lives in an HTML comment on the line right after the heading — never in the heading text:
+
+```markdown
+## Selectors
+<!-- qab: id=selectors tier=must -->
+- rule
+```
+
+| Field | Values | Meaning |
+|---|---|---|
+| `id=` | kebab-case, **permanent** | Forms `REF-<file-stem>#<id>` (`REF-playbook/<stem>#<id>` under `playbook/`). Rename the heading freely; never the id |
+| `scope=` | comma-separated skill names, or `all` (default) | Which skills may receive this section. Usually set once in the H1 comment as a file default; sections inherit it |
+| `tier=` | `must` / `should` (default) / `context` | `must` = always in a scoped skill's slice, packed first — rails, NEVER lists, templates a skill structurally depends on. `must` is expensive; never scope it to `all` |
+
+Rules: `##` headings outside code fences must carry a comment (`###` belong to their parent); the H1 comment holds file defaults and may carry `id=` for files whose knowledge sits directly under the H1 (`terminology.md`, `execution-sequence.md`); `README.md`/`index.md` are navigation and excluded. Korean twins copy the `qab:` comment **verbatim** — `node build.js all` fails on a duplicate id, an untagged `##`, an en/ko id-set mismatch, or a `core/references` file with no same-named ko twin (the references *directory* is resolved per locale, so an en-only file would silently never reach `dist/ko`). The build ships `references/index.json` (id → file, heading, scope, tier, lines) into every dist. `qab:` lines don't count against the 70-line playbook budget.
+
 **Adding new knowledge:**
-1. Fits an existing file? Add there. New topic? Create a file.
-2. Keep under 70 lines. Tables for data, bullets for rules. Write for the AI, not humans.
-3. Update `index.md` with file name, description, "Used by" skills.
-4. Wire into skills — add to Phase 1 methodology references. Only skills that need it.
-5. Verify context budget: `wc -l core/skills/*/SKILL.md`
+1. Fits an existing file? Add a section there. New topic? Create a file — **and its ko twin**.
+2. Keep files under 70 lines and sections under ~25. Tables for data, bullets for rules. Write for the AI, not humans.
+3. Add the `qab:` comment: choose a permanent id; set `scope=` to the skills that should receive it (or rely on the file default); choose `tier` honestly.
+4. Update `index.md` with file name, description, "Used by" skills; until RFC 0001 PR5 lands, also wire the file into the skills' Phase 1 methodology references. Only skills that need it.
+5. `node build.js all` (regenerates `index.json`, checks parity) → `node test.js`.
+
+**Learnings point at sources by id.** A learning's `Overrides:` names a section id (`REF-playwright-patterns#must-rules`), a skill rule (`SKILL:test-cases "…"`), or `none` — `test.js` checks that this repo's `features-kb/LEARNINGS.md` resolves.
 
 **What NOT to put in the playbook:** Tool-specific instructions, project config, skill workflow details, preamble duplicates.
 

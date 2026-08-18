@@ -1,4 +1,5 @@
 # Terminology
+<!-- qab: id=terms scope=all -->
 
 Normalize these terms across all output. When writing test plans, test cases,
 reports, and Jira comments, use these consistently.

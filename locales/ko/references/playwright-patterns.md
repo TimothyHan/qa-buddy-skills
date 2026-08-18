@@ -1,4 +1,5 @@
 # Playwright 패턴 — 생성되는 스위트의 코드 표준
+<!-- qab: scope=e2e-setup,e2e-pom,e2e-write,test-cases -->
 
 [Playwright 공식 베스트 프랙티스](https://playwright.dev/docs/best-practices)를
 기본 전제로 두고, 실전 프로젝트에서 얻은 추가 규칙을 얹습니다. 두 문서가
@@ -15,6 +16,7 @@
 ---
 
 ## 필수 규칙 (MUST)
+<!-- qab: id=must-rules tier=must -->
 
 ### 구조
 - 모든 Playwright 파일은 단일 `playwright/` 부모 폴더 아래에(설정 파일은 bare
@@ -60,6 +62,12 @@
 - 생성한 데이터는 반드시 정리 — disposal context(생성이 undo를 큐잉) 또는
   훅. 정리는 공개 API로, 테스트 환경 전용 리셋 훅에 의존 금지.
 - 시딩/사전 조건은 API로(UI 시딩은 느리고 취약 — API가 없을 때만, 부채로 기록).
+- **공유·공개 환경**(스테이징, 데모 사이트, 다른 사용자·팀도 쓰는 곳): 시드/기본
+  데이터는 절대 수정·삭제하지 않는다; 스위트가 만드는 모든 엔티티에 실행을 식별하는
+  접두어를 붙여 정리와 트리아지에서 실데이터와 구분되게 한다; 날짜에 묶인
+  엔티티(예약, 일정)는 먼 미래의 구간을 워커별로 따로 써서 실행끼리도, 실사용자와도
+  겹치지 않게 한다. 공유 픽스처 삭제는 수동으로 남긴다. (프로젝트 학습에서 승격,
+  2026-08-17.)
 
 ### 크게 실패시키기 (fail loudly)
 - `findIndex` 결과를 가드 없이 `nth()`에 넘기지 않는다: `-1`은 조용히 마지막
@@ -80,6 +88,7 @@
 | 객체 일부 필드만 확인 | `toMatchObject` / `objectContaining` |
 
 ## 금지 (NEVER)
+<!-- qab: id=never tier=must -->
 
 `waitForTimeout` · `test.only` 커밋(`forbidOnly: !!CI`) · 전역 개수 단언 ·
 하드코딩된 데이터 이름 · 본문 끝 인라인 정리 · 자동으로 사라지는 컴포넌트에
@@ -90,6 +99,7 @@
 ---
 
 ## 병렬 실행 (최소 2 워커 정책)
+<!-- qab: id=parallelism -->
 
 `workers = clamp(floor(cores/2), 최소 2, 최대 사용 가능 계정 수)` — 직렬로만
 통과하는 스위트는 순서 의존 버그를 숨기고 있다. 상황별 격리 전략:
@@ -151,6 +161,7 @@ export const test = base.extend<{ account: Account }>({
 ---
 
 ## 템플릿
+<!-- qab: id=templates -->
 
 ### 무상태 함수형 POM
 ```ts
@@ -239,6 +250,7 @@ await expect(row.getByTestId('delete-button')).toHaveCount(0);
 ---
 
 ## 안티패턴 → 교정
+<!-- qab: id=anti-pattern-correction -->
 
 | ❌ | ✅ |
 | --- | --- |
@@ -259,6 +271,7 @@ await expect(row.getByTestId('delete-button')).toHaveCount(0);
 | 테스트마다 `newContext({ storageState })` | `storageState` 옵션 fixture 오버라이드 |
 
 ## 함정 (알아두면 디버깅이 빨라지는 것들)
+<!-- qab: id=pitfalls -->
 
 - `request.newContext()`는 `use.baseURL`을 상속하지 않는다 — 명시적으로 지정.
 - 경로 포함 base URL은 트레일링 슬래시 + 상대 경로. `/items`는 base의 `/api`를

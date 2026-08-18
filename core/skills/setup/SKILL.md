@@ -1,6 +1,6 @@
 ---
 name: setup
-version: 0.4.2
+version: 0.4.5
 description: |
   First-run configuration wizard for QABuddy. Sets up context source (Jira, spec
   docs, chat, custom), team mode (solo vs PR-based), and project preferences.
@@ -114,6 +114,8 @@ Build the config object from answers:
   "githubCli": true/false,
   "contributeUpstream": true/false,
   "learningsPath": "features-kb/LEARNINGS.md",
+  "runsDir": ".qa-reports/runs",
+  "retainRuns": "captured",
   "upstreamRepo": "TimothyHan/qa-buddy-skills",
   "defaultBranch": "main",
   "createdAt": "{ISO timestamp}"
@@ -149,7 +151,18 @@ Entry format — `## LRN-YYYYMMDD-NN: title` with **Status** (active|promoted|re
 ```
 
 Tell the SDT: "Created `{learningsPath}` — QABuddy will evolve to fit this project
-by capturing learnings there on every skill run. Commit it; it's team knowledge."
+by capturing learnings there on every skill run. Commit it; it's team knowledge.
+A sibling `learnings-log.jsonl` will appear on the first run — append-only record of
+what each run applied, contradicted, captured, and how it ended — and
+`fingerprints.jsonl` on the first fingerprinted failure. Commit both."
+
+Then make sure `.gitignore` has these two lines (add them if missing — derived
+and local, never committed):
+
+```
+.qa-reports/
+features-kb/.cache/
+```
 
 ---
 
@@ -195,7 +208,7 @@ Your setup:
 - Team mode: {mode}
 - {jira project / spec location / custom method}
 - Team practices: {N} documented, {M} not yet defined
-- Learnings layer: {learningsPath} (self-improve active on every skill run)
+- Learnings layer: {learningsPath} + learnings-log.jsonl (self-improve active on every skill run)
 
 Next: Run `/qa-start {EPIC-KEY or feature description}` to begin the guided workflow.
 Or use any skill individually: `/qa-test-plan`, `/qa-review-ticket`, etc."

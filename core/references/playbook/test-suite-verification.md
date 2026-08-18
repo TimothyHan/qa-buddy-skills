@@ -1,4 +1,5 @@
 # Test Suite Verification
+<!-- qab: scope=test-plan,test-cases,e2e-write -->
 
 A test's value is its **detection power** — the probability it turns red when the
 thing it guards breaks. A green run proves nothing until you have seen the suite
@@ -6,6 +7,7 @@ red for the right reason. Coverage says what the suite *touches*; only a
 provoked failure says what it *catches*.
 
 ## Mutation smoke (prove detection power)
+<!-- qab: id=mutation-smoke -->
 
 After building or significantly changing a suite, run at least one mutation smoke:
 
@@ -21,6 +23,7 @@ After building or significantly changing a suite, run at least one mutation smok
    finding: record the blind spot and close it before trusting that suite.
 
 ## Vacuous assertion checklist
+<!-- qab: id=vacuous-assertion-checklist -->
 
 An assertion is vacuous when it passes regardless of behavior. Audit for:
 
@@ -37,6 +40,7 @@ An assertion is vacuous when it passes regardless of behavior. Audit for:
   break its subject once to prove it can.
 
 ## Self-derived expectations (anti-pattern)
+<!-- qab: id=self-derived-expectations -->
 
 A suite that builds its expectations by enumerating the system under test
 (walking the same disk, listing the same registry) **deletes its checks along
@@ -47,6 +51,7 @@ and demands an edit; that is the opposite failure mode of a stale runtime-side
 list, which silently does less work.
 
 ## Structural checks ≠ behavioral proof
+<!-- qab: id=structural-vs-behavioral -->
 
 Grepping that code/config *contains* the right fragment verifies shape, not
 behavior — a no-op wrapper or inverted guard keeps every string in place. Pair
@@ -55,6 +60,7 @@ execution-level proof (run the script against a decoy/sandbox and assert the
 observable outcome).
 
 ## When to run
+<!-- qab: id=when-to-run -->
 
 - Right after building a new suite or check layer (before trusting first green).
 - When a run is suspiciously fast or suspiciously green.

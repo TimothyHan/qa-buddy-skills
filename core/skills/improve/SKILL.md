@@ -1,6 +1,6 @@
 ---
 name: improve
-version: 0.4.1
+version: 0.7.1
 description: |
   Meta-skill that improves other skills based on real usage failures. When an SDT
   reports a skill produced incorrect or unexpected output, this skill analyzes the
@@ -31,7 +31,8 @@ You are a meta-skill with two modes:
   apply, verify.
 - **Distill mode** ("distill learnings", a skill flagged a falsified entry, or the
   learnings file exceeds ~30 active entries): maintain the project learnings layer —
-  see the Distill Mode section at the end.
+  see the Distill Mode section at the end. `--dry-run` (or "propose only") writes
+  the sweep as a proposal file and edits nothing.
 
 ## Constraints
 
@@ -211,16 +212,33 @@ Skip upstream contribution if:
 ## Distill Mode: Learnings Layer Maintenance
 
 Read the protocol first: `{{REFERENCE_PATH}}/self-improve.md`. Then read the
-learnings file (`learningsPath` from `.qabuddy.json`, default `features-kb/LEARNINGS.md`).
+learnings file (`learningsPath` from `.qabuddy.json`, default `features-kb/LEARNINGS.md`)
+and run `node {{REFERENCE_PATH}}/bin/qab.js stats` — the log's per-source counts
+(LRN and REF rows), the fingerprint recurrence table, and citation compliance;
+report the compliance line as-is. Numbers come from the log, not from
+`Evidence:` prose; if the log is absent or a source has no rows, say so and
+fall back to prose for that entry only.
 
-Sweep every `active` entry and classify:
+Sweep every `active` entry and classify. Show the computed columns
+(`in_slice · applied · contradicted · runs · last_applied`) next to each entry:
 
-| Finding | Action proposed |
-|---|---|
-| **Duplicate** — two entries state the same fact | Merge evidence into the older ID; mark the newer `retired` with reason "duplicate of LRN-…" |
-| **Falsified** — newer evidence (another entry, a skill's drift flag, or live observation) contradicts it | Mark `retired` with the contradicting evidence as reason |
-| **Promotion candidate** — evidence from 3+ separate dated runs AND the rule is generalizable beyond this project | Propose adding it to the matching reference (e.g., `playwright-patterns.md`); mark `promoted` with a pointer to where it landed |
-| **Healthy** | Leave untouched |
+| Finding | Computed from | Action proposed |
+|---|---|---|
+| **Duplicate** — two entries state the same fact | LLM check | Merge evidence into the older ID; mark the newer `retired` with reason "duplicate of LRN-…" |
+| **Duplicate (fingerprint)** — same failure class, same scope | same `Fingerprint:` ∧ same `Scope:` (`stats` names the older id) | Same as above — the older ID stays |
+| **Falsified (contradiction)** — contradicted by reality | `contradicted ≥ 2` and no `applied` after the last contradiction; or a skill's live drift flag | Mark `retired` with the contradicting log line / evidence as reason |
+| **Falsified (fingerprint)** — the failure it claimed to prevent recurred | any `fingerprints.jsonl` line with the entry in `active` (`stats` shows ffp × count) | Mark `retired` with the fingerprint line as reason — or, if the rule is right but incomplete, propose the amended statement as a new entry |
+| **Never applied** — compiled, never used | `in_slice ≥ 10` ∧ `applied = 0` | Propose `retired` ("never applied in N slices") unless the SDT names a reason to keep it; REF rows: report as never-selected, no action |
+| **Promotion candidate** — proven and general | `applied ≥ 3` across `≥ 3` distinct runs AND `contradicted = 0` AND (if `Fingerprint:`) its ffp silent since the entry's date — then the LLM judgment: generalizable beyond this project? | Propose adding it to the matching reference (e.g., `playwright-patterns.md`); mark `promoted` with a pointer to where it landed |
+| **Copy** — restates a reference | LLM check vs reference text | Retire (rule 4) |
+| **Healthy** | — | Leave untouched |
+
+An entry with prose evidence from "3+ runs" but `applied < 3` in the log is
+**not** a promotion candidate — the log is the record; say what the log shows.
+Include the **recurrence table** from `stats` (ffp · kind · key · count · runs ·
+active) in the sweep: a class recurring across runs with no learning in `active`
+is the strongest capture candidate this project has — say so, don't write the
+entry yourself.
 
 Rules:
 
@@ -235,12 +253,37 @@ Rules:
    rebuild — they're read from the project repo at runtime; references do), and
    if `contributeUpstream: true`, offer the upstream PR path from Phase 6. Only
    promote what holds beyond this project — project-specific facts stay learnings
-   forever, no matter how well-proven.
-4. **Deltas-only check while sweeping:** an entry that merely restates reference
+   forever, no matter how well-proven. **Kernel-only promotion:** when only part
+   of an entry generalizes, (a) in the same sweep split the app-specific residue
+   into a **new `active` entry** whose `Overrides:` names the promoted section, and
+   point the promoted entry's `Status:` line at both (section + residue LRN);
+   (b) check the target section's `scope` (`references/index.json`) covers
+   **every** skill in the entry's `Scope:` — if not, widen the section's `qab:`
+   scope (en+ko) *or* keep the residue/pointer entry scoped to the uncovered
+   skills. A `promoted` entry is never compiled again: anything left only inside
+   it is lost to every later run (caught live 2026-08-17: LRN-02 → LRN-09).
+4. **Eval gate on every promotion.** Before editing the reference, run the eval
+   fixtures (Phase 4 step 3) for **every skill in the promoted section's scope**
+   and record pass counts. Apply the edit, rebuild, run them again. Merge only if
+   `pass_after ≥ pass_before` for every skill. Otherwise revert the reference
+   edit, leave the LRN `active`, and append to `features-kb/LEARNINGS.rejected.md`:
+   `date · LRN-id · target reference/section · failing fixture ids · one-line why`.
+   A promotion that regresses a fixture is rejected by name, never merged quietly.
+5. **Deltas-only check while sweeping:** an entry that merely restates reference
    content is a copy, not a learning — propose retiring it.
+6. **`--dry-run` = the critic.** Do the full sweep with computed columns and
+   proposed actions, but write **only** `features-kb/distill-proposal-<YYYY-MM-DD>.md`
+   (the sweep table + evidence + the promotion candidates' target sections) and
+   touch nothing else — no `LEARNINGS.md` edits, no reference edits, no status
+   changes. The SDT reads the proposal and runs distill for real when ready.
+   Trigger it yourself when a run suggests it (`active > 30`, a falsified flag);
+   applying is always the SDT's call.
 
-Report: entries swept / merged / retired / promoted / left active, plus the
-resulting active count.
+Report: entries swept / merged / retired / promoted (+ residue entries created,
+scope gaps found) / rejected-by-eval / left active, the resulting active count, the log summary line from `qab.js stats`
+(events, runs with outcome, manual-writer count, fingerprint lines), and — for
+dry-run — the proposal file path and "0 edits". After any applied change run
+`node {{REFERENCE_PATH}}/bin/qab.js scoreboard` so the cache reflects the new state.
 
 ---
 

@@ -10,7 +10,7 @@
 [![Skills: 14](https://img.shields.io/badge/Skills-14-green.svg)](#스킬)
 [![Platform: Claude Code](https://img.shields.io/badge/Platform-Claude_Code-purple.svg)](#작동-방식)
 [![Locales: en, ko](https://img.shields.io/badge/Locales-en_|_ko-orange.svg)](#로케일)
-[![Structural checks: 740](https://img.shields.io/badge/Structural_checks-740-brightgreen.svg)](#작동-방식)
+[![Structural checks: 1124](https://img.shields.io/badge/Structural_checks-1124-brightgreen.svg)](#작동-방식)
 
 스크럼 팀에서 일하는 SDT(Software Developers in Test)를 위한 AI 파트너입니다.<br>
 에픽 테스트 계획 수립부터 스프린트 실행, 릴리스 검증까지 전체 워크플로우를 지원합니다.<br>
@@ -251,11 +251,11 @@ flowchart LR
     C -. 반복 증명됨 .-> F["/qa-improve 정제:<br>레퍼런스 승격<br>+ 업스트림 PR"]
 ```
 
-**학습 레이어 (자동, 모든 스킬 실행).** 모든 실행은 시작 시 `features-kb/LEARNINGS.md`를 읽고 — active 항목은 배포된 레퍼런스를 *오버라이드*하는 프로젝트 고유 규칙입니다 — 종료 시 세 가지 포착 트리거를 확인합니다: 문서화된 규칙이 현실 앞에서 깨짐, 문서화되지 않은 결정을 내림, SDT가 출력을 수정함. 항목에는 증거가 필수이며, 깨끗한 실행은 아무것도 기록하지 않습니다. 이 파일은 당신의 저장소에 살기 때문에 학습이 git으로 팀 전체에 전파되고 QABuddy 업그레이드에도 살아남습니다. 프로토콜: [`core/references/self-improve.md`](core/references/self-improve.md).
+**학습 레이어 (자동, 모든 스킬 실행).** 모든 실행은 시작 시 `features-kb/LEARNINGS.md`를 읽고 — active 항목은 배포된 레퍼런스를 *오버라이드*하는 프로젝트 고유 규칙입니다 — 종료 시 세 가지 포착 트리거를 확인합니다: 문서화된 규칙이 현실 앞에서 깨짐, 문서화되지 않은 결정을 내림, SDT가 출력을 수정함. 항목에는 증거가 필수이며, 깨끗한 실행은 아무것도 기록하지 않습니다. 또한 모든 실행은 시작 시 자기 스코프의 레퍼런스 섹션과 학습을 매니페스트가 붙은 `slice.md` 하나로 **컴파일**하고(`.qa-reports/runs/<run>/`), 무엇을 *적용*·*모순*·*포착*했고 어떻게 *끝났는지*를 `features-kb/learnings-log.jsonl`에 추가하고 (append-only, 함께 배포되는 `qab.js` 헬퍼가 씀 — 절대 손으로 쓰지 않음), 재발하는 실패 클래스를 `features-kb/fingerprints.jsonl`에 이름 붙여 그것을 막는다고 주장한 학습이 자동으로 반증되게 합니다 — 그래서 정제는 산문이 아니라 숫자로 판단합니다. 두 파일 모두 당신의 저장소에 살기 때문에 학습이 git으로 팀 전체에 전파되고 QABuddy 업그레이드에도 살아남습니다. 프로토콜: [`core/references/self-improve.md`](core/references/self-improve.md); 설계: [RFC 0001](docs/rfc/0001-context-compiler.md).
 
 **스킬 수정.** 하나의 흐름, 하나의 소유자: `/qa-improve`. 모든 중단 지점에서 **(C) 도구 피드백**을 선택하거나(`/qa-improve`로 디스패치 후 워크플로우 재개), 직접 실행하거나, 포착된 학습이 스킬 결함을 가리킬 때 실행 종료 시의 제안을 수락하세요 — 구조화된 제안, 목표 수정, eval 회귀 실행, PR.
 
-**정제와 승격.** `/qa-improve` distill 모드가 학습 레이어를 정리합니다: 중복 병합, 반증된 항목 은퇴, 반복 실행으로 증명된 규칙의 정본 레퍼런스 승격 — `contributeUpstream`이 활성화되어 있으면 QABuddy 저장소에 PR로 제출되어 모든 사용자에게 도움이 됩니다.
+**정제와 승격.** `/qa-improve` distill 모드가 로그의 숫자로 학습 레이어를 정리합니다 (`applied ≥ 3`, 서로 다른 실행 `≥ 3`, 모순 없음 → 승격 후보; `contradicted ≥ 2` 이후 적용 없음 → 반증): 중복 병합, 반증된 항목 은퇴, 증명된 규칙의 정본 레퍼런스 승격 — `contributeUpstream`이 활성화되어 있으면 QABuddy 저장소에 PR로 제출되어 모든 사용자에게 도움이 됩니다.
 
 **품질 게이트.** `/qa-eval`이 모든 스킬에 대해 픽스처 스위트를 실행합니다 — 번들된 픽스처 앱에 대해 실제 `npx playwright test` 종료 코드로 채점하는 execute 모드 픽스처 포함.
 
@@ -304,7 +304,7 @@ flowchart LR
 ```bash
 node build.js all                  # 모든 플랫폼용 빌드
 node build.js all --locale ko      # 한국어 버전 빌드
-node test.js                       # 740개 구조 검사 실행
+node test.js                       # 1124개 구조 검사 실행
 ```
 
 > **구조 검사와 동작 검증은 다릅니다.** `node test.js`는 빌드 산출물의 형태를
@@ -319,7 +319,7 @@ node test.js                       # 740개 구조 검사 실행
 ```
 QABuddy/
 ├── build.js                     # 빌드 스크립트 (node, 의존성 없음)
-├── test.js                      # 구조 검사 스위트 (740개 검사)
+├── test.js                      # 구조 검사 스위트 (1124개 검사)
 ├── core/                        # 단일 소스 — 여기서 편집
 │   ├── skills/ (14)             # {{플레이스홀더}} 포함 스킬 템플릿
 │   ├── references/playbook/     # 10개 방법론 파일
