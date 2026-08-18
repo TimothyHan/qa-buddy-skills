@@ -231,13 +231,16 @@ Cursor와 Copilot은 `tool-groups`를 무시합니다 — 해당 에이전트가
 
 | 시점 | 의무 | 기록 위치 |
 |---|---|---|
-| 시작 | `qab.js run-id --skill <name>`; 레퍼런스를 읽은 뒤 학습 파일(스킬 스코프, `active`) — 충돌 시 학습이 레퍼런스를 이김 | `.qa-reports/.qab-run` |
 | 학습이 출력을 결정할 때마다 | ID 인용; `qab.js log applied LRN-…` | `learnings-log.jsonl` |
 | 실행 중 관찰이 active 학습과 모순 | 적용하지 않음; `qab.js log contradicted LRN-… --note`; 보고서에 플래그 | `learnings-log.jsonl` |
-| 완료 | 세 가지 포착 트리거 확인; 발화하면 LRN 작성 + `log captured`; 그 다음 `log outcome --status <S>` | `LEARNINGS.md`, `learnings-log.jsonl` |
-| ▸ 시작(컴파일) / 페이즈 경계 / 실패 종류 | 컴파일된 슬라이스, 스크래치패드, 지문 | RFC 0001 PR5 / PR6 |
+| 완료 | 세 가지 포착 트리거 적용; 발화하면 LRN 작성 + `log captured`; 그 다음 `log outcome --status <S>` | `LEARNINGS.md`, `learnings-log.jsonl` |
+| 시작 | `qab.js compile --skill <name>` → `slice.md` 읽기 (학습 파일 + 매니페스트에 나열된 레퍼런스 섹션 읽기를 대체); 폴백: 레퍼런스 + `LEARNINGS.md` | `.qa-reports/runs/<run>/{slice.md,profile.json,scratchpad.md,events.jsonl}` |
+| 실행 중 | 눈에 띄는 것 → `## Candidate learnings` (증거 문턱 없음); tier-2 스킬은 `## Plan` / `## State`도 유지하고 일시정지마다 다시 읽음 | `scratchpad.md` |
+| 완료 | 세 가지 포착 트리거는 **후보들에게만** 적용 | `LEARNINGS.md`, `learnings-log.jsonl` |
+| 이름 붙은 실패 클래스를 만남 (`e2e-pom` heal → `locator-not-found`; `e2e-write` 게이트 → `spec-flaky`, `fixture-missing`; `qa` → `ac-unmapped`, `env-unreachable`, `auth-failed`, `assertion-mismatch`; `verify-fix` → `ci-step-failed`) | `qab.js fp <kind> "<key>"` — 실행당 서로 다른 클래스마다 한 줄; 헬퍼가 `active` 아래 학습을 나열하면 플래그 | `fingerprints.jsonl` |
+| 이 실행에 지문이 있는 트리거 1 포착 | 새 LRN의 `Fingerprint:`를 그 ffp로 설정 (`qab.js fp --list`) | `LEARNINGS.md` |
 
-`bin/qab.js`가 `learnings-log.jsonl`의 유일한 작성자입니다 — 모델은 인자만 넘기고 JSON을 손으로 쓰지 않습니다. `dist/<platform>/references/bin/`으로 배포되며 `test.js`(`testRuntimeHelper`)가 동작을 검증합니다. 스키마: `self-improve.md` §학습 로그 (`"v": 1`; 리더는 모든 이전 버전을 수용 — 로그는 append-only이고 사용자 저장소에 수년간 남습니다). 런타임 파일(`LEARNINGS.md`, `learnings-log.jsonl`, `.qa-reports/`)은 프로젝트 콘텐츠입니다: 이 저장소에 없고, 이중 로케일도 아닙니다.
+`bin/qab.js`가 `learnings-log.jsonl`과 `fingerprints.jsonl`의 유일한 작성자입니다 — 모델은 인자만 넘기고 JSON을 손으로 쓰지 않습니다. `dist/<platform>/references/bin/`으로 배포되며 `test.js`(`testRuntimeHelper`, `testCompile`, `testFingerprints`)가 동작을 검증합니다. 스키마: `self-improve.md` §학습 로그·§실패 지문 (`"v": 1`; 리더는 모든 이전 버전을 수용 — 로그는 append-only이고 사용자 저장소에 수년간 남습니다). 지문 `kind` 어휘는 닫혀 있습니다(`qab.js`의 `FP_KINDS`, `self-improve.md`에 미러; `test.js`가 일치를 검사) — 스킬에 감지 지점과 ko 대응본을 함께 넣을 때만 kind를 추가하세요. `qab.js scoreboard`는 `features-kb/.cache/scoreboard.json`(파생 캐시)을 씁니다 — 진실로 읽지도, 커밋하지도 마세요. 런타임 파일(`LEARNINGS.md`, `learnings-log.jsonl`, `fingerprints.jsonl`, `.qa-reports/`)은 프로젝트 콘텐츠입니다: 이 저장소에 없고, 이중 로케일도 아닙니다.
 
 ---
 
@@ -265,12 +268,30 @@ Cursor와 Copilot은 `tool-groups`를 무시합니다 — 해당 에이전트가
 
 **편집:** 범위 내에서 작업하고, 70줄 이하로 유지하고, `node build.js all`을 실행하세요.
 
+**모든 `##` 섹션은 주소를 가진 소스입니다** (RFC 0001 PR3). id는 제목 바로 다음 줄의 HTML 주석에 둡니다 — 제목 텍스트에는 절대 넣지 않습니다:
+
+```markdown
+## Selectors
+<!-- qab: id=selectors tier=must -->
+- rule
+```
+
+| 필드 | 값 | 의미 |
+|---|---|---|
+| `id=` | kebab-case, **영구** | `REF-<file-stem>#<id>`가 됨 (`playbook/` 아래는 `REF-playbook/<stem>#<id>`). 제목은 자유롭게 바꿔도 되지만 id는 절대 바꾸지 않음 |
+| `scope=` | 쉼표 구분 스킬 이름, 또는 `all`(기본) | 이 섹션을 받을 수 있는 스킬. 보통 H1 주석에 파일 기본값으로 한 번 두고 섹션이 상속 |
+| `tier=` | `must` / `should`(기본) / `context` | `must` = 스코프된 스킬의 슬라이스에 항상 들어가고 먼저 패킹됨 — 레일, NEVER 목록, 스킬이 구조적으로 의존하는 템플릿. `must`는 비싸므로 절대 `all`에 스코프하지 않음 |
+
+규칙: 코드 펜스 밖의 `##` 제목은 모두 주석을 달아야 함(`###`는 부모에 속함); H1 주석은 파일 기본값을 담고, 지식이 H1 바로 아래 있는 파일(`terminology.md`, `execution-sequence.md`)은 `id=`도 가질 수 있음; `README.md`/`index.md`는 내비게이션이라 제외. 한국어 대응본은 `qab:` 주석을 **그대로** 복사 — `node build.js all`은 중복 id, 태그 없는 `##`, en/ko id 집합 불일치, 같은 이름의 ko 대응본이 없는 `core/references` 파일에서 실패합니다(레퍼런스 *디렉터리*가 로케일별로 결정되므로 en 전용 파일은 조용히 `dist/ko`에 도달하지 못함). 빌드는 모든 dist에 `references/index.json`(id → 파일, 제목, scope, tier, 줄 수)을 배포합니다. `qab:` 줄은 플레이북 70줄 예산에 포함되지 않습니다.
+
 **새 지식 추가:**
-1. 기존 파일에 맞는 내용인가요? 거기에 추가하세요. 새로운 주제라면 새 파일을 만드세요.
-2. 70줄 이하로 유지하세요. 데이터에는 테이블, 규칙에는 글머리 기호를 사용하세요. 사람이 아닌 AI를 위해 작성하세요.
-3. `index.md`에 파일 이름, 설명, "Used by" 스킬을 업데이트하세요.
-4. 스킬에 연결하세요 — Phase 1 방법론 참조에 추가하세요. 실제로 필요한 스킬에만 추가하세요.
-5. 컨텍스트 예산을 확인하세요: `wc -l core/skills/*/SKILL.md`
+1. 기존 파일에 맞는 내용인가요? 거기에 섹션을 추가하세요. 새로운 주제라면 새 파일을 만드세요 — **ko 대응본도 함께**.
+2. 파일은 70줄 이하, 섹션은 ~25줄 이하로. 데이터에는 테이블, 규칙에는 글머리 기호. 사람이 아닌 AI를 위해 작성하세요.
+3. `qab:` 주석을 추가하세요: 영구 id를 고르고, `scope=`를 이 섹션을 받아야 할 스킬로(또는 파일 기본값에 의존), `tier`는 정직하게.
+4. `index.md`에 파일 이름, 설명, "Used by" 스킬을 업데이트하세요; 스킬이 하드 리스트한 레퍼런스가 있다면 그 스킬의 Phase 1 방법론 참조에도 연결 — 실제로 필요한 스킬에만.
+5. `node build.js all` (`index.json` 재생성, 패리티 검사) → `node test.js`.
+
+**학습은 소스를 id로 가리킵니다.** 학습의 `Overrides:`는 섹션 id(`REF-playwright-patterns#must-rules`), 스킬 규칙(`SKILL:test-cases "…"`), 또는 `없음`을 씁니다 — `test.js`가 이 저장소의 `features-kb/LEARNINGS.md`가 해석되는지 검사합니다.
 
 **플레이북에 넣지 말아야 할 것:** 도구별 지시사항, 프로젝트 구성, 스킬 워크플로우 세부사항, preamble 내용의 중복.
 
