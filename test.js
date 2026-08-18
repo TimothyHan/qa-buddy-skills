@@ -1044,6 +1044,11 @@ function testCompile() {
     // recompiling the same skill reuses the run (marker) instead of starting a new one
     const out2 = run(['compile', '--skill', 'test-cases']);
     check(path.dirname(path.join(tmp, out2.split('\n')[0].trim())) === runDir, 'recompile for the current run reuses its directory');
+    // …but a DIFFERENT ticket starts a new run with its own profile (a bug-keyed run must not inherit the story run — caught live 2026-08-17)
+    const out3 = run(['compile', '--skill', 'test-cases', '--ticket', 'BUG-7']);
+    const runDir3 = path.dirname(path.join(tmp, out3.split('\n')[0].trim()));
+    check(runDir3 !== runDir && /test-cases-BUG-7-[0-9a-f]{6}$/.test(runDir3), 'compile with a different --ticket starts a new run instead of reusing the marker');
+    check(JSON.parse(fs.readFileSync(path.join(runDir3, 'profile.json'), 'utf8')).ticket_kind === 'bug', 'the new run\'s profile reflects the new ticket (ticket_kind=bug)');
     // fallback path is documented, not required: compile without index next to helper → clear error (source copy has no index)
     let errText = ''; try { execFileSync(process.execPath, [path.join(ROOT, 'bin', 'qab.js'), 'compile', '--skill', 'qa'], { env, encoding: 'utf8', stdio: ['ignore', 'pipe', 'pipe'] }); } catch (e) { errText = String(e.stderr || ''); }
     check(/index\.json not found/.test(errText), 'compile without a shipped index fails loudly (fallback is the model reading files, not a silent empty slice)');
