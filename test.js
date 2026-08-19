@@ -729,25 +729,28 @@ async function testRuntimeHelper() {
     check(/^qa-PROJ-1-[0-9a-f]{6}$/.test(runId), `run-id prints <skill>-<ticket>-<6hex> (${runId})`);
     check(fs.existsSync(path.join(tmp, '.qa-reports', '.qab-run')), 'run-id writes .qa-reports/.qab-run marker');
 
+    // Each run logs its events and is CLOSED BY ITS OUTCOME last — the helper refuses events on a
+    // run that already reported one, so this ordering is also what real runs look like.
+    // Run 1 (marker/default). Boundary data: LRN-08 contradicted twice with nothing applied after
+    // (falsified); LRN-09 contradicted twice but applied again later, in run 3 (NOT falsified).
     run(['log', 'applied', 'LRN-20260808-03']);
     run(['log', 'contradicted', 'LRN-20260808-04', '--note', 'script uses --prefix']);
-    run(['log', 'outcome', '--status', 'DONE']);
-    // a second run, id via env — must append, not rewrite
-    run(['log', 'applied', 'LRN-20260808-03', '--skill', 'test-cases'], { QAB_RUN: 'test-cases-x-abcdef' });
-    run(['log', 'outcome', '--status', 'DONE'], { QAB_RUN: 'test-cases-x-abcdef' });
-    run(['log', 'applied', 'LRN-20260808-03'], { QAB_RUN: 'third-run-000001' });
-    run(['log', 'outcome', '--status', 'DONE_WITH_CONCERNS'], { QAB_RUN: 'third-run-000001' });
-    // boundary data: LRN-07 applied twice across two runs (NOT a candidate: needs ≥3);
-    // LRN-08 contradicted twice with no applied afterwards (falsified)
-    run(['log', 'applied', 'LRN-20260808-07'], { QAB_RUN: 'test-cases-x-abcdef' });
-    run(['log', 'applied', 'LRN-20260808-07'], { QAB_RUN: 'third-run-000001' });
     run(['log', 'applied', 'LRN-20260808-08'], { QAB_TS: '2026-08-10T00:00:00Z' });
     run(['log', 'contradicted', 'LRN-20260808-08', '--note', 'first'], { QAB_TS: '2026-08-11T00:00:00Z' });
-    run(['log', 'contradicted', 'LRN-20260808-08', '--note', 'second'], { QAB_RUN: 'third-run-000001', QAB_TS: '2026-08-12T00:00:00Z' });
-    // LRN-09: contradicted twice but applied again afterwards → NOT falsified (the "no applied since" clause)
     run(['log', 'contradicted', 'LRN-20260808-09', '--note', 'a'], { QAB_TS: '2026-08-11T00:00:00Z' });
     run(['log', 'contradicted', 'LRN-20260808-09', '--note', 'b'], { QAB_TS: '2026-08-12T00:00:00Z' });
+    run(['log', 'outcome', '--status', 'DONE']);
+    // Run 2, id via env — must append, not rewrite. LRN-07 applied here and in run 3 = 2 runs
+    // (NOT a promotion candidate: the threshold is 3).
+    run(['log', 'applied', 'LRN-20260808-03', '--skill', 'test-cases'], { QAB_RUN: 'test-cases-x-abcdef' });
+    run(['log', 'applied', 'LRN-20260808-07'], { QAB_RUN: 'test-cases-x-abcdef' });
+    run(['log', 'outcome', '--status', 'DONE'], { QAB_RUN: 'test-cases-x-abcdef' });
+    // Run 3
+    run(['log', 'applied', 'LRN-20260808-03'], { QAB_RUN: 'third-run-000001' });
+    run(['log', 'applied', 'LRN-20260808-07'], { QAB_RUN: 'third-run-000001' });
+    run(['log', 'contradicted', 'LRN-20260808-08', '--note', 'second'], { QAB_RUN: 'third-run-000001', QAB_TS: '2026-08-12T00:00:00Z' });
     run(['log', 'applied', 'LRN-20260808-09'], { QAB_RUN: 'third-run-000001', QAB_TS: '2026-08-13T00:00:00Z' });
+    run(['log', 'outcome', '--status', 'DONE_WITH_CONCERNS'], { QAB_RUN: 'third-run-000001' });
 
     const logFile = path.join(tmp, 'kb', 'learnings-log.jsonl');
     check(fs.existsSync(logFile), 'log writes learnings-log.jsonl next to learningsPath');
@@ -761,8 +764,12 @@ async function testRuntimeHelper() {
     check(first.v === 1 && first.ts === '2026-08-17T00:00:00Z' && first.run === runId && first.skill === 'qa' && first.event === 'applied' && first.src === 'LRN-20260808-03',
       'first line has v/ts/run/skill/event/src from marker + args', JSON.stringify(first));
     check(parsed[1] && parsed[1].note === 'script uses --prefix', 'contradicted line carries --note');
-    check(parsed[2] && parsed[2].status === 'DONE' && parsed[2].event === 'outcome', 'outcome line carries --status');
-    check(parsed[3] && parsed[3].run === 'test-cases-x-abcdef' && parsed[3].skill === 'test-cases', 'QAB_RUN / --skill override the marker');
+    // Found by content, not by index: these assertions are about the line's shape, and a fixture
+    // reorder should not be able to break them (it did, when runs were made to close last).
+    const outcomeLine = parsed.find(l => l.event === 'outcome' && l.run === runId) || {};
+    check(outcomeLine.status === 'DONE', 'outcome line carries --status', JSON.stringify(outcomeLine));
+    const overrideLine = parsed.find(l => l.run === 'test-cases-x-abcdef' && l.src === 'LRN-20260808-03') || {};
+    check(overrideLine.skill === 'test-cases', 'QAB_RUN / --skill override the marker', JSON.stringify(overrideLine));
 
     // Validation: bad input exits non-zero and writes nothing
     const before = fs.readFileSync(logFile, 'utf8');
@@ -795,7 +802,7 @@ async function testRuntimeHelper() {
     // ── PR4: REF citation. Validation needs index.json next to the helper, so exercise the SHIPPED copy.
     const shipped = path.join(resolvePlatformDir('claude'), 'references', 'bin', 'qab.js'); // en or ko-only dist
     const runS = (args, extraEnv) => execFileSync(process.execPath, [shipped, ...args], { env: { ...env, ...(extraEnv || {}) }, encoding: 'utf8', stdio: ['ignore', 'pipe', 'pipe'] });
-    const failsS = (args) => { try { runS(args); return null; } catch (e) { return e.status !== 0 ? String(e.stderr || '') : null; } };
+    const failsS = (args, extraEnv) => { try { runS(args, extraEnv); return null; } catch (e) { return e.status !== 0 ? String(e.stderr || '') : null; } };
     if (fs.existsSync(shipped) && fs.existsSync(path.join(resolvePlatformDir('claude'), 'references', 'index.json'))) {
       const beforeRef = fs.readFileSync(logFile, 'utf8');
       runS(['log', 'applied', 'REF-playwright-patterns#never'], { QAB_RUN: 'ref-run-000001' });
@@ -821,6 +828,27 @@ async function testRuntimeHelper() {
       const total = Object.values(comp).reduce((a, c) => a + c.runs, 0);
       const withRef = Object.values(comp).reduce((a, c) => a + c.with_ref, 0);
       check(total === 4 && withRef === 1, `stats: citation compliance counts runs with outcome and those with a REF applied (${withRef}/${total}, expected 1/4)`, JSON.stringify(comp));
+
+      // ── Closed-run guard. A run is closed by its outcome; events appended afterwards belong to
+      // different work (in practice: a stale .qab-run marker picked up by maintenance outside a run)
+      // and silently corrupt the per-run counts distill and the scoreboard read.
+      // 'ref-run-000001' reported DONE three lines above, so it is closed.
+      const linesBeforeGuard = fs.readFileSync(logFile, 'utf8').trim().split('\n').length;
+      const guardErr = failsS(['log', 'applied', 'REF-playwright-patterns#never'], { QAB_RUN: 'ref-run-000001' });
+      check(guardErr !== null, 'log on a run that already reported an outcome is refused');
+      check(/already reported an outcome/.test(guardErr || ''), 'closed-run refusal names the reason', guardErr || '(no stderr)');
+      check(/run-id --skill/.test(guardErr || ''), 'closed-run refusal says how to open a new run', guardErr || '(no stderr)');
+      check(fs.readFileSync(logFile, 'utf8').trim().split('\n').length === linesBeforeGuard,
+        'a refused append writes nothing to the log');
+      check(failsS(['log', 'outcome', '--status', 'DONE'], { QAB_RUN: 'ref-run-000001' }) !== null,
+        'a second outcome on the same run is refused too (no double counting)');
+      // A malformed id on a closed run must still report the id, not the run state (validation first).
+      const closedBadId = failsS(['log', 'applied', 'REF-Bad'], { QAB_RUN: 'ref-run-000001' });
+      check(/malformed REF id/.test(closedBadId || ''), 'argument validation still wins over the closed-run check', closedBadId || '(accepted)');
+      // An open run is unaffected.
+      runS(['log', 'applied', 'REF-playwright-patterns#never'], { QAB_RUN: 'ref-run-000002' });
+      check(fs.readFileSync(logFile, 'utf8').trim().split('\n').length === linesBeforeGuard + 1,
+        'an open run still accepts events after a different run closed');
       const table2 = runS(['stats']);
       check(/citation compliance/.test(table2) && /overall: 1\/4 REF/.test(table2), 'stats prints the compliance readout with the PR4 gate');
     } else {
