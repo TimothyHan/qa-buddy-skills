@@ -48,7 +48,7 @@ QABuddy에 관심을 가져주셔서 감사합니다! 이 가이드는 스킬 �
 ```
 qa-buddy-skills/
 ├── build.js                     # Build script (node, zero deps)
-├── test.js                      # 740 structural checks
+├── test.js                      # 1137 structural checks
 ├── core/                        # Edit here — single source of truth
 │   ├── skills/ (14)             # Skill templates (procedure)
 │   ├── references/              # Knowledge: playwright-patterns, self-improve, KB spec
