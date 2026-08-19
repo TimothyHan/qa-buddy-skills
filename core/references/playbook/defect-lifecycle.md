@@ -33,7 +33,7 @@ New -> Issue Verified -> Investigation -> Development in Progress
 | **Closed** | Auto/Reporter | Confirmed working in production |
 
 ## When a bug does not reproduce
-<!-- qab: id=not-reproducible scope=qa,verify-fix,exploratory -->
+<!-- qab: id=not-reproducible scope=qa,verify-fix,exploratory,review-ticket,test-cases -->
 
 "Cannot reproduce" is a hypothesis, not a verdict. Repro steps record what the reporter
 *did*, not the **run conditions** that were also true — restore them one at a time and retry:

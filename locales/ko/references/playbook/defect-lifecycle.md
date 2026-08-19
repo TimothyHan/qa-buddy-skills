@@ -33,7 +33,7 @@ New -> Issue Verified -> Investigation -> Development in Progress
 | **Closed** | 자동/보고자 | 운영 환경에서 정상 동작을 확인합니다 |
 
 ## 재현되지 않을 때
-<!-- qab: id=not-reproducible scope=qa,verify-fix,exploratory -->
+<!-- qab: id=not-reproducible scope=qa,verify-fix,exploratory,review-ticket,test-cases -->
 
 "재현 불가"는 판정이 아니라 가설입니다. 재현 단계는 보고자가 *무엇을 했는지*를 적을 뿐,
 그때 함께 참이었던 **실행 조건**은 적지 않습니다. 닫거나 등급을 낮추기 전에 조건을 하나씩

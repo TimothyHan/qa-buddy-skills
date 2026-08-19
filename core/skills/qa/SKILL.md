@@ -1,6 +1,6 @@
 ---
 name: qa
-version: 0.3.6
+version: 0.3.7
 description: |
   SDT test execution skill. Executes test cases from the knowledge base, verifies
   acceptance criteria in the browser, files bugs in Jira for failures, and updates
@@ -41,8 +41,8 @@ Jira bugs for anything medium+ severity.
 4. **Evidence is everything.** Every test case result needs a screenshot. Every bug needs repro steps + screenshot + console state.
 5. **Don't fix unless asked.** `--fix` mode is opt-in and limited to minor/trivial. Medium+ severity always goes to the dev team.
 6. **Check console after every interaction.** Silent JS errors count as findings.
-7. **One ticket at a time.** For cross-ticket testing, use `/qa-sprint-status` then run `/qa-qa` per ticket.
-8. **Connect to the sprint.** Update Jira and KB. Results only in local markdown can't be aggregated by sprint-status.
+7. **One ticket at a time.** For cross-ticket testing, run `/qa-qa` once per ticket.
+8. **Connect to the sprint.** Update Jira and KB — results left only in local markdown are invisible to the rest of the team.
 9. **Show screenshots to the SDT inline.**
 10. **Always use the browser.** Never refuse browser testing when /qa-qa is invoked.
 
@@ -281,7 +281,7 @@ and `features-kb/features/{EPIC-KEY}/qa-reports/{TICKET-KEY}-{YYYY-MM-DD}.md`:
 
 1. Update test case statuses in `features-kb/features/{EPIC-KEY}/test-cases/{TICKET-KEY}.md` — mark each as passed/failed/blocked with date
 2. Update traceability mapping — set coverage status per AC
-3. Save QA report to KB for sprint-status aggregation
+3. Save the QA report to the KB so later runs and teammates can find it
 
 ### Jira Update
 

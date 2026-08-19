@@ -1,8 +1,8 @@
 # Test Metrics
-<!-- qab: scope=qa,test-plan,sprint-status,exploratory,start -->
+<!-- qab: scope=qa,test-plan,exploratory,start -->
 
 ## Code Coverage
-<!-- qab: id=code-coverage -->
+<!-- qab: id=code-coverage scope=test-plan -->
 
 - **Target:** ~80% code coverage.
 - **Not a hard rule.** Below 80% does not block PR merge.
@@ -10,7 +10,7 @@
 - **Purpose:** Encourages discipline, not perfection. Coverage alone does not guarantee quality.
 
 ## Test Coverage (Requirements Coverage)
-<!-- qab: id=requirements-coverage -->
+<!-- qab: id=requirements-coverage scope=qa,test-plan,exploratory,start -->
 
 Test coverage = (requirements and ACs covered by test cases) / (all requirements and ACs).
 
@@ -22,7 +22,7 @@ Test coverage = (requirements and ACs covered by test cases) / (all requirements
 - **Focus test coverage analysis on identifying missing scenarios.** This is often achieved through exploratory testing.
 
 ## Defect Metrics
-<!-- qab: id=defect-metrics -->
+<!-- qab: id=defect-metrics scope=test-plan -->
 
 ### Must-have
 
@@ -42,7 +42,7 @@ Test coverage = (requirements and ACs covered by test cases) / (all requirements
 | **Defect density** | bugs per epic or per story point | When consistent epic-to-bug linking is established. |
 
 ## Test Health Metrics
-<!-- qab: id=test-health-metrics -->
+<!-- qab: id=test-health-metrics scope=test-plan -->
 
 ### Must-have
 

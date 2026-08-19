@@ -1,6 +1,6 @@
 ---
 name: setup
-version: 0.4.5
+version: 0.4.6
 description: |
   First-run configuration wizard for QABuddy. Sets up context source (Jira, spec
   docs, chat, custom), team mode (solo vs PR-based), and project preferences.
@@ -186,12 +186,12 @@ mkdir -p features-kb/team-practices
 
 | Practice | Saved to | Used by |
 |----------|----------|---------|
-| Bug triage | `features-kb/team-practices/bug-triage.md` | `/qa-qa`, `/qa-sprint-status` |
+| Bug triage | `features-kb/team-practices/bug-triage.md` | `/qa-qa` |
 | Hotfix testing | `features-kb/team-practices/hotfix-testing.md` | `/qa-qa`, `/qa-verify-fix` |
 | Test data | `features-kb/team-practices/test-data.md` | `/qa-qa`, `/qa-test-cases`, `/qa-exploratory` |
-| Release workflow | `features-kb/team-practices/release-workflow.md` | `/qa-sprint-status` |
+| Release workflow | `features-kb/team-practices/release-workflow.md` | `/qa-verify-fix` |
 | Accessibility | `features-kb/team-practices/accessibility.md` | `/qa-qa`, `/qa-test-cases`, `/qa-exploratory` |
-| CI/CD pipeline | `features-kb/team-practices/ci-cd-pipeline.md` | `/qa-sprint-status`, `/qa-qa`, `/qa-test-plan` |
+| CI/CD pipeline | `features-kb/team-practices/ci-cd-pipeline.md` | `/qa-qa`, `/qa-test-plan` |
 
 **If "none":** "That's fine. Skills will ask you case-by-case when these come up. You can add team practices later by running `/qa-setup` again."
 

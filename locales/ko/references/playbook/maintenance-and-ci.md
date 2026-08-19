@@ -1,14 +1,14 @@
 # 테스트 유지보수 및 CI/CD 게이트
-<!-- qab: scope=test-cases,sprint-status,qa -->
+<!-- qab: scope=test-plan,test-cases,qa -->
 
 ## 테스트 소유권
-<!-- qab: id=test-ownership -->
+<!-- qab: id=test-ownership scope=test-plan -->
 
 **SDT가 E2E 및 API 테스트 스위트를 유지보수합니다.** 개발자가 단위 테스트를
 유지보수합니다.
 
 ## 테스트 폐기
-<!-- qab: id=test-retirement -->
+<!-- qab: id=test-retirement scope=test-plan -->
 
 다음 경우에 테스트를 폐기합니다:
 - **기능을 제거한 경우.** 해당 기능의 모든 테스트를 삭제합니다.
@@ -16,7 +16,7 @@
 - **테스트가 영구적으로 불안정한 경우.** 불안정 테스트 처리 절차를 모두 거친 후에도 수정할 수 없으면 제거합니다.
 
 ## 불안정 테스트(Flaky Test) 처리 절차
-<!-- qab: id=flaky-test-process -->
+<!-- qab: id=flaky-test-process scope=test-cases,qa -->
 
 ```
 테스트가 간헐적으로 실패합니다
@@ -35,7 +35,7 @@
 ```
 
 ## 실행 시간 예산
-<!-- qab: id=execution-time-budget -->
+<!-- qab: id=execution-time-budget scope=test-plan -->
 
 - **목표:** 전체 테스트 스위트를 **15분** 이내에 완료합니다.
 - 스위트가 15분을 초과하면 다음 항목을 조사합니다:
@@ -47,7 +47,7 @@
 ---
 
 ## CI/CD 파이프라인
-<!-- qab: id=ci-cd-pipeline -->
+<!-- qab: id=ci-cd-pipeline scope=test-plan -->
 
 **팀별:** `features-kb/team-practices/ci-cd-pipeline.md` 파일이 정의되어 있으면 참고합니다. 파이프라인 단계, 각 단계에서 실행하는 테스트, 실패 정책, 브라우저 매트릭스, 불안정 테스트 추적 도구를 다룹니다.
 

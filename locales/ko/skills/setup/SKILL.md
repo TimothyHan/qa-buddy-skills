@@ -1,6 +1,6 @@
 ---
 name: setup
-version: 0.4.5
+version: 0.4.6
 description: |
   QABuddy 초기 설정 마법사. 컨텍스트 소스(Jira, 스펙 문서, 채팅, 커스텀),
   팀 모드(솔로 vs PR 기반), 프로젝트 환경설정을 구성합니다.
@@ -185,10 +185,10 @@ mkdir -p features-kb/team-practices
 
 | 실무 관행 | 저장 경로 | 사용하는 스킬 |
 |----------|----------|-------------|
-| 버그 분류 | `features-kb/team-practices/bug-triage.md` | `/qa-qa`, `/qa-sprint-status` |
+| 버그 분류 | `features-kb/team-practices/bug-triage.md` | `/qa-qa` |
 | 핫픽스 테스트 | `features-kb/team-practices/hotfix-testing.md` | `/qa-qa`, `/qa-verify-fix` |
 | 테스트 데이터 | `features-kb/team-practices/test-data.md` | `/qa-qa`, `/qa-test-cases`, `/qa-exploratory` |
-| 릴리스 워크플로우 | `features-kb/team-practices/release-workflow.md` | `/qa-sprint-status` |
+| 릴리스 워크플로우 | `features-kb/team-practices/release-workflow.md` | `/qa-verify-fix` |
 | 접근성 | `features-kb/team-practices/accessibility.md` | `/qa-qa`, `/qa-test-cases`, `/qa-exploratory` |
 
 **"아직 없음"을 선택한 경우:** "괜찮습니다. 각 스킬이 필요할 때 개별적으로 물어봅니다. 나중에 `/qa-setup`을 다시 실행하면 팀 실무 관행을 추가할 수 있습니다."

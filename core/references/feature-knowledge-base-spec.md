@@ -19,7 +19,7 @@ tasks, comments), Confluence (PRDs, design docs), and potentially Figma. This is
 
 - **Slow:** 5-10 API calls per feature, per skill invocation.
 - **Expensive:** Token-heavy. The same feature gets re-analyzed across `/qa-test-plan`,
-  `/qa-test-cases`, `/qa-qa`, and `/qa-sprint-status`.
+  `/qa-test-cases` and `/qa-qa`.
 - **Lossy:** Context from discussions, design decisions, and edge case debates in
   Jira comments gets re-parsed inconsistently each time.
 
@@ -412,7 +412,7 @@ On every skill invocation, check the knowledge base:
 
 **Staleness threshold:** 24 hours by default. Configurable in config.json.
 **Check frequency:** Every skill invocation.
-Skills that need real-time status (like `/qa-sprint-status`) should always
+Skills that need real-time status should always
 check Jira for ticket status even if the KB is fresh.
 
 ### 7.2 Writing (skills that create or update knowledge)
@@ -439,7 +439,6 @@ a single PR where possible.
 | `/qa-test-cases` | `test-cases/{KEY}.md`, `test-cases/{KEY}-mapping.json`, `index.json` (testCaseCount, acCovered) |
 | `/qa-qa` | `qa-reports/`, `feature.md` (updates AC test status), `tickets/{KEY}.md` (updates test status) |
 | `/qa-verify-fix` | `qa-reports/{BUG-KEY}-verify-{DATE}.md`, bug status updates |
-| `/qa-sprint-status` | `index.json` (status updates) |
 | `/qa-exploratory` | `feature.md` (adds discovered edge cases), `test-cases/` (new scenarios) |
 
 ---
@@ -473,7 +472,6 @@ When processing a feature, look for signals of relation:
   testing for high-risk relations.
 - `/qa-test-cases` — Add regression scenarios from regression-map.json.
 - `/qa-qa` — After fixing a bug, check regression-map.json for affected features.
-- `/qa-sprint-status` — Show features at risk of regression based on current dev work.
 
 ---
 
