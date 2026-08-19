@@ -68,7 +68,11 @@ jobs:
           $second = & dist/claude/setup.ps1 6>&1 | Out-String
           Write-Host $second
           if ($second -match 'FAIL|SKIP') { throw 'Second install is not idempotent' }
-          if (($second | Select-String '  OK      ' -AllMatches).Matches.Count -lt 15) { throw 'Second install did not report 15 OK items' }
+          # Expected = one per shipped skill + the references dir. Derived, not hardcoded:
+          # a literal count silently breaks whenever a skill is added or removed.
+          $expected = (Get-ChildItem dist/claude/skills -Directory).Count + 1
+          $okCount = ($second | Select-String '  OK      ' -AllMatches).Matches.Count
+          if ($okCount -lt $expected) { throw "Second install reported $okCount OK items, expected $expected" }
           # -NoPrefix onto a foreign bare name must FAIL, never overwrite (TC-INST-009 / issue 6-a)
           $np = & dist/claude/setup.ps1 -NoPrefix 6>&1 | Out-String
           Write-Host $np
@@ -164,7 +168,9 @@ jobs:
           dist/claude/setup > /dev/null
           dist/claude/setup | tee /tmp/qabuddy-second.txt
           ! grep -Eq 'FAIL|SKIP' /tmp/qabuddy-second.txt
-          test "$(grep -c '  OK      ' /tmp/qabuddy-second.txt)" -ge 15
+          # Expected = one per shipped skill + the references dir (derived, not hardcoded).
+          expected=$(( $(find dist/claude/skills -mindepth 1 -maxdepth 1 -type d | wc -l) + 1 ))
+          test "$(grep -c '  OK      ' /tmp/qabuddy-second.txt)" -ge "$expected"
           # -NoPrefix onto a foreign bare name must FAIL, never overwrite (TC-INST-009 / issue 6-a)
           dist/claude/setup --no-prefix | tee /tmp/qabuddy-np.txt
           grep -q 'FAIL    setup' /tmp/qabuddy-np.txt
