@@ -1,6 +1,6 @@
 ---
 name: verify-fix
-version: 0.4.0
+version: 0.4.1
 description: |
   개발자가 수정한 버그를 재테스트합니다. Jira에서 원본 버그를 가져오고,
   브라우저에서 재현 단계를 다시 실행하며, 회귀 여부를 확인하고, 버그 상태를

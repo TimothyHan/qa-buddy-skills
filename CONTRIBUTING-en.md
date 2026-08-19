@@ -174,7 +174,7 @@ Assertion operators — simulate mode: `eq`, `contains`, `not_contains`, `matche
 | `version` | Yes | Semver. Bump on changes |
 | `description` | Yes | Multi-line. Include "Use when:" and "Do NOT use when:" |
 | `tool-groups` | Yes | Abstract capabilities ([tool group list](#tool-groups)) |
-| `preamble-tier` | Yes | `1` (minimal) or `2` (full with severity + escalation) |
+| `preamble-tier` | Yes | `1` (minimal) or `2` (adds escalation + SDT question protocol) |
 
 **Preamble tiers:**
 

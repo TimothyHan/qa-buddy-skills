@@ -174,7 +174,7 @@ assertion 연산자 -- simulate 모드: `eq`, `contains`, `not_contains`, `match
 | `version` | 예 | Semver. 변경 시 버전 올림 |
 | `description` | 예 | 여러 줄 가능. "Use when:"과 "Do NOT use when:" 포함 |
 | `tool-groups` | 예 | 추상 기능 ([tool group 목록](#tool-groups)) |
-| `preamble-tier` | 예 | `1` (최소) 또는 `2` (심각도 + 에스컬레이션 포함 전체) |
+| `preamble-tier` | 예 | `1` (최소) 또는 `2` (에스컬레이션 + SDT 질문 프로토콜 추가) |
 
 **Preamble 계층:**
 

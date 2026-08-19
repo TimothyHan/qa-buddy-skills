@@ -76,6 +76,9 @@ Every reference section is an addressable **source**, like a learning:
   run. The helper rejects ids that aren't in `index.json` and suggests the nearest,
   so a mistyped id never enters the log. `applied ≠ read`: a section you read but
   that didn't shape anything is not cited — that gap is signal for distill.
+  **A scale or matrix you took a value from did shape it:** the severity in your bug
+  report came from `#severity-scale` as surely as a selector came from a NEVER list.
+  Reading a value out of a table is not a weaker use than quoting a rule.
 
 ## Read protocol (start of every skill run)
 <!-- qab: id=read-protocol -->
@@ -152,6 +155,7 @@ Write it with the shipped helper, never by hand:
 node <references>/bin/qab.js run-id --skill <this-skill> [--ticket <KEY>]   # once, at start; prints the run id
 node <references>/bin/qab.js log applied LRN-20260807-01                    # a learning shaped output
 node <references>/bin/qab.js log applied REF-playwright-patterns#never       # a reference section shaped output
+node <references>/bin/qab.js log applied REF-playbook/risk-and-priority#severity-scale # a scale you read a value out of
 node <references>/bin/qab.js log contradicted LRN-… --note "<what you saw>" # live reality disagreed
 node <references>/bin/qab.js log captured LRN-…                             # you appended a new entry
 node <references>/bin/qab.js fp locator-not-found "checkout/place-order-btn" # a named failure class hit (Failure fingerprints, below)

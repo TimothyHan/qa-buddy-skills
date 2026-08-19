@@ -5,7 +5,7 @@ Every test case must have **severity** and **priority** values. These two dimens
 together determine testing effort allocation.
 
 ## Severity Scale
-<!-- qab: id=severity-scale -->
+<!-- qab: id=severity-scale tier=must scope=qa,test-plan,test-cases,review-ticket,exploratory,sprint-status,verify-fix,start -->
 
 Severity measures the **impact** of a failure on the user and the business.
 
@@ -19,7 +19,7 @@ Severity measures the **impact** of a failure on the user and the business.
 | **Trivial** | Minor visual defects or minor text errors | Typo in label, 1px alignment, cosmetic-only issues |
 
 ## Priority Scale
-<!-- qab: id=priority-scale -->
+<!-- qab: id=priority-scale tier=must scope=qa,test-plan,test-cases,review-ticket,exploratory,sprint-status,verify-fix,start -->
 
 Priority measures **urgency** based on severity + blast radius (how many users affected).
 

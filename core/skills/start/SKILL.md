@@ -1,6 +1,6 @@
 ---
 name: start
-version: 0.3.3
+version: 0.3.4
 description: |
   Guided end-to-end QA workflow. Chains test planning, ticket reviews, and test
   case generation in sequence, pausing after each phase for SDT review. Resumes

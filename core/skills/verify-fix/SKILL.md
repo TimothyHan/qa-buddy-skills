@@ -1,6 +1,6 @@
 ---
 name: verify-fix
-version: 0.4.0
+version: 0.4.1
 description: |
   Re-test a bug fix after a developer resolves it. Pulls the original bug from Jira,
   re-executes the repro steps in the browser, checks for regressions, and updates
