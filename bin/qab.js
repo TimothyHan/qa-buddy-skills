@@ -656,5 +656,9 @@ function main() {
   }
 }
 
-if (require.main === module) main();
+if (require.main === module) {
+  // A closed stdout (`| head`, a consumer that exits early) must not crash the helper with a stack trace.
+  process.stdout.on('error', (e) => { if (e && e.code === 'EPIPE') process.exit(0); throw e; });
+  main();
+}
 module.exports = { parseArgs, computeStats, normalizeKey, fingerprintOf, EVENTS, STATUSES, FP_KINDS };
