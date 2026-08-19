@@ -18,6 +18,20 @@ Severity measures the **impact** of a failure on the user and the business.
 | **Minor** | Same impact as Normal but workaround exists. Noticeable visual defects | Feature works but is awkward to use, visual alignment off |
 | **Trivial** | Minor visual defects or minor text errors | Typo in label, 1px alignment, cosmetic-only issues |
 
+**Not everything that fails blocks something.** A defect that exposes data, or grants access that
+should be denied, is rated on **what it exposes** — the user's workflow completing normally is
+precisely the problem, so none of the rows above fire:
+
+| Exposure | Severity |
+|----------|----------|
+| Credentials, or personal data (contact details, identity documents, message contents) readable by someone who should not see it | **Blocker** |
+| Another user's non-personal data readable, or any write/delete reachable without authorization | **Critical** |
+| Authorization holds but leaks: existence disclosed by status codes, enumerable ids, sensitive values in URLs or logs | **Major** |
+
+Priority follows blast radius as usual, with one exception: a live exposure reachable from a public
+path is **High** however few users it is known to affect — the count is what you have observed, not
+what is at risk.
+
 ## Priority Scale
 <!-- qab: id=priority-scale tier=must scope=qa,test-plan,test-cases,review-ticket,exploratory,sprint-status,verify-fix,start -->
 
