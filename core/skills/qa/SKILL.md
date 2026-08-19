@@ -1,6 +1,6 @@
 ---
 name: qa
-version: 0.3.4
+version: 0.3.5
 description: |
   SDT test execution skill. Executes test cases from the knowledge base, verifies
   acceptance criteria in the browser, files bugs in Jira for failures, and updates
@@ -128,6 +128,7 @@ Execute test cases from KB in priority order (P0 first).
 | **FAIL** | Actual result differs from expected |
 | **BLOCKED** | Cannot execute — precondition/environment/dependency issue |
 | **SKIPPED** | Intentionally skipped with reason |
+| *(any)* | **Will not reproduce on retry → not a PASS.** Restore the run conditions first (`{{REFERENCE_PATH}}/playbook/defect-lifecycle.md` §When a bug does not reproduce: time/timezone, locale, viewport, account, data state) and name the ones you tried |
 
 Fingerprint the failure class as you record it (one line per distinct class per
 run, not per test case): a FAIL whose actual result contradicts the expected →
