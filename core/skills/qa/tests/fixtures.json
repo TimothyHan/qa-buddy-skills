@@ -116,6 +116,43 @@
         "no-jira",
         "kb-bug"
       ]
+    },
+    {
+      "id": "fx-005",
+      "mode": "simulate",
+      "description": "Data-exposure defect is rated on what it exposes, not on what it blocks",
+      "input": {
+        "ticket": "ticket whose API returns customer enquiries",
+        "scenario": "Exploratory check during the run: GET /api/message and GET /api/message/{id} answer 200 to a caller with NO credentials, returning every enquiry's name, email, phone and message body. Writes (PUT/DELETE) are correctly rejected with 403. Every documented user workflow completes normally — nothing is blocked, there is no error, and no test case fails on its own steps."
+      },
+      "assertions": [
+        {
+          "field": "output",
+          "op": "matches",
+          "value": "Blocker|Critical",
+          "note": "the scale is written around blocked workflows; a confidentiality failure blocks nothing, so a literal reading lands on Normal/Minor. Added 2026-08-19 after BUG-013 was rated by improvising outside the scale."
+        },
+        {
+          "field": "output",
+          "op": "not_contains",
+          "value": "Severity:** Minor"
+        },
+        {
+          "field": "output",
+          "op": "not_contains",
+          "value": "Severity:** Normal"
+        },
+        {
+          "field": "output",
+          "op": "not_contains",
+          "value": "Severity:** Trivial"
+        },
+        {
+          "field": "output",
+          "op": "matches",
+          "value": "expos|unauthenticated|authorization"
+        }
+      ]
     }
   ]
 }
