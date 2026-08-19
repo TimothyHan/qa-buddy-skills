@@ -1,5 +1,5 @@
 # 테스트 실행 순서
-<!-- qab: id=sequence scope=sprint-status -->
+<!-- qab: id=sequence scope=start,test-plan -->
 
 스프린트에서 기능이 진행되는 동안, 테스트는 아래 순서로 수행합니다:
 
@@ -36,6 +36,6 @@ main에 머지합니다
 ```
 
 ## 팀별 프로세스
-<!-- qab: id=team-specific-processes -->
+<!-- qab: id=team-specific-processes scope=start,test-plan -->
 
 **릴리스 워크플로우:** `features-kb/team-practices/release-workflow.md` 파일이 정의되어 있으면 참고합니다. 릴리스 동결 규칙, 마감 시간, 롤백 절차, 카나리 전략을 다룹니다.

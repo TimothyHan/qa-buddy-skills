@@ -1,6 +1,6 @@
 ---
 name: start
-version: 0.3.4
+version: 0.3.5
 description: |
   가이드 방식의 E2E QA 워크플로우. 테스트 계획, 티켓 리뷰, 테스트 케이스 생성을
   순차적으로 진행하며, 각 단계가 끝나면 SDT가 검토할 수 있도록 멈춥니다.
@@ -152,7 +152,6 @@ SDT의 검토와 승인을 받고 다음 단계로 넘어갑니다.
 1. NEEDS WORK 스토리 -> 피드백을 반영한 뒤 `/qa-review-ticket`을 다시 실행
 2. 기능이 QA 준비되면 -> 티켓별로 `/qa-qa {TICKET-KEY}` 실행
 3. 버그 수정이 완료되면 -> `/qa-verify-fix {BUG-KEY}` 실행
-4. 스프린트 현황을 확인하려면 -> `/qa-sprint-status` 실행
 5. 탐색적 테스트를 진행하려면 -> `/qa-exploratory {EPIC-KEY}` 실행
 ```
 

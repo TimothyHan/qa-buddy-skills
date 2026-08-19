@@ -12,13 +12,13 @@ it needs — do not load all files at once.
 | ------------------------- | ---------------------------------------------------------------------------------------- | ------------------------------------------------------------ |
 | `terminology.md`          | Normalized terms (AC, SDT, DoR, DoD, etc.)                                               | All skills                                                   |
 | `risk-and-priority.md`    | Severity scale (6 levels), priority scale (3 levels), effort allocation, decision matrix | qa, test-plan, test-cases, review-ticket, exploratory        |
-| `metrics-and-coverage.md` | Code coverage (~80% target), requirements coverage, future metric placeholders           | qa, test-plan, sprint-status, exploratory                    |
+| `metrics-and-coverage.md` | Code coverage (~80% target), requirements coverage, future metric placeholders           | qa, test-plan, exploratory, start                            |
 | `shift-left.md`           | Challenge requirements early, verify alignment, dev helper principles                    | test-plan, review-ticket                                     |
 | `test-distribution.md`    | Test pyramid (60/30/10), diamond variant (20/70/10), deduplication rules                 | test-plan, test-cases, review-ticket, exploratory            |
 | `test-types.md`           | Manual vs automation, UAT vs functional, exploratory testing definition                  | test-plan, test-cases, exploratory                           |
-| `execution-sequence.md`   | Testing order through the sprint (dev → PR → QA → verify-fix → UAT → release)            | sprint-status                                                |
+| `execution-sequence.md`   | Testing order through the sprint (dev → PR → QA → verify-fix → UAT → release)            | start, test-plan                                             |
 | `defect-lifecycle.md`     | Bug types, Jira states, SLA expectations, regression test requirements                   | qa, test-plan, review-ticket, verify-fix                     |
-| `maintenance-and-ci.md`   | Test ownership, flaky process, 15-min time budget, CI gates, browser matrix              | test-cases, sprint-status, qa                                |
+| `maintenance-and-ci.md`   | Test ownership, flaky process, 15-min time budget, CI gates, browser matrix              | test-plan, test-cases, qa                                    |
 | `exploratory-heuristics.md` | 10 heuristic categories, technique checklists per heuristic, finding categories         | exploratory                                                  |
 | `test-suite-verification.md` | Detection power, mutation smoke, vacuous assertions, self-derived expectations         | test-plan, test-cases, e2e-write                             |
 
@@ -28,9 +28,9 @@ Some processes vary by team and are not part of the shared playbook. These are s
 
 | File | Covers | Referenced by |
 |------|--------|---------------|
-| `bug-triage.md` | Intake process, initial assessment, triage cadence | `defect-lifecycle.md`, qa, sprint-status |
+| `bug-triage.md` | Intake process, initial assessment, triage cadence | `defect-lifecycle.md`, qa |
 | `hotfix-testing.md` | Abbreviated test process, what to skip, branch strategy | `defect-lifecycle.md`, qa, verify-fix |
 | `test-data.md` | Seeding, cleanup, fixtures, isolation | `test-types.md`, qa, test-cases, exploratory |
-| `release-workflow.md` | Freeze rules, cutoff, rollback, canary | `execution-sequence.md`, sprint-status |
+| `release-workflow.md` | Freeze rules, cutoff, rollback, canary | `execution-sequence.md`, start, test-plan |
 | `accessibility.md` | WCAG level, tools, which features need a11y testing | `test-types.md`, qa, test-cases, exploratory |
-| `ci-cd-pipeline.md` | Pipeline stages, tests per stage, failure policy, browser matrix | `maintenance-and-ci.md`, sprint-status, qa, test-plan |
+| `ci-cd-pipeline.md` | Pipeline stages, tests per stage, failure policy, browser matrix | `maintenance-and-ci.md`, qa, test-plan |

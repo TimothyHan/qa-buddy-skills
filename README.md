@@ -7,10 +7,10 @@
 [한국어](README.md) · [English](README-en.md)
 
 [![License: Apache 2.0](https://img.shields.io/badge/License-Apache_2.0-blue.svg)](LICENSE)
-[![Skills: 14](https://img.shields.io/badge/Skills-14-green.svg)](#스킬)
+[![Skills: 13](https://img.shields.io/badge/Skills-13-green.svg)](#스킬)
 [![Platform: Claude Code](https://img.shields.io/badge/Platform-Claude_Code-purple.svg)](#작동-방식)
 [![Locales: en, ko](https://img.shields.io/badge/Locales-en_|_ko-orange.svg)](#로케일)
-[![Structural checks: 1137](https://img.shields.io/badge/Structural_checks-1137-brightgreen.svg)](#작동-방식)
+[![Structural checks: 1098](https://img.shields.io/badge/Structural_checks-1098-brightgreen.svg)](#작동-방식)
 
 스크럼 팀에서 일하는 SDT(Software Developers in Test)를 위한 AI 파트너입니다.<br>
 에픽 테스트 계획 수립부터 스프린트 실행, 릴리스 검증까지 전체 워크플로우를 지원합니다.<br>
@@ -37,7 +37,6 @@ QABuddy는 AI가 자동으로 인식하고 실행하는 `SKILL.md` 파일 모음
 | 그루밍 시 기억에 의존하여 티켓 리뷰 | `/qa-review-ticket`이 구조화된 체크리스트로 인수 조건(AC) 점검 |
 | 스프레드시트로 테스트 커버리지 추적 | 지식 베이스가 추적성 매핑으로 커버리지 관리 |
 | 복사-붙여넣기로 Jira에 결함 등록 | `/qa-qa`가 재현 단계 + 스크린샷과 함께 결함 자동 등록 |
-| "스프린트 진행 상황은?" — 추측에 의존 | `/qa-sprint-status` 대시보드가 6개 품질 지표 제공 |
 | 스킬 문제 수정? 처음부터 다시 작성 | `/qa-improve`가 실패를 분석하고, 수정하고, 회귀 테스트 실행 |
 | 어느 팀에서나 영원히 똑같은 정적 도구 | 모든 실행이 프로젝트의 특성을 학습 레이어에 포착 — QABuddy가 팀에 맞게 진화 |
 
@@ -92,7 +91,6 @@ node build.js all --locale ko
 | **Test Cases** | `/qa-test-cases` | 스프린트 실행 | AC 기반 Playwright e2e + 단위 테스트 체크리스트 생성 |
 | **QA** | `/qa-qa` | 기능 완성 시 | 테스트 케이스 실행, AC 검증, 결함 등록 |
 | **Verify Fix** | `/qa-verify-fix` | 결함 수정 후 | 수정 재테스트, 회귀 확인, 결함 상태 업데이트 |
-| **Sprint Status** | `/qa-sprint-status` | 스프린트 중간 | 품질 지표가 포함된 테스트 대시보드 |
 | **Exploratory** | `/qa-exploratory` | 기능 완성 시 | 차터 기반 탐색적 테스팅 세션 |
 | **E2E Setup** | `/qa-e2e-setup` | 자동화 시작 | 앱 프로빙, Playwright 스캐폴드, AUTOMATION.md에 결정 기록 |
 | **E2E POM** | `/qa-e2e-pom` | 자동화 | 실시간 탐색으로 페이지 객체 빌드/힐링 — 모든 로케이터를 증명, 추측 금지 |
@@ -261,21 +259,6 @@ flowchart LR
 
 ---
 
-## 스프린트 품질 지표
-
-`/qa-sprint-status`가 자동으로 계산합니다:
-
-| 지표 | 목표 |
-|------|------|
-| 결함 유출률 | <10% |
-| 심각도 분포 | 대부분 Normal/Minor |
-| MTTR (평균 해결 시간) | Blocker: 1일 미만 |
-| 요구사항 커버리지 | 스프린트마다 증가 |
-| 테스트 통과율 | >95% |
-| 불안정 테스트 비율 | <2% |
-
----
-
 ## 작동 방식
 
 **공식 지원은 Claude Code입니다** — CI가 모든 push마다 Linux와 Windows(PowerShell 5.1)에서
@@ -304,7 +287,7 @@ flowchart LR
 ```bash
 node build.js all                  # 모든 플랫폼용 빌드
 node build.js all --locale ko      # 한국어 버전 빌드
-node test.js                       # 1137개 구조 검사 실행
+node test.js                       # 1098개 구조 검사 실행
 ```
 
 > **구조 검사와 동작 검증은 다릅니다.** `node test.js`는 빌드 산출물의 형태를
@@ -319,7 +302,7 @@ node test.js                       # 1137개 구조 검사 실행
 ```
 QABuddy/
 ├── build.js                     # 빌드 스크립트 (node, 의존성 없음)
-├── test.js                      # 구조 검사 스위트 (1137개 검사)
+├── test.js                      # 구조 검사 스위트 (1098개 검사)
 ├── core/                        # 단일 소스 — 여기서 편집
 │   ├── skills/ (14)             # {{플레이스홀더}} 포함 스킬 템플릿
 │   ├── references/playbook/     # 10개 방법론 파일

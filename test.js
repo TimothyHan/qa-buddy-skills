@@ -636,7 +636,7 @@ function testKbPathHygiene() {
 // edit in this file.
 const EXPECTED_SKILLS = [
   'e2e-pom', 'e2e-setup', 'e2e-write', 'eval', 'exploratory', 'improve',
-  'qa', 'review-ticket', 'setup', 'sprint-status', 'start', 'test-cases',
+  'qa', 'review-ticket', 'setup', 'start', 'test-cases',
   'test-plan', 'verify-fix',
 ];
 

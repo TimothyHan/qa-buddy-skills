@@ -1,11 +1,11 @@
 # Risk-Based Testing
-<!-- qab: scope=qa,test-plan,test-cases,review-ticket,exploratory,sprint-status -->
+<!-- qab: scope=qa,test-plan,test-cases,review-ticket,exploratory -->
 
 Every test case must have **severity** and **priority** values. These two dimensions
 together determine testing effort allocation.
 
 ## Severity Scale
-<!-- qab: id=severity-scale tier=must scope=qa,test-plan,test-cases,review-ticket,exploratory,sprint-status,verify-fix,start -->
+<!-- qab: id=severity-scale tier=must scope=qa,test-plan,test-cases,review-ticket,exploratory,verify-fix,start -->
 
 Severity measures the **impact** of a failure on the user and the business.
 
@@ -33,7 +33,7 @@ path is **High** however few users it is known to affect — the count is what y
 what is at risk.
 
 ## Priority Scale
-<!-- qab: id=priority-scale tier=must scope=qa,test-plan,test-cases,review-ticket,exploratory,sprint-status,verify-fix,start -->
+<!-- qab: id=priority-scale tier=must scope=qa,test-plan,test-cases,review-ticket,exploratory,verify-fix,start -->
 
 Priority measures **urgency** based on severity + blast radius (how many users affected).
 
@@ -44,7 +44,7 @@ Priority measures **urgency** based on severity + blast radius (how many users a
 | **Low** | Normal severity with infrequent impact, OR any Minor or Trivial severity |
 
 ## Effort Allocation
-<!-- qab: id=effort-allocation -->
+<!-- qab: id=effort-allocation scope=qa,test-plan,test-cases,review-ticket,exploratory -->
 
 - **Create test cases** for all identified scenarios regardless of priority.
 - **When time is limited,** deprioritize test cases with lower-tier priority and severity.
@@ -53,7 +53,7 @@ Priority measures **urgency** based on severity + blast radius (how many users a
 - **Full test suite** = all test cases including Low priority.
 
 ## Priority-Severity Decision Matrix
-<!-- qab: id=decision-matrix -->
+<!-- qab: id=decision-matrix scope=qa,test-plan,test-cases,review-ticket,exploratory -->
 
 ```
                     High Priority    Medium Priority    Low Priority

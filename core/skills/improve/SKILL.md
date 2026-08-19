@@ -1,6 +1,6 @@
 ---
 name: improve
-version: 0.7.1
+version: 0.7.2
 description: |
   Meta-skill that improves other skills based on real usage failures. When an SDT
   reports a skill produced incorrect or unexpected output, this skill analyzes the
@@ -155,7 +155,7 @@ Before delivering, verify:
 3. **CONTRIBUTING.md compliance** — constraints at top, self-eval has format check, completion status at end
 4. **Build passes** — all 3 platforms built successfully
 5. **Eval fixtures pass** — all fixtures for the changed skill pass after the fix. If any regressed, fix before delivering.
-6. **No collateral damage** — other skills that read this skill's output (e.g., sprint-status reading qa reports) still work with the new format
+6. **No collateral damage** — other skills that read this skill's output (e.g., `/qa-verify-fix` reading qa reports) still work with the new format
 
 ---
 

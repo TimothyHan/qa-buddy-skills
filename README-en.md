@@ -7,10 +7,10 @@
 [한국어](README.md) · [English](README-en.md)
 
 [![License: Apache 2.0](https://img.shields.io/badge/License-Apache_2.0-blue.svg)](LICENSE)
-[![Skills: 14](https://img.shields.io/badge/Skills-14-green.svg)](#skills)
+[![Skills: 13](https://img.shields.io/badge/Skills-13-green.svg)](#skills)
 [![Platform: Claude Code](https://img.shields.io/badge/Platform-Claude_Code-purple.svg)](#how-it-works)
 [![Locales: en, ko](https://img.shields.io/badge/Locales-en_|_ko-orange.svg)](#locales)
-[![Structural checks: 1137](https://img.shields.io/badge/Structural_checks-1137-brightgreen.svg)](#how-it-works)
+[![Structural checks: 1098](https://img.shields.io/badge/Structural_checks-1098-brightgreen.svg)](#how-it-works)
 
 An AI partner for Software Developers in Test (SDTs) working in Scrum teams.<br>
 Covers the full workflow — from epic test planning through sprint execution to release verification.<br>
@@ -37,7 +37,6 @@ no separate app, no daemon, no dependencies beyond Node.js.
 | Review tickets by memory during grooming | `/qa-review-ticket` audits ACs with structured checklists |
 | Track test coverage in spreadsheets | Knowledge base tracks coverage with traceability mappings |
 | File bugs via copy-paste into Jira | `/qa-qa` files bugs automatically with repro steps + screenshots |
-| "Is the sprint on track?" — guesswork | `/qa-sprint-status` dashboard with 6 quality metrics |
 | Fix a skill issue? Rewrite from scratch | `/qa-improve` analyzes the failure, fixes it, runs regression tests |
 | Same static tool forever, on every team | Every run captures your project's quirks into a learnings layer — QABuddy evolves to fit your team |
 
@@ -92,7 +91,6 @@ node build.js all
 | **Test Cases** | `/qa-test-cases` | Sprint execution | Playwright e2e + unit test checklist from ACs |
 | **QA** | `/qa-qa` | Feature ready | Execute test cases, verify ACs, file bugs |
 | **Verify Fix** | `/qa-verify-fix` | Bug fixed | Re-test fix, check regressions, update bug status |
-| **Sprint Status** | `/qa-sprint-status` | Mid-sprint | Testing dashboard with quality metrics |
 | **Exploratory** | `/qa-exploratory` | Feature ready | Charter-driven exploratory testing session |
 | **E2E Setup** | `/qa-e2e-setup` | Automation start | Probe the app, scaffold Playwright, record decisions in AUTOMATION.md |
 | **E2E POM** | `/qa-e2e-pom` | Automation | Build/heal page objects by live discovery — every locator proven, never guessed |
@@ -261,21 +259,6 @@ flowchart LR
 
 ---
 
-## Sprint Quality Metrics
-
-`/qa-sprint-status` computes these automatically:
-
-| Metric | Target |
-|--------|--------|
-| Defect escape rate | <10% |
-| Severity distribution | Mostly Normal/Minor |
-| MTTR (mean time to resolve) | Blocker: <1 day |
-| Requirements coverage | Increasing per sprint |
-| Test pass rate | >95% |
-| Flaky test rate | <2% |
-
----
-
 ## How It Works
 
 **Claude Code is the officially supported platform** — the only one CI verifies end to end
@@ -304,7 +287,7 @@ Skills are authored once in `core/skills/`. The build script generates platform-
 ```bash
 node build.js all                  # Build for all platforms
 node build.js all --locale ko      # Build Korean version
-node test.js                       # Run 1137 structural checks
+node test.js                       # Run 1098 structural checks
 ```
 
 > **Structural checks are not behavioural verification.** `node test.js` inspects
@@ -320,7 +303,7 @@ node test.js                       # Run 1137 structural checks
 ```
 QABuddy/
 ├── build.js                     # Build script (node, zero deps)
-├── test.js                      # Structural check suite (1137 checks)
+├── test.js                      # Structural check suite (1098 checks)
 ├── core/                        # Single source of truth — edit here
 │   ├── skills/ (14)             # Skill templates with {{placeholders}}
 │   ├── references/playbook/     # 10 methodology files

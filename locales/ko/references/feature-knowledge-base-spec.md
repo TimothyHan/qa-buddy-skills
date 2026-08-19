@@ -20,7 +20,7 @@ Confluence(PRD, 설계 문서), 경우에 따라 Figma까지 조회합니다. �
 
 - **느림:** 기능 하나당, 스킬 호출마다 5-10회의 API 호출이 필요합니다.
 - **비용 과다:** 토큰 소모가 큽니다. 동일한 기능 정보를 `/qa-test-plan`,
-  `/qa-test-cases`, `/qa-qa`, `/qa-sprint-status`에서 반복 분석합니다.
+  `/qa-test-cases`, `/qa-qa`에서 반복 분석합니다.
 - **정보 손실:** Jira 댓글에 남긴 논의, 설계 결정, 엣지 케이스 토론 등의
   맥락이 매번 다르게 파싱됩니다.
 
@@ -413,7 +413,7 @@ AC와 테스트 케이스 간의 추적성 매핑 파일입니다.
 
 **유효 기간 기준:** 기본값 24시간이며, config.json에서 변경할 수 있습니다.
 **확인 주기:** 스킬을 호출할 때마다 확인합니다.
-실시간 상태가 필요한 스킬(예: `/qa-sprint-status`)은 KB가 최신이더라도
+실시간 상태가 필요한 스킬은 KB가 최신이더라도
 항상 Jira에서 티켓 상태를 확인합니다.
 
 ### 7.2 쓰기 (KB를 생성하거나 업데이트하는 스킬)
@@ -440,7 +440,6 @@ AC와 테스트 케이스 간의 추적성 매핑 파일입니다.
 | `/qa-test-cases` | `test-cases/{KEY}.md`, `test-cases/{KEY}-mapping.json`, `index.json` (testCaseCount, acCovered) |
 | `/qa-qa` | `qa-reports/`, `feature.md` (AC 테스트 상태 업데이트), `tickets/{KEY}.md` (테스트 상태 업데이트) |
 | `/qa-verify-fix` | `qa-reports/{BUG-KEY}-verify-{DATE}.md`, 결함 상태 업데이트 |
-| `/qa-sprint-status` | `index.json` (상태 업데이트) |
 | `/qa-exploratory` | `feature.md` (발견된 엣지 케이스 추가), `test-cases/` (새 시나리오) |
 
 ---
@@ -474,7 +473,6 @@ AC와 테스트 케이스 간의 추적성 매핑 파일입니다.
   대해 회귀 테스트를 포함합니다.
 - `/qa-test-cases` -- regression-map.json에서 회귀 시나리오를 추가합니다.
 - `/qa-qa` -- 결함 수정 후 regression-map.json에서 영향을 받는 기능을 확인합니다.
-- `/qa-sprint-status` -- 현재 개발 작업 기준으로 회귀 리스크가 있는 기능을 표시합니다.
 
 ---
 

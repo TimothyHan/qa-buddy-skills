@@ -1,6 +1,6 @@
 ---
 name: start
-version: 0.3.4
+version: 0.3.5
 description: |
   Guided end-to-end QA workflow. Chains test planning, ticket reviews, and test
   case generation in sequence, pausing after each phase for SDT review. Resumes
@@ -152,7 +152,6 @@ Present the workflow summary:
 1. Stories marked NEEDS WORK → address feedback, re-run `/qa-review-ticket`
 2. When features are ready for QA → run `/qa-qa {TICKET-KEY}` per ticket
 3. After bugs are fixed → run `/qa-verify-fix {BUG-KEY}`
-4. For sprint visibility → run `/qa-sprint-status`
 5. For exploratory testing → run `/qa-exploratory {EPIC-KEY}`
 ```
 
