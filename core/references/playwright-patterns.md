@@ -234,8 +234,10 @@ export const test = base.extend<{ disposalContext: DisposalContext }>({
 // client.ts — creation queues its own undo; cleanup helpers are idempotent
 export const createItem = async (request, name, disposalContext, expStatusCode = 201) => {
   const response = await request.post('/api/items', { data: { name } });
-  expect(response.status()).toBe(expStatusCode);
+  // Queue the undo BEFORE asserting. A negative test that expected 4xx but got 201 must still clean up;
+  // assert first and the throw skips the queueing, leaking the entity into a shared environment.
   if (response.status() === 201) disposalContext?.push([deleteItemIfExists, name]);
+  expect(response.status()).toBe(expStatusCode);
   return response;
 };
 export const deleteItemIfExists = async (request, name) => {
@@ -292,7 +294,7 @@ error/empty/edge/role states belong to `page.route`-mocked tests.)
 | per-test `newContext({ storageState })` | override the `storageState` option fixture |
 
 ## Pitfalls (debugging accelerators)
-<!-- qab: id=pitfalls -->
+<!-- qab: id=pitfalls scope=e2e-setup,e2e-pom,e2e-write,test-cases,qa -->
 
 - `request.newContext()` does **not** inherit `use.baseURL` — pass it explicitly.
 - Base URLs with a path need a trailing slash + relative paths; `/items`
@@ -311,3 +313,9 @@ error/empty/edge/role states belong to `page.route`-mocked tests.)
   presence/absence assertions, not visibility toggles.
 - Some apps render **no element at all** for empty states — assert absence of
   items and record the product observation; don't invent a message to wait for.
+- Frameworks mount landmarks you did not write. Next.js (App Router) appends an
+  **empty `role="alert"` route announcer** to `<body>`, so `getByRole('alert')`
+  matches it *and* your real alert — strict-mode violation, and a count that
+  changes with timing. Scope alert locators by content
+  (`getByRole('alert').filter({ has: page.getByRole('listitem') })`) or by a text
+  anchor; never `.nth()`.
