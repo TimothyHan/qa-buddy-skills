@@ -365,7 +365,7 @@ Rules for every PR: target `feat/context-compiler` (decision 15); en + ko for an
 
 ### Gate — before PR7 (§9.3)
 
-Status 2026-08-17: two profiles now exist — `5408a28cb4ac` (`web/exists/unknown`, 10 outcomes) and `a80fefa0c1ba` (`web/exists/bug`, 1 outcome, first bug-keyed run `/qa-qa BUG-002`). The gate needs ≥ 8 outcomes on each, so PR7 stays closed until roughly seven more bug-keyed runs land.
+Status 2026-08-17: two profiles exist — `5408a28cb4ac` (`web/exists/unknown`) with **5** attributed outcomes and `a80fefa0c1ba` (`web/exists/bug`) with **4**. A third group of 5 outcomes carries **no `pfp`**: those runs predate PR5's compile step, so they cannot be attributed to a profile and do not count toward the gate (an earlier note in this file said profile A had 10 outcomes by counting them — corrected). The gate needs ≥ 8 per profile, so PR7 stays closed until roughly three more story-keyed and four more bug-keyed runs land. Sample size is only half the gate: the logs must also show *uneven* application, which `qab.js stats` already shows in shape (`REF-playwright-patterns#must-rules` applied on 5/5 runs vs sections compiled repeatedly and never applied).
 
 ### PR7 — Scored selection (P5)
 

@@ -10,7 +10,7 @@
 [![Skills: 14](https://img.shields.io/badge/Skills-14-green.svg)](#skills)
 [![Platform: Claude Code](https://img.shields.io/badge/Platform-Claude_Code-purple.svg)](#how-it-works)
 [![Locales: en, ko](https://img.shields.io/badge/Locales-en_|_ko-orange.svg)](#locales)
-[![Structural checks: 1136](https://img.shields.io/badge/Structural_checks-1136-brightgreen.svg)](#how-it-works)
+[![Structural checks: 1137](https://img.shields.io/badge/Structural_checks-1137-brightgreen.svg)](#how-it-works)
 
 An AI partner for Software Developers in Test (SDTs) working in Scrum teams.<br>
 Covers the full workflow — from epic test planning through sprint execution to release verification.<br>
@@ -304,7 +304,7 @@ Skills are authored once in `core/skills/`. The build script generates platform-
 ```bash
 node build.js all                  # Build for all platforms
 node build.js all --locale ko      # Build Korean version
-node test.js                       # Run 1136 structural checks
+node test.js                       # Run 1137 structural checks
 ```
 
 > **Structural checks are not behavioural verification.** `node test.js` inspects
@@ -320,7 +320,7 @@ node test.js                       # Run 1136 structural checks
 ```
 QABuddy/
 ├── build.js                     # Build script (node, zero deps)
-├── test.js                      # Structural check suite (740 checks)
+├── test.js                      # Structural check suite (1137 checks)
 ├── core/                        # Single source of truth — edit here
 │   ├── skills/ (14)             # Skill templates with {{placeholders}}
 │   ├── references/playbook/     # 10 methodology files
