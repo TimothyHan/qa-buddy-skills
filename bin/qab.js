@@ -167,6 +167,27 @@ function validateSrc(src) {
 }
 
 // ─── log ────────────────────────────────────────────────────────────────
+/**
+ * A run reports its outcome last (self-improve.md, capture protocol). Anything appended afterwards
+ * belongs to different work — in practice a stale `.qa-reports/.qab-run` marker picked up by
+ * maintenance done outside a skill run. Appending anyway silently corrupts the per-run counts that
+ * distill and the scoreboard read: the closed run gains a citation it never made.
+ * (Observed 2026-08-19: a `log applied` landed on a run that had reported DONE hours earlier.)
+ * `unknown` is exempt — it is the no-marker fallback and is shared by unrelated invocations.
+ */
+function outcomeOf(run) {
+  if (!run || run === 'unknown') return null;
+  const target = logPath();
+  if (!fs.existsSync(target)) return null;
+  for (const raw of fs.readFileSync(target, 'utf8').split('\n')) {
+    if (!raw.trim()) continue;
+    let l;
+    try { l = JSON.parse(raw); } catch { continue; }
+    if (l && l.run === run && l.event === 'outcome') return l;
+  }
+  return null;
+}
+
 function cmdLog(args) {
   const [event, src] = args._;
   if (!event) die(`log requires an event: ${EVENTS.join(' | ')}`);
@@ -195,6 +216,15 @@ function cmdLog(args) {
     if (!status || !STATUSES.includes(status)) die(`log outcome requires --status <${STATUSES.join('|')}>`);
     line.status = status;
   }
+  // Checked after argument validation: a typo'd id should report the typo, not the run state.
+  const closed = outcomeOf(run);
+  if (closed) {
+    die(`run "${run}" already reported an outcome (${closed.status} at ${closed.ts}) — refusing to append ${event}.\n`
+      + '  A run is closed by its outcome; later events belong to a new run.\n'
+      + '  Start one:  node qab.js run-id --skill <skill> [--ticket <KEY>]\n'
+      + '  Or target an open run explicitly:  --run <id>');
+  }
+
   if (args.pfp && args.pfp !== true) line.pfp = String(args.pfp);
   if (args.writer && args.writer !== true) line.writer = String(args.writer);
 
