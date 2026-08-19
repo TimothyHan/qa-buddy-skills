@@ -1,6 +1,6 @@
 ---
 name: verify-fix
-version: 0.3.3
+version: 0.4.0
 description: |
   Re-test a bug fix after a developer resolves it. Pulls the original bug from Jira,
   re-executes the repro steps in the browser, checks for regressions, and updates
@@ -80,6 +80,12 @@ a learning that claimed to prevent this class shows up under `active`; flag it.
 
 Follow the original repro steps from the bug ticket exactly as written.
 
+**If the bug does not reproduce, that is not yet a verdict.** Repro steps record
+what was done, not the conditions that were also true. Reconstruct the original
+run conditions and retry before concluding anything —
+`{{REFERENCE_PATH}}/playbook/defect-lifecycle.md` §When a bug does not reproduce
+(time & timezone, locale, viewport, account, data state, browser session, build).
+
 ### For each step:
 
 1. Execute in the browser
@@ -141,7 +147,8 @@ Before issuing the verdict, verify:
 2. Before/after screenshots present (or absence noted)
 3. Regression checks covered related functionality, not just the exact bug
 4. Console checked after both fix verification and regression checks
-5. **Format check:** report contains verdict, repro table, regression table, next steps
+5. If the bug did not reproduce: the run conditions reconstructed are **listed by name**, and the verdict is NOT REPRODUCED rather than VERIFIED
+6. **Format check:** report contains verdict, repro table, regression table, next steps
 
 Fix any gaps. One pass.
 
@@ -156,6 +163,7 @@ Fix any gaps. One pass.
 | **VERIFIED** | Fix works, no regression | Move bug to Verified/Closed |
 | **FAILED** | Bug still reproduces | Move bug back to Open with new evidence |
 | **REGRESSION** | Fix works but broke something else | Keep original Verified, file NEW bug for regression |
+| **NOT REPRODUCED** | The original bug no longer shows — but no fix explains it, or the conditions could not be restored | Bug stays open; comment "not reproduced under: {conditions tried}". Never silently VERIFIED |
 
 ### Verification Report
 
@@ -171,7 +179,7 @@ Write to both:
 **Verified:** {YYYY-MM-DD}
 **URL:** {target}
 
-## Verdict: {VERIFIED | FAILED | REGRESSION}
+## Verdict: {VERIFIED | FAILED | REGRESSION | NOT REPRODUCED}
 {One-line summary}
 
 ## Reproduction Result
