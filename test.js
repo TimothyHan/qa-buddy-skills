@@ -686,7 +686,7 @@ function testSkillManifest() {
   }
 }
 
-function testRuntimeHelper() {
+async function testRuntimeHelper() {
   console.log('\n🧾 Runtime helper (bin/qab.js — RFC 0001 PR1)');
   const { execFileSync } = require('child_process');
   const os = require('os');
@@ -826,6 +826,17 @@ function testRuntimeHelper() {
     } else {
       fail('shipped qab.js + index.json present for REF validation test', 'run node build.js all');
     }
+
+    // A consumer that closes stdout early (`| head`) must not crash the helper (EPIPE) — cross-platform check
+    const { spawn } = require('child_process');
+    const epipeCode = await new Promise((resolve) => {
+      const child = spawn(process.execPath, [src, 'stats'], { env, stdio: ['ignore', 'pipe', 'pipe'] });
+      child.stdout.destroy();                       // the reader goes away mid-write
+      let err = '';
+      child.stderr.on('data', (d) => { err += d; });
+      child.on('close', (code) => resolve({ code, err }));
+    });
+    check(epipeCode.code === 0 && !/EPIPE/.test(epipeCode.err), `stats survives a closed stdout (exit ${epipeCode.code}, no EPIPE trace)`, epipeCode.err.split('\n')[0]);
 
     // Malformed line tolerance: skipped and counted, never crashes
     const eventsBefore = JSON.parse(run(['stats', '--json'])).events;
@@ -1261,8 +1272,9 @@ function testFingerprints() {
   }
 }
 
+(async () => {   // one async step (the EPIPE spawn check); everything else stays synchronous
 testSkillManifest();
-testRuntimeHelper();
+await testRuntimeHelper();
 testLearningsGates();
 testReferenceIndex();
 testCompile();
@@ -1288,3 +1300,4 @@ if (failures.length > 0) {
   console.log('\nAll checks passed.');
   process.exit(0);
 }
+})();
