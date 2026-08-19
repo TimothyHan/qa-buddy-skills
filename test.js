@@ -359,12 +359,12 @@ function testPreambleTiers() {
       const distContent = readFile(path.join(DIST_DIR, platform, 'skills', skill, 'SKILL.md'));
       if (!distContent) continue;
 
+      // The severity/priority scales live in references/playbook/risk-and-priority.md ONLY and reach a
+      // skill through the compiled slice. They used to be duplicated into the tier-2 preamble, where they
+      // had no section id — so a skill read the copy, cited nothing, and #severity-scale looked dormant
+      // (1/10) while setting the severity on every bug filed. No tier may inline them again.
       const hasSeverity = distContent.includes('Severity & Priority');
-      if (tier === '2') {
-        check(hasSeverity, `${skill} (tier 2) on ${platform}: has severity tables`);
-      } else if (tier === '1') {
-        check(!hasSeverity, `${skill} (tier 1) on ${platform}: no severity tables`);
-      }
+      check(!hasSeverity, `${skill} (tier ${tier}) on ${platform}: no inlined severity tables`);
     }
   }
 }
@@ -1019,7 +1019,10 @@ function testCompile() {
     check(droppedIds.includes('LRN-20260801-03'), 'profile-narrowed learning (surface=api) is dropped for a web profile and listed');
     check(droppedIds.some(id => id.startsWith('REF-feature-knowledge-base-spec#')), 'scope=all non-must sections listed under dropped (general-scope), not packed');
     // must first; LRN placed right after the REF it overrides
-    check(manifestIds[0] === 'REF-playwright-patterns#must-rules' || manifestIds[0] === 'REF-playwright-patterns#never', `must sections packed first (${manifestIds[0]})`);
+    const refTiers = manifestIds.filter(id => id.startsWith('REF-')).map(id => (index[id] && index[id].tier) || 'should');
+    const lastMust = refTiers.lastIndexOf('must');
+    const firstOther = refTiers.findIndex(t => t !== 'must');
+    check(firstOther === -1 || lastMust < firstOther, `every must section packed before any non-must (${manifestIds[0]})`);
     const iMust = manifestIds.indexOf('REF-playwright-patterns#must-rules');
     check(manifestIds[iMust + 1] === 'LRN-20260801-01', 'learning packed right after the section it Overrides');
     // verbatim body: compare against the SAME references dir the shipped helper reads (en or ko-only dist),

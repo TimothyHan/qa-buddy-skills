@@ -1,6 +1,6 @@
 ---
 name: qa
-version: 0.3.5
+version: 0.3.6
 description: |
   SDT 테스트 실행 스킬. 지식 베이스(KB)의 테스트 케이스를 실행하고, 브라우저에서
   인수 조건(AC)을 검증하며, 실패 항목은 Jira에 버그로 등록하고, KB에 결과를

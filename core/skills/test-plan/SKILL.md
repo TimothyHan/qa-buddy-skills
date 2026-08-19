@@ -1,6 +1,6 @@
 ---
 name: test-plan
-version: 0.5.4
+version: 0.5.5
 description: |
   Build a test plan when a new Epic is created. Pulls epic details and linked
   stories from Jira, analyzes scope, and produces a test plan covering strategy,

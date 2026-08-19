@@ -1,28 +1,3 @@
-## Severity & Priority Quick Reference
-
-Use these scales when classifying bugs, test case priorities, and findings.
-
-**Severity** (impact on user):
-
-| Severity | Definition |
-|----------|-----------|
-| **Blocker** | Blocks critical user workflow or causes server shutdown |
-| **Critical** | Blocks major workflow, no workaround. Potential revenue loss |
-| **Major** | Blocks major workflow but workaround exists |
-| **Normal** | Blocks non-major workflow, no significant business impact |
-| **Minor** | Same as Normal but workaround exists. Visual/UX inconvenience |
-| **Trivial** | Minor visual defects or text errors |
-
-**Priority** (urgency):
-
-| Priority | Criteria |
-|----------|---------|
-| **High** | Blocker/Critical severity with immediate impact, or Major with large blast radius |
-| **Medium** | Major with smaller blast radius, or Normal with immediate impact |
-| **Low** | Normal with infrequent impact, or any Minor/Trivial |
-
----
-
 ## Escalation
 
 Stop and report to the SDT when:

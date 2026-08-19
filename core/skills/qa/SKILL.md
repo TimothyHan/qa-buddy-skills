@@ -1,6 +1,6 @@
 ---
 name: qa
-version: 0.3.5
+version: 0.3.6
 description: |
   SDT test execution skill. Executes test cases from the knowledge base, verifies
   acceptance criteria in the browser, files bugs in Jira for failures, and updates

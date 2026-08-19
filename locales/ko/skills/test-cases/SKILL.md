@@ -1,6 +1,6 @@
 ---
 name: test-cases
-version: 0.3.7
+version: 0.3.8
 description: |
   Jira 티켓의 인수 조건(AC)에서 테스트 케이스를 생성합니다. Playwright E2E 테스트
   시나리오와 개발자용 단위 테스트 체크리스트를 작성합니다. 테스트 케이스는 추적성을 위해

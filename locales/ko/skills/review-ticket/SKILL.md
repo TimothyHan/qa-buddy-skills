@@ -1,6 +1,6 @@
 ---
 name: review-ticket
-version: 0.3.2
+version: 0.3.3
 description: |
   백로그 그루밍 또는 리파인먼트 중 Jira 티켓을 리뷰합니다. 테스트 가능성,
   인수 조건(AC) 완전성, 누락된 엣지 케이스, 잠재적 차단 요소를 점검하고,

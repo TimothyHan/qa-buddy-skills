@@ -1,6 +1,6 @@
 ---
 name: test-cases
-version: 0.3.7
+version: 0.3.8
 description: |
   Generate test cases from a Jira ticket's acceptance criteria. Produces Playwright
   e2e test scenarios and a unit test checklist for developers. Test cases map back
