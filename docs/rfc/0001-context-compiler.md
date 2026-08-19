@@ -20,7 +20,7 @@ QABuddy의 학습 레이어(`LEARNINGS.md` → 읽기 → distill → 승격)는
 - **읽기 경로가 쓰기 경로가 된다.** 적용(`applied`)·모순(`contradicted`)·포착(`captured`)·결과(`outcome`)가 `features-kb/learnings-log.jsonl`에 append-only로 쌓인다. LLM이 JSON을 직접 쓰지 않도록 40줄짜리 `bin/qab.js` 헬퍼가 쓴다.
 - **distill은 산문 판단 대신 산술로 바뀐다.** 승격 후보 = `applied ≥ 3 (≥ 3 runs) ∧ contradicted = 0`; 반증 = `contradicted ≥ 2` 또는 지문(fingerprint) 재발; 미적용 = 후보 ≥ 10회, 적용 0회. 사람이 승인하고, 레퍼런스 편집은 eval 게이트를 통과해야 한다.
 - **9개 PR, 두 그룹.** PR0–PR6은 동작 변화 없음(측정·감사 가능성만 추가). §7.4 게이트를 통과할 때만 PR7(점수 기반 선택, 플래그 뒤)·PR8(옵트인 자동 상태 변경)로 간다.
-- **결론 (2026-08-19): PR7은 만들지 않는다 (결정 16 · §9.3 Outcome).** 게이트는 열렸고(프로파일 2개, outcome 9·8, 적용 편차 확인) 그래서 게이트가 허가한 **측정을 실제로 수행했다** — 그 측정이 점수화에 반대했다. 28회 실행에서 한 번도 적용되지 않은 섹션 18개 중 **선택(selection) 실패는 0건**이다: 3개는 애초에 발화 불가(이 프로젝트에 없는 `team-practices/` 파일을 가리키는 조건부 포인터), 8개는 프리앰블이 다시 진술하고 있고, 7개는 아직 그런 종류의 일을 하지 않았을 뿐이다. 점수화 대신 **스코프 정리와 중복 제거**가 `/qa-qa` 슬라이스를 278줄/48% 유휴에서 **203줄/4%**로 줄였다 — PR7이 얻어내려던 감축을 결정론적으로 달성한 것이다. **RFC 0001은 PR0–PR6에서 닫는다.**
+- **결론 (2026-08-19): PR7은 만들지 않는다 (결정 16 · §9.3 Outcome).** 게이트는 열렸고(프로파일 2개, outcome 9·8, 적용 편차 확인) 그래서 게이트가 허가한 **측정을 실제로 수행했다** — 그 측정이 점수화에 반대했다. 28회 실행에서 한 번도 적용되지 않은 섹션 18개 중 **선택(selection) 실패는 0건**이다: 3개는 애초에 발화 불가(이 프로젝트에 없는 `team-practices/` 파일을 가리키는 조건부 포인터), 8개는 프리앰블이 다시 진술하고 있고, 7개는 아직 그런 종류의 일을 하지 않았을 뿐이다. 점수화 대신 **스코프 정리와 중복 제거**가 `/qa-qa` 슬라이스를 278줄/48% 유휴에서 **203줄/4%**로 줄였다 — PR7이 얻어내려던 감축을 결정론적으로 달성한 것이다. **RFC 0001은 PR0–PR6에서 닫는다.** 다만 이것은 **한 프로젝트의 데이터에 대한 판정이지 점수화 자체에 대한 판정이 아니다** — 라이브러리가 크고 프로파일이 여럿이며 CI·UAT·지표 작업이 실제로 일어나는 프로젝트는 게이트를 정당하게 통과할 수 있다. 그런데 **지금은 그렇게 판단해도 손을 쓸 수 없다**: 선택(scope)이 배포되는 파일 안에 있어 업데이트 때 덮어써지고, 컴파일러는 `.qabuddy.json`에서 `learningsPath`·`runsDir`만 읽는다. 그래서 PR7·PR8은 QABuddy가 한 번 배포하는 단계가 아니라 **프로젝트가 자기 측정으로 여는 능력**으로 재정의한다 — **RFC 0002(프로젝트 소유 컴파일러 설정)**.
 - **하지 않을 것:** LLM이 레퍼런스를 쓰는 일, 마크다운에 카운터 넣기, 벡터 스토어, 두 컴파일러(`build.js`/컨텍스트 컴파일러) 합치기, "깨끗한 실행은 흔적을 남기지 않는다" 원칙 훼손.
 
 세부 스키마·결정·PR별 단계는 아래 영문 본문을 따른다.
@@ -275,7 +275,7 @@ The LLM's role shrinks to two judgments: *generalizable beyond this project?* an
 | 14 | Locale cadence (2026-08-17) | **runtime-facing** files (preambles, `self-improve.md`, `run-protocol.md`, skill bodies, any new reference file) get their ko twin **in the same PR**; **human-facing docs** (CONTRIBUTING, README) get one ko parity pass on the integration branch before the final merge to main; RFC stays en + ko summary | the maintainer dogfoods on `dist/ko` — ko drift in runtime text means the test runs measure a different tool; docs churn until the sequence settles |
 | 15 | Integration branch (2026-08-17) | all RFC PRs target `feat/context-compiler`; `main` receives one merge after all phases + testing | keeps `main` releasable; one release for the whole change |
 | 15a | What actually happened (2026-08-17, corrected) | PR0–PR6 (+ the first real promotion and the `improve` residue fix) were merged to `main` and released as **v0.5.0** *before* PR7/PR8 — a deviation from decision 15, not a revision of it. The branch was recreated from `main` at the same commit; **PR7, PR8 and everything after target `feat/context-compiler` again, and the merge to `main` happens only on the maintainer's explicit approval** | the shipped state is behaviour-neutral and dogfooded, so it was left in place rather than reverted; the decision itself stands |
-| 16 | §9.3 verdict (2026-08-19) | **PR7 is not built.** The gate opened — 2 profiles with 9 and 8 attributed outcomes, and application was measurably uneven — so the measurement it authorized was taken. It argued against scoring: of the 18 sections never applied across 28 runs, **0 were selection failures**. 3 cannot fire at all (conditional pointers to `team-practices/` files this project does not have), 8 are restated by the preamble, and 7 are waiting for a kind of work that has not happened. Scope hygiene took `/qa-qa` from 278 lines / 48% dormant to **203 lines / 4%** — the reduction PR7 was meant to earn, deterministically. RFC 0001 closes at PR0–PR6 | scoring ranks candidates; none of the dormancy was a ranking problem. A global `applied` score would have demoted CI, metrics and UAT knowledge for the crime of this project not having done that work yet — and two runs on 2026-08-19 (`/qa-review-ticket`, `/qa-test-plan`) woke 12 of those sections the moment the matching task appeared |
+| 16 | §9.3 verdict (2026-08-19) | **PR7 is not built on this project's evidence.** The gate opened — 2 profiles with 9 and 8 attributed outcomes, and application was measurably uneven — so the measurement it authorized was taken. It argued against scoring: of the 18 sections never applied across 28 runs, **0 were selection failures**. 3 cannot fire at all (conditional pointers to `team-practices/` files this project does not have), 8 are restated by the preamble, and 7 are waiting for a kind of work that has not happened. Scope hygiene took `/qa-qa` from 278 lines / 48% dormant to **203 lines / 4%** — the reduction PR7 was meant to earn, deterministically. RFC 0001 closes at PR0–PR6. **This is a verdict on one project's data, not on scoring as an idea** — a project with a larger library, more profiles and more varied work could reach the gate honestly. It cannot act on that today: selection lives in shipped `qab: scope=` comments, so PR7/PR8 move to a **per-project opt-in path** (RFC 0002) rather than staying phases QABuddy ships once | scoring ranks candidates; none of the dormancy was a ranking problem. A global `applied` score would have demoted CI, metrics and UAT knowledge for the crime of this project not having done that work yet — and two runs on 2026-08-19 (`/qa-review-ticket`, `/qa-test-plan`) woke 12 of those sections the moment the matching task appeared |
 
 ---
 
@@ -424,6 +424,36 @@ cannot be evaluated here — so retiring them on this project's evidence alone w
 **If PR7 is ever revisited**, the data says it must be per-profile with a floor (`tier=must` plus
 anything applied recently in the same `pfp`), never a global `applied` ranking; and 2 profiles ×
 ~14 outcomes is still thin for per-profile ranking.
+
+#### What this verdict does *not* establish
+
+All of the above is **one project's data** — a public demo app, exercised by one maintainer, over
+28 runs. It is enough to decide what *this* repo should build next. It is not enough to conclude that
+scored selection is wrong in general, and this section should not be read that way. A project with a
+large house playbook, several `pfp`s and real CI/UAT/metrics work could show a genuinely different
+distribution, and could reach this gate honestly.
+
+The same caution applied to the 3 unfirable `#team-specific-processes` sections above: they were left
+alone precisely because one project's silence is not proof.
+
+#### The structural finding, which matters more than the verdict
+
+Reaching that conclusion required editing `qab: scope=` comments across `core/references/**` — moving
+`maintenance-and-ci` out of `qa`, widening `#not-reproducible`, deduplicating the severity scale.
+**A QABuddy user cannot do any of that.** Those files ship with the tool and are replaced on update;
+the compiler reads only `learningsPath` and `runsDir` from `.qabuddy.json`. So the layers are split:
+
+| Layer | Owned by | Survives an update |
+|---|---|---|
+| Knowledge (`LEARNINGS.md`) | the project | yes |
+| **Selection** (which sections reach which skill) | **shipped files** | **no** |
+
+That asymmetry is the real blocker. It means a project whose data *did* justify scoring could not act
+on it, and a project whose scopes are wrong for its domain must fork or wait on an upstream PR. PR7
+and PR8 are therefore re-framed as **capabilities a project unlocks when its own measurements earn
+them**, not phases shipped once — see **RFC 0002 (project-owned compiler configuration)**: project-level
+scope overrides with a `tier=must` floor, project-owned reference sections, and a gate report a user
+can run against their own logs.
 **Kill** (set `scoring: false`) if after 30 scored runs on a `pfp` with baseline data: fixture pass rate < baseline for any skill, or outcome rate < baseline − 5 pts, or applied ratio does not rise. The `dropped:` and `(audition)` lines are the post-mortem.
 
 ---
