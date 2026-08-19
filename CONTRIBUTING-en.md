@@ -48,7 +48,7 @@ Skills are designed for **Claude Sonnet** as the minimum. Every skill must work 
 ```
 qa-buddy-skills/
 ├── build.js                     # Build script (node, zero deps)
-├── test.js                      # 740 structural checks
+├── test.js                      # 1137 structural checks
 ├── core/                        # Edit here — single source of truth
 │   ├── skills/ (14)             # Skill templates (procedure)
 │   ├── references/              # Knowledge: playwright-patterns, self-improve, KB spec
