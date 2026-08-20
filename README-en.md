@@ -247,15 +247,18 @@ QABuddy is a foundation, not a finished tool. Every SDT's needs differ per proje
 
 ```mermaid
 flowchart LR
-    A[Skill run] --> B{Did the project<br>teach something?}
+    Z[Compile: references + learnings<br>scoped to this skill → slice.md] --> A[Skill run]
+    A --> B{Did the project<br>teach something?}
     B -- "rule failed / new decision /<br>SDT correction" --> C[Capture to<br>LEARNINGS.md<br>with evidence]
     B -- clean run --> D[No trace]
-    C --> E[Next run reads learnings —<br>they override references]
-    E --> A
+    C --> E[Next run compiles them in —<br>learnings override references]
+    E --> Z
     C -. proven repeatedly .-> F["/qa-improve distill:<br>promote to references<br>+ upstream PR"]
 ```
 
-**The learnings layer (automatic, every skill run).** Every run reads `features-kb/LEARNINGS.md` at start — active entries are project-specific rules that *override* the shipped references — and checks three capture triggers at the end: a documented rule failed against reality, an undocumented decision was made, or the SDT corrected the output. Entries require evidence; clean runs write nothing. Every run starts by **compiling** the reference sections and learnings scoped to it into one `slice.md` with a manifest (`.qa-reports/runs/<run>/`), then appends what it *applied*, *contradicted*, *captured*, and how it *ended* to `features-kb/learnings-log.jsonl` (append-only, written by the shipped `qab.js` helper — never by hand), and names recurring failure classes in `features-kb/fingerprints.jsonl` so a learning that claimed to prevent one is falsified automatically — distill decides from counts, not prose. Both files live in your repo, so learnings travel to your whole team via git and survive QABuddy upgrades. Protocol: [`core/references/self-improve.md`](core/references/self-improve.md); design: [RFC 0001](docs/rfc/0001-context-compiler.md).
+**The context compiler (automatic, before every skill run).** A skill never opens the whole reference library. First the shipped `qab.js` helper **compiles** the reference sections and active learnings scoped to *that* skill into a single `slice.md`, alongside a manifest naming what went in and what was left out. Both land in `.qa-reports/runs/<run>/` — so what actually reached the model on a given run is an artifact you can open and read back afterwards, not something to be inferred. When a source shapes the output, the run cites it by id and logs that it was *applied*; when reality contradicts one, it logs that instead. Design: [RFC 0001 — Context Compiler](docs/rfc/0001-context-compiler.md).
+
+**The learnings layer (automatic, every skill run).** Every run reads `features-kb/LEARNINGS.md` at start — active entries are project-specific rules that *override* the shipped references — and checks three capture triggers at the end: a documented rule failed against reality, an undocumented decision was made, or the SDT corrected the output. Entries require evidence; clean runs write nothing. Each run's *applied* / *contradicted* / *captured* / *outcome* events append to `features-kb/learnings-log.jsonl` (append-only, written by `qab.js` alone — never by hand), and recurring failure classes are named in `features-kb/fingerprints.jsonl`, so a learning that claimed to prevent one is falsified by count rather than by opinion. These files live in your repo, so learnings travel to your whole team via git and survive QABuddy upgrades. Protocol: [`core/references/self-improve.md`](core/references/self-improve.md).
 
 **Skill fixes.** One flow, one owner: `/qa-improve`. Choose **(C) Tool feedback** at any pause point (it dispatches to `/qa-improve` and resumes your workflow), run it directly, or accept the end-of-run suggestion when a captured learning points at a skill defect — structured proposal, targeted fix, eval regression run, PR.
 
