@@ -23,7 +23,7 @@ Built on the native **skills system** of your AI coding assistant.<br>
 QABuddy is a collection of `SKILL.md` files that your AI discovers and invokes automatically —<br>
 no separate app, no daemon, no dependencies beyond Node.js.
 
-[Quick Start](#quick-start) · [Skills](#skills) · [Guided Workflow](#the-guided-workflow) · [Contributing](CONTRIBUTING-en.md)
+[Quick Start](#quick-start) · [Skills](#skills) · [Guided Workflow](#the-guided-workflow) · [Changelog](CHANGELOG-en.md) · [Contributing](CONTRIBUTING-en.md)
 
 </div>
 
