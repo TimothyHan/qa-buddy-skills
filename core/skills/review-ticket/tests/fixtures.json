@@ -145,6 +145,40 @@
         "kb-path",
         "next-step"
       ]
+    },
+    {
+      "id": "fx-006",
+      "description": "No .qabuddy.json — falls back to asking the SDT, still produces a full review (was BT-040)",
+      "input": {
+        "ticket": "PROJ-456 with 2 clear ACs",
+        "preconditions": "no .qabuddy.json in the project root; no Jira MCP available"
+      },
+      "assertions": [
+        {
+          "field": "output",
+          "op": "contains",
+          "value": "Verdict"
+        },
+        {
+          "field": "output",
+          "op": "contains",
+          "value": "AC Assessment"
+        },
+        {
+          "field": "output",
+          "op": "contains",
+          "value": "Suggested Test Approach"
+        },
+        {
+          "field": "output",
+          "op": "matches",
+          "value": "Status:\\**\\s*(DONE|DONE_WITH_CONCERNS)\\b(?!\\s*\\|)"
+        }
+      ],
+      "tags": [
+        "degradation",
+        "no-config"
+      ]
     }
   ]
 }
