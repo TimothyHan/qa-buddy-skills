@@ -30,14 +30,28 @@ usage() {
 PREFIX="qa-"
 ACTION="install"
 
-case "${1:-}" in
-  --no-prefix)  PREFIX="" ;;
-  --uninstall)  ACTION="uninstall" ;;
-  --status)     ACTION="status" ;;
-  --help|-h)    usage; exit 0 ;;
-  "")           ;; # default: install with prefix
-  *)            echo "Unknown option: $1"; usage; exit 1 ;;
-esac
+# Every flag is parsed, not just the first. `setup --no-prefix --status` used to fall
+# through to a plain install with --status silently ignored — a read-only command that
+# mutated. Two actions at once is a mistake worth naming, not resolving silently.
+set_action() {
+  if [ "$ACTION" != "install" ] && [ "$ACTION" != "$1" ]; then
+    echo "Conflicting options: --$ACTION and --$1"
+    usage
+    exit 1
+  fi
+  ACTION="$1"
+}
+
+while [ $# -gt 0 ]; do
+  case "$1" in
+    --no-prefix)  PREFIX="" ;;
+    --uninstall)  set_action uninstall ;;
+    --status)     set_action status ;;
+    --help|-h)    usage; exit 0 ;;
+    *)            echo "Unknown option: $1"; usage; exit 1 ;;
+  esac
+  shift
+done
 
 # ─── Orphan pruning ──────────────────────────────────────────────────────────
 # A skill QABuddy shipped once and no longer ships leaves an owned entry behind.
