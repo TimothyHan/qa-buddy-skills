@@ -214,8 +214,14 @@ jobs:
           $skills = Join-Path $HOME '.claude\skills'
           if (Test-Path $skills) { Remove-Item $skills -Recurse -Force }
           & dist/claude/setup.ps1 | Out-Null
+          # Windows refuses to create a symlink to a path that does not exist, so reproduce
+          # the real upgrade instead: link a skill that ships, then delete it from dist the
+          # way a release that drops a skill does. The link is left dangling, as on a user's
+          # machine after they pull a version where the skill is gone.
           $gone = Join-Path (Resolve-Path 'dist/claude/skills') 'sprint-status'
+          New-Item -ItemType Directory -Force -Path $gone | Out-Null
           New-Item -ItemType SymbolicLink -Path (Join-Path $skills 'qa-sprint-status') -Target $gone -Force | Out-Null
+          Remove-Item $gone -Recurse -Force
           New-Item -ItemType Directory -Force -Path "$env:TEMP\foreign-tool\qa-notours" | Out-Null
           New-Item -ItemType SymbolicLink -Path (Join-Path $skills 'qa-notours') -Target "$env:TEMP\foreign-tool\qa-notours" -Force | Out-Null
           # Write-Host lands on stream 6 in PS 5.1 — without 6>&1 every -match passes vacuously.
