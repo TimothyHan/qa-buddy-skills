@@ -52,7 +52,7 @@ measured, not targets: it grew with the RFC 0001 runtime obligations (compile �
 qa-buddy-skills/
 ├── build.js                     # Build script (node, zero deps)
 ├── test.js                      # Structural + behavioural checks (`node test.js`)
-├── bin/qab.js                   # Runtime helper (run-id, compile, log, fp, stats, scoreboard)
+├── bin/qab.js                   # Runtime helper (run-id, compile, log, fp, stats, gate, scoreboard)
 ├── core/                        # Edit here — single source of truth
 │   ├── skills/ (13)             # Skill templates (procedure)
 │   ├── references/              # Knowledge: playwright-patterns, self-improve, KB spec

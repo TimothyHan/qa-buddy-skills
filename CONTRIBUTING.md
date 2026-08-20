@@ -52,7 +52,7 @@ QABuddy에 관심을 가져주셔서 감사합니다! 이 가이드는 스킬 �
 qa-buddy-skills/
 ├── build.js                     # Build script (node, zero deps)
 ├── test.js                      # Structural + behavioural checks (`node test.js`)
-├── bin/qab.js                   # Runtime helper (run-id, compile, log, fp, stats, scoreboard)
+├── bin/qab.js                   # Runtime helper (run-id, compile, log, fp, stats, gate, scoreboard)
 ├── core/                        # Edit here — single source of truth
 │   ├── skills/ (13)             # Skill templates (procedure)
 │   ├── references/              # Knowledge: playwright-patterns, self-improve, KB spec
