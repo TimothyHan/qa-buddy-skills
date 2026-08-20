@@ -103,6 +103,39 @@ try {
 
 $SkillsDir = Join-Path (Join-Path $RepoRoot '.github') 'skills'
 
+# ─── Orphan pruning ──────────────────────────────────────────────────────────
+# A skill QABuddy shipped once and no longer ships leaves an owned entry behind.
+# Uninstall and status both iterate $Skills — what ships *now* — so an entry for a
+# removed skill is invisible to every code path: nothing reports it, nothing deletes it,
+# and for link installs it is left dangling at a build path that no longer exists.
+# Enumerate the install directory instead, and treat an owned entry we no longer ship as
+# an orphan. Ownership goes through Test-Owned, exactly as install and uninstall do.
+function Get-Orphans([string]$Dir, [string]$ExpectedRoot) {
+    if (-not (Test-Path $Dir)) { return @() }
+    $keep = @('qa-references', 'slowhama-references', 'slowhama-qa-references')
+    foreach ($s in $Skills) { $keep += $s; $keep += "qa-$s" }
+    return @(Get-ChildItem $Dir -Force -ErrorAction SilentlyContinue |
+        Where-Object { $keep -notcontains $_.Name } |
+        Where-Object { Test-Owned $_.FullName $ExpectedRoot } |
+        ForEach-Object { $_.FullName })
+}
+
+# $Mode = 'remove' | 'report'. Returns how many orphans were handled.
+function Invoke-Prune([string]$Dir, [string]$ExpectedRoot, [string]$Mode) {
+    $n = 0
+    foreach ($o in (Get-Orphans $Dir $ExpectedRoot)) {
+        $n++
+        $leaf = Split-Path $o -Leaf
+        if ($Mode -eq 'remove') {
+            Remove-Link $o
+            Write-Host "  PRUNED   $leaf (no longer shipped by QABuddy)"
+        } else {
+            Write-Host "  ORPHAN   $leaf (no longer shipped — re-run setup to prune)"
+        }
+    }
+    return $n
+}
+
 # ─── Uninstall ───────────────────────────────────────────────────────────────
 
 if ($Uninstall) {
@@ -142,6 +175,7 @@ if ($Uninstall) {
         Write-Host "          Remove manually if desired: $instructions"
     }
     Write-Host ''
+    $removed += Invoke-Prune $SkillsDir $SdtSkills 'remove'
     Write-Host "Removed: $removed items"
     exit 0
 }
@@ -169,6 +203,7 @@ if ($Status) {
         }
         if (-not $found) { Write-Host "  MISSING $skill" -ForegroundColor Yellow }
     }
+    $null = Invoke-Prune $SkillsDir $SdtSkills 'report'
     Write-Host ''
     $refPath = Join-Path $SkillsDir 'qa-references'
     if (Test-Path $refPath) {
@@ -218,6 +253,7 @@ if ($Adopt) {
 
 if (-not (Test-Path $SkillsDir)) {
     New-Item -ItemType Directory -Path $SkillsDir -Force | Out-Null
+$null = Invoke-Prune $SkillsDir $SdtSkills 'remove'
 }
 
 $installed = 0

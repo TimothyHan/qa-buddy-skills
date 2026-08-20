@@ -85,6 +85,63 @@ fi
 REPO_ROOT=$(git rev-parse --show-toplevel)
 SKILLS_DIR="$REPO_ROOT/.github/skills"
 
+# ─── Orphan pruning ──────────────────────────────────────────────────────────
+# A skill QABuddy shipped once and no longer ships leaves an owned entry behind.
+# `uninstall` and `status` both iterate SKILLS — the skills that exist *now* — so an
+# entry for a removed skill is invisible to every code path: nothing reports it, and
+# nothing deletes it. For symlink installs it is left dangling at a build path that no
+# longer exists, which the assistant still tries to discover. So enumerate the install
+# directory instead, and treat an owned entry we no longer ship as an orphan.
+# Ownership uses exactly the checks install/uninstall already use — never touch a link
+# or directory that isn't ours.
+qabuddy_orphans() {
+  [ -d "$SKILLS_DIR" ] || return 0
+  local entry name base shipped link_target s
+  for entry in "$SKILLS_DIR"/*; do
+    [ -e "$entry" ] || [ -L "$entry" ] || continue
+    name=$(basename "$entry")
+    case "$name" in
+      qa-references|slowhama-references|slowhama-qa-references) continue ;;
+    esac
+    if [ -L "$entry" ]; then
+      link_target=$(readlink "$entry" 2>/dev/null || true)
+      case "$link_target" in
+        *"$SDT_SKILLS"*|*qa-skills*) ;;
+        *) continue ;;
+      esac
+    elif [ -d "$entry" ]; then
+      [ -f "$entry/.qabuddy-owned" ] || continue
+    else
+      continue
+    fi
+    base=${name#qa-}
+    shipped=""
+    for s in "${SKILLS[@]}"; do
+      if [ "$s" = "$base" ] || [ "$s" = "$name" ]; then shipped="yes"; break; fi
+    done
+    [ -n "$shipped" ] || printf '%s\n' "$entry"
+  done
+}
+
+# $1 = remove | report. Sets ORPHANS to the count handled.
+qabuddy_prune_orphans() {
+  ORPHANS=0
+  local o
+  while IFS= read -r o; do
+    [ -n "$o" ] || continue
+    ORPHANS=$((ORPHANS + 1))
+    if [ "$1" = "remove" ]; then
+      if [ -L "$o" ]; then rm "$o"; else rm -rf "$o"; fi
+      echo "  PRUNED   $(basename "$o") (no longer shipped by QABuddy)"
+    else
+      echo "  ORPHAN   $(basename "$o") (no longer shipped — re-run setup to prune)"
+    fi
+  done <<ORPHAN_EOF
+$(qabuddy_orphans)
+ORPHAN_EOF
+  return 0
+}
+
 # ─── Uninstall ───────────────────────────────────────────────────────────────
 
 if [ "$ACTION" = "uninstall" ]; then
@@ -122,6 +179,8 @@ if [ "$ACTION" = "uninstall" ]; then
     echo "          Remove manually if desired: rm $instructions"
   fi
   echo ""
+  qabuddy_prune_orphans remove
+  removed=$((removed + ORPHANS))
   echo "Removed: $removed items"
   exit 0
 fi
@@ -148,6 +207,7 @@ if [ "$ACTION" = "status" ]; then
     done
     [ -z "$found" ] && echo "  MISSING $skill"
   done
+  qabuddy_prune_orphans report
   echo ""
   if [ -d "$SKILLS_DIR/qa-references" ]; then
     echo "  OK      qa-references"
@@ -190,6 +250,8 @@ if [ "$ADOPT" = "1" ]; then
 fi
 
 mkdir -p "$SKILLS_DIR"
+
+qabuddy_prune_orphans remove
 
 installed=0
 skipped=0

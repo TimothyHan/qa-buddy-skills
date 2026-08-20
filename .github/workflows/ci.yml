@@ -177,3 +177,57 @@ jobs:
           test "$(readlink "$HOME/.claude/skills/setup")" = "/tmp/foreign-tool/setup"
           dist/claude/setup --uninstall
           test -L "$HOME/.claude/skills/setup"
+
+      # A skill QABuddy shipped once and no longer ships (`/qa-sprint-status`, removed in
+      # #29) used to be invisible to every code path: uninstall and status both iterate the
+      # skills that exist *now*, so the leftover link was never reported and never deleted —
+      # it simply dangled at a build path that no longer exists, for the assistant to find.
+      - name: Orphaned-skill pruning (bash)
+        if: runner.os == 'Linux'
+        run: |
+          rm -rf "$HOME/.claude/skills"
+          dist/claude/setup > /dev/null
+          # A v0.5.0 leftover: ours by target, pointing at a path the build no longer makes.
+          ln -s "$PWD/dist/claude/skills/sprint-status" "$HOME/.claude/skills/qa-sprint-status"
+          # A same-shaped link that is NOT ours must survive every step.
+          mkdir -p /tmp/foreign-tool/qa-notours
+          ln -sfn /tmp/foreign-tool/qa-notours "$HOME/.claude/skills/qa-notours"
+          dist/claude/setup --status | tee /tmp/orphan-status.txt
+          grep -q 'ORPHAN   qa-sprint-status' /tmp/orphan-status.txt
+          ! grep -q 'ORPHAN   qa-notours' /tmp/orphan-status.txt
+          dist/claude/setup | tee /tmp/orphan-install.txt
+          grep -q 'PRUNED   qa-sprint-status' /tmp/orphan-install.txt
+          # -L, not -e: a dangling link fails -e whether or not it was actually removed.
+          ! test -L "$HOME/.claude/skills/qa-sprint-status"
+          test -L "$HOME/.claude/skills/qa-notours"
+          # Uninstall prunes too, and still leaves the foreign link alone.
+          ln -s "$PWD/dist/claude/skills/sprint-status" "$HOME/.claude/skills/qa-sprint-status"
+          dist/claude/setup --uninstall | tee /tmp/orphan-uninstall.txt
+          grep -q 'PRUNED   qa-sprint-status' /tmp/orphan-uninstall.txt
+          ! test -L "$HOME/.claude/skills/qa-sprint-status"
+          test -L "$HOME/.claude/skills/qa-notours"
+
+      - name: Orphaned-skill pruning (PowerShell 5.1)
+        if: runner.os == 'Windows'
+        shell: powershell
+        run: |
+          $skills = Join-Path $HOME '.claude\skills'
+          if (Test-Path $skills) { Remove-Item $skills -Recurse -Force }
+          & dist/claude/setup.ps1 | Out-Null
+          $gone = Join-Path (Resolve-Path 'dist/claude/skills') 'sprint-status'
+          New-Item -ItemType SymbolicLink -Path (Join-Path $skills 'qa-sprint-status') -Target $gone -Force | Out-Null
+          New-Item -ItemType Directory -Force -Path "$env:TEMP\foreign-tool\qa-notours" | Out-Null
+          New-Item -ItemType SymbolicLink -Path (Join-Path $skills 'qa-notours') -Target "$env:TEMP\foreign-tool\qa-notours" -Force | Out-Null
+          # Write-Host lands on stream 6 in PS 5.1 — without 6>&1 every -match passes vacuously.
+          $status = & dist/claude/setup.ps1 -Status 6>&1 | Out-String
+          Write-Host $status
+          if ($status -notmatch 'ORPHAN   qa-sprint-status') { throw 'Orphan not reported by status' }
+          if ($status -match 'ORPHAN   qa-notours') { throw 'Foreign link wrongly reported as an orphan' }
+          $out = & dist/claude/setup.ps1 6>&1 | Out-String
+          Write-Host $out
+          if ($out -notmatch 'PRUNED   qa-sprint-status') { throw 'Orphan not pruned on reinstall' }
+          # Test-Path follows the link, so a dangling leftover would read as absent either
+          # way — enumerate the directory instead to assert the link itself is gone.
+          $present = @(Get-ChildItem $skills -Force | Where-Object { $_.Name -eq 'qa-sprint-status' })
+          if ($present.Count -ne 0) { throw 'Orphan link still present after prune' }
+          if (-not (Test-Path (Join-Path $skills 'qa-notours'))) { throw 'Foreign link was removed' }
