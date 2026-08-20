@@ -381,6 +381,125 @@ function testPlaybookBudget() {
   }
 }
 
+// Documentation states facts about this repo — how many skills there are, how big the
+// preamble is, which commands exist. Every one of those was hand-maintained, and by #34
+// every one had gone stale: `skills/ (14)` against 13, "11 skills each" against 13, a
+// preamble budget of ~34 lines against an actual 89, a playbook count of 10 against 11,
+// and a whole manual scenario for `/qa-sprint-status` two releases after #29 deleted it.
+// The only numbers that were still right were the two a test enforced (≤300, ≤70).
+// So: a documented fact that can be derived from the repo gets derived here.
+// docs/rfc/ is deliberately out of scope — it is a historical record, and its claims are
+// meant to describe the moment they were written, not today's tree.
+function testDocClaims() {
+  console.log('\n📄 Doc claims vs repo');
+
+  const DOCS = ['README.md', 'README-en.md', 'CONTRIBUTING.md', 'CONTRIBUTING-en.md'];
+  const docs = DOCS.map(f => [f, readFile(path.join(ROOT, f))]).filter(([, s]) => s);
+  check(docs.length === DOCS.length, `all ${DOCS.length} top-level docs present`,
+        `missing: ${DOCS.filter(f => !readFile(path.join(ROOT, f))).join(', ')}`);
+
+  const skills = getSkillDirs();
+  const skillSet = new Set(skills);
+
+  // ── 1. Every `/qa-<name>` command named in a doc or skill is a skill that exists.
+  // Command form only: a `/qa-` preceded by a path character, or followed by `/`, is a
+  // directory (`features-kb/…/qa-reports/`), not a command.
+  const CMD = /(?<![.\w/}-])\/qa-([a-z0-9-]+)(?!\/)/g;
+  const mdFiles = [...DOCS.map(f => path.join(ROOT, f)),
+                   ...listMarkdown(path.join(ROOT, 'core')),
+                   ...listMarkdown(path.join(ROOT, 'locales'))];
+  const dangling = new Map();
+  let cmdRefs = 0;
+  for (const file of mdFiles) {
+    const src = readFile(file);
+    if (!src) continue;
+    for (const m of src.matchAll(CMD)) {
+      cmdRefs++;
+      if (!skillSet.has(m[1])) {
+        const rel = path.relative(ROOT, file);
+        if (!dangling.has(rel)) dangling.set(rel, new Set());
+        dangling.get(rel).add(`/qa-${m[1]}`);
+      }
+    }
+  }
+  check(cmdRefs > 0, `scanned ${cmdRefs} /qa-* command references across ${mdFiles.length} files`,
+        'no command references found — the pattern probably stopped matching');
+  check(dangling.size === 0, 'every /qa-* command named in docs and skills is a real skill',
+        [...dangling].map(([f, s]) => `${f}: ${[...s].join(', ')}`).join(' | '));
+
+  // ── 2-4. Counts that docs state and the repo can prove.
+  const playbookDir = path.join(CORE_DIR, 'references', 'playbook');
+  const playbookFiles = fs.existsSync(playbookDir)
+    ? fs.readdirSync(playbookDir).filter(f => f.endsWith('.md') && !['index.md', 'README.md'].includes(f)).length
+    : 0;
+  // Count the way `wc -l` does — a trailing newline is a terminator, not an extra line —
+  // so the number here is the number a contributor would read off their terminal.
+  const countLines = f => {
+    const src = readFile(path.join(CORE_DIR, f)) || '';
+    const parts = src.split('\n');
+    if (parts[parts.length - 1] === '') parts.pop();
+    return parts.length;
+  };
+  const baseLines = countLines('preamble-base.md');
+  const fullLines = countLines('preamble-full.md');
+
+  const CLAIMS = [
+    { label: 'skill count', expected: skills.length,
+      patterns: [/skills\/ \((\d+)\)/g, /\((\d+) skills each\)/g, /각 (\d+)개 스킬/g,
+                 /Skills-(\d+)-green/g, /Skills: (\d+)/g] },
+    { label: 'playbook methodology file count', expected: playbookFiles,
+      patterns: [/(\d+) methodology files/g, /(\d+)개 방법론 파일/g] },
+    // Tier 1 = preamble-base; Tier 2 = base + full (build.js buildSkill concatenates them).
+    { label: 'Tier 1 preamble size', expected: baseLines,
+      patterns: [/Preamble \(Tier 1\) \| ~(\d+) (?:lines|줄)/g, /\| `1` \|[^|]*\((\d+) (?:lines|줄)\)/g] },
+    { label: 'Tier 2 preamble size', expected: baseLines + fullLines,
+      patterns: [/Preamble \(Tier 2\) \| ~(\d+) ?(?:lines|줄)/g, /\| `2` \|[^|]*\((\d+) (?:lines|줄)\)/g] },
+  ];
+
+  for (const claim of CLAIMS) {
+    const found = [];
+    for (const [file, src] of docs)
+      for (const re of claim.patterns)
+        for (const m of src.matchAll(re)) found.push({ file, value: Number(m[1]) });
+    // A claim nobody states any more is a check that silently stopped working — fail loudly
+    // rather than pass on zero matches.
+    check(found.length > 0, `${claim.label}: stated in the docs (pattern still matches)`,
+          'no occurrence found — reword or drop the check, do not leave it passing on nothing');
+    const wrong = found.filter(f => f.value !== claim.expected);
+    check(wrong.length === 0,
+          `${claim.label}: all ${found.length} doc claims say ${claim.expected}`,
+          wrong.map(f => `${f.file} says ${f.value}, repo has ${claim.expected}`).join(' | '));
+  }
+
+  // ── 5. Relative links resolve from the linking file's own directory.
+  const linkFiles = [...DOCS.map(f => path.join(ROOT, f)), ...listMarkdown(path.join(CORE_DIR, 'references'))];
+  const broken = [];
+  let links = 0;
+  for (const file of linkFiles) {
+    const src = readFile(file);
+    if (!src) continue;
+    for (const m of src.matchAll(/\]\(([^)\s#]+\.md)(?:#[^)]*)?\)/g)) {
+      const target = m[1];
+      if (/^https?:/.test(target)) continue;
+      links++;
+      if (!fs.existsSync(path.resolve(path.dirname(file), target)))
+        broken.push(`${path.relative(ROOT, file)} → ${target}`);
+    }
+  }
+  check(links > 0, `resolved ${links} relative .md links`, 'no links found — pattern broken');
+  check(broken.length === 0, 'every relative .md link resolves', broken.join(' | '));
+}
+
+function listMarkdown(dir, acc = []) {
+  if (!fs.existsSync(dir)) return acc;
+  for (const e of fs.readdirSync(dir, { withFileTypes: true })) {
+    const p = path.join(dir, e.name);
+    if (e.isDirectory()) listMarkdown(p, acc);
+    else if (e.name.endsWith('.md')) acc.push(p);
+  }
+  return acc;
+}
+
 function testPreambleTiers() {
   console.log('\n📐 Preamble Tiers');
 
@@ -512,6 +631,42 @@ function testEvalFixtures() {
   }
 }
 
+// The README badge states the size of this suite. It is the one documented number that
+// cannot be derived up front — the total is only known once every check has run — so it
+// used to be the number most likely to rot silently (CONTRIBUTING sat at 1137 while the
+// suite was at 1105). Running it last makes it exact: everything counted so far, plus this
+// check itself. It still takes a human edit when you add a check, but now CI names the new
+// number instead of letting the old one drift for five releases.
+function testBadgeCount() {
+  console.log('\n🔢 Suite size badge');
+  // The total is only meaningful for a full run. CI also runs this suite against a ko-only
+  // dist (before the en build), where every dist-dependent check is skipped and the count is
+  // ~74 lower — asserting the badge there would compare the README against a partial run.
+  // Emit nothing at all in that state: a check here would itself change the number.
+  if (!fs.existsSync(path.join(DIST_DIR, 'claude'))) {
+    console.log('  – skipped: partial dist (en build not present), suite size not comparable');
+    return;
+  }
+  // Exactly one check, so the total it asserts is unambiguous: everything counted before
+  // this function, plus this single check.
+  const total = passed + failed + 1;
+  const BADGE = /Structural_checks-(\d+)-brightgreen/;
+  const problems = [];
+  for (const f of ['README.md', 'README-en.md']) {
+    const src = readFile(path.join(ROOT, f));
+    if (!src) { problems.push(`${f}: not found`); continue; }
+    const badge = src.match(BADGE);
+    if (!badge) { problems.push(`${f}: badge pattern no longer matches`); continue; }
+    if (Number(badge[1]) !== total) problems.push(`${f}: badge says ${badge[1]}`);
+    // The number also appears twice in prose; keep all three in step.
+    const stale = [...src.matchAll(/(\d+)(?= structural checks| checks\)|개 구조 검사)/g)]
+      .map(m => Number(m[1])).filter(n => n !== total);
+    if (stale.length) problems.push(`${f}: prose says ${[...new Set(stale)].join(', ')}`);
+  }
+  check(problems.length === 0, `README check-count badge and prose say ${total}`,
+        `${problems.join(' | ')} — suite runs ${total}`);
+}
+
 // ─── Run ────────────────────────────────────────────────────────────────
 
 console.log('QABuddy — Test');
@@ -620,6 +775,7 @@ testCrossPlatformConsistency();
 testKoreanCompleteness();
 testPlaybookBudget();
 testPreambleTiers();
+testDocClaims();
 testConfigAwareness();
 function testDistBom() {
   console.log('\n🔤 dist BOM (Gap G3)');
@@ -1355,6 +1511,8 @@ testCrlfTolerance();
 testInstallerSkillSync();
 testDistBom();
 testKbPathHygiene();
+
+testBadgeCount();
 
 console.log('\n================');
 console.log(`Results: ${passed} passed, ${failed} failed`);
