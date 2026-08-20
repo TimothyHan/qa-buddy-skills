@@ -178,6 +178,28 @@ jobs:
           dist/claude/setup --uninstall
           test -L "$HOME/.claude/skills/setup"
 
+      # Only $1 used to be parsed, so `setup --no-prefix --status` fell through to a plain
+      # install with --status silently dropped — a read-only command that mutated. Same
+      # class hit --project/--adopt combinations on the other platforms.
+      - name: Setup parses every flag, not just the first (bash)
+        if: runner.os == 'Linux'
+        run: |
+          rm -rf "$HOME/.claude/skills"
+          dist/claude/setup > /dev/null
+          dist/claude/setup --no-prefix --status | tee /tmp/args.txt
+          grep -q 'Status (Claude Code)' /tmp/args.txt
+          ! grep -q 'Installed:' /tmp/args.txt
+          # order-independent
+          dist/claude/setup --status --no-prefix | grep -q 'Status (Claude Code)'
+          # conflicting actions are named, not silently resolved
+          ! dist/claude/setup --status --uninstall > /tmp/conflict.txt 2>&1
+          grep -q 'Conflicting options' /tmp/conflict.txt
+          # an unknown flag is caught wherever it appears
+          ! dist/claude/setup --no-prefix --bogus > /tmp/bogus.txt 2>&1
+          grep -q 'Unknown option: --bogus' /tmp/bogus.txt
+          # no args still installs
+          dist/claude/setup | grep -q 'Installed:'
+
       # A skill QABuddy shipped once and no longer ships (`/qa-sprint-status`, removed in
       # #29) used to be invisible to every code path: uninstall and status both iterate the
       # skills that exist *now*, so the leftover link was never reported and never deleted —

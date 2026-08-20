@@ -5,9 +5,36 @@ The feature knowledge base is a structured repository of processed feature conte
 It eliminates redundant Jira/Confluence queries by storing consolidated, AI-readable
 summaries of every feature the team works on.
 
-**Version:** 0.2.0
-**Last updated:** 2026-04-02
-**Status:** Spec — not yet implemented
+**Last updated:** 2026-08-20
+**Status:** partly implemented — see below
+
+---
+
+## Implementation status
+<!-- qab: id=implementation-status -->
+
+This document is the *target* design, and it has been partly built. It used to say
+"not yet implemented" wholesale, which stopped being true — read it with this split in
+mind rather than as a description of what exists.
+
+**Built, and written by skills today:** `index.json` · `features/{EPIC}/feature.md` ·
+`test-plan.md` · `test-cases/{TICKET}.md` + `{TICKET}-mapping.json` · `reviews/` ·
+`qa-reports/` · `bugs/` — plus the learnings layer added by RFC 0001 (`LEARNINGS.md`,
+`learnings-log.jsonl`, `fingerprints.jsonl`, `.cache/scoreboard.json`).
+
+**Specified but not built** — no skill reads or writes any of these:
+
+| Section | Not built |
+|---|---|
+| §6.1 | `config.json` |
+| §6.4 | `tickets/{TICKET-KEY}.md` |
+| §6.6, §6.7, §8 | `relations/` (feature map, regression map) and relation discovery |
+| §7.1, §9 | `lastSync` / `syncThresholdHours` / `storageMode` and the staleness rules built on them |
+| §7.2 | the `kb-update/` PR-per-change workflow — skills follow `.qabuddy.json` `teamMode` instead |
+
+None of this reaches a skill at runtime in any case: every section here is `scope=all`
+`tier=should`, so the compiler lists them under `dropped: general-scope` rather than
+packing them into a slice. This is a document for contributors, not a runtime source.
 
 ---
 
@@ -143,6 +170,8 @@ features-kb/
 <!-- qab: id=file-schemas -->
 
 ### 6.1 config.json
+
+> **Not built.** Nothing creates or reads this file; `/qa-setup` writes `.qabuddy.json` instead.
 
 ```json
 {
@@ -282,6 +311,8 @@ Sourced from Jira comments and team discussions.}
 
 ### 6.4 tickets/{TICKET-KEY}.md
 
+> **Not built.** Per-ticket context lives in `test-cases/` and `reviews/` today.
+
 Per-ticket context. Focused on ACs and test coverage.
 
 ```markdown
@@ -341,6 +372,8 @@ AC-to-test-case traceability mapping.
 ```
 
 ### 6.6 relations/feature-map.json
+
+> **Not built** — nor is §6.7 or the discovery described in §8.
 
 Tracks which features relate to each other.
 

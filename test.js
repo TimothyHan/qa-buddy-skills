@@ -710,6 +710,16 @@ function testInstallerSkillSync() {
   // Counted, not merely present: the three call sites are install, uninstall and status, and
   // a substring test passes on any one of them (found the hard way — deleting the install
   // call still matched the uninstall call).
+  // Single-arg parsing (`case "${1:-}"`) silently drops every flag after the first —
+  // `setup --no-prefix --status` installed instead of reporting. Loop over "$@" instead.
+  for (const script of ['setup-claude', 'setup-cursor', 'setup-copilot']) {
+    const src = readFile(path.join(ROOT, 'platforms', script));
+    if (!src) { fail(`platforms/${script} exists`, 'not found'); continue; }
+    check(src.includes('while [ $# -gt 0 ]') && !src.includes('case "${1:-}"'),
+      `platforms/${script}: parses every argument, not just $1`,
+      src.includes('case "${1:-}"') ? 'still switches on $1 alone' : 'no argument loop found');
+  }
+
   for (const script of ['setup-claude', 'setup-cursor', 'setup-copilot']) {
     for (const [file, defn, removeCall, reportCall] of [
       [script, 'qabuddy_orphans()', 'qabuddy_prune_orphans remove', 'qabuddy_prune_orphans report'],
