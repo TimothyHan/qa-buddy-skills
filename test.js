@@ -639,6 +639,14 @@ function testEvalFixtures() {
 // number instead of letting the old one drift for five releases.
 function testBadgeCount() {
   console.log('\n🔢 Suite size badge');
+  // The total is only meaningful for a full run. CI also runs this suite against a ko-only
+  // dist (before the en build), where every dist-dependent check is skipped and the count is
+  // ~74 lower — asserting the badge there would compare the README against a partial run.
+  // Emit nothing at all in that state: a check here would itself change the number.
+  if (!fs.existsSync(path.join(DIST_DIR, 'claude'))) {
+    console.log('  – skipped: partial dist (en build not present), suite size not comparable');
+    return;
+  }
   // Exactly one check, so the total it asserts is unambiguous: everything counted before
   // this function, plus this single check.
   const total = passed + failed + 1;
