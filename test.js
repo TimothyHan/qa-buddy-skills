@@ -699,6 +699,28 @@ function testCrlfTolerance() {
 function testInstallerSkillSync() {
   console.log('\n🔧 Installer/Skill Sync');
 
+  // Every installer must be able to clean up a skill QABuddy no longer ships. Without this
+  // the entry is invisible: uninstall and status iterate the skills that exist now, so a
+  // removed skill's link is never reported and never deleted (it dangles). A new platform
+  // script that forgets this reintroduces the bug silently — the CI smoke covers claude only.
+  // Counted, not merely present: the three call sites are install, uninstall and status, and
+  // a substring test passes on any one of them (found the hard way — deleting the install
+  // call still matched the uninstall call).
+  for (const script of ['setup-claude', 'setup-cursor', 'setup-copilot']) {
+    for (const [file, defn, removeCall, reportCall] of [
+      [script, 'qabuddy_orphans()', 'qabuddy_prune_orphans remove', 'qabuddy_prune_orphans report'],
+      [`${script}.ps1`, 'function Get-Orphans', "Invoke-Prune $SkillsDir $SdtSkills 'remove'", "Invoke-Prune $SkillsDir $SdtSkills 'report'"],
+    ]) {
+      const src = readFile(path.join(ROOT, 'platforms', file));
+      if (!src) { fail(`platforms/${file} exists`, 'not found'); continue; }
+      const count = needle => src.split(needle).length - 1;
+      const removes = count(removeCall), reports = count(reportCall);
+      check(src.includes(defn) && removes === 2 && reports === 1,
+        `platforms/${file}: prunes orphaned skills at all three call sites`,
+        `helper ${src.includes(defn) ? 'ok' : 'MISSING'}; prune-remove ×${removes} (want 2: install + uninstall), prune-report ×${reports} (want 1: status)`);
+    }
+  }
+
   // v0.2.0 regression: hardcoded skill arrays in 6 setup scripts silently
   // dropped the 3 new e2e skills. Scripts must enumerate the skills dir.
   const scripts = [
