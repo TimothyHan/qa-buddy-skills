@@ -137,6 +137,45 @@
         "suite-verification",
         "detection-power"
       ]
+    },
+    {
+      "id": "fx-006",
+      "description": "No features-kb/ directory — creates the KB structure instead of failing (was BT-041)",
+      "input": {
+        "epic": "EPIC-100 with 3 linked stories, each with ACs",
+        "preconditions": "no features-kb/ directory exists in the project"
+      },
+      "assertions": [
+        {
+          "field": "output",
+          "op": "contains",
+          "value": "features-kb/features/EPIC-100"
+        },
+        {
+          "field": "output",
+          "op": "contains",
+          "value": "feature.md"
+        },
+        {
+          "field": "output",
+          "op": "contains",
+          "value": "test-plan.md"
+        },
+        {
+          "field": "output",
+          "op": "contains",
+          "value": "index.json"
+        },
+        {
+          "field": "output",
+          "op": "matches",
+          "value": "Status:\\**\\s*(DONE|DONE_WITH_CONCERNS)\\b(?!\\s*\\|)"
+        }
+      ],
+      "tags": [
+        "degradation",
+        "no-kb"
+      ]
     }
   ]
 }
