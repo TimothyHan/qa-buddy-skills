@@ -377,7 +377,9 @@ _Design kept for the record; the gate opened and the measurement argued against 
 
 `.qabuddy.json` `compiler: {scoring, explore_rate: 0.10, min_samples: 8, budget_lines}`; scoring per §5; `per_profile` when data exists; manifest shows `score`, `n`, `(audition)`, `dropped` reasons; convert the six hard-lists to `tier=must scope=<skill>`; `{{COMPILE_CMD}}` placeholder in platform configs; CONTRIBUTING "Changing the Compiler" (evidence table required). Kill criteria §9.3.
 
-### PR8 — Opt-in auto status (P6b)
+### PR8 — Opt-in auto status (P6b) — **not built (decision 16, §9.3 outcome)**
+
+_Design kept for the record; it depended on PR7's gate, which closed against building it. Re-framed as a project-opened capability in RFC 0002 §2.4._
 
 `autoStatusChanges: false` default; when true, §6.3 item 4 with an audit event per change.
 
@@ -467,7 +469,7 @@ can run against their own logs.
 - Don't generate skills; procedure stays authored (Appendix B).
 - Don't touch "a clean run leaves no trace" — candidates make it easier to honor.
 - Don't dual-locale project content (`LEARNINGS.md`, logs, run dirs).
-- Don't put anything under the six setup scripts until PR7 (`{{COMPILE_CMD}}` only).
+- Don't put anything under the six setup scripts beyond `{{COMPILE_CMD}}` (this was "until PR7"; PR7 was not built — the guardrail now simply stands).
 - No log rotation, no `retainRuns` pruning code, until a project needs it.
 
 ---
