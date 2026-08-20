@@ -58,6 +58,9 @@ ID 형식은 `LRN-YYYYMMDD-NN` (생성일 + 순번). ID는 영구적 — 은퇴 
 
 - **Id 형식:** `REF-<file-stem>#<id>`; `playbook/` 아래는 `REF-playbook/<stem>#<id>`.
   예: `REF-playwright-patterns#never`, `REF-playbook/risk-and-priority#severity-scale`.
+  프로젝트 소유 섹션(`.qabuddy.json` `compiler.references`, RFC 0002)은 같은 규약에
+  `PRJ-<file-stem>#<id>` 네임스페이스를 씁니다 — 인용은 누구의 지식이었는지 항상
+  명확하고, 배포된 id와의 충돌은 불가능합니다.
 - **위치:** 제목 바로 다음 줄의 HTML 주석 — `## Selectors` / `<!-- qab: id=selectors tier=must -->`.
   제목 텍스트에는 절대 넣지 않습니다. 코드 펜스 밖의 `##` 제목이 주소를 가지며, H1
   주석에는 섹션이 상속하는 파일 기본값(`scope=`, `tier=`)과, 지식이 H1 바로 아래
