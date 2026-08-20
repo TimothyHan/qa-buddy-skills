@@ -15,7 +15,6 @@ Jira + Confluence(Atlassian MCP 연동)를 사용할 수도 있고, 파일이나
 | 테스트 케이스 | `/qa-test-cases` | 스프린트 실행 | 티켓 AC를 기반으로 E2E 테스트 케이스와 단위 테스트 체크리스트를 생성합니다 |
 | QA | `/qa-qa` | 기능 완료 시 | 테스트 케이스를 실행하고, 브라우저에서 AC를 검증하고, 버그를 등록합니다 |
 | 수정 검증 | `/qa-verify-fix` | 버그 수정 완료 시 | 버그 수정을 재테스트하고, 회귀 여부를 확인하고, 버그 상태를 업데이트합니다 |
-| 스프린트 현황 | `/qa-sprint-status` | 스프린트 중간 | 기능별 대시보드: 테스트 완료, 차단됨, 커버리지 갭 |
 | 탐색적 테스트 | `/qa-exploratory` | 기능 완료 시 | 차터 기반의 가이드형 탐색적 테스트 세션을 진행하고 발견 사항을 기록합니다 |
 | E2E 셋업 | `/qa-e2e-setup` | 자동화 시작 | 앱을 프로빙하고, Playwright를 스캐폴드하고, AUTOMATION.md에 결정을 기록합니다 |
 | E2E POM | `/qa-e2e-pom` | 자동화 | 실시간 탐색으로 페이지 객체를 빌드/힐링합니다 -- 로케이터는 증명, 추측 금지 |
@@ -36,7 +35,6 @@ Jira + Confluence(Atlassian MCP 연동)를 사용할 수도 있고, 파일이나
 - "write test cases", "generate tests", "e2e tests for this" -> `/qa-test-cases`
 - "qa", "test this ticket", "run test cases", "verify ACs", "does this pass?" -> `/qa-qa`
 - "verify fix", "retest", "is this fixed?", "check BUG-123" -> `/qa-verify-fix`
-- "sprint status", "what's tested", "coverage check" -> `/qa-sprint-status`
 - "exploratory test", "explore this feature", "charter for testing" -> `/qa-exploratory`
 - "set up playwright", "e2e setup", "test automation setup", "e2e 셋업" -> `/qa-e2e-setup`
 - "build POM", "page objects", "map elements", "heal selectors", "POM 빌드" -> `/qa-e2e-pom`

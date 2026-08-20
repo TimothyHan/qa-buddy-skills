@@ -1,10 +1,10 @@
 {
   "skill": "verify-fix",
-  "version": "0.3.1",
+  "version": "0.4.0",
   "fixtures": [
     {
       "id": "fx-001",
-      "description": "Fix works, no regression \u2014 VERIFIED",
+      "description": "Fix works, no regression — VERIFIED",
       "input": {
         "bug": "bug with clear repro steps, fix deployed and working"
       },
@@ -32,7 +32,7 @@
     },
     {
       "id": "fx-002",
-      "description": "Fix doesn't work \u2014 FAILED",
+      "description": "Fix doesn't work — FAILED",
       "input": {
         "bug": "bug still reproduces after supposed fix"
       },
@@ -54,7 +54,7 @@
     },
     {
       "id": "fx-003",
-      "description": "Fix works but broke something else \u2014 REGRESSION",
+      "description": "Fix works but broke something else — REGRESSION",
       "input": {
         "bug": "bug fixed but adjacent feature broke"
       },
@@ -94,6 +94,47 @@
       ],
       "tags": [
         "missing-regression-test"
+      ]
+    },
+    {
+      "id": "fx-005",
+      "description": "NOT REPRODUCED path: the original bug no longer shows but nothing explains it, and the first report was taken under different run conditions. The skill must reconstruct those conditions (time/timezone first), report NOT REPRODUCED with the conditions named, and leave the bug open — never VERIFIED. Wrong output this catches: verifying a fix that was never made because the retry ran under different conditions.",
+      "input": {
+        "request": "verify the fix for BUG-77",
+        "precondition": "BUG-77's repro steps pass cleanly today. No fix commit, PR or deploy is linked to the bug. The original report was recorded at 23:07 local time on a machine whose timezone is behind UTC (so the local date differed from the UTC date); the retry is running at 00:02 local."
+      },
+      "assertions": [
+        {
+          "field": "output",
+          "op": "contains",
+          "value": "NOT REPRODUCED"
+        },
+        {
+          "field": "output",
+          "op": "not_contains",
+          "value": "## Verdict: VERIFIED",
+          "note": "no fix exists — verifying would be false"
+        },
+        {
+          "field": "output",
+          "op": "matches",
+          "value": "(timezone|타임존|UTC|time of day|시각)"
+        },
+        {
+          "field": "output",
+          "op": "matches",
+          "value": "(not reproduced under|conditions tried|시도한 조건|재구성한 조건)"
+        },
+        {
+          "field": "output",
+          "op": "matches",
+          "value": "(stays open|remains open|열린 채)"
+        }
+      ],
+      "tags": [
+        "verify-fix",
+        "not-reproducible",
+        "conditions"
       ]
     }
   ]

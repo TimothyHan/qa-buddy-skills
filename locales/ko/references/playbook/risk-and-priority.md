@@ -1,11 +1,11 @@
 # 리스크 기반 테스트
-<!-- qab: scope=qa,test-plan,test-cases,review-ticket,exploratory,sprint-status -->
+<!-- qab: scope=qa,test-plan,test-cases,review-ticket,exploratory -->
 
 모든 테스트 케이스에 **심각도**와 **우선순위** 값을 지정합니다.
 이 두 가지 기준을 조합하여 테스트 공수를 배분합니다.
 
 ## 심각도 척도
-<!-- qab: id=severity-scale -->
+<!-- qab: id=severity-scale tier=must scope=qa,test-plan,test-cases,review-ticket,exploratory,verify-fix,start -->
 
 심각도는 장애가 사용자와 비즈니스에 미치는 **영향도**를 측정합니다.
 
@@ -18,8 +18,22 @@
 | **Minor** | Normal과 동일한 영향이지만 우회 방법이 있습니다. 눈에 띄는 시각적 결함이 있습니다 | 기능은 동작하지만 사용이 불편하거나 시각적 정렬이 어긋남 |
 | **Trivial** | 사소한 시각적 결함 또는 텍스트 오류입니다 | 레이블 오타, 1px 정렬, 외관상 문제만 해당 |
 
+**모든 결함이 무언가를 막는 것은 아닙니다.** 데이터를 노출하거나 거부되어야 할 접근을 허용하는
+결함은 **무엇이 노출되는지**로 심각도를 매깁니다 — 사용자 워크플로우가 정상적으로 끝나는 것
+자체가 문제이므로 위의 행들은 하나도 발화하지 않습니다:
+
+| 노출 | 심각도 |
+|------|--------|
+| 자격 증명, 또는 개인정보(연락처, 신분 정보, 메시지 내용)를 봐서는 안 될 사람이 읽을 수 있음 | **Blocker** |
+| 다른 사용자의 비개인 데이터를 읽을 수 있거나, 인증 없이 쓰기·삭제에 도달할 수 있음 | **Critical** |
+| 인가는 동작하지만 새어 나감: 상태 코드로 존재 여부 노출, 열거 가능한 id, URL·로그의 민감 값 | **Major** |
+
+우선순위는 평소처럼 영향 범위를 따르되 예외가 하나 있습니다: 공개 경로에서 도달 가능한 실제
+노출은 **영향받는 사용자가 몇 명으로 알려졌든 High**입니다 — 그 수는 관찰된 값이지 위험에
+놓인 값이 아닙니다.
+
 ## 우선순위 척도
-<!-- qab: id=priority-scale -->
+<!-- qab: id=priority-scale tier=must scope=qa,test-plan,test-cases,review-ticket,exploratory,verify-fix,start -->
 
 우선순위는 심각도와 영향 범위(영향받는 사용자 수)를 기반으로 **긴급도**를 측정합니다.
 
@@ -30,7 +44,7 @@
 | **Low** | Normal 심각도이며 발생 빈도가 낮은 경우, 또는 Minor/Trivial 심각도 전체 |
 
 ## 공수 배분
-<!-- qab: id=effort-allocation -->
+<!-- qab: id=effort-allocation scope=qa,test-plan,test-cases,review-ticket,exploratory -->
 
 - 우선순위와 관계없이 식별된 모든 시나리오에 대해 **테스트 케이스를 작성**합니다.
 - **시간이 부족할 때는** 낮은 우선순위 및 심각도의 테스트 케이스를 후순위로 둡니다.
@@ -39,7 +53,7 @@
 - **Full test suite** = Low 우선순위를 포함한 전체 테스트 케이스.
 
 ## 우선순위-심각도 의사결정 매트릭스
-<!-- qab: id=decision-matrix -->
+<!-- qab: id=decision-matrix scope=qa,test-plan,test-cases,review-ticket,exploratory -->
 
 ```
                     High Priority    Medium Priority    Low Priority

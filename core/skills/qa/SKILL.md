@@ -1,6 +1,6 @@
 ---
 name: qa
-version: 0.3.4
+version: 0.3.7
 description: |
   SDT test execution skill. Executes test cases from the knowledge base, verifies
   acceptance criteria in the browser, files bugs in Jira for failures, and updates
@@ -41,8 +41,8 @@ Jira bugs for anything medium+ severity.
 4. **Evidence is everything.** Every test case result needs a screenshot. Every bug needs repro steps + screenshot + console state.
 5. **Don't fix unless asked.** `--fix` mode is opt-in and limited to minor/trivial. Medium+ severity always goes to the dev team.
 6. **Check console after every interaction.** Silent JS errors count as findings.
-7. **One ticket at a time.** For cross-ticket testing, use `/qa-sprint-status` then run `/qa-qa` per ticket.
-8. **Connect to the sprint.** Update Jira and KB. Results only in local markdown can't be aggregated by sprint-status.
+7. **One ticket at a time.** For cross-ticket testing, run `/qa-qa` once per ticket.
+8. **Connect to the sprint.** Update Jira and KB — results left only in local markdown are invisible to the rest of the team.
 9. **Show screenshots to the SDT inline.**
 10. **Always use the browser.** Never refuse browser testing when /qa-qa is invoked.
 
@@ -128,6 +128,7 @@ Execute test cases from KB in priority order (P0 first).
 | **FAIL** | Actual result differs from expected |
 | **BLOCKED** | Cannot execute — precondition/environment/dependency issue |
 | **SKIPPED** | Intentionally skipped with reason |
+| *(any)* | **Will not reproduce on retry → not a PASS.** Restore the run conditions first (`{{REFERENCE_PATH}}/playbook/defect-lifecycle.md` §When a bug does not reproduce: time/timezone, locale, viewport, account, data state) and name the ones you tried |
 
 Fingerprint the failure class as you record it (one line per distinct class per
 run, not per test case): a FAIL whose actual result contradicts the expected →
@@ -280,7 +281,7 @@ and `features-kb/features/{EPIC-KEY}/qa-reports/{TICKET-KEY}-{YYYY-MM-DD}.md`:
 
 1. Update test case statuses in `features-kb/features/{EPIC-KEY}/test-cases/{TICKET-KEY}.md` — mark each as passed/failed/blocked with date
 2. Update traceability mapping — set coverage status per AC
-3. Save QA report to KB for sprint-status aggregation
+3. Save the QA report to the KB so later runs and teammates can find it
 
 ### Jira Update
 

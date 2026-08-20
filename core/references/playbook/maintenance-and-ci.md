@@ -1,14 +1,14 @@
 # Test Maintenance and CI/CD Gates
-<!-- qab: scope=test-cases,sprint-status,qa -->
+<!-- qab: scope=test-plan,test-cases,qa -->
 
 ## Test Ownership
-<!-- qab: id=test-ownership -->
+<!-- qab: id=test-ownership scope=test-plan -->
 
 **SDTs own test maintenance** for E2E and API test suites. Developers own unit test
 maintenance.
 
 ## Test Retirement
-<!-- qab: id=test-retirement -->
+<!-- qab: id=test-retirement scope=test-plan -->
 
 Tests are retired when:
 - **Feature is removed.** Delete all tests for that feature.
@@ -16,7 +16,7 @@ Tests are retired when:
 - **Test is permanently flaky** and cannot be fixed. Remove after exhausting the flaky process.
 
 ## Flaky Test Process
-<!-- qab: id=flaky-test-process -->
+<!-- qab: id=flaky-test-process scope=test-cases,qa -->
 
 ```
 Test fails intermittently
@@ -35,7 +35,7 @@ Test fails intermittently
 ```
 
 ## Execution Time Budget
-<!-- qab: id=execution-time-budget -->
+<!-- qab: id=execution-time-budget scope=test-plan -->
 
 - **Target:** Full test suite completes in under **15 minutes**.
 - If suite exceeds 15 minutes, investigate:
@@ -47,7 +47,7 @@ Test fails intermittently
 ---
 
 ## CI/CD Pipeline
-<!-- qab: id=ci-cd-pipeline -->
+<!-- qab: id=ci-cd-pipeline scope=test-plan -->
 
 **Team-specific:** See `features-kb/team-practices/ci-cd-pipeline.md` if defined. Covers: pipeline stages, which tests run at each stage, failure policy, browser matrix, flaky test tracking tools.
 

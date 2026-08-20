@@ -340,6 +340,168 @@ function testPlaybookBudget() {
       `${lines} lines — over budget`
     );
   }
+
+  // index.md's "Used by" column is hand-maintained (CONTRIBUTING "Adding new knowledge" step 4)
+  // while the real routing lives in `qab: scope=`. Nothing used to compare them, so the column
+  // silently went stale every time a section was rehomed or its scope widened. It is navigation —
+  // excluded from qab tagging — so this is the only thing that can catch the drift.
+  const { parseReferenceIndex } = require('./build.js');
+  for (const [label, refDir] of [['core', path.join(CORE_DIR, 'references')],
+                                 ['locales/ko', path.join(LOCALES_DIR, 'ko', 'references')]]) {
+    const indexPath = path.join(refDir, 'playbook', 'index.md');
+    const indexMd = readFile(indexPath);
+    if (!indexMd) { fail(`${label}/references/playbook/index.md exists`, 'not found'); continue; }
+
+    const scopeByFile = {};
+    const parsed = parseReferenceIndex(refDir).index;
+    for (const entry of Object.values(parsed)) {
+      if (!entry.file.startsWith('playbook/')) continue;
+      const stem = entry.file.slice('playbook/'.length);
+      (scopeByFile[stem] = scopeByFile[stem] || new Set());
+      for (const s of entry.scope) scopeByFile[stem].add(s);
+    }
+
+    // "All skills" / "모든 스킬" is how scope=all is spelled in the two locales.
+    const ALL = ['All skills', '모든 스킬'];
+    // The file also carries a team-practices table (project-specific files that live in
+    // features-kb/, not here) — stop before it so those rows aren't judged against the index.
+    const playbookTable = indexMd.split(/^##\s+(?:Team Practices|팀 프랙티스)/m)[0];
+    for (const row of playbookTable.split('\n')) {
+      const m = row.match(/^\|\s*`([a-z0-9-]+\.md)`\s*\|[^|]*\|([^|]*)\|\s*$/);
+      if (!m) continue;
+      const [, stem, cellRaw] = m;
+      const scope = scopeByFile[stem];
+      if (!scope) { fail(`${label} index.md row \`${stem}\` names a real playbook file`, 'no such file in the reference index'); continue; }
+      const cell = cellRaw.trim();
+      const expected = scope.has('all') ? null : [...scope].sort().join(', ');
+      const ok = expected === null ? ALL.includes(cell) : cell === expected;
+      check(ok, `${label} index.md "Used by" for ${stem} matches qab scope`,
+            `index.md says "${cell}", qab scope is "${expected === null ? ALL.join('" / "') : expected}"`);
+    }
+  }
+}
+
+// Documentation states facts about this repo — how many skills there are, how big the
+// preamble is, which commands exist. Every one of those was hand-maintained, and by #34
+// every one had gone stale: `skills/ (14)` against 13, "11 skills each" against 13, a
+// preamble budget of ~34 lines against an actual 89, a playbook count of 10 against 11,
+// and a whole manual scenario for `/qa-sprint-status` two releases after #29 deleted it.
+// The only numbers that were still right were the two a test enforced (≤300, ≤70).
+// So: a documented fact that can be derived from the repo gets derived here.
+// docs/rfc/ is deliberately out of scope — it is a historical record, and its claims are
+// meant to describe the moment they were written, not today's tree.
+function testDocClaims() {
+  console.log('\n📄 Doc claims vs repo');
+
+  const DOCS = ['README.md', 'README-en.md', 'CONTRIBUTING.md', 'CONTRIBUTING-en.md'];
+  const docs = DOCS.map(f => [f, readFile(path.join(ROOT, f))]).filter(([, s]) => s);
+  check(docs.length === DOCS.length, `all ${DOCS.length} top-level docs present`,
+        `missing: ${DOCS.filter(f => !readFile(path.join(ROOT, f))).join(', ')}`);
+
+  const skills = getSkillDirs();
+  const skillSet = new Set(skills);
+
+  // ── 1. Every `/qa-<name>` command named in a doc or skill is a skill that exists.
+  // Command form only: a `/qa-` preceded by a path character, or followed by `/`, is a
+  // directory (`features-kb/…/qa-reports/`), not a command.
+  const CMD = /(?<![.\w/}-])\/qa-([a-z0-9-]+)(?!\/)/g;
+  const mdFiles = [...DOCS.map(f => path.join(ROOT, f)),
+                   ...listMarkdown(path.join(ROOT, 'core')),
+                   ...listMarkdown(path.join(ROOT, 'locales'))];
+  const dangling = new Map();
+  let cmdRefs = 0;
+  for (const file of mdFiles) {
+    const src = readFile(file);
+    if (!src) continue;
+    for (const m of src.matchAll(CMD)) {
+      cmdRefs++;
+      if (!skillSet.has(m[1])) {
+        const rel = path.relative(ROOT, file);
+        if (!dangling.has(rel)) dangling.set(rel, new Set());
+        dangling.get(rel).add(`/qa-${m[1]}`);
+      }
+    }
+  }
+  check(cmdRefs > 0, `scanned ${cmdRefs} /qa-* command references across ${mdFiles.length} files`,
+        'no command references found — the pattern probably stopped matching');
+  check(dangling.size === 0, 'every /qa-* command named in docs and skills is a real skill',
+        [...dangling].map(([f, s]) => `${f}: ${[...s].join(', ')}`).join(' | '));
+
+  // ── 2-4. Counts that docs state and the repo can prove.
+  const playbookDir = path.join(CORE_DIR, 'references', 'playbook');
+  const playbookFiles = fs.existsSync(playbookDir)
+    ? fs.readdirSync(playbookDir).filter(f => f.endsWith('.md') && !['index.md', 'README.md'].includes(f)).length
+    : 0;
+  // Count the way `wc -l` does — a trailing newline is a terminator, not an extra line —
+  // so the number here is the number a contributor would read off their terminal.
+  const countLines = f => {
+    const src = readFile(path.join(CORE_DIR, f)) || '';
+    const parts = src.split('\n');
+    if (parts[parts.length - 1] === '') parts.pop();
+    return parts.length;
+  };
+  const baseLines = countLines('preamble-base.md');
+  const fullLines = countLines('preamble-full.md');
+
+  const CLAIMS = [
+    { label: 'skill count', expected: skills.length,
+      patterns: [/skills\/ \((\d+)\)/g, /\((\d+) skills each\)/g, /각 (\d+)개 스킬/g,
+                 /Skills-(\d+)-green/g, /Skills: (\d+)/g] },
+    { label: 'playbook methodology file count', expected: playbookFiles,
+      patterns: [/(\d+) methodology files/g, /(\d+)개 방법론 파일/g] },
+    // Tier 1 = preamble-base; Tier 2 = base + full (build.js buildSkill concatenates them).
+    { label: 'Tier 1 preamble size', expected: baseLines,
+      patterns: [/Preamble \(Tier 1\) \| ~(\d+) (?:lines|줄)/g, /\| `1` \|[^|]*\((\d+) (?:lines|줄)\)/g] },
+    { label: 'Tier 2 preamble size', expected: baseLines + fullLines,
+      patterns: [/Preamble \(Tier 2\) \| ~(\d+) ?(?:lines|줄)/g, /\| `2` \|[^|]*\((\d+) (?:lines|줄)\)/g] },
+  ];
+
+  for (const claim of CLAIMS) {
+    const found = [];
+    for (const [file, src] of docs)
+      for (const re of claim.patterns)
+        for (const m of src.matchAll(re)) found.push({ file, value: Number(m[1]) });
+    // A claim nobody states any more is a check that silently stopped working — fail loudly
+    // rather than pass on zero matches.
+    check(found.length > 0, `${claim.label}: stated in the docs (pattern still matches)`,
+          'no occurrence found — reword or drop the check, do not leave it passing on nothing');
+    const wrong = found.filter(f => f.value !== claim.expected);
+    check(wrong.length === 0,
+          `${claim.label}: all ${found.length} doc claims say ${claim.expected}`,
+          wrong.map(f => `${f.file} says ${f.value}, repo has ${claim.expected}`).join(' | '));
+  }
+
+  // ── 5. Relative links resolve from the linking file's own directory.
+  // Changelogs are link-checked but deliberately excluded from the command check above:
+  // they name skills that were removed, on purpose — the same reason docs/rfc/ is excluded.
+  const linkFiles = [...DOCS.map(f => path.join(ROOT, f)),
+                     ...['CHANGELOG.md', 'CHANGELOG-en.md'].map(f => path.join(ROOT, f)),
+                     ...listMarkdown(path.join(CORE_DIR, 'references'))];
+  const broken = [];
+  let links = 0;
+  for (const file of linkFiles) {
+    const src = readFile(file);
+    if (!src) continue;
+    for (const m of src.matchAll(/\]\(([^)\s#]+\.md)(?:#[^)]*)?\)/g)) {
+      const target = m[1];
+      if (/^https?:/.test(target)) continue;
+      links++;
+      if (!fs.existsSync(path.resolve(path.dirname(file), target)))
+        broken.push(`${path.relative(ROOT, file)} → ${target}`);
+    }
+  }
+  check(links > 0, `resolved ${links} relative .md links`, 'no links found — pattern broken');
+  check(broken.length === 0, 'every relative .md link resolves', broken.join(' | '));
+}
+
+function listMarkdown(dir, acc = []) {
+  if (!fs.existsSync(dir)) return acc;
+  for (const e of fs.readdirSync(dir, { withFileTypes: true })) {
+    const p = path.join(dir, e.name);
+    if (e.isDirectory()) listMarkdown(p, acc);
+    else if (e.name.endsWith('.md')) acc.push(p);
+  }
+  return acc;
 }
 
 function testPreambleTiers() {
@@ -359,12 +521,12 @@ function testPreambleTiers() {
       const distContent = readFile(path.join(DIST_DIR, platform, 'skills', skill, 'SKILL.md'));
       if (!distContent) continue;
 
+      // The severity/priority scales live in references/playbook/risk-and-priority.md ONLY and reach a
+      // skill through the compiled slice. They used to be duplicated into the tier-2 preamble, where they
+      // had no section id — so a skill read the copy, cited nothing, and #severity-scale looked dormant
+      // (1/10) while setting the severity on every bug filed. No tier may inline them again.
       const hasSeverity = distContent.includes('Severity & Priority');
-      if (tier === '2') {
-        check(hasSeverity, `${skill} (tier 2) on ${platform}: has severity tables`);
-      } else if (tier === '1') {
-        check(!hasSeverity, `${skill} (tier 1) on ${platform}: no severity tables`);
-      }
+      check(!hasSeverity, `${skill} (tier ${tier}) on ${platform}: no inlined severity tables`);
     }
   }
 }
@@ -473,6 +635,42 @@ function testEvalFixtures() {
   }
 }
 
+// The README badge states the size of this suite. It is the one documented number that
+// cannot be derived up front — the total is only known once every check has run — so it
+// used to be the number most likely to rot silently (CONTRIBUTING sat at 1137 while the
+// suite was at 1105). Running it last makes it exact: everything counted so far, plus this
+// check itself. It still takes a human edit when you add a check, but now CI names the new
+// number instead of letting the old one drift for five releases.
+function testBadgeCount() {
+  console.log('\n🔢 Suite size badge');
+  // The total is only meaningful for a full run. CI also runs this suite against a ko-only
+  // dist (before the en build), where every dist-dependent check is skipped and the count is
+  // ~74 lower — asserting the badge there would compare the README against a partial run.
+  // Emit nothing at all in that state: a check here would itself change the number.
+  if (!fs.existsSync(path.join(DIST_DIR, 'claude'))) {
+    console.log('  – skipped: partial dist (en build not present), suite size not comparable');
+    return;
+  }
+  // Exactly one check, so the total it asserts is unambiguous: everything counted before
+  // this function, plus this single check.
+  const total = passed + failed + 1;
+  const BADGE = /Structural_checks-(\d+)-brightgreen/;
+  const problems = [];
+  for (const f of ['README.md', 'README-en.md']) {
+    const src = readFile(path.join(ROOT, f));
+    if (!src) { problems.push(`${f}: not found`); continue; }
+    const badge = src.match(BADGE);
+    if (!badge) { problems.push(`${f}: badge pattern no longer matches`); continue; }
+    if (Number(badge[1]) !== total) problems.push(`${f}: badge says ${badge[1]}`);
+    // The number also appears twice in prose; keep all three in step.
+    const stale = [...src.matchAll(/(\d+)(?= structural checks| checks\)|개 구조 검사)/g)]
+      .map(m => Number(m[1])).filter(n => n !== total);
+    if (stale.length) problems.push(`${f}: prose says ${[...new Set(stale)].join(', ')}`);
+  }
+  check(problems.length === 0, `README check-count badge and prose say ${total}`,
+        `${problems.join(' | ')} — suite runs ${total}`);
+}
+
 // ─── Run ────────────────────────────────────────────────────────────────
 
 console.log('QABuddy — Test');
@@ -504,6 +702,28 @@ function testCrlfTolerance() {
 
 function testInstallerSkillSync() {
   console.log('\n🔧 Installer/Skill Sync');
+
+  // Every installer must be able to clean up a skill QABuddy no longer ships. Without this
+  // the entry is invisible: uninstall and status iterate the skills that exist now, so a
+  // removed skill's link is never reported and never deleted (it dangles). A new platform
+  // script that forgets this reintroduces the bug silently — the CI smoke covers claude only.
+  // Counted, not merely present: the three call sites are install, uninstall and status, and
+  // a substring test passes on any one of them (found the hard way — deleting the install
+  // call still matched the uninstall call).
+  for (const script of ['setup-claude', 'setup-cursor', 'setup-copilot']) {
+    for (const [file, defn, removeCall, reportCall] of [
+      [script, 'qabuddy_orphans()', 'qabuddy_prune_orphans remove', 'qabuddy_prune_orphans report'],
+      [`${script}.ps1`, 'function Get-Orphans', "Invoke-Prune $SkillsDir $SdtSkills 'remove'", "Invoke-Prune $SkillsDir $SdtSkills 'report'"],
+    ]) {
+      const src = readFile(path.join(ROOT, 'platforms', file));
+      if (!src) { fail(`platforms/${file} exists`, 'not found'); continue; }
+      const count = needle => src.split(needle).length - 1;
+      const removes = count(removeCall), reports = count(reportCall);
+      check(src.includes(defn) && removes === 2 && reports === 1,
+        `platforms/${file}: prunes orphaned skills at all three call sites`,
+        `helper ${src.includes(defn) ? 'ok' : 'MISSING'}; prune-remove ×${removes} (want 2: install + uninstall), prune-report ×${reports} (want 1: status)`);
+    }
+  }
 
   // v0.2.0 regression: hardcoded skill arrays in 6 setup scripts silently
   // dropped the 3 new e2e skills. Scripts must enumerate the skills dir.
@@ -581,6 +801,7 @@ testCrossPlatformConsistency();
 testKoreanCompleteness();
 testPlaybookBudget();
 testPreambleTiers();
+testDocClaims();
 testConfigAwareness();
 function testDistBom() {
   console.log('\n🔤 dist BOM (Gap G3)');
@@ -636,7 +857,7 @@ function testKbPathHygiene() {
 // edit in this file.
 const EXPECTED_SKILLS = [
   'e2e-pom', 'e2e-setup', 'e2e-write', 'eval', 'exploratory', 'improve',
-  'qa', 'review-ticket', 'setup', 'sprint-status', 'start', 'test-cases',
+  'qa', 'review-ticket', 'setup', 'start', 'test-cases',
   'test-plan', 'verify-fix',
 ];
 
@@ -686,7 +907,7 @@ function testSkillManifest() {
   }
 }
 
-function testRuntimeHelper() {
+async function testRuntimeHelper() {
   console.log('\n🧾 Runtime helper (bin/qab.js — RFC 0001 PR1)');
   const { execFileSync } = require('child_process');
   const os = require('os');
@@ -729,25 +950,28 @@ function testRuntimeHelper() {
     check(/^qa-PROJ-1-[0-9a-f]{6}$/.test(runId), `run-id prints <skill>-<ticket>-<6hex> (${runId})`);
     check(fs.existsSync(path.join(tmp, '.qa-reports', '.qab-run')), 'run-id writes .qa-reports/.qab-run marker');
 
+    // Each run logs its events and is CLOSED BY ITS OUTCOME last — the helper refuses events on a
+    // run that already reported one, so this ordering is also what real runs look like.
+    // Run 1 (marker/default). Boundary data: LRN-08 contradicted twice with nothing applied after
+    // (falsified); LRN-09 contradicted twice but applied again later, in run 3 (NOT falsified).
     run(['log', 'applied', 'LRN-20260808-03']);
     run(['log', 'contradicted', 'LRN-20260808-04', '--note', 'script uses --prefix']);
-    run(['log', 'outcome', '--status', 'DONE']);
-    // a second run, id via env — must append, not rewrite
-    run(['log', 'applied', 'LRN-20260808-03', '--skill', 'test-cases'], { QAB_RUN: 'test-cases-x-abcdef' });
-    run(['log', 'outcome', '--status', 'DONE'], { QAB_RUN: 'test-cases-x-abcdef' });
-    run(['log', 'applied', 'LRN-20260808-03'], { QAB_RUN: 'third-run-000001' });
-    run(['log', 'outcome', '--status', 'DONE_WITH_CONCERNS'], { QAB_RUN: 'third-run-000001' });
-    // boundary data: LRN-07 applied twice across two runs (NOT a candidate: needs ≥3);
-    // LRN-08 contradicted twice with no applied afterwards (falsified)
-    run(['log', 'applied', 'LRN-20260808-07'], { QAB_RUN: 'test-cases-x-abcdef' });
-    run(['log', 'applied', 'LRN-20260808-07'], { QAB_RUN: 'third-run-000001' });
     run(['log', 'applied', 'LRN-20260808-08'], { QAB_TS: '2026-08-10T00:00:00Z' });
     run(['log', 'contradicted', 'LRN-20260808-08', '--note', 'first'], { QAB_TS: '2026-08-11T00:00:00Z' });
-    run(['log', 'contradicted', 'LRN-20260808-08', '--note', 'second'], { QAB_RUN: 'third-run-000001', QAB_TS: '2026-08-12T00:00:00Z' });
-    // LRN-09: contradicted twice but applied again afterwards → NOT falsified (the "no applied since" clause)
     run(['log', 'contradicted', 'LRN-20260808-09', '--note', 'a'], { QAB_TS: '2026-08-11T00:00:00Z' });
     run(['log', 'contradicted', 'LRN-20260808-09', '--note', 'b'], { QAB_TS: '2026-08-12T00:00:00Z' });
+    run(['log', 'outcome', '--status', 'DONE']);
+    // Run 2, id via env — must append, not rewrite. LRN-07 applied here and in run 3 = 2 runs
+    // (NOT a promotion candidate: the threshold is 3).
+    run(['log', 'applied', 'LRN-20260808-03', '--skill', 'test-cases'], { QAB_RUN: 'test-cases-x-abcdef' });
+    run(['log', 'applied', 'LRN-20260808-07'], { QAB_RUN: 'test-cases-x-abcdef' });
+    run(['log', 'outcome', '--status', 'DONE'], { QAB_RUN: 'test-cases-x-abcdef' });
+    // Run 3
+    run(['log', 'applied', 'LRN-20260808-03'], { QAB_RUN: 'third-run-000001' });
+    run(['log', 'applied', 'LRN-20260808-07'], { QAB_RUN: 'third-run-000001' });
+    run(['log', 'contradicted', 'LRN-20260808-08', '--note', 'second'], { QAB_RUN: 'third-run-000001', QAB_TS: '2026-08-12T00:00:00Z' });
     run(['log', 'applied', 'LRN-20260808-09'], { QAB_RUN: 'third-run-000001', QAB_TS: '2026-08-13T00:00:00Z' });
+    run(['log', 'outcome', '--status', 'DONE_WITH_CONCERNS'], { QAB_RUN: 'third-run-000001' });
 
     const logFile = path.join(tmp, 'kb', 'learnings-log.jsonl');
     check(fs.existsSync(logFile), 'log writes learnings-log.jsonl next to learningsPath');
@@ -761,8 +985,12 @@ function testRuntimeHelper() {
     check(first.v === 1 && first.ts === '2026-08-17T00:00:00Z' && first.run === runId && first.skill === 'qa' && first.event === 'applied' && first.src === 'LRN-20260808-03',
       'first line has v/ts/run/skill/event/src from marker + args', JSON.stringify(first));
     check(parsed[1] && parsed[1].note === 'script uses --prefix', 'contradicted line carries --note');
-    check(parsed[2] && parsed[2].status === 'DONE' && parsed[2].event === 'outcome', 'outcome line carries --status');
-    check(parsed[3] && parsed[3].run === 'test-cases-x-abcdef' && parsed[3].skill === 'test-cases', 'QAB_RUN / --skill override the marker');
+    // Found by content, not by index: these assertions are about the line's shape, and a fixture
+    // reorder should not be able to break them (it did, when runs were made to close last).
+    const outcomeLine = parsed.find(l => l.event === 'outcome' && l.run === runId) || {};
+    check(outcomeLine.status === 'DONE', 'outcome line carries --status', JSON.stringify(outcomeLine));
+    const overrideLine = parsed.find(l => l.run === 'test-cases-x-abcdef' && l.src === 'LRN-20260808-03') || {};
+    check(overrideLine.skill === 'test-cases', 'QAB_RUN / --skill override the marker', JSON.stringify(overrideLine));
 
     // Validation: bad input exits non-zero and writes nothing
     const before = fs.readFileSync(logFile, 'utf8');
@@ -795,7 +1023,7 @@ function testRuntimeHelper() {
     // ── PR4: REF citation. Validation needs index.json next to the helper, so exercise the SHIPPED copy.
     const shipped = path.join(resolvePlatformDir('claude'), 'references', 'bin', 'qab.js'); // en or ko-only dist
     const runS = (args, extraEnv) => execFileSync(process.execPath, [shipped, ...args], { env: { ...env, ...(extraEnv || {}) }, encoding: 'utf8', stdio: ['ignore', 'pipe', 'pipe'] });
-    const failsS = (args) => { try { runS(args); return null; } catch (e) { return e.status !== 0 ? String(e.stderr || '') : null; } };
+    const failsS = (args, extraEnv) => { try { runS(args, extraEnv); return null; } catch (e) { return e.status !== 0 ? String(e.stderr || '') : null; } };
     if (fs.existsSync(shipped) && fs.existsSync(path.join(resolvePlatformDir('claude'), 'references', 'index.json'))) {
       const beforeRef = fs.readFileSync(logFile, 'utf8');
       runS(['log', 'applied', 'REF-playwright-patterns#never'], { QAB_RUN: 'ref-run-000001' });
@@ -821,11 +1049,43 @@ function testRuntimeHelper() {
       const total = Object.values(comp).reduce((a, c) => a + c.runs, 0);
       const withRef = Object.values(comp).reduce((a, c) => a + c.with_ref, 0);
       check(total === 4 && withRef === 1, `stats: citation compliance counts runs with outcome and those with a REF applied (${withRef}/${total}, expected 1/4)`, JSON.stringify(comp));
+
+      // ── Closed-run guard. A run is closed by its outcome; events appended afterwards belong to
+      // different work (in practice: a stale .qab-run marker picked up by maintenance outside a run)
+      // and silently corrupt the per-run counts distill and the scoreboard read.
+      // 'ref-run-000001' reported DONE three lines above, so it is closed.
+      const linesBeforeGuard = fs.readFileSync(logFile, 'utf8').trim().split('\n').length;
+      const guardErr = failsS(['log', 'applied', 'REF-playwright-patterns#never'], { QAB_RUN: 'ref-run-000001' });
+      check(guardErr !== null, 'log on a run that already reported an outcome is refused');
+      check(/already reported an outcome/.test(guardErr || ''), 'closed-run refusal names the reason', guardErr || '(no stderr)');
+      check(/run-id --skill/.test(guardErr || ''), 'closed-run refusal says how to open a new run', guardErr || '(no stderr)');
+      check(fs.readFileSync(logFile, 'utf8').trim().split('\n').length === linesBeforeGuard,
+        'a refused append writes nothing to the log');
+      check(failsS(['log', 'outcome', '--status', 'DONE'], { QAB_RUN: 'ref-run-000001' }) !== null,
+        'a second outcome on the same run is refused too (no double counting)');
+      // A malformed id on a closed run must still report the id, not the run state (validation first).
+      const closedBadId = failsS(['log', 'applied', 'REF-Bad'], { QAB_RUN: 'ref-run-000001' });
+      check(/malformed REF id/.test(closedBadId || ''), 'argument validation still wins over the closed-run check', closedBadId || '(accepted)');
+      // An open run is unaffected.
+      runS(['log', 'applied', 'REF-playwright-patterns#never'], { QAB_RUN: 'ref-run-000002' });
+      check(fs.readFileSync(logFile, 'utf8').trim().split('\n').length === linesBeforeGuard + 1,
+        'an open run still accepts events after a different run closed');
       const table2 = runS(['stats']);
       check(/citation compliance/.test(table2) && /overall: 1\/4 REF/.test(table2), 'stats prints the compliance readout with the PR4 gate');
     } else {
       fail('shipped qab.js + index.json present for REF validation test', 'run node build.js all');
     }
+
+    // A consumer that closes stdout early (`| head`) must not crash the helper (EPIPE) — cross-platform check
+    const { spawn } = require('child_process');
+    const epipeCode = await new Promise((resolve) => {
+      const child = spawn(process.execPath, [src, 'stats'], { env, stdio: ['ignore', 'pipe', 'pipe'] });
+      child.stdout.destroy();                       // the reader goes away mid-write
+      let err = '';
+      child.stderr.on('data', (d) => { err += d; });
+      child.on('close', (code) => resolve({ code, err }));
+    });
+    check(epipeCode.code === 0 && !/EPIPE/.test(epipeCode.err), `stats survives a closed stdout (exit ${epipeCode.code}, no EPIPE trace)`, epipeCode.err.split('\n')[0]);
 
     // Malformed line tolerance: skipped and counted, never crashes
     const eventsBefore = JSON.parse(run(['stats', '--json'])).events;
@@ -1008,7 +1268,10 @@ function testCompile() {
     check(droppedIds.includes('LRN-20260801-03'), 'profile-narrowed learning (surface=api) is dropped for a web profile and listed');
     check(droppedIds.some(id => id.startsWith('REF-feature-knowledge-base-spec#')), 'scope=all non-must sections listed under dropped (general-scope), not packed');
     // must first; LRN placed right after the REF it overrides
-    check(manifestIds[0] === 'REF-playwright-patterns#must-rules' || manifestIds[0] === 'REF-playwright-patterns#never', `must sections packed first (${manifestIds[0]})`);
+    const refTiers = manifestIds.filter(id => id.startsWith('REF-')).map(id => (index[id] && index[id].tier) || 'should');
+    const lastMust = refTiers.lastIndexOf('must');
+    const firstOther = refTiers.findIndex(t => t !== 'must');
+    check(firstOther === -1 || lastMust < firstOther, `every must section packed before any non-must (${manifestIds[0]})`);
     const iMust = manifestIds.indexOf('REF-playwright-patterns#must-rules');
     check(manifestIds[iMust + 1] === 'LRN-20260801-01', 'learning packed right after the section it Overrides');
     // verbatim body: compare against the SAME references dir the shipped helper reads (en or ko-only dist),
@@ -1044,6 +1307,11 @@ function testCompile() {
     // recompiling the same skill reuses the run (marker) instead of starting a new one
     const out2 = run(['compile', '--skill', 'test-cases']);
     check(path.dirname(path.join(tmp, out2.split('\n')[0].trim())) === runDir, 'recompile for the current run reuses its directory');
+    // …but a DIFFERENT ticket starts a new run with its own profile (a bug-keyed run must not inherit the story run — caught live 2026-08-17)
+    const out3 = run(['compile', '--skill', 'test-cases', '--ticket', 'BUG-7']);
+    const runDir3 = path.dirname(path.join(tmp, out3.split('\n')[0].trim()));
+    check(runDir3 !== runDir && /test-cases-BUG-7-[0-9a-f]{6}$/.test(runDir3), 'compile with a different --ticket starts a new run instead of reusing the marker');
+    check(JSON.parse(fs.readFileSync(path.join(runDir3, 'profile.json'), 'utf8')).ticket_kind === 'bug', 'the new run\'s profile reflects the new ticket (ticket_kind=bug)');
     // fallback path is documented, not required: compile without index next to helper → clear error (source copy has no index)
     let errText = ''; try { execFileSync(process.execPath, [path.join(ROOT, 'bin', 'qab.js'), 'compile', '--skill', 'qa'], { env, encoding: 'utf8', stdio: ['ignore', 'pipe', 'pipe'] }); } catch (e) { errText = String(e.stderr || ''); }
     check(/index\.json not found/.test(errText), 'compile without a shipped index fails loudly (fallback is the model reading files, not a silent empty slice)');
@@ -1256,8 +1524,9 @@ function testFingerprints() {
   }
 }
 
+(async () => {   // one async step (the EPIPE spawn check); everything else stays synchronous
 testSkillManifest();
-testRuntimeHelper();
+await testRuntimeHelper();
 testLearningsGates();
 testReferenceIndex();
 testCompile();
@@ -1268,6 +1537,8 @@ testCrlfTolerance();
 testInstallerSkillSync();
 testDistBom();
 testKbPathHygiene();
+
+testBadgeCount();
 
 console.log('\n================');
 console.log(`Results: ${passed} passed, ${failed} failed`);
@@ -1283,3 +1554,4 @@ if (failures.length > 0) {
   console.log('\nAll checks passed.');
   process.exit(0);
 }
+})();

@@ -1,7 +1,7 @@
 # 탐색적 테스트 휴리스틱
 <!-- qab: scope=exploratory tier=must -->
 
-체계적으로 탐색하기 위한 기법입니다. `/exploratory`에서 차터를 생성하고 세션을 실행할 때 사용합니다.
+체계적으로 탐색하기 위한 기법입니다. `/qa-exploratory`에서 차터를 생성하고 세션을 실행할 때 사용합니다.
 
 ## 휴리스틱 범주
 <!-- qab: id=heuristic-categories -->

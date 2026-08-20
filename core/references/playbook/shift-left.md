@@ -19,13 +19,13 @@ is verifying alignment before code is written.
 ## How Claude Applies This
 <!-- qab: id=application -->
 
-When reviewing tickets (`/review-ticket`):
+When reviewing tickets (`/qa-review-ticket`):
 - Cross-reference the ticket with the test knowledge base and existing Jira context
   to verify alignment with original intent.
 - Challenge the SDT with questions about alternative solutions or missed requirements.
 - Identify inconsistencies between the ticket and related epics, PRDs, or design docs.
 
-When building test plans (`/test-plan`):
+When building test plans (`/qa-test-plan`):
 - Verify the epic requirements trace back to the original client need.
 - Flag any requirements that seem to have drifted from the original intent.
 

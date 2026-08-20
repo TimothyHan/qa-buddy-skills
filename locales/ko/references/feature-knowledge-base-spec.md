@@ -19,8 +19,8 @@ Confluence(PRD, 설계 문서), 경우에 따라 Figma까지 조회합니다. �
 다음과 같은 문제가 있습니다.
 
 - **느림:** 기능 하나당, 스킬 호출마다 5-10회의 API 호출이 필요합니다.
-- **비용 과다:** 토큰 소모가 큽니다. 동일한 기능 정보를 `/test-plan`,
-  `/test-cases`, `/qa`, `/sprint-status`에서 반복 분석합니다.
+- **비용 과다:** 토큰 소모가 큽니다. 동일한 기능 정보를 `/qa-test-plan`,
+  `/qa-test-cases`, `/qa-qa`에서 반복 분석합니다.
 - **정보 손실:** Jira 댓글에 남긴 논의, 설계 결정, 엣지 케이스 토론 등의
   맥락이 매번 다르게 파싱됩니다.
 
@@ -84,7 +84,7 @@ KB에는 **가공된 요약만** 저장하며, Jira 원본 데이터를 그대�
 | 기능 상세 | Jira 에픽 필드, 라벨, 컴포넌트 | 상태, 스프린트, 수정 버전, 컴포넌트 태그 |
 | 하위 티켓 참조 | Jira 연결된 스토리/태스크 | 티켓 키, 제목, 유형, 상태 (참조만 저장하며, 상세 내용은 티켓 파일에 기록) |
 | 역량 (CAPs) | Jira 에픽 인수 조건(AC) + PRD 요구사항 | 기능이 제공하는 역량의 구조화된 목록 |
-| 테스트 계획 | `/test-plan` 결과물 | 전략, 자동화 공백, 성공 기준, 리스크 |
+| 테스트 계획 | `/qa-test-plan` 결과물 | 전략, 자동화 공백, 성공 기준, 리스크 |
 | 기능 간 관계 | 다른 에픽과의 교차 참조 | 관련 기능 링크, 회귀 리스크 |
 
 ### 4.2 스토리/태스크 단위 (티켓 수준)
@@ -92,13 +92,13 @@ KB에는 **가공된 요약만** 저장하며, Jira 원본 데이터를 그대�
 | 데이터 | 출처 | 저장 내용 |
 |--------|------|----------|
 | 인수 조건(AC) | Jira 티켓 AC | 테스트 가능 여부와 테스트 레이어가 배정된 구조화된 AC |
-| 테스트 케이스 | `/test-cases` 결과물 | E2E 시나리오, 단위 테스트 체크리스트, 수동 테스트 케이스 |
+| 테스트 케이스 | `/qa-test-cases` 결과물 | E2E 시나리오, 단위 테스트 체크리스트, 수동 테스트 케이스 |
 
 ### 4.3 기능 간 (KB 수준)
 
 | 데이터 | 출처 | 저장 내용 |
 |--------|------|----------|
-| 테스트 케이스-AC 매핑 | `/test-cases` 결과물 | 어떤 테스트 케이스가 어떤 AC를 커버하는지, 커버리지 상태 |
+| 테스트 케이스-AC 매핑 | `/qa-test-cases` 결과물 | 어떤 테스트 케이스가 어떤 AC를 커버하는지, 커버리지 상태 |
 | 기능 맵 | 자동 탐지 + 수동 입력 | 회귀 리스크 점수가 포함된 기능 의존성 그래프 |
 
 ---
@@ -117,16 +117,16 @@ features-kb/
 ├── features/
 │   ├── {EPIC-KEY}/
 │   │   ├── feature.md                   # Consolidated feature context (§4.1)
-│   │   ├── test-plan.md                 # Test plan (from /test-plan)
+│   │   ├── test-plan.md                 # Test plan (from /qa-test-plan)
 │   │   ├── tickets/
 │   │   │   ├── {TICKET-KEY}.md          # Per-ticket ACs + context (§4.2)
 │   │   │   └── ...
 │   │   ├── test-cases/
-│   │   │   ├── {TICKET-KEY}.md          # Test cases (from /test-cases)
+│   │   │   ├── {TICKET-KEY}.md          # Test cases (from /qa-test-cases)
 │   │   │   ├── {TICKET-KEY}-mapping.json # AC-to-test-case mapping (§4.3)
 │   │   │   └── ...
 │   │   ├── reviews/
-│   │   │   ├── {TICKET-KEY}-review.md   # Ticket review (from /review-ticket)
+│   │   │   ├── {TICKET-KEY}-review.md   # Ticket review (from /qa-review-ticket)
 │   │   │   └── ...
 │   │   └── qa-reports/
 │   │       ├── {TICKET-KEY}-{DATE}.md   # QA reports
@@ -276,8 +276,8 @@ Sourced from Jira comments and team discussions.}
 ## Change Log
 | Date | What changed | Source | Updated by |
 |------|-------------|--------|-----------|
-| 2026-04-02 | Initial creation from /test-plan | Jira EPIC-100 | Claude |
-| 2026-04-03 | Updated ACs after grooming | /review-ticket PROJ-102 | Claude |
+| 2026-04-02 | Initial creation from /qa-test-plan | Jira EPIC-100 | Claude |
+| 2026-04-03 | Updated ACs after grooming | /qa-review-ticket PROJ-102 | Claude |
 ```
 
 ### 6.4 tickets/{TICKET-KEY}.md
@@ -413,7 +413,7 @@ AC와 테스트 케이스 간의 추적성 매핑 파일입니다.
 
 **유효 기간 기준:** 기본값 24시간이며, config.json에서 변경할 수 있습니다.
 **확인 주기:** 스킬을 호출할 때마다 확인합니다.
-실시간 상태가 필요한 스킬(예: `/sprint-status`)은 KB가 최신이더라도
+실시간 상태가 필요한 스킬은 KB가 최신이더라도
 항상 Jira에서 티켓 상태를 확인합니다.
 
 ### 7.2 쓰기 (KB를 생성하거나 업데이트하는 스킬)
@@ -435,13 +435,12 @@ AC와 테스트 케이스 간의 추적성 매핑 파일입니다.
 
 | 스킬 | 생성/업데이트 대상 |
 |------|-------------------|
-| `/test-plan` | `feature.md`, `test-plan.md`, `index.json`, `relations/` |
-| `/review-ticket` | `tickets/{KEY}.md`, `reviews/{KEY}-review.md`, `feature.md` (엣지 케이스 추가) |
-| `/test-cases` | `test-cases/{KEY}.md`, `test-cases/{KEY}-mapping.json`, `index.json` (testCaseCount, acCovered) |
-| `/qa` | `qa-reports/`, `feature.md` (AC 테스트 상태 업데이트), `tickets/{KEY}.md` (테스트 상태 업데이트) |
-| `/verify-fix` | `qa-reports/{BUG-KEY}-verify-{DATE}.md`, 결함 상태 업데이트 |
-| `/sprint-status` | `index.json` (상태 업데이트) |
-| `/exploratory` | `feature.md` (발견된 엣지 케이스 추가), `test-cases/` (새 시나리오) |
+| `/qa-test-plan` | `feature.md`, `test-plan.md`, `index.json`, `relations/` |
+| `/qa-review-ticket` | `tickets/{KEY}.md`, `reviews/{KEY}-review.md`, `feature.md` (엣지 케이스 추가) |
+| `/qa-test-cases` | `test-cases/{KEY}.md`, `test-cases/{KEY}-mapping.json`, `index.json` (testCaseCount, acCovered) |
+| `/qa-qa` | `qa-reports/`, `feature.md` (AC 테스트 상태 업데이트), `tickets/{KEY}.md` (테스트 상태 업데이트) |
+| `/qa-verify-fix` | `qa-reports/{BUG-KEY}-verify-{DATE}.md`, 결함 상태 업데이트 |
+| `/qa-exploratory` | `feature.md` (발견된 엣지 케이스 추가), `test-cases/` (새 시나리오) |
 
 ---
 
@@ -470,11 +469,10 @@ AC와 테스트 케이스 간의 추적성 매핑 파일입니다.
 
 ### 8.3 스킬에서 관계를 활용하는 방법
 
-- `/test-plan` -- feature-map.json에서 관련 기능을 확인하고, High 리스크 관계에
+- `/qa-test-plan` -- feature-map.json에서 관련 기능을 확인하고, High 리스크 관계에
   대해 회귀 테스트를 포함합니다.
-- `/test-cases` -- regression-map.json에서 회귀 시나리오를 추가합니다.
-- `/qa` -- 결함 수정 후 regression-map.json에서 영향을 받는 기능을 확인합니다.
-- `/sprint-status` -- 현재 개발 작업 기준으로 회귀 리스크가 있는 기능을 표시합니다.
+- `/qa-test-cases` -- regression-map.json에서 회귀 시나리오를 추가합니다.
+- `/qa-qa` -- 결함 수정 후 regression-map.json에서 영향을 받는 기능을 확인합니다.
 
 ---
 

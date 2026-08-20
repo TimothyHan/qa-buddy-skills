@@ -74,6 +74,9 @@ ID 형식은 `LRN-YYYYMMDD-NN` (생성일 + 순번). ID는 영구적 — 은퇴 
   `index.json`에 없는 id를 거부하고 가장 가까운 것을 제안하므로 오타 id는 로그에
   들어가지 않습니다. `applied ≠ read`: 읽었지만 아무것도 결정하지 않은 섹션은
   인용하지 않습니다 -- 그 간극이 정제의 신호입니다.
+  **하지만 척도나 매트릭스에서 값을 읽어 썼다면 그것은 출력을 좌우한 것입니다:** 버그 리포트의
+  심각도는 셀렉터 규칙이 NEVER 목록에서 나오는 것과 똑같이 `#severity-scale`에서 나왔습니다.
+  표에서 값을 읽는 것은 규칙을 인용하는 것보다 약한 사용이 아닙니다.
 
 ## 읽기 프로토콜 (모든 스킬 실행 시작 시)
 <!-- qab: id=read-protocol -->
@@ -149,6 +152,7 @@ ID 형식은 `LRN-YYYYMMDD-NN` (생성일 + 순번). ID는 영구적 — 은퇴 
 node <references>/bin/qab.js run-id --skill <this-skill> [--ticket <KEY>]   # 시작 시 한 번; 실행 id 출력
 node <references>/bin/qab.js log applied LRN-20260807-01                    # 학습이 출력을 결정함
 node <references>/bin/qab.js log applied REF-playwright-patterns#never       # 레퍼런스 섹션이 출력을 결정함
+node <references>/bin/qab.js log applied REF-playbook/risk-and-priority#severity-scale # 값을 읽어 쓴 척도
 node <references>/bin/qab.js log contradicted LRN-… --note "<관찰한 것>"    # 실행 중 현실이 어긋남
 node <references>/bin/qab.js log captured LRN-…                             # 새 항목을 추가함
 node <references>/bin/qab.js fp locator-not-found "checkout/place-order-btn" # 이름 붙은 실패 클래스를 만남 (아래 실패 지문)

@@ -26,12 +26,28 @@ New -> Issue Verified -> Investigation -> Development in Progress
 | **Investigation** | Developer | Developer investigates root cause |
 | **Development in Progress** | Developer | Fix is being implemented |
 | **Code Review** | Developer + Reviewer | Fix is reviewed via PR |
-| **Testing** | SDT or Developer | Fix is verified via `/verify-fix` |
+| **Testing** | SDT or Developer | Fix is verified via `/qa-verify-fix` |
 | **Final Review** | Bug Reporter | Original reporter confirms the fix |
 | **Resolved** | Auto/Developer | Fix is merged |
 | **Released** | Auto/Release Manager | Fix is deployed to production |
 | **Closed** | Auto/Reporter | Confirmed working in production |
 
+## When a bug does not reproduce
+<!-- qab: id=not-reproducible scope=qa,verify-fix,exploratory,review-ticket,test-cases -->
+
+"Cannot reproduce" is a hypothesis, not a verdict. Repro steps record what the reporter
+*did*, not the **run conditions** that were also true — restore them one at a time and retry:
+
+**time & timezone** (local date ≠ UTC date? UTC-converting date logic breaks only in those
+hours) · **locale/format** (`dd/MM` vs `MM/dd`) · **viewport/device** · **account** (role,
+tenant, fresh vs long-lived session) · **data state** (seeded, empty, at a limit, already-used)
+· **browser session** (cache, cookies, storage, first visit) · **build** (version, deploy,
+flags — may have been fixed upstream between the runs).
+
+One at a time is what names the trigger. If it still will not reproduce, record **"not
+reproduced under: {conditions tried}"** — a bare "cannot reproduce" hides the gap between what
+was tried and what was true; the bug stays open until someone can name the deciding condition.
+(Live 2026-08-19: a date bug seen at 23:07 EDT = next-day UTC vanished at 00:02 EDT.)
 ## SLA Expectations
 <!-- qab: id=sla-expectations -->
 

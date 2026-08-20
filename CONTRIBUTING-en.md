@@ -14,11 +14,14 @@ Skills are designed for **Claude Sonnet** as the minimum. Every skill must work 
 
 | Component | Budget |
 |-----------|--------|
-| Preamble (Tier 1) | ~34 lines |
-| Preamble (Tier 2) | ~78 lines |
-| **Skill body** | **150-300 lines** |
-| Reference files | 2-4 files, ~80-150 lines |
-| **Total per invocation** | **~260-530 lines** |
+| Preamble (Tier 1) | ~89 lines |
+| Preamble (Tier 2) | ~108 lines (Tier 1 + 19) |
+| **Skill body** | **150-300 lines** (enforced by `test.js`) |
+| Compiled knowledge slice | one `slice.md`; size varies by skill scope, recorded per run as `budget.used` |
+| **Total per invocation** | **~290-450 built lines + the slice** |
+
+Only the skill body (≤300) and playbook files (≤70) are machine-enforced. The preamble figures are
+measured, not targets: it grew with the RFC 0001 runtime obligations (compile → cite → close).
 
 **Rules:**
 1. Don't explain what the AI already knows
@@ -48,9 +51,10 @@ Skills are designed for **Claude Sonnet** as the minimum. Every skill must work 
 ```
 qa-buddy-skills/
 ├── build.js                     # Build script (node, zero deps)
-├── test.js                      # 740 structural checks
+├── test.js                      # Structural + behavioural checks (`node test.js`)
+├── bin/qab.js                   # Runtime helper (run-id, compile, log, fp, stats, scoreboard)
 ├── core/                        # Edit here — single source of truth
-│   ├── skills/ (14)             # Skill templates (procedure)
+│   ├── skills/ (13)             # Skill templates (procedure)
 │   ├── references/              # Knowledge: playwright-patterns, self-improve, KB spec
 │   │   └── playbook/            # 11 methodology files + index
 │   ├── preamble-base.md         # Tier 1 (all skills)
@@ -63,7 +67,7 @@ qa-buddy-skills/
 
 **Key rule:** Edit `core/` and `platforms/`. Never edit `dist/`. Run `node build.js all` to regenerate.
 
-**Roadmap:** the learnings layer is being moved from prose-judged to measured — per-run compiled knowledge slices, an append-only learnings log, computed distill, eval-gated promotion. The design and the phase-by-phase sequence are in [RFC 0001 — Context Compiler](docs/rfc/0001-context-compiler.md). Sections of this guide that change with a phase are updated in that phase's PR, not before.
+**Roadmap:** the learnings layer has been moved from prose-judged to measured — per-run compiled knowledge slices, an append-only learnings log, computed distill, eval-gated promotion. That is [RFC 0001 — Context Compiler](docs/rfc/0001-context-compiler.md), shipped as v0.5.0 and **closed at PR0–PR6**: its §9.3 gate opened, and the measurement it authorized argued against scored selection on this project's evidence (decision 16). Scoring and auto status changes are therefore not scheduled steps QABuddy ships once — they become capabilities a project opens with its own measurements, which is [RFC 0002 — Project-owned compiler configuration](docs/rfc/0002-project-owned-compiler.md) (Draft). Sections of this guide that change with a phase are updated in that phase's PR, not before.
 
 ---
 
@@ -174,14 +178,14 @@ Assertion operators — simulate mode: `eq`, `contains`, `not_contains`, `matche
 | `version` | Yes | Semver. Bump on changes |
 | `description` | Yes | Multi-line. Include "Use when:" and "Do NOT use when:" |
 | `tool-groups` | Yes | Abstract capabilities ([tool group list](#tool-groups)) |
-| `preamble-tier` | Yes | `1` (minimal) or `2` (full with severity + escalation) |
+| `preamble-tier` | Yes | `1` (minimal) or `2` (adds escalation + SDT question protocol) |
 
 **Preamble tiers:**
 
 | Tier | Injects | Use for |
 |------|---------|---------|
-| `1` | Context Recovery + Completion Status (34 lines) | Lightweight skills |
-| `2` | Tier 1 + Severity tables + Escalation + Asking Questions (78 lines) | Interactive, classification-heavy skills |
+| `1` | Context Recovery + Context Source + Project Learnings + Review Options + Completion Status (89 lines) | Lightweight skills |
+| `2` | Tier 1 + Escalation + Asking Questions (108 lines) | Interactive, classification-heavy skills |
 
 **Placeholder:** `{{REFERENCE_PATH}}` → replaced with platform-specific reference path at build time.
 
@@ -227,7 +231,7 @@ Cursor and Copilot ignore `tool-groups` — their agents auto-discover tools.
 
 ## Runtime Obligations (every skill)
 
-The preamble enforces these on every skill run; skill authors must not contradict them and should not restate them. Design: [RFC 0001](docs/rfc/0001-context-compiler.md). Sections marked ▸ land with a later RFC phase.
+The preamble enforces these on every skill run; skill authors must not contradict them and should not restate them. Design: [RFC 0001](docs/rfc/0001-context-compiler.md).
 
 | When | Obligation | Written to |
 |---|---|---|
@@ -288,7 +292,7 @@ Rules: `##` headings outside code fences must carry a comment (`###` belong to t
 1. Fits an existing file? Add a section there. New topic? Create a file — **and its ko twin**.
 2. Keep files under 70 lines and sections under ~25. Tables for data, bullets for rules. Write for the AI, not humans.
 3. Add the `qab:` comment: choose a permanent id; set `scope=` to the skills that should receive it (or rely on the file default); choose `tier` honestly.
-4. Update `index.md` with file name, description, "Used by" skills; until RFC 0001 PR5 lands, also wire the file into the skills' Phase 1 methodology references. Only skills that need it.
+4. Update `index.md` with file name, description, "Used by" skills; if a skill hard-lists references, wire the file into that skill's Phase 1 methodology references too — only skills that actually need it.
 5. `node build.js all` (regenerates `index.json`, checks parity) → `node test.js`.
 
 **Learnings point at sources by id.** A learning's `Overrides:` names a section id (`REF-playwright-patterns#must-rules`), a skill rule (`SKILL:test-cases "…"`), or `none` — `test.js` checks that this repo's `features-kb/LEARNINGS.md` resolves.
@@ -371,7 +375,7 @@ All skills use `features-kb/features/{EPIC-KEY}/` as the base path. Never `featu
 ### Build
 - [ ] Edited in `core/`, not `dist/`
 - [ ] `node build.js all` passes
-- [ ] All 3 platforms build (11 skills each)
+- [ ] All 3 platforms build (13 skills each)
 - [ ] If locale exists: `node build.js all --locale <code>` passes
 
 ### Quality

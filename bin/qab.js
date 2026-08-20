@@ -167,6 +167,27 @@ function validateSrc(src) {
 }
 
 // ─── log ────────────────────────────────────────────────────────────────
+/**
+ * A run reports its outcome last (self-improve.md, capture protocol). Anything appended afterwards
+ * belongs to different work — in practice a stale `.qa-reports/.qab-run` marker picked up by
+ * maintenance done outside a skill run. Appending anyway silently corrupts the per-run counts that
+ * distill and the scoreboard read: the closed run gains a citation it never made.
+ * (Observed 2026-08-19: a `log applied` landed on a run that had reported DONE hours earlier.)
+ * `unknown` is exempt — it is the no-marker fallback and is shared by unrelated invocations.
+ */
+function outcomeOf(run) {
+  if (!run || run === 'unknown') return null;
+  const target = logPath();
+  if (!fs.existsSync(target)) return null;
+  for (const raw of fs.readFileSync(target, 'utf8').split('\n')) {
+    if (!raw.trim()) continue;
+    let l;
+    try { l = JSON.parse(raw); } catch { continue; }
+    if (l && l.run === run && l.event === 'outcome') return l;
+  }
+  return null;
+}
+
 function cmdLog(args) {
   const [event, src] = args._;
   if (!event) die(`log requires an event: ${EVENTS.join(' | ')}`);
@@ -195,6 +216,15 @@ function cmdLog(args) {
     if (!status || !STATUSES.includes(status)) die(`log outcome requires --status <${STATUSES.join('|')}>`);
     line.status = status;
   }
+  // Checked after argument validation: a typo'd id should report the typo, not the run state.
+  const closed = outcomeOf(run);
+  if (closed) {
+    die(`run "${run}" already reported an outcome (${closed.status} at ${closed.ts}) — refusing to append ${event}.\n`
+      + '  A run is closed by its outcome; later events belong to a new run.\n'
+      + '  Start one:  node qab.js run-id --skill <skill> [--ticket <KEY>]\n'
+      + '  Or target an open run explicitly:  --run <id>');
+  }
+
   if (args.pfp && args.pfp !== true) line.pfp = String(args.pfp);
   if (args.writer && args.writer !== true) line.writer = String(args.writer);
 
@@ -216,7 +246,8 @@ function appendEvent(line, marker) {
 // candidate = { section ∈ index : skill ∈ scope } ∪ { LRN ∈ learnings : Status active ∧ Scope ∋ skill|all ∧ Profile ⊆ profile }
 // pack: tier=must first, then sections whose scope names this skill, then scope=all, each in file order; LRNs after
 // the REF they Override (else after all REFs). NO budget cap in PR5 — the slice equals today's read set by construction
-// (set-equality acceptance); `budget.used` is still recorded so slice size flows into the metrics. Scoring/caps: PR7.
+// (set-equality acceptance); `budget.used` is still recorded so slice size flows into the metrics.
+// Scoring/caps are not a scheduled next step: they are opt-in per project, behind an eligibility gate (RFC 0002).
 const TIER_RANK = { must: 0, should: 1, context: 2 };
 
 function refsRoot() { return path.resolve(__dirname, '..'); }
@@ -303,7 +334,9 @@ function cmdCompile(args) {
   // run: reuse the current marker if it is this skill's run, else start one
   let marker = readMarker();
   let run;
-  if (marker && marker.skill === skill && marker.dir && fs.existsSync(marker.dir)) run = { run: marker.run, skill, ticket: marker.ticket || ticket, dir: marker.dir };
+  // reuse only if it is the same skill AND the same ticket (a bug-keyed run must not inherit a story-keyed run's profile — caught live 2026-08-17)
+  const sameTicket = !ticket || !marker || !marker.ticket || marker.ticket === ticket;
+  if (marker && marker.skill === skill && sameTicket && marker.dir && fs.existsSync(marker.dir)) run = { run: marker.run, skill, ticket: marker.ticket || ticket, dir: marker.dir };
   else {
     const scope = ticket || gitBranch();
     const hex = crypto.createHash('sha256').update(`${nowIso()}|${process.pid}|${Math.random()}`).digest('hex').slice(0, 6);
@@ -612,7 +645,8 @@ function cmdStats(args) {
 // ─── scoreboard (RFC 0001 §3.5, PR6: derived cache, never a source of truth) ─
 // per_source: in_slice (compiled events), applied, contradicted, last_applied, runs (distinct runs with applied —
 // same meaning as `stats`). No wins/losses (decision 4). per_fingerprint: recurrence + the LRNs each class falsified.
-// PR7's scored selection reads this file; until then it is a rebuildable summary of the two logs.
+// A rebuildable summary of the two logs. Scored selection would read it, but scoring is opt-in per project (RFC 0002),
+// so nothing today consumes this as an input — only humans and distill read it.
 function cmdScoreboard() {
   const { lines } = readLog(null);
   const { lines: fps } = readFps();
@@ -654,5 +688,9 @@ function main() {
   }
 }
 
-if (require.main === module) main();
+if (require.main === module) {
+  // A closed stdout (`| head`, a consumer that exits early) must not crash the helper with a stack trace.
+  process.stdout.on('error', (e) => { if (e && e.code === 'EPIPE') process.exit(0); throw e; });
+  main();
+}
 module.exports = { parseArgs, computeStats, normalizeKey, fingerprintOf, EVENTS, STATUSES, FP_KINDS };

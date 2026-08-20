@@ -1,5 +1,5 @@
 # Test Execution Sequence
-<!-- qab: id=sequence scope=sprint-status -->
+<!-- qab: id=sequence scope=start,test-plan -->
 
 For a feature moving through the sprint, testing follows this order:
 
@@ -16,13 +16,13 @@ PR Created
   |
 Feature ready (merged to develop or feature branch)
   |
-  |-- SDT runs /qa (executes test cases, verifies ACs, files bugs)
-  |-- SDT conducts /exploratory (charter-driven discovery)
+  |-- SDT runs /qa-qa (executes test cases, verifies ACs, files bugs)
+  |-- SDT conducts /qa-exploratory (charter-driven discovery)
   |-- SDT creates UAT scenarios
   |
 Bugs fixed by devs
   |
-  |-- SDT runs /verify-fix (re-tests each bug fix, checks regression)
+  |-- SDT runs /qa-verify-fix (re-tests each bug fix, checks regression)
   |
 Pre-release
   |
@@ -36,6 +36,6 @@ Merge to main
 ```
 
 ## Team-Specific Processes
-<!-- qab: id=team-specific-processes -->
+<!-- qab: id=team-specific-processes scope=start,test-plan -->
 
 **Release workflow:** See `features-kb/team-practices/release-workflow.md` if defined. Covers: release freeze rules, cutoff times, rollback process, canary strategy.

@@ -15,7 +15,6 @@ provided via files, chat, or any project management tool.
 | Test Cases | `/qa-test-cases` | Sprint execution | Generate e2e test cases + unit test checklist from ticket ACs |
 | QA | `/qa-qa` | Feature ready | Execute test cases, verify ACs in browser, file bugs |
 | Verify Fix | `/qa-verify-fix` | Bug fixed | Re-test a bug fix, check regressions, update bug status |
-| Sprint Status | `/qa-sprint-status` | Mid-sprint | Cross-feature dashboard: tested, blocked, coverage gaps |
 | Exploratory | `/qa-exploratory` | Feature ready | Guided exploratory testing session with charter and findings |
 | E2E Setup | `/qa-e2e-setup` | Automation start | Probe the app, scaffold Playwright, record decisions in AUTOMATION.md |
 | E2E POM | `/qa-e2e-pom` | Automation | Build/heal page objects by live discovery — locators proven, never guessed |
@@ -36,7 +35,6 @@ Invoke skills based on what the user says:
 - "write test cases", "generate tests", "e2e tests for this" -> `/qa-test-cases`
 - "qa", "test this ticket", "run test cases", "verify ACs", "does this pass?" -> `/qa-qa`
 - "verify fix", "retest", "is this fixed?", "check BUG-123" -> `/qa-verify-fix`
-- "sprint status", "what's tested", "coverage check" -> `/qa-sprint-status`
 - "exploratory test", "explore this feature", "charter for testing" -> `/qa-exploratory`
 - "set up playwright", "e2e setup", "test automation setup" -> `/qa-e2e-setup`
 - "build POM", "page objects", "map elements", "heal selectors" -> `/qa-e2e-pom`

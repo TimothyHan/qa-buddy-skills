@@ -1,11 +1,11 @@
 # Risk-Based Testing
-<!-- qab: scope=qa,test-plan,test-cases,review-ticket,exploratory,sprint-status -->
+<!-- qab: scope=qa,test-plan,test-cases,review-ticket,exploratory -->
 
 Every test case must have **severity** and **priority** values. These two dimensions
 together determine testing effort allocation.
 
 ## Severity Scale
-<!-- qab: id=severity-scale -->
+<!-- qab: id=severity-scale tier=must scope=qa,test-plan,test-cases,review-ticket,exploratory,verify-fix,start -->
 
 Severity measures the **impact** of a failure on the user and the business.
 
@@ -18,8 +18,22 @@ Severity measures the **impact** of a failure on the user and the business.
 | **Minor** | Same impact as Normal but workaround exists. Noticeable visual defects | Feature works but is awkward to use, visual alignment off |
 | **Trivial** | Minor visual defects or minor text errors | Typo in label, 1px alignment, cosmetic-only issues |
 
+**Not everything that fails blocks something.** A defect that exposes data, or grants access that
+should be denied, is rated on **what it exposes** — the user's workflow completing normally is
+precisely the problem, so none of the rows above fire:
+
+| Exposure | Severity |
+|----------|----------|
+| Credentials, or personal data (contact details, identity documents, message contents) readable by someone who should not see it | **Blocker** |
+| Another user's non-personal data readable, or any write/delete reachable without authorization | **Critical** |
+| Authorization holds but leaks: existence disclosed by status codes, enumerable ids, sensitive values in URLs or logs | **Major** |
+
+Priority follows blast radius as usual, with one exception: a live exposure reachable from a public
+path is **High** however few users it is known to affect — the count is what you have observed, not
+what is at risk.
+
 ## Priority Scale
-<!-- qab: id=priority-scale -->
+<!-- qab: id=priority-scale tier=must scope=qa,test-plan,test-cases,review-ticket,exploratory,verify-fix,start -->
 
 Priority measures **urgency** based on severity + blast radius (how many users affected).
 
@@ -30,7 +44,7 @@ Priority measures **urgency** based on severity + blast radius (how many users a
 | **Low** | Normal severity with infrequent impact, OR any Minor or Trivial severity |
 
 ## Effort Allocation
-<!-- qab: id=effort-allocation -->
+<!-- qab: id=effort-allocation scope=qa,test-plan,test-cases,review-ticket,exploratory -->
 
 - **Create test cases** for all identified scenarios regardless of priority.
 - **When time is limited,** deprioritize test cases with lower-tier priority and severity.
@@ -39,7 +53,7 @@ Priority measures **urgency** based on severity + blast radius (how many users a
 - **Full test suite** = all test cases including Low priority.
 
 ## Priority-Severity Decision Matrix
-<!-- qab: id=decision-matrix -->
+<!-- qab: id=decision-matrix scope=qa,test-plan,test-cases,review-ticket,exploratory -->
 
 ```
                     High Priority    Medium Priority    Low Priority

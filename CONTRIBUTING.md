@@ -14,11 +14,14 @@ QABuddy에 관심을 가져주셔서 감사합니다! 이 가이드는 스킬 �
 
 | 구성 요소 | 예산 |
 |-----------|--------|
-| Preamble (Tier 1) | ~34줄 |
-| Preamble (Tier 2) | ~78줄 |
-| **스킬 본문** | **150-300줄** |
-| 참조 파일 | 2-4개 파일, ~80-150줄 |
-| **호출당 총합** | **~260-530줄** |
+| Preamble (Tier 1) | ~89줄 |
+| Preamble (Tier 2) | ~108줄 (Tier 1 + 19) |
+| **스킬 본문** | **150-300줄** (`test.js`가 강제) |
+| 컴파일된 지식 슬라이스 | `slice.md` 하나; 스킬 스코프에 따라 크기가 달라지며 실행마다 `budget.used`로 기록 |
+| **호출당 총합** | **빌드된 ~290-450줄 + 슬라이스** |
+
+기계가 강제하는 것은 스킬 본문(≤300)과 플레이북 파일(≤70)뿐입니다. 프리앰블 수치는 목표가 아니라
+측정값입니다: RFC 0001의 런타임 의무(compile → cite → close)가 들어오면서 늘어났습니다.
 
 **규칙:**
 1. AI가 이미 아는 것을 설명하지 마세요
@@ -48,9 +51,10 @@ QABuddy에 관심을 가져주셔서 감사합니다! 이 가이드는 스킬 �
 ```
 qa-buddy-skills/
 ├── build.js                     # Build script (node, zero deps)
-├── test.js                      # 740 structural checks
+├── test.js                      # Structural + behavioural checks (`node test.js`)
+├── bin/qab.js                   # Runtime helper (run-id, compile, log, fp, stats, scoreboard)
 ├── core/                        # Edit here — single source of truth
-│   ├── skills/ (14)             # Skill templates (procedure)
+│   ├── skills/ (13)             # Skill templates (procedure)
 │   ├── references/              # Knowledge: playwright-patterns, self-improve, KB spec
 │   │   └── playbook/            # 11 methodology files + index
 │   ├── preamble-base.md         # Tier 1 (all skills)
@@ -63,7 +67,7 @@ qa-buddy-skills/
 
 **핵심 규칙:** `core/`와 `platforms/`에서 편집하세요. `dist/`는 절대 편집하지 마세요. `node build.js all`을 실행하여 재생성하세요.
 
-**로드맵:** 학습 레이어를 산문 판단에서 측정 기반으로 옮기는 중입니다 — 실행별 컴파일된 지식 슬라이스, append-only 학습 로그, 산술 기반 distill, eval 게이트 승격. 설계와 단계별 순서는 [RFC 0001 — Context Compiler](docs/rfc/0001-context-compiler.md)(영문, 한국어 요약 포함)에 있습니다. 이 가이드에서 특정 단계와 함께 바뀌는 섹션은 해당 단계의 PR에서 갱신합니다 — 미리 바꾸지 않습니다.
+**로드맵:** 학습 레이어를 산문 판단에서 측정 기반으로 옮기는 작업은 끝났습니다 — 실행별 컴파일된 지식 슬라이스, append-only 학습 로그, 산술 기반 distill, eval 게이트 승격. 그것이 [RFC 0001 — Context Compiler](docs/rfc/0001-context-compiler.md)(영문, 한국어 요약 포함)이며, v0.5.0으로 배포되고 **PR0–PR6에서 닫혔습니다**: §9.3 게이트는 열렸고, 그 게이트가 인가한 측정은 이 프로젝트의 증거에서 점수 기반 선택에 반대했습니다(결정 16). 따라서 점수 기반 선택과 자동 상태 변경은 QABuddy가 한 번 배포하는 예정된 단계가 아니라, 프로젝트가 자기 측정으로 여는 능력입니다 — [RFC 0002 — 프로젝트 소유 컴파일러 설정](docs/rfc/0002-project-owned-compiler.md)(Draft). 이 가이드에서 특정 단계와 함께 바뀌는 섹션은 해당 단계의 PR에서 갱신합니다 — 미리 바꾸지 않습니다.
 
 ---
 
@@ -174,14 +178,14 @@ assertion 연산자 -- simulate 모드: `eq`, `contains`, `not_contains`, `match
 | `version` | 예 | Semver. 변경 시 버전 올림 |
 | `description` | 예 | 여러 줄 가능. "Use when:"과 "Do NOT use when:" 포함 |
 | `tool-groups` | 예 | 추상 기능 ([tool group 목록](#tool-groups)) |
-| `preamble-tier` | 예 | `1` (최소) 또는 `2` (심각도 + 에스컬레이션 포함 전체) |
+| `preamble-tier` | 예 | `1` (최소) 또는 `2` (에스컬레이션 + SDT 질문 프로토콜 추가) |
 
 **Preamble 계층:**
 
 | 계층 | 주입 내용 | 사용 대상 |
 |------|---------|---------|
-| `1` | 컨텍스트 복구 + 완료 상태 (34줄) | 경량 스킬 |
-| `2` | Tier 1 + 심각도 테이블 + 에스컬레이션 + 질문 방법 (78줄) | 대화형, 분류가 많은 스킬 |
+| `1` | 컨텍스트 복구 + 컨텍스트 소스 + 프로젝트 학습 + 리뷰 옵션 + 완료 상태 (89줄) | 경량 스킬 |
+| `2` | Tier 1 + 에스컬레이션 + 질문 방법 (108줄) | 대화형, 분류가 많은 스킬 |
 
 **플레이스홀더:** `{{REFERENCE_PATH}}` -> 빌드 시 플랫폼별 참조 경로로 치환됩니다.
 
@@ -227,7 +231,7 @@ Cursor와 Copilot은 `tool-groups`를 무시합니다 — 해당 에이전트가
 
 ## 런타임 의무 (모든 스킬)
 
-프리앰블이 모든 스킬 실행에서 이를 강제합니다; 스킬 작성자는 이를 거스르거나 다시 쓰지 마세요. 설계: [RFC 0001](docs/rfc/0001-context-compiler.md). ▸ 표시는 이후 RFC 단계에서 들어옵니다.
+프리앰블이 모든 스킬 실행에서 이를 강제합니다; 스킬 작성자는 이를 거스르거나 다시 쓰지 마세요. 설계: [RFC 0001](docs/rfc/0001-context-compiler.md).
 
 | 시점 | 의무 | 기록 위치 |
 |---|---|---|
@@ -371,7 +375,7 @@ Current / After / Within 300-line budget?
 ### 빌드
 - [ ] `dist/`가 아닌 `core/`에서 편집했는지 확인
 - [ ] `node build.js all` 통과
-- [ ] 3개 플랫폼 모두 빌드 완료 (각 11개 스킬)
+- [ ] 3개 플랫폼 모두 빌드 완료 (각 13개 스킬)
 - [ ] 로케일이 있는 경우: `node build.js all --locale <code>` 통과
 
 ### 품질

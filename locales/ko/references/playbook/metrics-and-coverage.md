@@ -1,8 +1,8 @@
 # 테스트 지표
-<!-- qab: scope=qa,test-plan,sprint-status,exploratory,start -->
+<!-- qab: scope=qa,test-plan,exploratory,start -->
 
 ## 코드 커버리지
-<!-- qab: id=code-coverage -->
+<!-- qab: id=code-coverage scope=test-plan -->
 
 - **목표:** 코드 커버리지 약 80%.
 - **절대적인 규칙이 아닙니다.** 80% 미달이 PR 머지를 차단하지 않습니다.
@@ -10,7 +10,7 @@
 - **목적:** 완벽이 아닌 규율을 장려합니다. 커버리지만으로는 품질을 보장할 수 없습니다.
 
 ## 테스트 커버리지 (요구사항 커버리지)
-<!-- qab: id=requirements-coverage -->
+<!-- qab: id=requirements-coverage scope=qa,test-plan,exploratory,start -->
 
 테스트 커버리지 = (테스트 케이스로 커버한 요구사항 및 AC) / (전체 요구사항 및 AC).
 
@@ -22,7 +22,7 @@
 - **테스트 커버리지 분석은 누락된 시나리오를 찾는 데 집중합니다.** 이는 주로 탐색적 테스트를 통해 달성합니다.
 
 ## 결함 지표
-<!-- qab: id=defect-metrics -->
+<!-- qab: id=defect-metrics scope=test-plan -->
 
 ### 필수
 
@@ -30,7 +30,7 @@
 |------|----------|------|----------|
 | **결함 유출률** | 운영 환경 결함 / 전체 발견 결함 | <10% | Jira 레이블 (`production-bug` vs `pre-release-bug`) 또는 KB 결함 파일. 스프린트별로 집계합니다. |
 | **심각도 분포** | 스프린트별 심각도 기준 결함 분포 | Normal/Minor가 대다수. Blocker/Critical은 소수여야 합니다. | Jira 또는 KB `bugs/` 파일을 스프린트별로 확인합니다. |
-| **MTTR (평균 해결 시간)** | 결함 등록부터 수정 검증까지 평균 소요 시간 | Blocker: 당일. Critical: 동일 스프린트 내. | Jira에서 `bug created`부터 `/verify-fix VERIFIED` 일자까지 측정합니다. |
+| **MTTR (평균 해결 시간)** | 결함 등록부터 수정 검증까지 평균 소요 시간 | Blocker: 당일. Critical: 동일 스프린트 내. | Jira에서 `bug created`부터 `/qa-verify-fix VERIFIED` 일자까지 측정합니다. |
 
 ### 선택
 
@@ -42,7 +42,7 @@
 | **결함 밀도** | 에픽 또는 스토리 포인트당 결함 수 | 에픽-결함 연결이 일관되게 구축되었을 때. |
 
 ## 테스트 건전성 지표
-<!-- qab: id=test-health-metrics -->
+<!-- qab: id=test-health-metrics scope=test-plan -->
 
 ### 필수
 

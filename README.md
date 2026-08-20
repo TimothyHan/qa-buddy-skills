@@ -7,10 +7,10 @@
 [한국어](README.md) · [English](README-en.md)
 
 [![License: Apache 2.0](https://img.shields.io/badge/License-Apache_2.0-blue.svg)](LICENSE)
-[![Skills: 14](https://img.shields.io/badge/Skills-14-green.svg)](#스킬)
+[![Skills: 13](https://img.shields.io/badge/Skills-13-green.svg)](#스킬)
 [![Platform: Claude Code](https://img.shields.io/badge/Platform-Claude_Code-purple.svg)](#작동-방식)
 [![Locales: en, ko](https://img.shields.io/badge/Locales-en_|_ko-orange.svg)](#로케일)
-[![Structural checks: 1124](https://img.shields.io/badge/Structural_checks-1124-brightgreen.svg)](#작동-방식)
+[![Structural checks: 1147](https://img.shields.io/badge/Structural_checks-1147-brightgreen.svg)](#작동-방식)
 
 스크럼 팀에서 일하는 SDT(Software Developers in Test)를 위한 AI 파트너입니다.<br>
 에픽 테스트 계획 수립부터 스프린트 실행, 릴리스 검증까지 전체 워크플로우를 지원합니다.<br>
@@ -23,7 +23,7 @@ AI 코딩 어시스턴트의 네이티브 **스킬 시스템** 위에 구축되�
 QABuddy는 AI가 자동으로 인식하고 실행하는 `SKILL.md` 파일 모음입니다 —<br>
 별도의 앱, 데몬, Node.js 외 의존성이 없습니다.
 
-[빠른 시작](#빠른-시작) · [스킬](#스킬) · [안내 워크플로우](#안내-워크플로우) · [기여하기](CONTRIBUTING.md)
+[빠른 시작](#빠른-시작) · [스킬](#스킬) · [안내 워크플로우](#안내-워크플로우) · [변경 이력](CHANGELOG.md) · [기여하기](CONTRIBUTING.md)
 
 </div>
 
@@ -37,7 +37,6 @@ QABuddy는 AI가 자동으로 인식하고 실행하는 `SKILL.md` 파일 모음
 | 그루밍 시 기억에 의존하여 티켓 리뷰 | `/qa-review-ticket`이 구조화된 체크리스트로 인수 조건(AC) 점검 |
 | 스프레드시트로 테스트 커버리지 추적 | 지식 베이스가 추적성 매핑으로 커버리지 관리 |
 | 복사-붙여넣기로 Jira에 결함 등록 | `/qa-qa`가 재현 단계 + 스크린샷과 함께 결함 자동 등록 |
-| "스프린트 진행 상황은?" — 추측에 의존 | `/qa-sprint-status` 대시보드가 6개 품질 지표 제공 |
 | 스킬 문제 수정? 처음부터 다시 작성 | `/qa-improve`가 실패를 분석하고, 수정하고, 회귀 테스트 실행 |
 | 어느 팀에서나 영원히 똑같은 정적 도구 | 모든 실행이 프로젝트의 특성을 학습 레이어에 포착 — QABuddy가 팀에 맞게 진화 |
 
@@ -92,7 +91,6 @@ node build.js all --locale ko
 | **Test Cases** | `/qa-test-cases` | 스프린트 실행 | AC 기반 Playwright e2e + 단위 테스트 체크리스트 생성 |
 | **QA** | `/qa-qa` | 기능 완성 시 | 테스트 케이스 실행, AC 검증, 결함 등록 |
 | **Verify Fix** | `/qa-verify-fix` | 결함 수정 후 | 수정 재테스트, 회귀 확인, 결함 상태 업데이트 |
-| **Sprint Status** | `/qa-sprint-status` | 스프린트 중간 | 품질 지표가 포함된 테스트 대시보드 |
 | **Exploratory** | `/qa-exploratory` | 기능 완성 시 | 차터 기반 탐색적 테스팅 세션 |
 | **E2E Setup** | `/qa-e2e-setup` | 자동화 시작 | 앱 프로빙, Playwright 스캐폴드, AUTOMATION.md에 결정 기록 |
 | **E2E POM** | `/qa-e2e-pom` | 자동화 | 실시간 탐색으로 페이지 객체 빌드/힐링 — 모든 로케이터를 증명, 추측 금지 |
@@ -147,6 +145,8 @@ node build.js all --locale ko
 | **컨텍스트 소스** | Jira, 사양 문서, 채팅, 커스텀 | 스킬이 기능 컨텍스트를 가져오는 위치 |
 | **팀 모드** | 솔로, 팀 | 솔로 = 로컬 변경. 팀 = `gh` CLI를 통한 PR |
 | **업스트림 기여** | 예, 아니오 | 개선 사항을 QABuddy 저장소에 자동 PR |
+| **학습 파일 경로** | 기본 `features-kb/LEARNINGS.md` | 학습 레이어가 사는 위치 |
+| **실행 디렉터리** | 기본 `.qa-reports/runs` | 실행마다 컴파일된 슬라이스·매니페스트·스크래치패드가 쓰이는 위치 |
 
 > **Jira가 없어도 괜찮습니다.** 컨텍스트 소스를 "spec" 또는 "chat"으로 설정하세요. 결함은
 > `features-kb/`에 마크다운으로 기록됩니다. 어떤 프로젝트 관리 도구와도 호환됩니다.
@@ -219,6 +219,10 @@ node build.js all --locale ko
 ```
 features-kb/
 ├── index.json                        # 기능 인덱스 + 워크플로우 상태
+├── LEARNINGS.md                      # 프로젝트 학습 — 배포된 레퍼런스를 오버라이드; 커밋됨
+├── learnings-log.jsonl               # append-only: applied / contradicted / captured / outcome; 커밋됨
+├── fingerprints.jsonl                # append-only: 재발하는 실패 클래스; 커밋됨
+├── .cache/scoreboard.json            # 두 로그에서 파생; gitignore 대상
 ├── team-practices/                   # 팀별 프로세스
 └── features/{EPIC-KEY}/
     ├── feature.md                    # 에픽 요약, 기능, AC
@@ -243,36 +247,24 @@ QABuddy는 완성품이 아니라 파운데이션입니다. SDT의 요구는 프
 
 ```mermaid
 flowchart LR
-    A[스킬 실행] --> B{프로젝트가<br>무언가 가르쳤나?}
+    Z[컴파일: 이 스킬에 스코프된<br>레퍼런스 + 학습 → slice.md] --> A[스킬 실행]
+    A --> B{프로젝트가<br>무언가 가르쳤나?}
     B -- "규칙 깨짐 / 새 결정 /<br>SDT 수정" --> C[증거와 함께<br>LEARNINGS.md에<br>포착]
     B -- 깨끗한 실행 --> D[흔적 없음]
-    C --> E[다음 실행이 학습을 읽음 —<br>레퍼런스를 오버라이드]
-    E --> A
+    C --> E[다음 실행이 컴파일해 넣음 —<br>학습이 레퍼런스를 오버라이드]
+    E --> Z
     C -. 반복 증명됨 .-> F["/qa-improve 정제:<br>레퍼런스 승격<br>+ 업스트림 PR"]
 ```
 
-**학습 레이어 (자동, 모든 스킬 실행).** 모든 실행은 시작 시 `features-kb/LEARNINGS.md`를 읽고 — active 항목은 배포된 레퍼런스를 *오버라이드*하는 프로젝트 고유 규칙입니다 — 종료 시 세 가지 포착 트리거를 확인합니다: 문서화된 규칙이 현실 앞에서 깨짐, 문서화되지 않은 결정을 내림, SDT가 출력을 수정함. 항목에는 증거가 필수이며, 깨끗한 실행은 아무것도 기록하지 않습니다. 또한 모든 실행은 시작 시 자기 스코프의 레퍼런스 섹션과 학습을 매니페스트가 붙은 `slice.md` 하나로 **컴파일**하고(`.qa-reports/runs/<run>/`), 무엇을 *적용*·*모순*·*포착*했고 어떻게 *끝났는지*를 `features-kb/learnings-log.jsonl`에 추가하고 (append-only, 함께 배포되는 `qab.js` 헬퍼가 씀 — 절대 손으로 쓰지 않음), 재발하는 실패 클래스를 `features-kb/fingerprints.jsonl`에 이름 붙여 그것을 막는다고 주장한 학습이 자동으로 반증되게 합니다 — 그래서 정제는 산문이 아니라 숫자로 판단합니다. 두 파일 모두 당신의 저장소에 살기 때문에 학습이 git으로 팀 전체에 전파되고 QABuddy 업그레이드에도 살아남습니다. 프로토콜: [`core/references/self-improve.md`](core/references/self-improve.md); 설계: [RFC 0001](docs/rfc/0001-context-compiler.md).
+**컨텍스트 컴파일러 (자동, 모든 스킬 실행 직전).** 스킬은 레퍼런스 전체를 열지 않습니다. 먼저 함께 배포되는 `qab.js` 헬퍼가 *그 스킬*에 스코프된 레퍼런스 섹션과 active 학습을 `slice.md` 하나로 **컴파일**하고, 무엇이 들어가고 무엇이 빠졌는지의 매니페스트를 함께 씁니다. 둘 다 `.qa-reports/runs/<run>/`에 남습니다 — 그래서 그 실행에서 모델에 실제로 무엇이 도달했는지는 추측할 대상이 아니라 나중에 열어서 다시 읽을 수 있는 산출물입니다. 소스가 출력을 좌우하면 실행이 그 id를 인용하고 *적용*으로 기록하며, 현실이 소스와 모순되면 그렇게 기록합니다. 설계: [RFC 0001 — Context Compiler](docs/rfc/0001-context-compiler.md).
+
+**학습 레이어 (자동, 모든 스킬 실행).** 모든 실행은 시작 시 `features-kb/LEARNINGS.md`를 읽고 — active 항목은 배포된 레퍼런스를 *오버라이드*하는 프로젝트 고유 규칙입니다 — 종료 시 세 가지 포착 트리거를 확인합니다: 문서화된 규칙이 현실 앞에서 깨짐, 문서화되지 않은 결정을 내림, SDT가 출력을 수정함. 항목에는 증거가 필수이며, 깨끗한 실행은 아무것도 기록하지 않습니다. 실행마다 *적용*·*모순*·*포착*·*종료 상태*가 `features-kb/learnings-log.jsonl`에 추가되고 (append-only, `qab.js`만 씀 — 절대 손으로 쓰지 않음), 재발하는 실패 클래스는 `features-kb/fingerprints.jsonl`에 이름이 붙어 그것을 막는다고 주장한 학습이 산문이 아니라 숫자로 반증됩니다. 이 파일들은 당신의 저장소에 살기 때문에 학습이 git으로 팀 전체에 전파되고 QABuddy 업그레이드에도 살아남습니다. 프로토콜: [`core/references/self-improve.md`](core/references/self-improve.md).
 
 **스킬 수정.** 하나의 흐름, 하나의 소유자: `/qa-improve`. 모든 중단 지점에서 **(C) 도구 피드백**을 선택하거나(`/qa-improve`로 디스패치 후 워크플로우 재개), 직접 실행하거나, 포착된 학습이 스킬 결함을 가리킬 때 실행 종료 시의 제안을 수락하세요 — 구조화된 제안, 목표 수정, eval 회귀 실행, PR.
 
 **정제와 승격.** `/qa-improve` distill 모드가 로그의 숫자로 학습 레이어를 정리합니다 (`applied ≥ 3`, 서로 다른 실행 `≥ 3`, 모순 없음 → 승격 후보; `contradicted ≥ 2` 이후 적용 없음 → 반증): 중복 병합, 반증된 항목 은퇴, 증명된 규칙의 정본 레퍼런스 승격 — `contributeUpstream`이 활성화되어 있으면 QABuddy 저장소에 PR로 제출되어 모든 사용자에게 도움이 됩니다.
 
 **품질 게이트.** `/qa-eval`이 모든 스킬에 대해 픽스처 스위트를 실행합니다 — 번들된 픽스처 앱에 대해 실제 `npx playwright test` 종료 코드로 채점하는 execute 모드 픽스처 포함.
-
----
-
-## 스프린트 품질 지표
-
-`/qa-sprint-status`가 자동으로 계산합니다:
-
-| 지표 | 목표 |
-|------|------|
-| 결함 유출률 | <10% |
-| 심각도 분포 | 대부분 Normal/Minor |
-| MTTR (평균 해결 시간) | Blocker: 1일 미만 |
-| 요구사항 커버리지 | 스프린트마다 증가 |
-| 테스트 통과율 | >95% |
-| 불안정 테스트 비율 | <2% |
 
 ---
 
@@ -304,7 +296,7 @@ flowchart LR
 ```bash
 node build.js all                  # 모든 플랫폼용 빌드
 node build.js all --locale ko      # 한국어 버전 빌드
-node test.js                       # 1124개 구조 검사 실행
+node test.js                       # 1147개 구조 검사 실행
 ```
 
 > **구조 검사와 동작 검증은 다릅니다.** `node test.js`는 빌드 산출물의 형태를
@@ -319,10 +311,11 @@ node test.js                       # 1124개 구조 검사 실행
 ```
 QABuddy/
 ├── build.js                     # 빌드 스크립트 (node, 의존성 없음)
-├── test.js                      # 구조 검사 스위트 (1124개 검사)
+├── test.js                      # 구조 검사 스위트 (1147개 검사)
+├── bin/qab.js                   # 런타임 헬퍼 (compile, log, fp, stats, scoreboard)
 ├── core/                        # 단일 소스 — 여기서 편집
-│   ├── skills/ (14)             # {{플레이스홀더}} 포함 스킬 템플릿
-│   ├── references/playbook/     # 10개 방법론 파일
+│   ├── skills/ (13)             # {{플레이스홀더}} 포함 스킬 템플릿
+│   ├── references/playbook/     # 11개 방법론 파일
 │   ├── preamble-base.md         # Tier 1 프리앰블 (모든 스킬)
 │   ├── preamble-full.md         # Tier 2 추가 사항
 │   └── project-instructions.md

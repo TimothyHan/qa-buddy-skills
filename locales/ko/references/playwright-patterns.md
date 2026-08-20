@@ -6,7 +6,7 @@
 충돌하면: 이 문서가 명시적으로 다른 선택을 한 경우(예: 셀렉터 우선순위)는 이
 문서를, 그 외에는 공식 문서를 따릅니다.
 
-사용처: `/e2e-setup`, `/e2e-pom`, `/e2e-write`, `/test-cases`(Playwright 스케치).
+사용처: `/qa-e2e-setup`, `/qa-e2e-pom`, `/qa-e2e-write`, `/qa-test-cases`(Playwright 스케치).
 워크플로는 각 스킬의 SKILL.md가, 코드 수준 지식은 이 문서가 담당합니다.
 
 > 출처: 저자의 `playwright-test-patterns` 스킬(slowhama/playwright-best-practices)
@@ -214,8 +214,10 @@ export const test = base.extend<{ disposalContext: DisposalContext }>({
 // client.ts — 생성이 곧 정리 예약, 정리 헬퍼는 멱등
 export const createItem = async (request, name, disposalContext, expStatusCode = 201) => {
   const response = await request.post('/api/items', { data: { name } });
-  expect(response.status()).toBe(expStatusCode);
+  // 단언 **전에** undo를 큐잉한다. 4xx를 기대한 네거티브 테스트가 201을 받아도 정리는 되어야 한다;
+  // 먼저 단언하면 throw가 큐잉을 건너뛰어 공유 환경에 엔티티가 남는다.
   if (response.status() === 201) disposalContext?.push([deleteItemIfExists, name]);
+  expect(response.status()).toBe(expStatusCode);
   return response;
 };
 export const deleteItemIfExists = async (request, name) => {
@@ -271,7 +273,7 @@ await expect(row.getByTestId('delete-button')).toHaveCount(0);
 | 테스트마다 `newContext({ storageState })` | `storageState` 옵션 fixture 오버라이드 |
 
 ## 함정 (알아두면 디버깅이 빨라지는 것들)
-<!-- qab: id=pitfalls -->
+<!-- qab: id=pitfalls scope=e2e-setup,e2e-pom,e2e-write,test-cases,qa -->
 
 - `request.newContext()`는 `use.baseURL`을 상속하지 않는다 — 명시적으로 지정.
 - 경로 포함 base URL은 트레일링 슬래시 + 상대 경로. `/items`는 base의 `/api`를
@@ -287,3 +289,8 @@ await expect(row.getByTestId('delete-button')).toHaveCount(0);
   단언으로 — visibility 토글이 아니라.
 - 빈 상태에 **아무 요소도 렌더하지 않는** 앱도 있다 — 항목의 부재를 단언하고
   제품 관찰로 기록할 것. 존재하지 않는 메시지를 기다리도록 지어내지 않는다.
+- 프레임워크가 내가 쓰지 않은 landmark를 심는다. Next.js(App Router)는 `<body>` 끝에
+  **빈 `role="alert"` 라우트 어나운서**를 붙이므로 `getByRole('alert')`가 진짜 알림과
+  그것까지 2개를 잡는다 — strict mode 위반이고, 개수가 타이밍에 따라 달라진다. 알림
+  로케이터는 내용으로 스코프하거나(`getByRole('alert').filter({ has: page.getByRole('listitem') })`)
+  텍스트로 앵커한다; `.nth()` 금지.

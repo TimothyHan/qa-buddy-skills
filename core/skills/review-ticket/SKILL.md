@@ -1,6 +1,6 @@
 ---
 name: review-ticket
-version: 0.3.2
+version: 0.3.3
 description: |
   Review a Jira ticket during backlog grooming or refinement. Audits the ticket
   for testability, AC completeness, missing edge cases, and potential blockers.

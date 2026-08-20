@@ -1,6 +1,6 @@
 ---
 name: exploratory
-version: 0.4.4
+version: 0.4.5
 description: |
   Generate and guide exploratory testing sessions. Produces a session charter,
   executes time-boxed unscripted testing using heuristic techniques, captures
@@ -30,7 +30,8 @@ discovers what scripted tests miss.
 
 1. **Stay unscripted.** Charter gives direction, not steps. Follow surprises.
 2. **Time-box strictly.** When time is up, wrap up. Don't extend without SDT consent.
-3. **Classify every finding.** Severity and priority per preamble scales. No unclassified findings.
+3. **Classify every finding.** Severity and priority per `REF-playbook/risk-and-priority#severity-scale`
+   and `#priority-scale` in your compiled slice. No unclassified findings.
 4. **Screenshot everything interesting.** Findings without evidence are not findings.
 5. **Check console and network requests constantly.** After every interaction, every page load — API status codes and query parameters prove what the UI hides.
 6. **Discovers, not fixes.** Findings feed `/qa-test-cases` and `/qa-qa`. Don't fix or automate here.
