@@ -59,18 +59,32 @@ usage() {
 PREFIX="qa-"
 ACTION="install"
 MODE="global"
-
 ADOPT=0
-case "${1:-}" in
-  --no-prefix)  PREFIX="" ;;
-  --project)    MODE="project" ;;
-  --uninstall)  ACTION="uninstall" ;;
-  --status)     ACTION="status" ;;
-  --adopt)      ADOPT=1 ;;
-  --help|-h)    usage; exit 0 ;;
-  "")           ;; # default: global install with prefix
-  *)            echo "Unknown option: $1"; usage; exit 1 ;;
-esac
+
+# Every flag is parsed, not just the first. `setup --no-prefix --status` used to fall
+# through to a plain install with --status silently ignored — a read-only command that
+# mutated. Two actions at once is a mistake worth naming, not resolving silently.
+set_action() {
+  if [ "$ACTION" != "install" ] && [ "$ACTION" != "$1" ]; then
+    echo "Conflicting options: --$ACTION and --$1"
+    usage
+    exit 1
+  fi
+  ACTION="$1"
+}
+
+while [ $# -gt 0 ]; do
+  case "$1" in
+    --no-prefix)  PREFIX="" ;;
+    --project)    MODE="project" ;;
+    --uninstall)  set_action uninstall ;;
+    --status)     set_action status ;;
+    --adopt)      ADOPT=1 ;;
+    --help|-h)    usage; exit 0 ;;
+    *)            echo "Unknown option: $1"; usage; exit 1 ;;
+  esac
+  shift
+done
 
 if [ "$MODE" = "project" ]; then
   SKILLS_DIR=".cursor/skills"
