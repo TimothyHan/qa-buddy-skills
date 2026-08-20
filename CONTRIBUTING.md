@@ -14,11 +14,14 @@ QABuddy에 관심을 가져주셔서 감사합니다! 이 가이드는 스킬 �
 
 | 구성 요소 | 예산 |
 |-----------|--------|
-| Preamble (Tier 1) | ~34줄 |
-| Preamble (Tier 2) | ~78줄 |
-| **스킬 본문** | **150-300줄** |
-| 참조 파일 | 2-4개 파일, ~80-150줄 |
-| **호출당 총합** | **~260-530줄** |
+| Preamble (Tier 1) | ~89줄 |
+| Preamble (Tier 2) | ~108줄 (Tier 1 + 19) |
+| **스킬 본문** | **150-300줄** (`test.js`가 강제) |
+| 컴파일된 지식 슬라이스 | `slice.md` 하나; 스킬 스코프에 따라 크기가 달라지며 실행마다 `budget.used`로 기록 |
+| **호출당 총합** | **빌드된 ~290-450줄 + 슬라이스** |
+
+기계가 강제하는 것은 스킬 본문(≤300)과 플레이북 파일(≤70)뿐입니다. 프리앰블 수치는 목표가 아니라
+측정값입니다: RFC 0001의 런타임 의무(compile → cite → close)가 들어오면서 늘어났습니다.
 
 **규칙:**
 1. AI가 이미 아는 것을 설명하지 마세요
@@ -48,9 +51,10 @@ QABuddy에 관심을 가져주셔서 감사합니다! 이 가이드는 스킬 �
 ```
 qa-buddy-skills/
 ├── build.js                     # Build script (node, zero deps)
-├── test.js                      # 1137 structural checks
+├── test.js                      # Structural + behavioural checks (`node test.js`)
+├── bin/qab.js                   # Runtime helper (run-id, compile, log, fp, stats, scoreboard)
 ├── core/                        # Edit here — single source of truth
-│   ├── skills/ (14)             # Skill templates (procedure)
+│   ├── skills/ (13)             # Skill templates (procedure)
 │   ├── references/              # Knowledge: playwright-patterns, self-improve, KB spec
 │   │   └── playbook/            # 11 methodology files + index
 │   ├── preamble-base.md         # Tier 1 (all skills)
@@ -180,8 +184,8 @@ assertion 연산자 -- simulate 모드: `eq`, `contains`, `not_contains`, `match
 
 | 계층 | 주입 내용 | 사용 대상 |
 |------|---------|---------|
-| `1` | 컨텍스트 복구 + 완료 상태 (34줄) | 경량 스킬 |
-| `2` | Tier 1 + 심각도 테이블 + 에스컬레이션 + 질문 방법 (78줄) | 대화형, 분류가 많은 스킬 |
+| `1` | 컨텍스트 복구 + 컨텍스트 소스 + 프로젝트 학습 + 리뷰 옵션 + 완료 상태 (89줄) | 경량 스킬 |
+| `2` | Tier 1 + 에스컬레이션 + 질문 방법 (108줄) | 대화형, 분류가 많은 스킬 |
 
 **플레이스홀더:** `{{REFERENCE_PATH}}` -> 빌드 시 플랫폼별 참조 경로로 치환됩니다.
 
@@ -371,7 +375,7 @@ Current / After / Within 300-line budget?
 ### 빌드
 - [ ] `dist/`가 아닌 `core/`에서 편집했는지 확인
 - [ ] `node build.js all` 통과
-- [ ] 3개 플랫폼 모두 빌드 완료 (각 11개 스킬)
+- [ ] 3개 플랫폼 모두 빌드 완료 (각 13개 스킬)
 - [ ] 로케일이 있는 경우: `node build.js all --locale <code>` 통과
 
 ### 품질

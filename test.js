@@ -340,6 +340,45 @@ function testPlaybookBudget() {
       `${lines} lines — over budget`
     );
   }
+
+  // index.md's "Used by" column is hand-maintained (CONTRIBUTING "Adding new knowledge" step 4)
+  // while the real routing lives in `qab: scope=`. Nothing used to compare them, so the column
+  // silently went stale every time a section was rehomed or its scope widened. It is navigation —
+  // excluded from qab tagging — so this is the only thing that can catch the drift.
+  const { parseReferenceIndex } = require('./build.js');
+  for (const [label, refDir] of [['core', path.join(CORE_DIR, 'references')],
+                                 ['locales/ko', path.join(LOCALES_DIR, 'ko', 'references')]]) {
+    const indexPath = path.join(refDir, 'playbook', 'index.md');
+    const indexMd = readFile(indexPath);
+    if (!indexMd) { fail(`${label}/references/playbook/index.md exists`, 'not found'); continue; }
+
+    const scopeByFile = {};
+    const parsed = parseReferenceIndex(refDir).index;
+    for (const entry of Object.values(parsed)) {
+      if (!entry.file.startsWith('playbook/')) continue;
+      const stem = entry.file.slice('playbook/'.length);
+      (scopeByFile[stem] = scopeByFile[stem] || new Set());
+      for (const s of entry.scope) scopeByFile[stem].add(s);
+    }
+
+    // "All skills" / "모든 스킬" is how scope=all is spelled in the two locales.
+    const ALL = ['All skills', '모든 스킬'];
+    // The file also carries a team-practices table (project-specific files that live in
+    // features-kb/, not here) — stop before it so those rows aren't judged against the index.
+    const playbookTable = indexMd.split(/^##\s+(?:Team Practices|팀 프랙티스)/m)[0];
+    for (const row of playbookTable.split('\n')) {
+      const m = row.match(/^\|\s*`([a-z0-9-]+\.md)`\s*\|[^|]*\|([^|]*)\|\s*$/);
+      if (!m) continue;
+      const [, stem, cellRaw] = m;
+      const scope = scopeByFile[stem];
+      if (!scope) { fail(`${label} index.md row \`${stem}\` names a real playbook file`, 'no such file in the reference index'); continue; }
+      const cell = cellRaw.trim();
+      const expected = scope.has('all') ? null : [...scope].sort().join(', ');
+      const ok = expected === null ? ALL.includes(cell) : cell === expected;
+      check(ok, `${label} index.md "Used by" for ${stem} matches qab scope`,
+            `index.md says "${cell}", qab scope is "${expected === null ? ALL.join('" / "') : expected}"`);
+    }
+  }
 }
 
 function testPreambleTiers() {

@@ -14,11 +14,14 @@ Skills are designed for **Claude Sonnet** as the minimum. Every skill must work 
 
 | Component | Budget |
 |-----------|--------|
-| Preamble (Tier 1) | ~34 lines |
-| Preamble (Tier 2) | ~78 lines |
-| **Skill body** | **150-300 lines** |
-| Reference files | 2-4 files, ~80-150 lines |
-| **Total per invocation** | **~260-530 lines** |
+| Preamble (Tier 1) | ~89 lines |
+| Preamble (Tier 2) | ~108 lines (Tier 1 + 19) |
+| **Skill body** | **150-300 lines** (enforced by `test.js`) |
+| Compiled knowledge slice | one `slice.md`; size varies by skill scope, recorded per run as `budget.used` |
+| **Total per invocation** | **~290-450 built lines + the slice** |
+
+Only the skill body (≤300) and playbook files (≤70) are machine-enforced. The preamble figures are
+measured, not targets: it grew with the RFC 0001 runtime obligations (compile → cite → close).
 
 **Rules:**
 1. Don't explain what the AI already knows
@@ -48,9 +51,10 @@ Skills are designed for **Claude Sonnet** as the minimum. Every skill must work 
 ```
 qa-buddy-skills/
 ├── build.js                     # Build script (node, zero deps)
-├── test.js                      # 1137 structural checks
+├── test.js                      # Structural + behavioural checks (`node test.js`)
+├── bin/qab.js                   # Runtime helper (run-id, compile, log, fp, stats, scoreboard)
 ├── core/                        # Edit here — single source of truth
-│   ├── skills/ (14)             # Skill templates (procedure)
+│   ├── skills/ (13)             # Skill templates (procedure)
 │   ├── references/              # Knowledge: playwright-patterns, self-improve, KB spec
 │   │   └── playbook/            # 11 methodology files + index
 │   ├── preamble-base.md         # Tier 1 (all skills)
@@ -180,8 +184,8 @@ Assertion operators — simulate mode: `eq`, `contains`, `not_contains`, `matche
 
 | Tier | Injects | Use for |
 |------|---------|---------|
-| `1` | Context Recovery + Completion Status (34 lines) | Lightweight skills |
-| `2` | Tier 1 + Severity tables + Escalation + Asking Questions (78 lines) | Interactive, classification-heavy skills |
+| `1` | Context Recovery + Context Source + Project Learnings + Review Options + Completion Status (89 lines) | Lightweight skills |
+| `2` | Tier 1 + Escalation + Asking Questions (108 lines) | Interactive, classification-heavy skills |
 
 **Placeholder:** `{{REFERENCE_PATH}}` → replaced with platform-specific reference path at build time.
 
@@ -371,7 +375,7 @@ All skills use `features-kb/features/{EPIC-KEY}/` as the base path. Never `featu
 ### Build
 - [ ] Edited in `core/`, not `dist/`
 - [ ] `node build.js all` passes
-- [ ] All 3 platforms build (11 skills each)
+- [ ] All 3 platforms build (13 skills each)
 - [ ] If locale exists: `node build.js all --locale <code>` passes
 
 ### Quality

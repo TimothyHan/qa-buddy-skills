@@ -206,20 +206,6 @@ After making skill changes, re-run affected scenarios as regression tests.
 - [ ] Reopens bug with new evidence
 - [ ] Does NOT attempt to fix the code
 
-### BT-027: Sprint status with metrics
-**Skill:** `/qa-sprint-status`
-**Preconditions:** Multiple tickets with varying test status, some bugs filed
-
-1. Run `/qa-sprint-status`
-
-**Expected:**
-- [ ] Pulls all sprint tickets
-- [ ] Per-ticket status table with correct test status
-- [ ] Bug tracker table with verify-fix verdicts
-- [ ] Sprint Quality Metrics section with all 6 metrics (or N/A with reason)
-- [ ] Confidence score matches the data
-- [ ] Recommendations reference specific `/skill` commands
-
 ### BT-029: Exploratory testing session
 **Skill:** `/qa-exploratory`
 **Preconditions:** Feature ready, app running
