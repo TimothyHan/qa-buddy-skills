@@ -246,7 +246,8 @@ function appendEvent(line, marker) {
 // candidate = { section ∈ index : skill ∈ scope } ∪ { LRN ∈ learnings : Status active ∧ Scope ∋ skill|all ∧ Profile ⊆ profile }
 // pack: tier=must first, then sections whose scope names this skill, then scope=all, each in file order; LRNs after
 // the REF they Override (else after all REFs). NO budget cap in PR5 — the slice equals today's read set by construction
-// (set-equality acceptance); `budget.used` is still recorded so slice size flows into the metrics. Scoring/caps: PR7.
+// (set-equality acceptance); `budget.used` is still recorded so slice size flows into the metrics.
+// Scoring/caps are not a scheduled next step: they are opt-in per project, behind an eligibility gate (RFC 0002).
 const TIER_RANK = { must: 0, should: 1, context: 2 };
 
 function refsRoot() { return path.resolve(__dirname, '..'); }
@@ -644,7 +645,8 @@ function cmdStats(args) {
 // ─── scoreboard (RFC 0001 §3.5, PR6: derived cache, never a source of truth) ─
 // per_source: in_slice (compiled events), applied, contradicted, last_applied, runs (distinct runs with applied —
 // same meaning as `stats`). No wins/losses (decision 4). per_fingerprint: recurrence + the LRNs each class falsified.
-// PR7's scored selection reads this file; until then it is a rebuildable summary of the two logs.
+// A rebuildable summary of the two logs. Scored selection would read it, but scoring is opt-in per project (RFC 0002),
+// so nothing today consumes this as an input — only humans and distill read it.
 function cmdScoreboard() {
   const { lines } = readLog(null);
   const { lines: fps } = readFps();
