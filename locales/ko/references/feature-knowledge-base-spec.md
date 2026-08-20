@@ -5,9 +5,36 @@
 구조화된 저장소입니다. 팀이 작업하는 모든 기능에 대해 통합된 AI 친화적 요약을
 저장하여, Jira/Confluence에 동일한 질의를 반복하지 않도록 합니다.
 
-**Version:** 0.2.0
-**Last updated:** 2026-04-02
-**Status:** Spec -- 아직 구현 전
+**Last updated:** 2026-08-20
+**Status:** 일부 구현됨 — 아래 참조
+
+---
+
+## 구현 현황
+<!-- qab: id=implementation-status -->
+
+이 문서는 *목표* 설계이며, 일부는 이미 만들어졌습니다. 예전에는 "아직 구현 전"이라고
+통째로 적혀 있었는데 그것이 더 이상 사실이 아닙니다 — 존재하는 것에 대한 기술이 아니라
+아래 구분을 염두에 두고 읽으세요.
+
+**만들어졌고 스킬이 실제로 쓰는 것:** `index.json` · `features/{EPIC}/feature.md` ·
+`test-plan.md` · `test-cases/{TICKET}.md` + `{TICKET}-mapping.json` · `reviews/` ·
+`qa-reports/` · `bugs/` — 그리고 RFC 0001이 추가한 학습 레이어(`LEARNINGS.md`,
+`learnings-log.jsonl`, `fingerprints.jsonl`, `.cache/scoreboard.json`).
+
+**명세되었지만 만들어지지 않은 것** — 어떤 스킬도 읽거나 쓰지 않습니다:
+
+| 절 | 미구현 |
+|---|---|
+| §6.1 | `config.json` |
+| §6.4 | `tickets/{TICKET-KEY}.md` |
+| §6.6, §6.7, §8 | `relations/` (기능 맵, 회귀 맵)과 관계 탐지 |
+| §7.1, §9 | `lastSync` / `syncThresholdHours` / `storageMode`와 그 위에 세워진 staleness 규칙 |
+| §7.2 | `kb-update/` PR 단위 워크플로우 — 스킬은 `.qabuddy.json`의 `teamMode`를 따릅니다 |
+
+어차피 이 문서는 런타임에 스킬에 도달하지 않습니다: 모든 섹션이 `scope=all`
+`tier=should`이라 컴파일러가 슬라이스에 넣지 않고 `dropped: general-scope`로 표시합니다.
+런타임 소스가 아니라 기여자용 문서입니다.
 
 ---
 
@@ -143,6 +170,8 @@ features-kb/
 <!-- qab: id=file-schemas -->
 
 ### 6.1 config.json
+
+> **미구현.** 이 파일을 만들거나 읽는 것이 없습니다; `/qa-setup`은 대신 `.qabuddy.json`을 씁니다.
 
 ```json
 {
@@ -282,6 +311,8 @@ Sourced from Jira comments and team discussions.}
 
 ### 6.4 tickets/{TICKET-KEY}.md
 
+> **미구현.** 티켓별 컨텍스트는 현재 `test-cases/`와 `reviews/`에 있습니다.
+
 티켓별 컨텍스트 파일입니다. 인수 조건(AC)과 테스트 커버리지에 초점을 둡니다.
 
 ```markdown
@@ -341,6 +372,8 @@ AC와 테스트 케이스 간의 추적성 매핑 파일입니다.
 ```
 
 ### 6.6 relations/feature-map.json
+
+> **미구현** — §6.7과 §8의 탐지도 마찬가지입니다.
 
 기능 간 관계를 추적하는 파일입니다.
 
