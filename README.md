@@ -145,6 +145,8 @@ node build.js all --locale ko
 | **컨텍스트 소스** | Jira, 사양 문서, 채팅, 커스텀 | 스킬이 기능 컨텍스트를 가져오는 위치 |
 | **팀 모드** | 솔로, 팀 | 솔로 = 로컬 변경. 팀 = `gh` CLI를 통한 PR |
 | **업스트림 기여** | 예, 아니오 | 개선 사항을 QABuddy 저장소에 자동 PR |
+| **학습 파일 경로** | 기본 `features-kb/LEARNINGS.md` | 학습 레이어가 사는 위치 |
+| **실행 디렉터리** | 기본 `.qa-reports/runs` | 실행마다 컴파일된 슬라이스·매니페스트·스크래치패드가 쓰이는 위치 |
 
 > **Jira가 없어도 괜찮습니다.** 컨텍스트 소스를 "spec" 또는 "chat"으로 설정하세요. 결함은
 > `features-kb/`에 마크다운으로 기록됩니다. 어떤 프로젝트 관리 도구와도 호환됩니다.
@@ -217,6 +219,10 @@ node build.js all --locale ko
 ```
 features-kb/
 ├── index.json                        # 기능 인덱스 + 워크플로우 상태
+├── LEARNINGS.md                      # 프로젝트 학습 — 배포된 레퍼런스를 오버라이드; 커밋됨
+├── learnings-log.jsonl               # append-only: applied / contradicted / captured / outcome; 커밋됨
+├── fingerprints.jsonl                # append-only: 재발하는 실패 클래스; 커밋됨
+├── .cache/scoreboard.json            # 두 로그에서 파생; gitignore 대상
 ├── team-practices/                   # 팀별 프로세스
 └── features/{EPIC-KEY}/
     ├── feature.md                    # 에픽 요약, 기능, AC

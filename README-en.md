@@ -145,6 +145,8 @@ Run `/qa-setup` to configure. Settings saved to `.qabuddy.json`:
 | **Context source** | Jira, spec docs, chat, custom | Where skills pull feature context |
 | **Team mode** | Solo, team | Solo = local. Team = PRs via `gh` CLI |
 | **Upstream contributions** | Yes, no | Auto-PR improvements to QABuddy repo |
+| **Learnings path** | default `features-kb/LEARNINGS.md` | Where the learnings layer lives |
+| **Runs directory** | default `.qa-reports/runs` | Where each run's compiled slice, manifest and scratchpad are written |
 
 > **No Jira? No problem.** Set context source to "spec" or "chat". Bugs are written
 > to `features-kb/` as markdown. Works with any project management tool.
@@ -217,6 +219,10 @@ Skills produce and consume test artifacts from `features-kb/` — this is how th
 ```
 features-kb/
 ├── index.json                        # Feature index + workflow state
+├── LEARNINGS.md                      # Project learnings — override the shipped references; committed
+├── learnings-log.jsonl               # Append-only: applied / contradicted / captured / outcome; committed
+├── fingerprints.jsonl                # Append-only: recurring failure classes; committed
+├── .cache/scoreboard.json            # Derived from the two logs; gitignored
 ├── team-practices/                   # Team-specific processes
 └── features/{EPIC-KEY}/
     ├── feature.md                    # Epic summary, capabilities, ACs
