@@ -263,8 +263,10 @@ if ($Adopt) {
 
 if (-not (Test-Path $SkillsDir)) {
     New-Item -ItemType Directory -Path $SkillsDir -Force | Out-Null
-$null = Invoke-Prune $SkillsDir $SdtSkills 'remove'
 }
+
+# Prune before linking: an upgrade must clean up skills this version no longer ships.
+$null = Invoke-Prune $SkillsDir $SdtSkills 'remove'
 
 $installed = 0
 $skipped = 0
