@@ -472,7 +472,11 @@ function testDocClaims() {
   }
 
   // ── 5. Relative links resolve from the linking file's own directory.
-  const linkFiles = [...DOCS.map(f => path.join(ROOT, f)), ...listMarkdown(path.join(CORE_DIR, 'references'))];
+  // Changelogs are link-checked but deliberately excluded from the command check above:
+  // they name skills that were removed, on purpose — the same reason docs/rfc/ is excluded.
+  const linkFiles = [...DOCS.map(f => path.join(ROOT, f)),
+                     ...['CHANGELOG.md', 'CHANGELOG-en.md'].map(f => path.join(ROOT, f)),
+                     ...listMarkdown(path.join(CORE_DIR, 'references'))];
   const broken = [];
   let links = 0;
   for (const file of linkFiles) {
