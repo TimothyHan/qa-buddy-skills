@@ -426,10 +426,14 @@ function cmdLog(args) {
       if (after.eligible && !computeGate(all.slice(0, -1), fpsNow, learnNow).eligible) {
         process.stdout.write('🔓 scoring gate OPENED on this project\'s data — this outcome tipped it: '
           + after.reason + '\n'
-          + '   Run `node qab.js gate` for the full report. Enabling scoring is an SDT decision:\n'
-          + '   classify each dormant source first (cannot fire / duplicated / work not yet happened /\n'
-          + '   selection failure), then the SDT sets compiler.scoring + budget_lines in .qabuddy.json\n'
-          + '   (RFC 0002 §2.4). Relay this to the SDT — never enable it yourself.\n');
+          + '   What this means: the logs now hold enough evidence that scored selection COULD be\n'
+          + '   justified here. Gain: leaner skill runs — knowledge proven useful in this project\n'
+          + '   packs first, the rest is trimmed to a line budget. Risk: knowledge that is correct\n'
+          + '   but merely unused so far can be trimmed too — which is why this is a human call.\n'
+          + '   Run `node qab.js gate` for the full report, classify each dormant source (cannot\n'
+          + '   fire / duplicated / work not yet happened / selection failure), then the SDT sets\n'
+          + '   compiler.scoring + budget_lines in .qabuddy.json (RFC 0002 §2.4).\n'
+          + '   Relay this to the SDT in plain language, gain and risk both — never enable it yourself.\n');
       }
     } catch { /* the notification must never break logging */ }
   }

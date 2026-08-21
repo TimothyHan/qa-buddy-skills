@@ -330,6 +330,12 @@ and the decision plus the `.qabuddy.json` edit always stay human.
 
 ### 6.4 Turning scoring on — `compiler.scoring` (PR D)
 
+The trade-off in one breath: **gain** — leaner runs (knowledge proven useful in
+*this* project packs first, the rest trims to a budget → more context left for the
+ticket itself). **Risk** — knowledge that is correct but merely unused *so far* can
+be trimmed too. In QABuddy's own measurement, most "unused" knowledge was exactly
+that — which is why this decision belongs to a human, not the tool.
+
 ```jsonc
 { "compiler": { "scoring": true, "budget_lines": 220 } }
 ```

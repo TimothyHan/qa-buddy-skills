@@ -1952,8 +1952,8 @@ function testScoring() {
     nev({ run: 'b-8', skill: 'qa', event: 'compiled', pfp: 'bbbbbbbbbbbb', sources: [], used: 1, max: 0, dropped: [] });
     fs.writeFileSync(logFile, noteLines.join('\n') + '\n');
     const tip = run(['log', 'outcome', '--status', 'DONE', '--run', 'b-7', '--skill', 'qa']);
-    check(/scoring gate OPENED/.test(tip) && /never enable it yourself/.test(tip),
-      'the outcome that tips the gate prints the opened notice with the SDT-decides instruction', tip);
+    check(/scoring gate OPENED/.test(tip) && /never enable it yourself/.test(tip) && /Gain:/.test(tip) && /Risk:/.test(tip),
+      'the opened notice carries the plain-language trade-off (gain AND risk) plus the SDT-decides instruction', tip);
     const after = run(['log', 'outcome', '--status', 'DONE', '--run', 'b-8', '--skill', 'qa']);
     check(!/scoring gate OPENED/.test(after), 'the NEXT outcome does not re-announce — the notice fires on the transition only');
   } finally {
