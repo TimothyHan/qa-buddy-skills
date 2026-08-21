@@ -8,8 +8,8 @@ QABuddy는 "당신의 프로젝트를 학습하는 QA 파운데이션"입니다.
 
 QABuddy 스킬을 쓰는 SDT를 위한 문서입니다. QABuddy 자체를 고치려면
 [CONTRIBUTING.md](../CONTRIBUTING.md)를 보세요. 설계 배경이 궁금하면
-[RFC 0001](rfc/0001-context-compiler.md)(컴파일러)과
-[RFC 0002](rfc/0002-project-owned-compiler.md)(프로젝트 소유 설정)가 원전입니다.
+[RFC 0001](rfc/0001-context-compiler-ko.md)(컴파일러)과
+[RFC 0002](rfc/0002-project-owned-compiler-ko.md)(프로젝트 소유 설정)가 원전입니다.
 
 ---
 

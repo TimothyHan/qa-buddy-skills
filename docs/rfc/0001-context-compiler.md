@@ -5,7 +5,7 @@
 | **Status** | Accepted 2026-08-17 — implementation in progress (see §8 for which PRs have landed) |
 | **Authors** | Timothy Han (plan), Claude (review + convergence) |
 | **Origin** | `tim-doc/context-compiler-plan.md`, `qabuddy-self-learning-roadmap.md`, `context-compiler-plan-review.md` (2026-08-16, outside this repo) |
-| **Locale** | This RFC is an English design record with a Korean summary below. It is not dual-maintained; the *artifacts it produces* (references, preambles, skills) are en/ko as usual. |
+| **Locale** | This RFC is an English design record with a Korean summary below. It is not dual-maintained; the *artifacts it produces* (references, preambles, skills) are en/ko as usual. A **non-normative full Korean translation** exists at [0001-context-compiler-ko.md](0001-context-compiler-ko.md) (added 2026-08-21; this English file remains the record — decision 7 stands). |
 
 **One sentence:** procedure is authored, knowledge is compiled, selection is scored, promotion is gated.
 
