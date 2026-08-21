@@ -1422,6 +1422,114 @@ function testScopeOverrides() {
   }
 }
 
+function testProjectRefs() {
+  console.log('\n🏠 Project reference sections (RFC 0002 PR B — compiler.references, PRJ- ids)');
+  const { execFileSync } = require('child_process');
+  const os = require('os');
+  const shipped = path.join(resolvePlatformDir('claude'), 'references', 'bin', 'qab.js');
+  const indexPath = path.join(resolvePlatformDir('claude'), 'references', 'index.json');
+  if (!fs.existsSync(shipped) || !fs.existsSync(indexPath)) { fail('shipped qab.js + index.json present for project-ref tests', 'run node build.js all'); return; }
+
+  const tmp = fs.mkdtempSync(path.join(os.tmpdir(), 'qab-prj-'));
+  const env = { ...process.env, QAB_CWD: tmp, QAB_TS: '2026-08-20T00:00:00Z' };
+  const run = (args) => execFileSync(process.execPath, [shipped, ...args], { env, encoding: 'utf8', stdio: ['ignore', 'pipe', 'pipe'] });
+  const { spawnSync } = require('child_process');
+  const runFull = (args) => { // stdout + stderr + exit code, whether it fails or not
+    const r = spawnSync(process.execPath, [shipped, ...args], { env, encoding: 'utf8' });
+    return { out: r.stdout || '', err: r.stderr || '', code: r.status };
+  };
+  const setCfg = (compiler) => fs.writeFileSync(path.join(tmp, '.qabuddy.json'), JSON.stringify({ compiler }));
+  let ticketN = 0;
+  const compileSlice = () => {
+    const out = run(['compile', '--skill', 'test-cases', '--ticket', `PROJ-${++ticketN}`]);
+    return fs.readFileSync(path.join(tmp, out.split('\n')[0].trim()), 'utf8');
+  };
+
+  try {
+    fs.mkdirSync(path.join(tmp, 'features-kb', 'house'), { recursive: true });
+    fs.writeFileSync(path.join(tmp, 'features-kb', 'house', 'payments.md'), [
+      '# Payments testing', '<!-- qab: scope=test-cases -->', '',
+      '## Seed rules', '<!-- qab: id=seed-rules -->', '',
+      'We test payments with sandbox account P-77; never real cards.', '',
+      '## QA-only note', '<!-- qab: id=qa-note scope=qa -->', '',
+      'Refund checks run against the ledger export.', '',
+      '## Always rule', '<!-- qab: id=always-rule tier=must scope=all -->', '',
+      'House rule that reaches every skill.', '',
+    ].join('\n'));
+    setCfg({ references: ['features-kb/house/*.md'] });
+
+    // Compile: same qab: contract, PRJ- namespace, verbatim body (§2.2).
+    const slice = compileSlice();
+    const fm = slice.split('\n---\n')[0];
+    const sources = (fm.split('\nsources:\n')[1] || '').split('\ndropped:')[0];
+    check(/^  - id: PRJ-payments#seed-rules   tier: should   lines: \d+$/m.test(sources), 'project section packed under its PRJ-<stem>#<id>');
+    check(/^  - id: PRJ-payments#always-rule   tier: must   lines: \d+$/m.test(sources), 'project tier=must scope=all section packs for any skill (same rule as shipped)');
+    check(!sources.includes('PRJ-payments#qa-note'), 'project section scoped to another skill is not packed');
+    check(slice.includes('## PRJ-payments#seed-rules — Seed rules\n') && slice.includes('We test payments with sandbox account P-77; never real cards.'),
+      'slice body is the verbatim project file text under the PRJ header');
+    check(!/<!--\s*qab:/.test(slice.split('\n---\n').slice(1).join('')), 'qab metadata stripped from project section bodies too');
+    // must-first ordering holds across the merged namespace
+    const ids = [...sources.matchAll(/^  - id: (\S+)   tier: (\w+)/gm)].map(m => ({ id: m[1], tier: m[2] }));
+    const lastMust = ids.map(x => x.tier).lastIndexOf('must');
+    const firstOther = ids.findIndex(x => x.tier !== 'must' && x.tier !== 'lrn');
+    check(firstOther === -1 || lastMust < firstOther, 'merged pack keeps every must section before any non-must');
+
+    // Citation: accepted, counted, suggested-on-typo (validated against the project's own files).
+    const cite = runFull(['log', 'applied', 'PRJ-payments#seed-rules']);
+    check(cite.code === 0, 'log applied accepts a PRJ id that exists in the configured files', cite.err || '');
+    run(['log', 'outcome', '--status', 'DONE']);
+    const eTypo = runFull(['log', 'applied', 'PRJ-payments#seed-rule']);
+    check(eTypo.code !== 0 && /unknown PRJ id/.test(eTypo.err) && eTypo.err.includes('PRJ-payments#seed-rules'),
+      'unknown PRJ id is rejected with the nearest suggestion', eTypo.err || '(accepted)');
+    const eMal = runFull(['log', 'applied', 'PRJ-Payments#x']);
+    check(eMal.code !== 0 && /malformed PRJ id/.test(eMal.err), 'malformed PRJ id is rejected');
+    const st = JSON.parse(run(['stats', '--json']));
+    const prjRow = (st.rows || []).find(r => r.src === 'PRJ-payments#seed-rules') || {};
+    check(prjRow.kind === 'PRJ' && prjRow.applied === 1 && prjRow.in_slice === 1, `stats: PRJ rows carry kind=PRJ with applied/in_slice counts (${JSON.stringify(prjRow)})`);
+    check(prjRow.promotion_candidate === false, 'stats: a PRJ section is never a promotion candidate (it already is a reference)');
+    const comp = st.compliance || {};
+    const withRef = Object.values(comp).reduce((a, c) => a + c.with_ref, 0);
+    check(withRef === 1, 'compliance: a PRJ citation counts as a reference citation (with_ref)', JSON.stringify(comp));
+
+    // PR A × PR B: overrides address the merged namespace.
+    setCfg({ references: ['features-kb/house/*.md'], scope: { 'PRJ-payments#seed-rules': { remove: ['test-cases'] } } });
+    const ovr = compileSlice().split('\n---\n')[0];
+    check(/^  - id: PRJ-payments#seed-rules   reason: project-override$/m.test(ovr.split('\ndropped:')[1] || ''),
+      'a scope override can remove a PRJ section (one namespace, manifest causality intact)');
+
+    // Refusals and edges — loud, named, never silent (same spirit as decision 3).
+    fs.writeFileSync(path.join(tmp, 'features-kb', 'house', 'broken.md'), '# House\n\n## Untagged\n\ntext\n');
+    setCfg({ references: ['features-kb/house/*.md'] });
+    const eBroken = runFull(['compile', '--skill', 'test-cases']);
+    check(eBroken.code !== 0 && /broken\.md:3/.test(eBroken.err) && /no <!-- qab: id=/.test(eBroken.err),
+      'a project file with an untagged ## refuses the compile, naming file:line', eBroken.err || '(accepted)');
+    fs.rmSync(path.join(tmp, 'features-kb', 'house', 'broken.md'));
+    fs.mkdirSync(path.join(tmp, 'features-kb', 'house2'), { recursive: true });
+    fs.writeFileSync(path.join(tmp, 'features-kb', 'house2', 'payments.md'), '# Other payments\n<!-- qab: id=other scope=all -->\n\ntext\n');
+    setCfg({ references: ['features-kb/house/*.md', 'features-kb/house2/*.md'] });
+    const eStem = runFull(['compile', '--skill', 'test-cases']);
+    check(eStem.code !== 0 && /share the stem "payments"/.test(eStem.err), 'two project files sharing a stem are refused (PRJ ids must be unambiguous)', eStem.err || '(accepted)');
+    fs.rmSync(path.join(tmp, 'features-kb', 'house2'), { recursive: true });
+    setCfg({ references: ['features-kb/house/*.md', 'nowhere/*.md'] });
+    const warn = runFull(['compile', '--skill', 'test-cases', '--ticket', `PROJ-${++ticketN}`]);
+    check(warn.code === 0 && /matched no files/.test(warn.err), 'a zero-match pattern warns on stderr but does not block the compile');
+    setCfg({ references: 'features-kb/house/*.md' });
+    check(runFull(['compile', '--skill', 'test-cases']).code !== 0, 'compiler.references as a bare string (not an array) is refused');
+    // No config → PRJ citations are refused with a pointer, not accepted blind.
+    setCfg({});
+    const eNoCfg = runFull(['log', 'applied', 'PRJ-payments#seed-rules', '--run', 'open-run-000001']);
+    check(eNoCfg.code !== 0 && /declares no compiler\.references/.test(eNoCfg.err), 'a PRJ citation without compiler.references configured is refused with a pointer');
+  } finally {
+    fs.rmSync(tmp, { recursive: true, force: true });
+  }
+
+  // Preamble + docs carry the PRJ id form (citation obligation, PR4 lineage).
+  for (const platform of PLATFORMS) {
+    const distSkill = readFile(path.join(resolvePlatformDir(platform), 'skills', 'qa', 'SKILL.md')) || '';
+    check(/PRJ-<stem>#<id>/.test(distSkill), `dist/${platform}: preamble obligation 2 names the PRJ id form`);
+  }
+}
+
 function testFingerprints() {
   console.log('\n🫆 Fingerprints + scoreboard (RFC 0001 PR6 — failure classes, falsified/duplicate-by-fp, in_slice)');
   const { execFileSync } = require('child_process');
@@ -1622,6 +1730,7 @@ testLearningsGates();
 testReferenceIndex();
 testCompile();
 testScopeOverrides();
+testProjectRefs();
 testFingerprints();
 testExcludeConditions();
 testEvalFixtures();

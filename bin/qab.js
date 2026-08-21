@@ -14,6 +14,8 @@
  *                                                Project `.qabuddy.json` `compiler.scope` overrides apply after core scope
  *                                                resolution (RFC 0002 §2.1): tier=must is a floor, unknown ids are refused
  *                                                loudly, and the manifest records `via:`/`reason: project-override`.
+ *                                                Project `compiler.references` files compile as PRJ-<stem>#<id> sections
+ *                                                (RFC 0002 §2.2) — same qab: contract, cited and counted like REF-.
  *   log     <event> [<src>] [--note <text>] [--status <S>] [--run <id>] [--skill <name>]
  *                                                append one v1 line to <learningsPath dir>/learnings-log.jsonl (+ <run>/events.jsonl)
  *   fp      <kind> <key> [--run <id>] [--skill <name>]
@@ -132,7 +134,7 @@ function loadRefIndex() {
 // Cheap similarity for "did you mean": same file stem first, then token overlap.
 function nearestRefIds(id, index, n = 3) {
   const ids = Object.keys(index);
-  const stem = (id.split('#')[0] || '').replace(/^REF-/, '');
+  const stem = (id.split('#')[0] || '').replace(/^(REF|PRJ)-/, '');
   const frag = (id.split('#')[1] || '');
   const toks = s => new Set(s.toLowerCase().split(/[^a-z0-9]+/).filter(Boolean));
   const t = toks(stem + ' ' + frag);
@@ -143,7 +145,7 @@ function nearestRefIds(id, index, n = 3) {
     return prev[l];
   };
   return ids.map(k => {
-    const ks = k.replace(/^REF-/, '').split('#')[0];
+    const ks = k.replace(/^(REF|PRJ)-/, '').split('#')[0];
     const kf = k.split('#')[1] || '';
     const kt = toks(k);
     let score = 0;
@@ -157,6 +159,120 @@ function nearestRefIds(id, index, n = 3) {
 function compilerConfig() {
   const c = readConfig().compiler;
   return (c && typeof c === 'object' && !Array.isArray(c)) ? c : {};
+}
+
+// Project-owned reference sections (RFC 0002 §2.2, PR B).
+//   "compiler": { "references": ["features-kb/house/*.md"] }
+// Team-authored methodology compiled exactly like shipped references — same `qab:` comment contract
+// (id / scope / tier, H1 file defaults; mirrors build.js parseReferenceIndex). Ids are namespaced
+// PRJ-<file-stem>#<id>, so collision with shipped REF- ids is impossible and a citation in the log
+// is unambiguous about whose knowledge it was (decision 4). Parse errors are refused loudly: a
+// project file the config names but the compiler silently skips would be a lie about the slice.
+const PRJ_TIERS = new Set(['must', 'should', 'context']);
+
+function parseQabComment(line) {
+  const m = line.match(/^<!--\s*qab:\s*(.*?)\s*-->\s*$/);
+  if (!m) return null;
+  const out = {};
+  for (const tok of m[1].split(/\s+/).filter(Boolean)) {
+    const kv = tok.match(/^([a-z_]+)=(.+)$/);
+    if (!kv) return { error: `bad token "${tok}"` };
+    out[kv[1]] = kv[2];
+  }
+  return out;
+}
+
+// Minimal glob (zero-dep): `*` matches within a path segment; no `**`. Patterns are CWD-relative.
+function globFiles(pattern) {
+  const segs = pattern.split('/').filter(Boolean);
+  let dirs = [CWD];
+  for (let i = 0; i < segs.length; i++) {
+    const seg = segs[i];
+    const last = i === segs.length - 1;
+    const re = seg.includes('*') ? new RegExp('^' + seg.split('*').map(s => s.replace(/[.*+?^${}()|[\]\\]/g, '\\$&')).join('[^/]*') + '$') : null;
+    const next = [];
+    for (const d of dirs) {
+      if (!fs.existsSync(d) || !fs.statSync(d).isDirectory()) continue;
+      const names = re ? fs.readdirSync(d).filter(n => re.test(n)).sort() : [seg];
+      for (const n of names) {
+        const p = path.join(d, n);
+        if (!fs.existsSync(p)) continue;
+        if (last) { if (fs.statSync(p).isFile()) next.push(p); }
+        else if (fs.statSync(p).isDirectory()) next.push(p);
+      }
+    }
+    dirs = next;
+  }
+  return dirs;
+}
+
+// Parse one project reference file into PRJ- entries. Mirrors build.js parseReferenceIndex.
+function parseProjectRefFile(abs, stem, index, errors) {
+  const relFile = rel(abs);
+  const lines = fs.readFileSync(abs, 'utf8').replace(/\r\n/g, '\n').split('\n');
+  let fence = false, fileScope = 'all', fileTier = 'should', seenH1 = false;
+  const sections = [];
+  for (let i = 0; i < lines.length; i++) {
+    const l = lines[i];
+    if (l.startsWith('```')) { fence = !fence; continue; }
+    if (fence) continue;
+    const isH1 = l.startsWith('# ') && !seenH1;
+    const isH2 = l.startsWith('## ');
+    if (!isH1 && !isH2) continue;
+    const heading = l.replace(/^#+\s*/, '').trim();
+    const c = i + 1 < lines.length ? parseQabComment(lines[i + 1]) : null;
+    if (c && c.error) { errors.push(`${relFile}:${i + 2}: ${c.error}`); continue; }
+    if (isH1) {
+      seenH1 = true;
+      if (c) {
+        if (c.scope) fileScope = c.scope;
+        if (c.tier) { if (!PRJ_TIERS.has(c.tier)) errors.push(`${relFile}:${i + 2}: unknown tier "${c.tier}"`); else fileTier = c.tier; }
+        if (c.id) sections.push({ id: c.id, heading, start: i, scope: c.scope || fileScope, tier: c.tier || fileTier, h1: true });
+      }
+      continue;
+    }
+    if (sections.length && sections[sections.length - 1].h1 && sections[sections.length - 1].end === undefined) sections[sections.length - 1].end = i;
+    if (!c || !c.id) { errors.push(`${relFile}:${i + 1}: "## ${heading}" has no <!-- qab: id=… --> comment on the next line`); continue; }
+    if (c.tier && !PRJ_TIERS.has(c.tier)) errors.push(`${relFile}:${i + 2}: unknown tier "${c.tier}"`);
+    if (sections.length && !sections[sections.length - 1].h1) sections[sections.length - 1].end = i;
+    sections.push({ id: c.id, heading, start: i, scope: c.scope || fileScope, tier: c.tier || fileTier });
+  }
+  for (const s of sections) {
+    if (s.end === undefined) s.end = lines.length;
+    if (!/^[a-z0-9][a-z0-9-]*$/.test(s.id)) { errors.push(`${relFile}: id "${s.id}" must be kebab-case`); continue; }
+    const key = `PRJ-${stem}#${s.id}`;
+    if (index[key]) { errors.push(`duplicate id ${key} (${relFile} and ${index[key].file})`); continue; }
+    index[key] = {
+      file: relFile, heading: s.heading,
+      scope: s.scope === 'all' ? ['all'] : s.scope.split(',').map(x => x.trim()).filter(Boolean),
+      tier: s.tier, lines: s.end - s.start, project: true,
+    };
+  }
+}
+
+// Load every configured project reference file. Returns { configured, index }.
+function loadProjectRefs() {
+  const patterns = compilerConfig().references;
+  if (patterns === undefined) return { configured: false, index: {} };
+  if (!Array.isArray(patterns) || patterns.some(p => typeof p !== 'string' || !p.trim())) {
+    die('compiler.references in .qabuddy.json must be an array of file patterns, e.g. ["features-kb/house/*.md"]');
+  }
+  const index = {};
+  const errors = [];
+  const stems = {}; // stem → file (PRJ ids must be unambiguous about their file)
+  for (const pat of patterns) {
+    const files = globFiles(pat);
+    if (!files.length) { process.stderr.write(`qab: compiler.references: pattern "${pat}" matched no files\n`); continue; }
+    for (const abs of files) {
+      if (!abs.endsWith('.md')) { errors.push(`${rel(abs)}: project references must be .md files`); continue; }
+      const stem = path.basename(abs, '.md');
+      if (stems[stem] && stems[stem] !== abs) { errors.push(`two project reference files share the stem "${stem}" (${rel(stems[stem])} and ${rel(abs)}) — PRJ-<stem>#<id> must be unambiguous`); continue; }
+      stems[stem] = abs;
+      parseProjectRefFile(abs, stem, index, errors);
+    }
+  }
+  if (errors.length) die(`compiler.references:\n${errors.map(e => `  - ${e}`).join('\n')}`);
+  return { configured: true, index };
 }
 
 // Scope overrides (RFC 0002 §2.1, PR A). A project edits the SELECTION layer from its own
@@ -199,7 +315,8 @@ function applyScopeOverrides(index) {
   return overridden;
 }
 
-// LRN ids are project content (any well-formed id passes); REF ids must exist in the shipped index.
+// LRN ids are project content (any well-formed id passes); REF ids must exist in the shipped index;
+// PRJ ids must exist in the project's own configured reference files (RFC 0002 PR B).
 function validateSrc(src) {
   if (/^LRN-\d{8}-\d{2}$/.test(src)) return;
   if (/^REF-/.test(src)) {
@@ -212,7 +329,17 @@ function validateSrc(src) {
     }
     return;
   }
-  die(`source id must be LRN-YYYYMMDD-NN or REF-<stem>#<id>, got "${src}"`);
+  if (/^PRJ-/.test(src)) {
+    if (!/^PRJ-[a-z0-9-]+#[a-z0-9-]+$/.test(src)) die(`malformed PRJ id "${src}" — form is PRJ-<file-stem>#<id> (RFC 0002 §2.2)`);
+    const prj = loadProjectRefs(); // dies loudly on parse errors — same contract as compile
+    if (!prj.configured) die(`"${src}" cited but .qabuddy.json declares no compiler.references — add the pattern that contains its file (RFC 0002 §2.2)`);
+    if (!prj.index[src]) {
+      const near = nearestRefIds(src, prj.index);
+      die(`unknown PRJ id "${src}"${near.length ? ` — did you mean: ${near.join(', ')}` : ''} (parsed from compiler.references)`);
+    }
+    return;
+  }
+  die(`source id must be LRN-YYYYMMDD-NN, REF-<stem>#<id> or PRJ-<stem>#<id>, got "${src}"`);
 }
 
 // ─── log ────────────────────────────────────────────────────────────────
@@ -301,14 +428,14 @@ const TIER_RANK = { must: 0, should: 1, context: 2 };
 
 function refsRoot() { return path.resolve(__dirname, '..'); }
 
-function fileLines(rel) {
-  const p = path.join(refsRoot(), rel);
+function fileLines(relPath, project) {
+  const p = project ? path.join(CWD, relPath) : path.join(refsRoot(), relPath);
   return fs.existsSync(p) ? fs.readFileSync(p, 'utf8').replace(/\r\n/g, '\n').split('\n') : null;
 }
 
 // Extract a section's verbatim body (heading → next same-or-higher heading), skipping the qab metadata comment.
 function sectionBody(entry) {
-  const lines = fileLines(entry.file);
+  const lines = fileLines(entry.file, entry.project);
   if (!lines) return null;
   let fence = false, start = -1;
   for (let i = 0; i < lines.length; i++) {
@@ -352,7 +479,7 @@ function parseLearnings() {
     const profile = {};
     for (const tok of field('Profile').split('<!--')[0].split(/\s+/)) { const kv = tok.match(/^([a-z_]+)=([A-Za-z0-9_-]+)$/); if (kv) profile[kv[1]] = kv[2]; }
     const overrides = field('Overrides');
-    const overridesRef = (overrides.match(/REF-[a-z0-9-]+(?:\/[a-z0-9-]+)?#[a-z0-9-]+/) || [])[0] || null;
+    const overridesRef = (overrides.match(/(?:REF|PRJ)-[a-z0-9-]+(?:\/[a-z0-9-]+)?#[a-z0-9-]+/) || [])[0] || null;
     // Fingerprint: optional; written as `ffp-<12hex>` or bare `<12hex>`; anything else (none/없음/blank) = unlinked
     const fpRaw = field('Fingerprint').split('<!--')[0].trim().toLowerCase().replace(/^ffp-/, '');
     const fingerprint = /^[0-9a-f]{12}$/.test(fpRaw) ? fpRaw : null;
@@ -377,8 +504,10 @@ function cmdCompile(args) {
   const skill = args.skill;
   if (!skill || skill === true) die('compile requires --skill <name>');
   const ticket = args.ticket && args.ticket !== true ? String(args.ticket) : null;
-  const index = loadRefIndex();
-  if (!index) die('references/index.json not found next to this helper — run node build.js all (compile needs the shipped index)');
+  const shippedIndex = loadRefIndex();
+  if (!shippedIndex) die('references/index.json not found next to this helper — run node build.js all (compile needs the shipped index)');
+  // one namespace: shipped REF- ∪ project PRJ- (RFC 0002 PR B) — overrides and packing see both
+  const index = { ...shippedIndex, ...loadProjectRefs().index };
 
   // run: reuse the current marker if it is this skill's run, else start one
   let marker = readMarker();
@@ -624,17 +753,18 @@ function computeStats(lines, fps = [], learnings = []) {
     const hit = fpHits[src];
     const falsifiedFp = hit ? hit.count : 0;
     const falsified = s.contradicted >= 2 && (!s.last_applied || (s.last_contradicted && s.last_applied < s.last_contradicted));
+    const kind = src.startsWith('REF-') ? 'REF' : src.startsWith('PRJ-') ? 'PRJ' : 'LRN';
     return {
       src,
-      kind: src.startsWith('REF-') ? 'REF' : 'LRN',
+      kind,
       applied: s.applied,
       contradicted: s.contradicted,
       captured: s.captured,
       in_slice: s.in_slice,
       runs: s.runs.size,
       last_applied: s.last_applied ? s.last_applied.slice(0, 10) : null,
-      // RFC §6.2 computed findings (promotion is LRN-only: a REF section is already a reference)
-      promotion_candidate: !src.startsWith('REF-') && s.applied >= 3 && s.runs.size >= 3 && s.contradicted === 0 && falsifiedFp === 0 && recurrenceSince(src) === 0,
+      // RFC §6.2 computed findings (promotion is LRN-only: a REF/PRJ section is already a reference)
+      promotion_candidate: kind === 'LRN' && s.applied >= 3 && s.runs.size >= 3 && s.contradicted === 0 && falsifiedFp === 0 && recurrenceSince(src) === 0,
       falsified,
       falsified_by_fingerprint: falsifiedFp,
       fingerprint_ffps: hit ? [...hit.ffps].sort() : [],
@@ -649,7 +779,8 @@ function computeStats(lines, fps = [], learnings = []) {
     if (!l.run) continue;
     const r = runsBySkill[l.run] || (runsBySkill[l.run] = { skill: l.skill || 'unknown', outcome: false, ref: false, lrn: false });
     if (l.event === 'outcome') r.outcome = true;
-    if (l.event === 'applied' && l.src) { if (l.src.startsWith('REF-') && l.src.includes('#')) r.ref = true; else r.lrn = true; }
+    // PRJ sections are reference citations too (RFC 0002 PR B) — a run citing house methodology complies
+    if (l.event === 'applied' && l.src) { if (/^(REF|PRJ)-/.test(l.src) && l.src.includes('#')) r.ref = true; else r.lrn = true; }
   }
   const compliance = {};
   for (const r of Object.values(runsBySkill)) {

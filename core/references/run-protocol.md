@@ -19,7 +19,8 @@ exact command). It starts the run if none is current, then writes `<runsDir>/<ru
 | `fingerprints.jsonl` | this run's failure fingerprints, if any (also appended to the project `fingerprints.jsonl`; `self-improve.md` §Failure fingerprints) |
 
 **Candidates** = reference sections whose `scope` names this skill (+ `tier=must` sections scoped
-`all`) ∪ `active` learnings whose `Scope` includes the skill (or `all`) and whose `Profile:` matches.
+`all`) — shipped `REF-` and project-owned `PRJ-` (`compiler.references`) alike — ∪ `active`
+learnings whose `Scope` includes the skill (or `all`) and whose `Profile:` matches.
 **Packing (unscored, PR5):** `must` first, then sections in file order; each learning right after the
 section it `Overrides`, else at the end. **No budget cap** — the slice equals what the skill read
 before, by construction; `budget.used` is recorded so slice size becomes a metric. Sections scoped

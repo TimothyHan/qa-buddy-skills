@@ -18,7 +18,8 @@
 | `events.jsonl` | 이 실행의 로그 라인 (프로젝트 `learnings-log.jsonl`에도 추가됨) |
 | `fingerprints.jsonl` | 이 실행의 실패 지문 (있는 경우; 프로젝트 `fingerprints.jsonl`에도 추가됨; `self-improve.md` §실패 지문) |
 
-**후보** = `scope`가 이 스킬을 지명하는 레퍼런스 섹션(+ `all` 스코프의 `tier=must` 섹션) ∪ `Scope`에
+**후보** = `scope`가 이 스킬을 지명하는 레퍼런스 섹션(+ `all` 스코프의 `tier=must` 섹션) — 배포된
+`REF-`와 프로젝트 소유 `PRJ-`(`compiler.references`) 모두 — ∪ `Scope`에
 이 스킬(또는 `all`)이 있고 `Profile:`이 맞는 `active` 학습.
 **패킹 (unscored, PR5):** `must` 먼저, 그 다음 파일 순서; 각 학습은 자기가 `Overrides`하는 섹션 바로 뒤,
 없으면 맨 끝. **예산 상한 없음** — 슬라이스는 구성상 스킬이 이전에 읽던 것과 같고, `budget.used`만
