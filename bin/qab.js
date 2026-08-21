@@ -16,6 +16,10 @@
  *                                                loudly, and the manifest records `via:`/`reason: project-override`.
  *                                                Project `compiler.references` files compile as PRJ-<stem>#<id> sections
  *                                                (RFC 0002 §2.2) — same qab: contract, cited and counted like REF-.
+ *                                                `compiler.scoring` + `budget_lines` (RFC 0002 PR D) rank non-floor
+ *                                                candidates per-profile and drop past the budget; enabling requires gate
+ *                                                eligibility or a `scoringOverride` note recorded in the log as a decision.
+ *                                                `log outcome` announces the not-eligible → eligible gate TRANSITION.
  *   log     <event> [<src>] [--note <text>] [--status <S>] [--run <id>] [--skill <name>]
  *                                                append one v1 line to <learningsPath dir>/learnings-log.jsonl (+ <run>/events.jsonl)
  *   fp      <kind> <key> [--run <id>] [--skill <name>]
@@ -409,6 +413,30 @@ function cmdLog(args) {
 
   appendEvent(line, marker);
   process.stdout.write(`${rel(logPath())} += ${event}${line.src ? ' ' + line.src : ''}${line.status ? ' ' + line.status : ''}\n`);
+
+  // Gate-opened notification (RFC 0002 PR D): an outcome is the only moment a profile's count can
+  // tick over the §9.3 threshold, so detect the not-eligible → eligible TRANSITION right here and
+  // tell the SDT while they are reading the close-out. Fires exactly once — on the opening outcome.
+  if (event === 'outcome') {
+    try {
+      const { lines: all } = readLog(null);
+      const fpsNow = readFps().lines;
+      const learnNow = parseLearnings();
+      const after = computeGate(all, fpsNow, learnNow);
+      if (after.eligible && !computeGate(all.slice(0, -1), fpsNow, learnNow).eligible) {
+        process.stdout.write('🔓 scoring gate OPENED on this project\'s data — this outcome tipped it: '
+          + after.reason + '\n'
+          + '   What this means: the logs now hold enough evidence that scored selection COULD be\n'
+          + '   justified here. Gain: leaner skill runs — knowledge proven useful in this project\n'
+          + '   packs first, the rest is trimmed to a line budget. Risk: knowledge that is correct\n'
+          + '   but merely unused so far can be trimmed too — which is why this is a human call.\n'
+          + '   Run `node qab.js gate` for the full report, classify each dormant source (cannot\n'
+          + '   fire / duplicated / work not yet happened / selection failure), then the SDT sets\n'
+          + '   compiler.scoring + budget_lines in .qabuddy.json (RFC 0002 §2.4).\n'
+          + '   Relay this to the SDT in plain language, gain and risk both — never enable it yourself.\n');
+      }
+    } catch { /* the notification must never break logging */ }
+  }
 }
 
 // Append to the project log and, if this run has a directory, mirror into <run>/events.jsonl.
@@ -503,9 +531,107 @@ function buildProfile(skill, ticket) {
   return { profile, pfp };
 }
 
+// ─── scoring (RFC 0002 PR D — the RFC 0001 §5/PR7 design, materialized behind the gate) ─
+//
+// Opt-in per project: `.qabuddy.json` `compiler: { "scoring": true, "budget_lines": <N> }`.
+// Enabling requires `qab.js gate` to report eligible — or `compiler.scoringOverride: "<note>"`,
+// which is recorded in the log as a decision (RFC 0002 §2.4). Everything else is a CONSTANT,
+// not config: tunable knobs would make every installation's behaviour unexplainable (§6 non-goal).
+//
+// The §9.3 verdict binds the shape: per-profile with a floor, NEVER a global applied ranking.
+//   floor  = tier=must sections ∪ sources applied in the last SCORE_RECENT_RUNS closed runs of
+//            this pfp ∪ all packed learnings (a project's own corrections are never dropped)
+//   score  = applied_ratio × contradiction_penalty × recency × freq   (per §5, this pfp only)
+//            ratio = applied/in_slice · penalty = contradicted in last 3 pfp runs ? 0.25 : 1
+//            recency = 1/(1 + closed pfp runs since last applied) · freq = 1 + ln(1 + applied)
+//   data   = this pfp needs ≥ SCORE_MIN_SAMPLES outcomes, else the compile stays unscored
+//            (PR5 behaviour) — falling back to a global ranking would repeat the §9.3 error.
+//   audition = every SCORE_EXPLORE_EVERY-th closed run of the pfp packs the best budget-dropped
+//            candidate, marked `(audition)` — deterministic 10 % exploration, no RNG.
+// Dormancy is never a drop condition by itself (no calendar decay); only the line budget drops.
+const SCORE_MIN_SAMPLES = 8;
+const SCORE_EXPLORE_EVERY = 10;
+const SCORE_RECENT_RUNS = 3;
+const COMPILER_KEYS = new Set(['scope', 'references', 'scoring', 'budget_lines', 'scoringOverride']);
+
+// Loud config: a mistyped compiler key silently disabling a capability is the exact failure
+// mode decision 3 exists to prevent.
+function validateCompilerKeys() {
+  for (const k of Object.keys(compilerConfig())) {
+    if (!COMPILER_KEYS.has(k)) die(`unknown compiler key "${k}" in .qabuddy.json — known keys: ${[...COMPILER_KEYS].join(', ')}`);
+  }
+}
+
+// Per-source stats attributed to ONE profile. Events are joined to a pfp via their run's
+// `compiled` event — a run without one contributes nothing (same rule as `gate`).
+function pfpStats(lines, pfp) {
+  const runPfp = {};
+  for (const l of lines) if (l.event === 'compiled' && l.run && l.pfp) runPfp[l.run] = l.pfp;
+  const closed = [];
+  for (const l of lines) if (l.event === 'outcome' && l.run && runPfp[l.run] === pfp) closed.push(l.run);
+  const closedIdx = new Map(closed.map((r, i) => [r, i]));
+  const recent = new Set(closed.slice(-SCORE_RECENT_RUNS));
+  const per = {};
+  const mk = () => ({ in_slice: 0, applied: 0, applied_recent: false, contradicted_recent: false, last_applied_run: null });
+  for (const l of lines) {
+    if (!l.run || runPfp[l.run] !== pfp) continue;
+    if (l.event === 'compiled' && Array.isArray(l.sources)) { for (const id of l.sources) (per[id] || (per[id] = mk())).in_slice++; continue; }
+    if (!l.src) continue;
+    const s = per[l.src] || (per[l.src] = mk());
+    if (l.event === 'applied') { s.applied++; s.last_applied_run = l.run; if (recent.has(l.run)) s.applied_recent = true; }
+    else if (l.event === 'contradicted' && recent.has(l.run)) s.contradicted_recent = true;
+  }
+  const scoreOf = (id) => {
+    const s = per[id];
+    if (!s || !s.in_slice) return { score: 0, n: s ? s.in_slice : 0 };
+    const ratio = s.applied / s.in_slice;
+    const penalty = s.contradicted_recent ? 0.25 : 1;
+    const idx = s.last_applied_run !== null && closedIdx.has(s.last_applied_run) ? closedIdx.get(s.last_applied_run) : (s.applied ? closed.length - 1 : -1);
+    const runsSince = s.applied ? Math.max(0, closed.length - 1 - idx) : Infinity;
+    const recency = s.applied ? 1 / (1 + runsSince) : 0;
+    const freq = 1 + Math.log(1 + s.applied);
+    return { score: ratio * penalty * recency * freq, n: s.in_slice };
+  };
+  return { per, outcomes: closed.length, scoreOf, appliedRecent: (id) => !!(per[id] && per[id].applied_recent) };
+}
+
+// Append the scoring-override decision to the log exactly once per distinct note (RFC 0002 §2.4:
+// "an explicit override that is recorded in the log as a decision with a note").
+function recordScoringOverride(note) {
+  const { lines } = readLog(null);
+  if (lines.some(l => l.event === 'decision' && l.kind === 'scoring-override' && l.note === note)) return;
+  const target = logPath();
+  fs.mkdirSync(path.dirname(target), { recursive: true });
+  fs.appendFileSync(target, JSON.stringify({ v: 1, ts: nowIso(), event: 'decision', kind: 'scoring-override', note }) + '\n');
+  process.stderr.write(`qab: scoring enabled by explicit override (gate not eligible) — decision recorded in the log: "${note}"\n`);
+}
+
+// Resolve whether this compile scores. Returns null (off) or { budget, lines }.
+function resolveScoring() {
+  const cfg = compilerConfig();
+  if (cfg.scoring === undefined || cfg.scoring === false) return null;
+  if (cfg.scoring !== true) die('compiler.scoring must be true or absent — it is the one flag (RFC 0002 §6)');
+  const budget = cfg.budget_lines;
+  if (!Number.isInteger(budget) || budget <= 0) {
+    die('compiler.scoring requires compiler.budget_lines (a positive integer) — scoring exists to enforce a line budget; without one there is nothing to rank for');
+  }
+  const { lines } = readLog(null);
+  const gate = computeGate(lines, readFps().lines, parseLearnings());
+  if (!gate.eligible) {
+    const override = cfg.scoringOverride;
+    if (typeof override === 'string' && override.trim()) { recordScoringOverride(override.trim()); return { budget, lines }; }
+    die(`compiler.scoring is on but the gate is not eligible: ${gate.reason}\n`
+      + '  Run `node qab.js gate` for the report. Either let the data reach the gate, or take\n'
+      + '  explicit responsibility: set compiler.scoringOverride to a one-line note — it is\n'
+      + '  recorded in the log as a decision (RFC 0002 §2.4). Scoring never turns on silently.');
+  }
+  return { budget, lines };
+}
+
 function cmdCompile(args) {
   const skill = args.skill;
   if (!skill || skill === true) die('compile requires --skill <name>');
+  validateCompilerKeys();
   const ticket = args.ticket && args.ticket !== true ? String(args.ticket) : null;
   const shippedIndex = loadRefIndex();
   if (!shippedIndex) die('references/index.json not found next to this helper — run node build.js all (compile needs the shipped index)');
@@ -556,10 +682,53 @@ function cmdCompile(args) {
   const lrns = scopedLrns.filter(profileOk);
   for (const l of scopedLrns) if (!profileOk(l)) dropped.push({ id: l.id, reason: 'profile' });
 
-  // pack: REFs in rank order; each LRN right after the REF it overrides, else at the end
+  // ── scoring stage (RFC 0002 PR D). Off by default; on, it ranks the NON-floor packed
+  // candidates for THIS pfp and drops the tail past budget_lines. Insufficient profile data
+  // keeps the compile unscored (never a global ranking — §9.3).
+  const scoring = resolveScoring();
+  let packedRefs = refs;
+  let scoringLabel = 'off';
+  let budgetMax = 0;
+  const scoreTag = {};   // id → { score, n, audition } for the manifest
+  if (scoring) {
+    const st = pfpStats(scoring.lines, pfp);
+    if (st.outcomes < SCORE_MIN_SAMPLES) {
+      scoringLabel = `on (insufficient data for this profile: ${st.outcomes}/${SCORE_MIN_SAMPLES} outcomes — unscored)`;
+    } else {
+      scoringLabel = 'on';
+      budgetMax = scoring.budget;
+      const bodyLines = (r) => { const t = sectionBody(r); return t == null ? null : t.split('\n').length; };
+      const floorRefs = [];
+      const rankable = [];
+      for (const r of refs) (r.tier === 'must' || st.appliedRecent(r.id) ? floorRefs : rankable).push(r);
+      let usedBudget = 0;
+      for (const r of floorRefs) usedBudget += bodyLines(r) || 0;
+      const ranked = rankable.map(r => ({ r, ...st.scoreOf(r.id), lines: bodyLines(r) }))
+        .sort((a, b) => b.score - a.score || a.r.file.localeCompare(b.r.file));
+      const packedSet = new Set(floorRefs.map(r => r.id));
+      const budgetDropped = [];
+      for (const c of ranked) {
+        if (c.lines === null) { packedSet.add(c.r.id); continue; }               // missing text is reported by the render stage, not silently dropped here
+        if (usedBudget + c.lines <= budgetMax) { usedBudget += c.lines; packedSet.add(c.r.id); scoreTag[c.r.id] = { score: c.score, n: c.n }; }
+        else budgetDropped.push(c);
+      }
+      // deterministic audition: every SCORE_EXPLORE_EVERY-th closed run of this pfp packs the
+      // best budget-dropped candidate so dormant knowledge keeps getting a chance to earn `applied`
+      if (budgetDropped.length && st.outcomes % SCORE_EXPLORE_EVERY === 0) {
+        const a = budgetDropped.shift();
+        packedSet.add(a.r.id);
+        scoreTag[a.r.id] = { score: a.score, n: a.n, audition: true };
+      }
+      for (const c of budgetDropped) dropped.push({ id: c.r.id, reason: 'budget', score: c.score, n: c.n });
+      packedRefs = refs.filter(r => packedSet.has(r.id));   // keep the tier-rank layout; score decides membership, not order
+    }
+  }
+
+  // pack: REFs in rank order; each LRN right after the REF it overrides, else at the end.
+  // Learnings are floor: a project's own corrections are never dropped by a budget.
   const ordered = [];
   const placed = new Set();
-  for (const r of refs) {
+  for (const r of packedRefs) {
     ordered.push(r);
     for (const l of lrns) if (l.overridesRef === r.id && !placed.has(l.id)) { ordered.push({ kind: 'LRN', ...l }); placed.add(l.id); }
   }
@@ -575,16 +744,18 @@ function cmdCompile(args) {
     else text = `**Statement:** ${s.statement}\n**Overrides:** ${s.overrides || 'none'}\n`;
     const n = text.split('\n').length;
     used += n;
-    sources.push(s.kind === 'REF' ? { id: s.id, tier: s.tier, lines: n, via: s.via } : { id: s.id, tier: 'lrn', lines: n });
+    sources.push(s.kind === 'REF' ? { id: s.id, tier: s.tier, lines: n, via: s.via, tag: scoreTag[s.id] } : { id: s.id, tier: 'lrn', lines: n });
     bodyParts.push(s.kind === 'REF' ? `## ${s.id} — ${s.heading}\n${text}` : `## ${s.id}\n${text}`);
   }
 
+  const fmtScore = (v) => (Math.round(v * 1000) / 1000).toString();
   const manifest = [
     '---', 'manifest: 1', `run: ${run.run}`, `skill: ${skill}`, `pfp: ${pfp}`,
     `profile: {surface: ${profile.surface}, pom: ${profile.pom}, ticket_kind: ${profile.ticket_kind}}`,
-    'compiler: qab 0.6.0   scoring: off', `budget: {max: 0, used: ${used}}   # max 0 = uncapped (unscored compile, RFC 0001 PR5)`,
-    'sources:', ...sources.map(x => `  - id: ${x.id}   tier: ${x.tier}   lines: ${x.lines}${x.via ? `   via: ${x.via}` : ''}`),
-    'dropped:', ...(dropped.length ? dropped.map(d => `  - id: ${d.id}   reason: ${d.reason}`) : ['  []']),
+    `compiler: qab 0.6.0   scoring: ${scoringLabel}`,
+    `budget: {max: ${budgetMax}, used: ${used}}${budgetMax === 0 ? '   # max 0 = uncapped (unscored compile, RFC 0001 PR5)' : '   # compiler.budget_lines (RFC 0002 PR D; the floor packs regardless)'}`,
+    'sources:', ...sources.map(x => `  - id: ${x.id}   tier: ${x.tier}   lines: ${x.lines}${x.via ? `   via: ${x.via}` : ''}${x.tag ? `   score: ${fmtScore(x.tag.score)}   n: ${x.tag.n}${x.tag.audition ? '   (audition)' : ''}` : ''}`),
+    'dropped:', ...(dropped.length ? dropped.map(d => `  - id: ${d.id}   reason: ${d.reason}${d.reason === 'budget' ? `   score: ${fmtScore(d.score)}   n: ${d.n}` : ''}`) : ['  []']),
     '---', '',
   ].join('\n');
   const slicePath = path.join(run.dir, 'slice.md');
@@ -593,7 +764,7 @@ function cmdCompile(args) {
   const scratch = path.join(run.dir, 'scratchpad.md');
   if (!fs.existsSync(scratch)) fs.writeFileSync(scratch, `# ${run.run}\n\n## Plan\n\n## State\n\n## Findings\n\n## Candidate learnings\n<!-- anything noteworthy, no evidence bar; the three capture triggers are applied to THESE at close -->\n`);
 
-  appendEvent({ v: 1, ts: nowIso(), run: run.run, skill, pfp, event: 'compiled', sources: sources.map(x => x.id), used, max: 0, dropped: dropped.map(d => d.id) }, marker);
+  appendEvent({ v: 1, ts: nowIso(), run: run.run, skill, pfp, event: 'compiled', sources: sources.map(x => x.id), used, max: budgetMax, dropped: dropped.map(d => d.id) }, marker);
   process.stdout.write(`${rel(slicePath)}\n`);
   process.stdout.write(`  run ${run.run} · ${sources.length} sources (${sources.filter(x => x.tier === 'must').length} must, ${sources.filter(x => x.tier === 'lrn').length} learnings) · ${used} lines · scratchpad ${rel(scratch)}\n`);
 }

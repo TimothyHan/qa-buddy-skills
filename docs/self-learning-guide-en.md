@@ -323,11 +323,66 @@ gate (RFC 0001 §9.3, evaluated on this project's logs — RFC 0002 §2.3):
   failures — a tool that guessed the cause would reproduce exactly the error that
   verdict warns about.
 
-Scoring (D) and auto status changes (E) don't exist as code yet. When they do, they
-default off, and there are two ways to turn them on: **pass the gate on your own
-data**, or a maintainer sets an **explicit override recorded in the log as a
-decision** (RFC 0002 §2.4). What's blocked is not scoring itself — it's turning it
-on *silently*.
+**QABuddy tells you the moment the gate opens.** When the exact outcome that tips
+the threshold is logged, `log outcome` prints a 🔓 notice, and the skill relays it to
+you and asks whether you want scoring — it fires exactly once, on the transition,
+and the decision plus the `.qabuddy.json` edit always stay human.
+
+### 6.4 Turning scoring on — `compiler.scoring` (PR D)
+
+The trade-off in one breath: **gain** — leaner runs (knowledge proven useful in
+*this* project packs first, the rest trims to a budget → more context left for the
+ticket itself). **Risk** — knowledge that is correct but merely unused *so far* can
+be trimmed too. In QABuddy's own measurement, most "unused" knowledge was exactly
+that — which is why this decision belongs to a human, not the tool.
+
+```jsonc
+{ "compiler": { "scoring": true, "budget_lines": 220 } }
+```
+
+With it on, the compile scores candidates **per profile** and drops the tail past
+the budget:
+
+- **The floor never drops**: `tier=must` sections, sources applied in this
+  profile's last 3 runs, and every learning (a project's own corrections are not
+  subject to the budget). Even a budget smaller than the floor packs the whole floor.
+- **Scores come from this profile's data only** (`applied_ratio × contradiction
+  penalty × recency × freq`). Below 8 outcomes for this profile the compile falls
+  back to **unscored** — never to a global ranking (the exact error §9.3 forbids).
+- **Every 10th run auditions**: the best budget-dropped candidate rides along
+  marked `(audition)`, so dormant knowledge keeps getting chances to earn `applied`.
+- The manifest shows everything: `score:` and `n:` on packed sources,
+  `reason: budget score: … n: …` on dropped ones.
+
+**The enabling rule (RFC 0002 §2.4):** if the gate is not eligible, the compile
+refuses with the reason. To proceed anyway, set `"scoringOverride": "<one-line
+note>"` — the note is **recorded in the log as a decision** (exactly once per
+distinct note). What's blocked is not scoring — it's turning it on *silently*.
+
+### 6.5 The last piece, E — and the manual work that remains yours
+
+The one unbuilt piece of RFC 0002 is **E (auto status changes)**. When built, it
+would auto-apply the transitions the log has mechanically decided — retiring a
+learning whose fingerprint-confirmed falsification recurred, promoting one past the
+evidence threshold (applied ≥ 8, zero contradictions) — with an audit event each
+time. Reference edits stay human even then.
+
+**Without E, the entirety of your manual work:**
+
+| Manual step | How often | Would E remove it? |
+|---|---|---|
+| The distill session — launch it when a skill suggests, read the plan, approve | ~once per sprint | **Partly** — only the mechanically-decided rows (fingerprint retirements, threshold promotions) get pre-checked. Merges, copy detection and generalizability judgment stay human+LLM even with E |
+| Classifying dormant sections when the gate opens | once, when it opens | No — human by design (decision 6) |
+| Editing `.qabuddy.json` (overrides, house files, scoring) | only when deciding | No — the signature stays human (§6 non-goal) |
+| Authoring house reference files | when team methodology exists | No — only your team can write it |
+| Approving reference (canon) edits on promotion | per promotion | No — human forever |
+
+So **the distill session survives E** — E only pre-handles a few rows of its
+agenda. Today those mechanical rows number one or two per session, so the
+automation would not yet pay for its risk. **The signal to build it:** when your
+distill plans start filling with rubber-stamp mechanical rows — at that point the
+logs justify E, and they will also have answered its open design questions
+(whether to introduce a `candidate` status, and where the transition triggers).
 
 ---
 

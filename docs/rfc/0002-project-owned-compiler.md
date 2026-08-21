@@ -1,6 +1,6 @@
 # RFC 0002 — Project-owned compiler configuration
 
-**Status:** Accepted — PRs A–C approved and in build (2026-08-20); D–E stay gated | **Author:** Timothy Han (with Claude) | **Created:** 2026-08-19
+**Status:** Accepted — A–D built (2026-08-20); E stays gated | **Author:** Timothy Han (with Claude) | **Created:** 2026-08-19
 **Depends on:** RFC 0001 (PR0–PR6, shipped as v0.5.0) · **Supersedes:** RFC 0001 §8 PR7/PR8 framing
 
 ## 한국어 요약
@@ -111,6 +111,11 @@ an explicit override that is **recorded in the log** as a decision with a note.
 
 The gate stops being a milestone QABuddy passes once, and becomes one each project passes for itself.
 
+*Built 2026-08-20 (PR D): scoring per RFC 0001 §5, per-profile with a floor (`tier=must` ∪ applied
+in the pfp's last 3 runs ∪ all learnings); below 8 outcomes for the pfp the compile stays unscored —
+never a global ranking. `log outcome` announces the not-eligible → eligible gate transition so the
+project learns the moment its own activity opens the gate (decision 9).*
+
 ## 3. Resolved decisions
 
 | # | Question | Decision | Why |
@@ -123,6 +128,11 @@ The gate stops being a milestone QABuddy passes once, and becomes one each proje
 | 6 | Does `gate` classify dormancy causes? | **no — it assembles evidence and asks** | RFC 0001 §9.3 showed cause classification needs judgement; a guessing tool would repeat the mistake it warns about |
 | 7 | Scoring default | off, and refuses to enable without eligibility | the 0001 verdict is that scoring on thin/narrow data is actively harmful |
 | 8 | Where does `gate` live? (was open question 2) | **`qab.js gate`** (PR C, 2026-08-20) | a deterministic, read-only report over the two logs belongs beside `stats`; a distill mode would re-read the same data through an LLM. Distill can quote its output |
+| 9 | How does a project learn its gate opened? | **`log outcome` announces the not-eligible → eligible transition**; the preamble relays it and asks the SDT | QABuddy is only alive during runs, and an outcome is the only event that can tip the threshold — a pull-only report would miss the moment. Fires exactly once; enabling stays human |
+| 10 | Scoring knobs | **constants, not config** — `min_samples` 8, audition every 10th run, recent window 3; config is `scoring` + `budget_lines` only | §6 non-goal: tunable knobs make every installation's behaviour unexplainable |
+| 11 | Are learnings scoreable? | **no — learnings are floor** | a project's own corrections must never be dropped by a budget |
+| 12 | Audition selection | deterministic — every 10th closed run of the pfp, no RNG | the same log state must compile the same slice; reproducibility is what makes manifests evidence |
+| 13 | Thin per-profile data | **unscored compile**, never a global fallback | §9.3 verdict: "never a global `applied` ranking" — thin data falling back to global would repeat the exact measured error |
 
 ## 4. Implementation sequence
 
@@ -131,10 +141,11 @@ The gate stops being a milestone QABuddy passes once, and becomes one each proje
 | **A** | `compiler.scope` overrides: config plumbing, must-floor, unknown-id refusal, manifest `via`/`reason`, tests + mutation smoke | none unless configured |
 | **B** | `compiler.references`: `PRJ-` ids, index merge, citation + stats + distill participation | none unless configured |
 | **C** | `qab.js gate` report | read-only |
-| **D** | scoring behind gate eligibility (RFC 0001 PR7 design, per-profile with a floor) | flagged, default off |
-| **E** | opt-in auto status changes (RFC 0001 PR8) | flagged, default off |
+| **D** | scoring behind gate eligibility (RFC 0001 PR7 design, per-profile with a floor) + gate-opened notification | flagged, default off — **built 2026-08-20** |
+| **E** | opt-in auto status changes (RFC 0001 PR8) | flagged, default off — not built |
 
-A–C are additive and independently useful; D–E stay closed until some project's data opens them.
+A–C are additive and independently useful; D ships as code any project can open with its own data
+(or an explicitly logged override); E stays closed.
 
 ## 5. Measurement
 
