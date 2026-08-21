@@ -24,6 +24,9 @@
  *                                                whose Fingerprint: equals ffp (automatic falsification evidence)
  *   fp      --list [--run <id>]                  print this run's fingerprints (for the capture rule: link Fingerprint: to the ffp)
  *   stats   [--since <YYYY-MM-DD>] [--json]      per-source counts (+ in_slice) + findings + fingerprint recurrence + compliance
+ *   gate    [--json]                             (RFC 0002 §2.3) the RFC 0001 §9.3 gate evaluated on THIS project's logs:
+ *                                                profiles×outcomes vs ≥2×≥8, dormant sources, slice size per skill, an explicit
+ *                                                eligible/not-eligible line — evidence only; cause classification stays human
  *   scoreboard                                   (PR6) rebuild <learningsPath dir>/.cache/scoreboard.json from both logs (derived, gitignored)
  *
  * Log line (schema v1):
@@ -837,6 +840,108 @@ function cmdStats(args) {
   process.stdout.write(out.join('\n') + '\n');
 }
 
+// ─── gate (RFC 0002 §2.3, PR C: the §9.3 gate, evaluated on THIS project's logs) ─
+//
+// RFC 0001 §9.3: proceed toward scored selection only if application is uneven AND ≥ 2 distinct
+// profiles each carry ≥ 8 attributed outcomes. QABuddy passed that gate once on its own repo and
+// the measurement argued no (decision 16). This command makes the gate a capability each project
+// evaluates for itself — read-only, deterministic, over learnings-log.jsonl + fingerprints.jsonl.
+//
+// The report assembles evidence; it does NOT classify causes (RFC 0002 decision 6). Whether a
+// dormant source "cannot fire", "is duplicated elsewhere" or "is waiting for work that hasn't
+// happened" needed human judgement in the 0001 verdict and still does — a tool that guessed would
+// reproduce exactly the error that verdict warns about. Eligibility here is necessary, never
+// sufficient: scoring stays off until a human answers the classification ask at the end.
+const GATE_MIN_PROFILES = 2;
+const GATE_MIN_OUTCOMES = 8;
+const GATE_APPLIED_RUNS = 3; // unevenness floor: ≥1 source applied in this many distinct runs while others sit dormant
+
+function computeGate(lines, fps, learnings) {
+  const stats = computeStats(lines, fps, learnings);
+  // run → pfp from compiled events. A run with an outcome but no compiled pfp predates the compile
+  // step or never compiled — it is reported, never summed into a profile (mis-attribution was
+  // caught live once: RFC 0001 §9.3 status correction, PR #23).
+  const runPfp = {};
+  for (const l of lines) if (l.event === 'compiled' && l.run && l.pfp) runPfp[l.run] = l.pfp;
+  const perPfp = {};
+  let noProfileRuns = 0;
+  for (const l of lines) {
+    if (l.event !== 'outcome' || !l.run) continue;
+    const pfp = runPfp[l.run];
+    if (!pfp) { noProfileRuns++; continue; }
+    const p = perPfp[pfp] || (perPfp[pfp] = { outcomes: 0, statuses: {} });
+    p.outcomes++;
+    if (l.status) p.statuses[l.status] = (p.statuses[l.status] || 0) + 1;
+  }
+  const profiles = Object.entries(perPfp).map(([pfp, p]) => ({ pfp, ...p }))
+    .sort((a, b) => b.outcomes - a.outcomes || a.pfp.localeCompare(b.pfp));
+  const qualified = profiles.filter(p => p.outcomes >= GATE_MIN_OUTCOMES);
+  const thresholdMet = qualified.length >= GATE_MIN_PROFILES;
+
+  const dormant = stats.rows.filter(r => r.never_applied).map(r => ({ src: r.src, kind: r.kind, in_slice: r.in_slice }));
+  const appliedRepeatedly = stats.rows.filter(r => r.runs >= GATE_APPLIED_RUNS).map(r => ({ src: r.src, runs: r.runs }));
+  const uneven = dormant.length > 0 && appliedRepeatedly.length > 0;
+
+  const slices = {};
+  for (const l of lines) {
+    if (l.event !== 'compiled' || typeof l.used !== 'number') continue;
+    const key = l.skill || 'unknown';
+    const s = slices[key] || (slices[key] = { compiles: 0, total: 0, last: 0 });
+    s.compiles++; s.total += l.used; s.last = l.used;
+  }
+  const slice_by_skill = {};
+  for (const [skill, s] of Object.entries(slices)) slice_by_skill[skill] = { compiles: s.compiles, last: s.last, mean: Math.round(s.total / s.compiles) };
+
+  const eligible = thresholdMet && uneven;
+  const reason = !thresholdMet
+    ? `needs ≥ ${GATE_MIN_PROFILES} profiles with ≥ ${GATE_MIN_OUTCOMES} outcomes each — have ${qualified.length} (${profiles.length} profile${profiles.length === 1 ? '' : 's'} seen${noProfileRuns ? `, ${noProfileRuns} outcome run${noProfileRuns === 1 ? '' : 's'} without a profile not counted` : ''})`
+    : !uneven
+      ? (dormant.length === 0
+        ? `application is not uneven: no dormant source (in_slice ≥ ${NEVER_APPLIED_MIN_IN_SLICE} ∧ applied = 0) — there is nothing for scoring to demote`
+        : `application is not uneven: no source applied in ≥ ${GATE_APPLIED_RUNS} distinct runs yet — the applied side of the contrast is missing`)
+      : `${qualified.length} profiles carry ≥ ${GATE_MIN_OUTCOMES} outcomes and application is uneven (${dormant.length} dormant vs ${appliedRepeatedly.length} repeatedly-applied sources)`;
+
+  return {
+    thresholds: { min_profiles: GATE_MIN_PROFILES, min_outcomes: GATE_MIN_OUTCOMES, dormant_min_in_slice: NEVER_APPLIED_MIN_IN_SLICE, applied_min_runs: GATE_APPLIED_RUNS },
+    profiles, no_profile_runs: noProfileRuns, threshold_met: thresholdMet,
+    dormant, applied_repeatedly: appliedRepeatedly, uneven,
+    slice_by_skill, eligible, reason,
+  };
+}
+
+function cmdGate(args) {
+  const { lines } = readLog(null);
+  const { lines: fps } = readFps();
+  const gate = computeGate(lines, fps, parseLearnings());
+  if (args.json) { process.stdout.write(JSON.stringify(gate, null, 2) + '\n'); return; }
+
+  const out = [];
+  out.push(`gate (RFC 0001 §9.3, evaluated on this project's logs — RFC 0002 §2.3):`);
+  out.push(`  profiles with attributed outcomes (need ≥ ${GATE_MIN_PROFILES}, each ≥ ${GATE_MIN_OUTCOMES}):`);
+  if (!gate.profiles.length) out.push('    (none — no run has both a compiled profile and an outcome yet)');
+  for (const p of gate.profiles) out.push(`    ${p.pfp}  ${p.outcomes} outcome${p.outcomes === 1 ? '' : 's'}${Object.keys(p.statuses).length ? ` (${Object.entries(p.statuses).map(([k, v]) => `${k}=${v}`).join(' ')})` : ''}`);
+  if (gate.no_profile_runs) out.push(`    (${gate.no_profile_runs} outcome run${gate.no_profile_runs === 1 ? '' : 's'} without a compiled profile — reported, never summed into a profile)`);
+  out.push('  application:');
+  out.push(`    repeatedly applied (runs ≥ ${GATE_APPLIED_RUNS}): ${gate.applied_repeatedly.length} · dormant (in_slice ≥ ${NEVER_APPLIED_MIN_IN_SLICE} ∧ applied = 0): ${gate.dormant.length}`);
+  for (const d of gate.dormant) out.push(`    dormant: ${d.src} (${d.kind})  in_slice ${d.in_slice}`);
+  if (Object.keys(gate.slice_by_skill).length) {
+    out.push('  slice size per skill (compiled events):');
+    for (const [skill, s] of Object.entries(gate.slice_by_skill).sort((a, b) => a[0].localeCompare(b[0]))) {
+      out.push(`    ${skill}: last ${s.last} lines · mean ${s.mean} · ${s.compiles} compile${s.compiles === 1 ? '' : 's'}`);
+    }
+  }
+  out.push(`  verdict: ${gate.eligible ? 'ELIGIBLE' : 'NOT ELIGIBLE'} — ${gate.reason}`);
+  if (gate.eligible) {
+    out.push('');
+    out.push('  This report assembles evidence; it does not classify causes (RFC 0002 decision 6).');
+    out.push('  Before scoring may be enabled, a human classifies each dormant source:');
+    out.push('    cannot fire / duplicated elsewhere / the matching work has not happened / selection failure.');
+    out.push('  RFC 0001 §9.3 reached its verdict only through that classification — 0 of 18 dormant');
+    out.push('  sections were selection failures. A tool that guessed the cause would repeat the error.');
+  }
+  process.stdout.write(out.join('\n') + '\n');
+}
+
 // ─── scoreboard (RFC 0001 §3.5, PR6: derived cache, never a source of truth) ─
 // per_source: in_slice (compiled events), applied, contradicted, last_applied, runs (distinct runs with applied —
 // same meaning as `stats`). No wins/losses (decision 4). per_fingerprint: recurrence + the LRNs each class falsified.
@@ -867,6 +972,7 @@ function main() {
     case 'log': return cmdLog(args);
     case 'fp': return cmdFp(args);
     case 'stats': return cmdStats(args);
+    case 'gate': return cmdGate(args);
     case 'scoreboard': return cmdScoreboard(args);
     case undefined: case '--help': case '-h': case 'help':
       process.stdout.write([
@@ -876,10 +982,11 @@ function main() {
         `       qab.js fp <kind> <key> [--run <id>] [--skill <name>]   kind ∈ ${FP_KINDS.join('|')}`,
         '       qab.js fp --list [--run <id>]                      → this run\'s fingerprints (ffp kind key active)',
         '       qab.js stats [--since <YYYY-MM-DD>] [--json]',
+        '       qab.js gate [--json]                               → RFC 0001 §9.3 gate on this project\'s logs (read-only)',
         '       qab.js scoreboard                                  → rebuilds <kb>/.cache/scoreboard.json',
       ].join('\n') + '\n');
       return;
-    default: die(`unknown subcommand "${sub}" (run-id | compile | log | fp | stats | scoreboard)`);
+    default: die(`unknown subcommand "${sub}" (run-id | compile | log | fp | stats | gate | scoreboard)`);
   }
 }
 
@@ -888,4 +995,4 @@ if (require.main === module) {
   process.stdout.on('error', (e) => { if (e && e.code === 'EPIPE') process.exit(0); throw e; });
   main();
 }
-module.exports = { parseArgs, computeStats, normalizeKey, fingerprintOf, EVENTS, STATUSES, FP_KINDS };
+module.exports = { parseArgs, computeStats, computeGate, normalizeKey, fingerprintOf, EVENTS, STATUSES, FP_KINDS };

@@ -122,6 +122,7 @@ The gate stops being a milestone QABuddy passes once, and becomes one each proje
 | 5 | Project sections vs learnings | both, distinct roles | a learning is accumulated evidence with a lifecycle; a playbook is authored and stable (§2.2) |
 | 6 | Does `gate` classify dormancy causes? | **no — it assembles evidence and asks** | RFC 0001 §9.3 showed cause classification needs judgement; a guessing tool would repeat the mistake it warns about |
 | 7 | Scoring default | off, and refuses to enable without eligibility | the 0001 verdict is that scoring on thin/narrow data is actively harmful |
+| 8 | Where does `gate` live? (was open question 2) | **`qab.js gate`** (PR C, 2026-08-20) | a deterministic, read-only report over the two logs belongs beside `stats`; a distill mode would re-read the same data through an LLM. Distill can quote its output |
 
 ## 4. Implementation sequence
 
@@ -155,6 +156,7 @@ A–C are additive and independently useful; D–E stay closed until some projec
 
 1. Should `/qa-improve` distill *propose* scope overrides when it sees `in_slice ≥ N ∧ applied = 0`
    for a project, the way it proposes retirement for learnings today?
-2. Does `gate` belong in `qab.js`, or is it a distill mode (`/qa-improve gate`)?
-3. Do project sections need their own eval fixtures before they can be cited, or is the manifest
+2. Do project sections need their own eval fixtures before they can be cited, or is the manifest
    enough traceability?
+
+(Question "where does `gate` live" was resolved as decision 8: `qab.js gate`.)

@@ -1723,6 +1723,91 @@ function testFingerprints() {
   }
 }
 
+function testGate() {
+  console.log('\n🚪 Gate report (RFC 0002 PR C — qab.js gate, the §9.3 gate per project)');
+  const { execFileSync } = require('child_process');
+  const os = require('os');
+  const shipped = path.join(resolvePlatformDir('claude'), 'references', 'bin', 'qab.js');
+  if (!fs.existsSync(shipped)) { fail('shipped qab.js present for gate tests', 'run node build.js all'); return; }
+
+  const tmp = fs.mkdtempSync(path.join(os.tmpdir(), 'qab-gate-'));
+  const env = { ...process.env, QAB_CWD: tmp, QAB_TS: '2026-08-20T00:00:00Z' };
+  const run = (args) => execFileSync(process.execPath, [shipped, ...args], { env, encoding: 'utf8', stdio: ['ignore', 'pipe', 'pipe'] });
+  const logFile = path.join(tmp, 'features-kb', 'learnings-log.jsonl');
+  // The log is written directly because the READER is what's under test (same approach as the
+  // synthetic compiled events in testFingerprints).
+  const writeLog = ({ aRuns, bRuns, orphanOutcomes, withApplied = true, withDormant = true }) => {
+    const lines = [];
+    const ev = (o) => lines.push(JSON.stringify({ v: 1, ts: '2026-08-15T00:00:00Z', ...o }));
+    for (let i = 0; i < aRuns; i++) {
+      const r = `qa-A-${String(i).padStart(6, '0')}`;
+      ev({ run: r, skill: 'qa', event: 'compiled', pfp: 'aaaaaaaaaaaa', sources: withDormant ? ['REF-playwright-patterns#never', 'LRN-20260801-01'] : ['LRN-20260801-01'], used: 200, max: 0, dropped: [] });
+      if (withApplied) ev({ run: r, skill: 'qa', event: 'applied', src: 'LRN-20260801-01' });
+      ev({ run: r, skill: 'qa', event: 'outcome', status: 'DONE' });
+    }
+    for (let i = 0; i < bRuns; i++) {
+      const r = `tp-B-${String(i).padStart(6, '0')}`;
+      ev({ run: r, skill: 'test-plan', event: 'compiled', pfp: 'bbbbbbbbbbbb', sources: withDormant ? ['REF-playwright-patterns#never'] : [], used: 150, max: 0, dropped: [] });
+      ev({ run: r, skill: 'test-plan', event: 'outcome', status: 'DONE_WITH_CONCERNS' });
+    }
+    for (let i = 0; i < orphanOutcomes; i++) ev({ run: `old-${i}`, skill: 'qa', event: 'outcome', status: 'DONE' });
+    fs.writeFileSync(logFile, lines.join('\n') + '\n');
+  };
+
+  try {
+    fs.mkdirSync(path.join(tmp, 'features-kb'), { recursive: true });
+
+    // Eligible: 2 profiles ≥ 8 outcomes, one dormant source (in_slice 17 ≥ 10) vs one applied in ≥ 3 runs.
+    writeLog({ aRuns: 9, bRuns: 8, orphanOutcomes: 3 });
+    const g = JSON.parse(run(['gate', '--json']));
+    check(g.eligible === true && g.threshold_met === true && g.uneven === true, `gate: 9+8 outcomes across 2 profiles with uneven application → eligible (${g.reason})`);
+    const pA = (g.profiles || []).find(p => p.pfp === 'aaaaaaaaaaaa') || {};
+    const pB = (g.profiles || []).find(p => p.pfp === 'bbbbbbbbbbbb') || {};
+    check(pA.outcomes === 9 && pA.statuses && pA.statuses.DONE === 9, 'gate: profile outcome counts come from outcome events joined to compiled pfp', JSON.stringify(pA));
+    check(pB.outcomes === 8, 'gate: second profile counted independently');
+    check(g.no_profile_runs === 3 && (g.profiles || []).length === 2,
+      'gate: outcome runs without a compiled pfp are reported, NEVER summed into a profile (the §9.3 #23 mis-attribution guard)');
+    check((g.dormant || []).some(d => d.src === 'REF-playwright-patterns#never' && d.in_slice === 17),
+      'gate: dormant lists in_slice ≥ 10 ∧ applied = 0 sources with their in_slice', JSON.stringify(g.dormant));
+    check(g.slice_by_skill && g.slice_by_skill.qa && g.slice_by_skill.qa.last === 200 && g.slice_by_skill['test-plan'].compiles === 8,
+      'gate: slice size per skill from compiled events (last + compiles)', JSON.stringify(g.slice_by_skill));
+    const table = run(['gate']);
+    check(/verdict: ELIGIBLE/.test(table), 'gate table prints an explicit verdict line');
+    check(/does not classify causes/.test(table) && /cannot fire \/ duplicated elsewhere/.test(table),
+      'an eligible report ends by asking the human for cause classification (decision 6) — the tool never guesses');
+
+    // One outcome short on profile B → not eligible, reason names the counts.
+    writeLog({ aRuns: 9, bRuns: 7, orphanOutcomes: 0 });
+    const g2 = JSON.parse(run(['gate', '--json']));
+    check(g2.eligible === false && g2.threshold_met === false && /have 1/.test(g2.reason),
+      `gate: 8-outcome threshold is exact — 7 outcomes does not qualify (${g2.reason})`);
+    check(!/does not classify causes/.test(run(['gate'])), 'a not-eligible report does not print the classification ask');
+
+    // Threshold met but nothing dormant → not eligible: there is nothing for scoring to demote.
+    writeLog({ aRuns: 9, bRuns: 8, orphanOutcomes: 0, withDormant: false });
+    const g3 = JSON.parse(run(['gate', '--json']));
+    check(g3.eligible === false && g3.threshold_met === true && /no dormant source/.test(g3.reason),
+      `gate: even application fails the gate even past the outcome threshold (${g3.reason})`);
+
+    // Threshold met, dormancy present, but nothing repeatedly applied → the contrast is one-sided.
+    writeLog({ aRuns: 9, bRuns: 8, orphanOutcomes: 0, withApplied: false });
+    const g4 = JSON.parse(run(['gate', '--json']));
+    check(g4.eligible === false && /no source applied in ≥ 3/.test(g4.reason),
+      `gate: dormancy without a repeatedly-applied side is not "uneven" (${g4.reason})`);
+
+    // Empty log → a clean, honest zero report.
+    fs.rmSync(logFile);
+    const g5 = JSON.parse(run(['gate', '--json']));
+    check(g5.eligible === false && (g5.profiles || []).length === 0, 'gate on an empty log reports not eligible, no crash');
+  } finally {
+    fs.rmSync(tmp, { recursive: true, force: true });
+  }
+
+  // The command is documented where the model and the human look for it.
+  const helpOut = (() => { try { return execFileSync(process.execPath, [shipped, 'help'], { encoding: 'utf8' }); } catch { return ''; } })();
+  check(/qab\.js gate \[--json\]/.test(helpOut), 'qab.js help lists the gate subcommand');
+}
+
 (async () => {   // one async step (the EPIPE spawn check); everything else stays synchronous
 testSkillManifest();
 await testRuntimeHelper();
@@ -1731,6 +1816,7 @@ testReferenceIndex();
 testCompile();
 testScopeOverrides();
 testProjectRefs();
+testGate();
 testFingerprints();
 testExcludeConditions();
 testEvalFixtures();

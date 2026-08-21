@@ -10,7 +10,7 @@
 [![Skills: 13](https://img.shields.io/badge/Skills-13-green.svg)](#스킬)
 [![Platform: Claude Code](https://img.shields.io/badge/Platform-Claude_Code-purple.svg)](#작동-방식)
 [![Locales: en, ko](https://img.shields.io/badge/Locales-en_|_ko-orange.svg)](#로케일)
-[![Structural checks: 1201](https://img.shields.io/badge/Structural_checks-1201-brightgreen.svg)](#작동-방식)
+[![Structural checks: 1215](https://img.shields.io/badge/Structural_checks-1215-brightgreen.svg)](#작동-방식)
 
 스크럼 팀에서 일하는 SDT(Software Developers in Test)를 위한 AI 파트너입니다.<br>
 에픽 테스트 계획 수립부터 스프린트 실행, 릴리스 검증까지 전체 워크플로우를 지원합니다.<br>
@@ -258,7 +258,7 @@ flowchart LR
     C -. 반복 증명됨 .-> F["/qa-improve 정제:<br>레퍼런스 승격<br>+ 업스트림 PR"]
 ```
 
-**컨텍스트 컴파일러 (자동, 모든 스킬 실행 직전).** 스킬은 레퍼런스 전체를 열지 않습니다. 먼저 함께 배포되는 `qab.js` 헬퍼가 *그 스킬*에 스코프된 레퍼런스 섹션과 active 학습을 `slice.md` 하나로 **컴파일**하고, 무엇이 들어가고 무엇이 빠졌는지의 매니페스트를 함께 씁니다. 둘 다 `.qa-reports/runs/<run>/`에 남습니다 — 그래서 그 실행에서 모델에 실제로 무엇이 도달했는지는 추측할 대상이 아니라 나중에 열어서 다시 읽을 수 있는 산출물입니다. 소스가 출력을 좌우하면 실행이 그 id를 인용하고 *적용*으로 기록하며, 현실이 소스와 모순되면 그렇게 기록합니다. 설계: [RFC 0001 — Context Compiler](docs/rfc/0001-context-compiler.md).
+**컨텍스트 컴파일러 (자동, 모든 스킬 실행 직전).** 스킬은 레퍼런스 전체를 열지 않습니다. 먼저 함께 배포되는 `qab.js` 헬퍼가 *그 스킬*에 스코프된 레퍼런스 섹션과 active 학습을 `slice.md` 하나로 **컴파일**하고, 무엇이 들어가고 무엇이 빠졌는지의 매니페스트를 함께 씁니다. 둘 다 `.qa-reports/runs/<run>/`에 남습니다 — 그래서 그 실행에서 모델에 실제로 무엇이 도달했는지는 추측할 대상이 아니라 나중에 열어서 다시 읽을 수 있는 산출물입니다. 소스가 출력을 좌우하면 실행이 그 id를 인용하고 *적용*으로 기록하며, 현실이 소스와 모순되면 그렇게 기록합니다. `node qab.js gate`는 그 로그를 점수화 자격 게이트에 대조합니다 — 프로파일 × outcome, 휴면 소스, 슬라이스 크기 — 그리고 *이* 프로젝트의 데이터가 점수화 선택을 정당화하는지 말해줍니다 ([RFC 0002](docs/rfc/0002-project-owned-compiler.md); QABuddy 자신의 데이터에 대한 판정은 '아니오'였습니다). 설계: [RFC 0001 — Context Compiler](docs/rfc/0001-context-compiler.md).
 
 **학습 레이어 (자동, 모든 스킬 실행).** 모든 실행은 시작 시 `features-kb/LEARNINGS.md`를 읽고 — active 항목은 배포된 레퍼런스를 *오버라이드*하는 프로젝트 고유 규칙입니다 — 종료 시 세 가지 포착 트리거를 확인합니다: 문서화된 규칙이 현실 앞에서 깨짐, 문서화되지 않은 결정을 내림, SDT가 출력을 수정함. 항목에는 증거가 필수이며, 깨끗한 실행은 아무것도 기록하지 않습니다. 실행마다 *적용*·*모순*·*포착*·*종료 상태*가 `features-kb/learnings-log.jsonl`에 추가되고 (append-only, `qab.js`만 씀 — 절대 손으로 쓰지 않음), 재발하는 실패 클래스는 `features-kb/fingerprints.jsonl`에 이름이 붙어 그것을 막는다고 주장한 학습이 산문이 아니라 숫자로 반증됩니다. 이 파일들은 당신의 저장소에 살기 때문에 학습이 git으로 팀 전체에 전파되고 QABuddy 업그레이드에도 살아남습니다. 프로토콜: [`core/references/self-improve.md`](core/references/self-improve.md).
 
@@ -298,7 +298,7 @@ flowchart LR
 ```bash
 node build.js all                  # 모든 플랫폼용 빌드
 node build.js all --locale ko      # 한국어 버전 빌드
-node test.js                       # 1201개 구조 검사 실행
+node test.js                       # 1215개 구조 검사 실행
 ```
 
 > **구조 검사와 동작 검증은 다릅니다.** `node test.js`는 빌드 산출물의 형태를
@@ -313,7 +313,7 @@ node test.js                       # 1201개 구조 검사 실행
 ```
 QABuddy/
 ├── build.js                     # 빌드 스크립트 (node, 의존성 없음)
-├── test.js                      # 구조 검사 스위트 (1201개 검사)
+├── test.js                      # 구조 검사 스위트 (1215개 검사)
 ├── bin/qab.js                   # 런타임 헬퍼 (compile, log, fp, stats, scoreboard)
 ├── core/                        # 단일 소스 — 여기서 편집
 │   ├── skills/ (13)             # {{플레이스홀더}} 포함 스킬 템플릿
