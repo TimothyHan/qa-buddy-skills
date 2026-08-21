@@ -323,11 +323,37 @@ gate (RFC 0001 §9.3, evaluated on this project's logs — RFC 0002 §2.3):
   failures — a tool that guessed the cause would reproduce exactly the error that
   verdict warns about.
 
-Scoring (D) and auto status changes (E) don't exist as code yet. When they do, they
-default off, and there are two ways to turn them on: **pass the gate on your own
-data**, or a maintainer sets an **explicit override recorded in the log as a
-decision** (RFC 0002 §2.4). What's blocked is not scoring itself — it's turning it
-on *silently*.
+**QABuddy tells you the moment the gate opens.** When the exact outcome that tips
+the threshold is logged, `log outcome` prints a 🔓 notice, and the skill relays it to
+you and asks whether you want scoring — it fires exactly once, on the transition,
+and the decision plus the `.qabuddy.json` edit always stay human.
+
+### 6.4 Turning scoring on — `compiler.scoring` (PR D)
+
+```jsonc
+{ "compiler": { "scoring": true, "budget_lines": 220 } }
+```
+
+With it on, the compile scores candidates **per profile** and drops the tail past
+the budget:
+
+- **The floor never drops**: `tier=must` sections, sources applied in this
+  profile's last 3 runs, and every learning (a project's own corrections are not
+  subject to the budget). Even a budget smaller than the floor packs the whole floor.
+- **Scores come from this profile's data only** (`applied_ratio × contradiction
+  penalty × recency × freq`). Below 8 outcomes for this profile the compile falls
+  back to **unscored** — never to a global ranking (the exact error §9.3 forbids).
+- **Every 10th run auditions**: the best budget-dropped candidate rides along
+  marked `(audition)`, so dormant knowledge keeps getting chances to earn `applied`.
+- The manifest shows everything: `score:` and `n:` on packed sources,
+  `reason: budget score: … n: …` on dropped ones.
+
+**The enabling rule (RFC 0002 §2.4):** if the gate is not eligible, the compile
+refuses with the reason. To proceed anyway, set `"scoringOverride": "<one-line
+note>"` — the note is **recorded in the log as a decision** (exactly once per
+distinct note). What's blocked is not scoring — it's turning it on *silently*.
+
+Auto status changes (E) still don't exist as code — when they do, the same rules apply.
 
 ---
 

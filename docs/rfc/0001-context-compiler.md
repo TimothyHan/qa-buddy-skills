@@ -375,6 +375,9 @@ Status 2026-08-17: two profiles exist — `5408a28cb4ac` (`web/exists/unknown`) 
 
 _Design kept for the record; the gate opened and the measurement argued against building it._
 
+_Materialized 2026-08-20 as **RFC 0002 PR D**: per-profile with a floor, constants instead of
+knobs, behind each project's own gate (or an override recorded in the log as a decision)._
+
 `.qabuddy.json` `compiler: {scoring, explore_rate: 0.10, min_samples: 8, budget_lines}`; scoring per §5; `per_profile` when data exists; manifest shows `score`, `n`, `(audition)`, `dropped` reasons; convert the six hard-lists to `tier=must scope=<skill>`; `{{COMPILE_CMD}}` placeholder in platform configs; CONTRIBUTING "Changing the Compiler" (evidence table required). Kill criteria §9.3.
 
 ### PR8 — Opt-in auto status (P6b) — **not built (decision 16, §9.3 outcome)**
