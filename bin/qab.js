@@ -752,7 +752,7 @@ function cmdCompile(args) {
   const manifest = [
     '---', 'manifest: 1', `run: ${run.run}`, `skill: ${skill}`, `pfp: ${pfp}`,
     `profile: {surface: ${profile.surface}, pom: ${profile.pom}, ticket_kind: ${profile.ticket_kind}}`,
-    `compiler: qab 0.6.0   scoring: ${scoringLabel}`,
+    `compiler: qab 0.7.0   scoring: ${scoringLabel}`,
     `budget: {max: ${budgetMax}, used: ${used}}${budgetMax === 0 ? '   # max 0 = uncapped (unscored compile, RFC 0001 PR5)' : '   # compiler.budget_lines (RFC 0002 PR D; the floor packs regardless)'}`,
     'sources:', ...sources.map(x => `  - id: ${x.id}   tier: ${x.tier}   lines: ${x.lines}${x.via ? `   via: ${x.via}` : ''}${x.tag ? `   score: ${fmtScore(x.tag.score)}   n: ${x.tag.n}${x.tag.audition ? '   (audition)' : ''}` : ''}`),
     'dropped:', ...(dropped.length ? dropped.map(d => `  - id: ${d.id}   reason: ${d.reason}${d.reason === 'budget' ? `   score: ${fmtScore(d.score)}   n: ${d.n}` : ''}`) : ['  []']),
