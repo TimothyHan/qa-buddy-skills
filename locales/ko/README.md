@@ -8,7 +8,7 @@
 
 | 코드 | 언어 | 상태 |
 |------|------|------|
-| `ko` | 한국어 | 완료 — QA 용어집으로 27개 파일 번역 |
+| `ko` | 한국어 | 완료 — en/ko 완전 대응, 빌드가 강제 (`node build.js all`이 누락된 대응본이나 `qab:` id 불일치에서 실패) |
 
 ## 작동 방식
 
@@ -30,10 +30,13 @@ locales/ko/
 ├── preamble-base.md         # Tier 1 프리앰블
 ├── preamble-full.md         # Tier 2 추가 내용
 ├── project-instructions.md  # CLAUDE.md / .mdc / copilot-instructions 템플릿
-├── skills/                  # 11개 스킬 번역
+├── skills/                  # 스킬별 폴더 — core/와의 대응을 빌드가 강제
 └── references/
-    ├── playbook/            # 11개 방법론 파일 번역
-    └── feature-knowledge-base-spec.md
+    ├── playbook/            # 방법론 대응본 (core와 같은 qab: id, 빌드가 검증)
+    ├── feature-knowledge-base-spec.md
+    ├── playwright-patterns.md
+    ├── run-protocol.md
+    └── self-improve.md
 ```
 
 ## 번역 가이드라인

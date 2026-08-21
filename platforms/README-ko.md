@@ -21,11 +21,14 @@ Claude Code는 `tool_groups`를 사용하여 스킬 frontmatter에 `allowed-tool
 
 | 옵션 | Bash | PowerShell | 효과 |
 |------|------|------------|------|
-| 기본값 | `setup` | `setup.ps1` | `qa-` 접두사로 설치 |
+| 기본값 | `setup` | `setup.ps1` | `qa-` 접두사로 설치; 더 이상 배포하지 않는 스킬의 QABuddy 소유 잔여물도 함께 정리 |
 | 접두사 없음 | `--no-prefix` | `-NoPrefix` | 접두사 없이 설치 |
-| 제거 | `--uninstall` | `-Uninstall` | 모든 QABuddy 심볼릭 링크 제거 |
-| 상태 | `--status` | `-Status` | 현재 설치 상태 표시 |
+| 제거 | `--uninstall` | `-Uninstall` | QABuddy 소유 항목을 잔여물까지 전부 제거 — 다른 도구의 스킬은 절대 건드리지 않음 |
+| 상태 | `--status` | `-Status` | 현재 설치 상태 표시; 더 이상 배포하지 않는 스킬의 잔여물은 `ORPHAN`으로 보고 |
+| 인수 (Cursor/Copilot) | `--adopt` | `-Adopt` | v0.2.3 이전 복사 설치본에 소유 마커를 찍어 status/uninstall이 외부 스킬과 구별하게 함 |
 | 프로젝트 (Cursor) | `--project` | `-Project` | 전역 대신 프로젝트에 복사 |
+
+동작 플래그가 충돌하면(예: `--status --uninstall`) 하나가 조용히 이기는 대신 오류로 거부합니다.
 
 설치 스크립트는 추가로 다음 항목도 확인합니다:
 - Atlassian MCP 설정

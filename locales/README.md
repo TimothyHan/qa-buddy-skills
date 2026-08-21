@@ -8,7 +8,7 @@ Translations of QABuddy skills and methodology for non-English teams.
 
 | Code | Language | Status |
 |------|----------|--------|
-| `ko` | Korean (한국어) | Complete — 27 files translated with QA glossary |
+| `ko` | Korean (한국어) | Complete — full en/ko parity, enforced by the build (`node build.js all` fails on a missing twin or a `qab:` id mismatch) |
 
 ## How It Works
 
@@ -30,13 +30,16 @@ locales/ko/
 ├── preamble-base.md         # Tier 1 preamble
 ├── preamble-full.md         # Tier 2 additions
 ├── project-instructions.md  # CLAUDE.md / .mdc / copilot-instructions template
-├── skills/                  # 11 skill translations
+├── skills/                  # one folder per skill — parity with core/ enforced by the build
 │   ├── qa/SKILL.md
 │   ├── verify-fix/SKILL.md
 │   └── ...
 └── references/
-    ├── playbook/            # 11 methodology file translations
-    └── feature-knowledge-base-spec.md
+    ├── playbook/            # methodology twins (same qab: ids as core, verified at build)
+    ├── feature-knowledge-base-spec.md
+    ├── playwright-patterns.md
+    ├── run-protocol.md
+    └── self-improve.md
 ```
 
 ## Adding a New Locale
