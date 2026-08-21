@@ -1,6 +1,6 @@
 # RFC 0002 — Project-owned compiler configuration
 
-**Status:** Draft | **Author:** Timothy Han (with Claude) | **Created:** 2026-08-19
+**Status:** Accepted — PRs A–C approved and in build (2026-08-20); D–E stay gated | **Author:** Timothy Han (with Claude) | **Created:** 2026-08-19
 **Depends on:** RFC 0001 (PR0–PR6, shipped as v0.5.0) · **Supersedes:** RFC 0001 §8 PR7/PR8 framing
 
 ## 한국어 요약

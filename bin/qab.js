@@ -11,6 +11,9 @@
  *   compile --skill <name> [--ticket <key>]      (PR5) run-id if needed → profile v0 → candidate sources (scope + active LRNs)
  *                                                → pack (must first, unscored, no cap) → <run>/slice.md + profile.json + scratchpad.md
  *                                                → append `compiled` → print the slice path
+ *                                                Project `.qabuddy.json` `compiler.scope` overrides apply after core scope
+ *                                                resolution (RFC 0002 §2.1): tier=must is a floor, unknown ids are refused
+ *                                                loudly, and the manifest records `via:`/`reason: project-override`.
  *   log     <event> [<src>] [--note <text>] [--status <S>] [--run <id>] [--skill <name>]
  *                                                append one v1 line to <learningsPath dir>/learnings-log.jsonl (+ <run>/events.jsonl)
  *   fp      <kind> <key> [--run <id>] [--skill <name>]
@@ -148,6 +151,52 @@ function nearestRefIds(id, index, n = 3) {
     if (ks === stem) score += 3;
     return [score, lev(frag, kf), k];
   }).sort((a, b) => b[0] - a[0] || a[1] - b[1] || a[2].localeCompare(b[2])).slice(0, n).filter(x => x[0] > 0).map(x => x[2]);
+}
+
+// ─── project compiler config (RFC 0002) ─────────────────────────────────
+function compilerConfig() {
+  const c = readConfig().compiler;
+  return (c && typeof c === 'object' && !Array.isArray(c)) ? c : {};
+}
+
+// Scope overrides (RFC 0002 §2.1, PR A). A project edits the SELECTION layer from its own
+// `.qabuddy.json` instead of editing shipped files that an update overwrites:
+//   "compiler": { "scope": { "<section-id>": { "remove": ["qa"], "add": ["test-cases"] } } }
+// Effective scope = (index scope − remove) ∪ add, applied AFTER core resolution so upstream
+// changes to a section's default scope still flow through. Every refusal is loud by design
+// (decisions 2–3): a silently ignored override leaves the project believing it is configured.
+// Mutates `index` in place; returns the set of overridden ids (manifest causality).
+function applyScopeOverrides(index) {
+  const spec = compilerConfig().scope;
+  const overridden = new Set();
+  if (spec === undefined) return overridden;
+  if (!spec || typeof spec !== 'object' || Array.isArray(spec)) {
+    die('compiler.scope in .qabuddy.json must be an object: {"<section-id>": {"add": […], "remove": […]}}');
+  }
+  for (const [id, o] of Object.entries(spec)) {
+    if (!index[id]) {
+      const near = nearestRefIds(id, index);
+      die(`compiler.scope: unknown section id "${id}"${near.length ? ` — did you mean: ${near.join(', ')}` : ''}\n`
+        + '  An override that matches nothing is a config bug, not a no-op (RFC 0002 decision 3) — fix the id or delete the entry.');
+    }
+    if (!o || typeof o !== 'object' || Array.isArray(o)) die(`compiler.scope["${id}"] must be an object with "add" and/or "remove" arrays`);
+    for (const k of Object.keys(o)) if (k !== 'add' && k !== 'remove') die(`compiler.scope["${id}"]: unknown key "${k}" — only "add" and "remove"`);
+    for (const k of ['add', 'remove']) {
+      if (o[k] !== undefined && (!Array.isArray(o[k]) || o[k].some(x => typeof x !== 'string' || !x.trim()))) {
+        die(`compiler.scope["${id}"].${k} must be an array of skill names`);
+      }
+    }
+    const remove = o.remove || [];
+    if (remove.length && index[id].tier === 'must') {
+      die(`compiler.scope: "${id}" is tier=must — a must section is a floor and cannot be removed (RFC 0002 decision 2).\n`
+        + '  Rails stay rails: drop the "remove" for this section.');
+    }
+    const scope = index[id].scope.filter(s => !remove.includes(s));
+    for (const s of (o.add || [])) if (!scope.includes(s)) scope.push(s);
+    index[id] = { ...index[id], scope };
+    overridden.add(id);
+  }
+  return overridden;
 }
 
 // LRN ids are project content (any well-formed id passes); REF ids must exist in the shipped index.
@@ -349,10 +398,25 @@ function cmdCompile(args) {
   // candidate REF sections
   // scope=all sections are general context no skill reads per run today (KB spec, terminology) — packed only if
   // tier=must; otherwise listed under dropped so distill's never-selected column can raise them (RFC decision, PR5).
-  const allRefs = Object.entries(index).map(([id, e]) => ({ id, ...e, kind: 'REF', explicit: e.scope.includes(skill) }));
-  const dropped = allRefs.filter(r => !r.explicit && r.scope.includes('all') && r.tier !== 'must').map(r => ({ id: r.id, reason: 'general-scope' }));
+  // Project scope overrides (RFC 0002 PR A) apply after core resolution; the manifest records causality:
+  // a section packed only because of an override carries `via: project-override`, one unpacked by an
+  // override is listed under dropped with `reason: project-override` — the slice stays self-explaining.
+  const baseScope = {};
+  for (const [id, e] of Object.entries(index)) baseScope[id] = e.scope;
+  const overridden = applyScopeOverrides(index);
+  const packs = (scope, tier) => scope.includes(skill) || (scope.includes('all') && tier === 'must');
+  const allRefs = Object.entries(index).map(([id, e]) => ({
+    id, ...e, kind: 'REF', explicit: e.scope.includes(skill),
+    via: overridden.has(id) && packs(e.scope, e.tier) && !packs(baseScope[id], e.tier) ? 'project-override' : undefined,
+  }));
+  const dropped = [];
+  for (const r of allRefs) {
+    if (packs(r.scope, r.tier)) continue;
+    if (overridden.has(r.id) && packs(baseScope[r.id], r.tier)) dropped.push({ id: r.id, reason: 'project-override' });
+    else if (r.scope.includes('all') && r.tier !== 'must') dropped.push({ id: r.id, reason: 'general-scope' });
+  }
   const refs = allRefs
-    .filter(r => r.explicit || (r.scope.includes('all') && r.tier === 'must'))
+    .filter(r => packs(r.scope, r.tier))
     .sort((a, b) => (TIER_RANK[a.tier] ?? 1) - (TIER_RANK[b.tier] ?? 1) || (a.explicit === b.explicit ? 0 : a.explicit ? -1 : 1) || a.file.localeCompare(b.file) || 0);
   // candidate LRNs (active, scoped, profile-compatible); profile-narrowed ones that don't match are dropped, visibly
   const scopedLrns = parseLearnings().filter(l => l.status === 'active' && (l.scope.includes('all') || l.scope.includes(skill)));
@@ -379,7 +443,7 @@ function cmdCompile(args) {
     else text = `**Statement:** ${s.statement}\n**Overrides:** ${s.overrides || 'none'}\n`;
     const n = text.split('\n').length;
     used += n;
-    sources.push(s.kind === 'REF' ? { id: s.id, tier: s.tier, lines: n } : { id: s.id, tier: 'lrn', lines: n });
+    sources.push(s.kind === 'REF' ? { id: s.id, tier: s.tier, lines: n, via: s.via } : { id: s.id, tier: 'lrn', lines: n });
     bodyParts.push(s.kind === 'REF' ? `## ${s.id} — ${s.heading}\n${text}` : `## ${s.id}\n${text}`);
   }
 
@@ -387,7 +451,7 @@ function cmdCompile(args) {
     '---', 'manifest: 1', `run: ${run.run}`, `skill: ${skill}`, `pfp: ${pfp}`,
     `profile: {surface: ${profile.surface}, pom: ${profile.pom}, ticket_kind: ${profile.ticket_kind}}`,
     'compiler: qab 0.6.0   scoring: off', `budget: {max: 0, used: ${used}}   # max 0 = uncapped (unscored compile, RFC 0001 PR5)`,
-    'sources:', ...sources.map(x => `  - id: ${x.id}   tier: ${x.tier}   lines: ${x.lines}`),
+    'sources:', ...sources.map(x => `  - id: ${x.id}   tier: ${x.tier}   lines: ${x.lines}${x.via ? `   via: ${x.via}` : ''}`),
     'dropped:', ...(dropped.length ? dropped.map(d => `  - id: ${d.id}   reason: ${d.reason}`) : ['  []']),
     '---', '',
   ].join('\n');

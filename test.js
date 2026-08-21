@@ -1341,6 +1341,87 @@ function testCompile() {
   }
 }
 
+function testScopeOverrides() {
+  console.log('\n🎛  Scope overrides (RFC 0002 PR A — .qabuddy.json compiler.scope)');
+  const { execFileSync } = require('child_process');
+  const os = require('os');
+  const shipped = path.join(resolvePlatformDir('claude'), 'references', 'bin', 'qab.js');
+  const indexPath = path.join(resolvePlatformDir('claude'), 'references', 'index.json');
+  if (!fs.existsSync(shipped) || !fs.existsSync(indexPath)) { fail('shipped qab.js + index.json present for override tests', 'run node build.js all'); return; }
+  const index = JSON.parse(fs.readFileSync(indexPath, 'utf8'));
+
+  // Real ids from the shipped index, picked by property so the test tracks reality, not a hardcoded name.
+  const pick = (pred) => (Object.entries(index).find(([, e]) => pred(e)) || [null])[0];
+  const removableId = pick(e => e.tier !== 'must' && e.scope.includes('test-cases') && !e.scope.includes('all'));
+  const addableId = pick(e => e.tier !== 'must' && !e.scope.includes('test-cases') && !e.scope.includes('all'));
+  const mustId = pick(e => e.tier === 'must');
+  if (!removableId || !addableId || !mustId) { fail('index has a removable / addable / must section for override tests', `got ${removableId} / ${addableId} / ${mustId}`); return; }
+
+  const tmp = fs.mkdtempSync(path.join(os.tmpdir(), 'qab-ovr-'));
+  const env = { ...process.env, QAB_CWD: tmp, QAB_TS: '2026-08-20T00:00:00Z' };
+  const run = (args) => execFileSync(process.execPath, [shipped, ...args], { env, encoding: 'utf8', stdio: ['ignore', 'pipe', 'pipe'] });
+  const failsWith = (args) => { try { run(args); return null; } catch (e) { return e.status !== 0 ? String(e.stderr || '') : null; } };
+  const setCfg = (compiler) => fs.writeFileSync(path.join(tmp, '.qabuddy.json'), JSON.stringify({ compiler }));
+  const compileManifest = () => {
+    const out = run(['compile', '--skill', 'test-cases', '--ticket', `PROJ-${++compileManifest.n}`]); // fresh ticket → fresh run, no marker reuse
+    const slice = fs.readFileSync(path.join(tmp, out.split('\n')[0].trim()), 'utf8');
+    const fm = slice.split('\n---\n')[0];
+    return {
+      sources: (fm.split('\nsources:\n')[1] || '').split('\ndropped:')[0],
+      dropped: fm.split('\ndropped:')[1] || '',
+    };
+  };
+  compileManifest.n = 0;
+
+  try {
+    fs.mkdirSync(path.join(tmp, 'features-kb'), { recursive: true });
+
+    // Baseline (no compiler config): the sections behave per their shipped scope.
+    setCfg(undefined);
+    const base = compileManifest();
+    check(base.sources.includes(`- id: ${removableId} `), `baseline packs ${removableId} (shipped scope)`);
+    check(!base.sources.includes(`- id: ${addableId} `), `baseline does not pack ${addableId} (scoped elsewhere)`);
+    check(!/project-override/.test(base.sources + base.dropped), 'baseline manifest has no project-override markers');
+
+    // remove + add: effective scope = (scope − remove) ∪ add, with manifest causality both ways (§2.1).
+    setCfg({ scope: { [removableId]: { remove: ['test-cases'] }, [addableId]: { add: ['test-cases'] } } });
+    const ovr = compileManifest();
+    check(!ovr.sources.includes(`- id: ${removableId} `), `override removes ${removableId} from the slice`);
+    check(new RegExp(`^  - id: ${removableId.replace(/[.*+?^${}()|[\]\\/]/g, '\\$&')}   reason: project-override$`, 'm').test(ovr.dropped),
+      'removed section listed under dropped with reason: project-override');
+    check(new RegExp(`^  - id: ${addableId.replace(/[.*+?^${}()|[\]\\/]/g, '\\$&')}   tier: \\w+   lines: \\d+   via: project-override$`, 'm').test(ovr.sources),
+      'added section packed with via: project-override');
+    check((ovr.sources.match(/via: project-override/g) || []).length === 1, 'via: project-override marks ONLY the override-caused section');
+    // Overrides change selection, not validity: the removed id is still citable.
+    run(['log', 'applied', removableId]);
+    check(true, 'log applied still accepts a section an override removed (scope ≠ validity)');
+
+    // Refusals — every one loud, nothing written (decisions 2–3).
+    setCfg({ scope: { [removableId.slice(0, -1)]: { remove: ['qa'] } } });
+    const eUnknown = failsWith(['compile', '--skill', 'test-cases']);
+    check(eUnknown !== null && /unknown section id/.test(eUnknown), 'unknown override id refuses the compile');
+    check(eUnknown !== null && eUnknown.includes(removableId), 'unknown-id refusal suggests the nearest real id', eUnknown || '(accepted)');
+    setCfg({ scope: { [mustId]: { remove: [index[mustId].scope[0] || 'qa'] } } });
+    const eMust = failsWith(['compile', '--skill', 'test-cases']);
+    check(eMust !== null && /tier=must/.test(eMust) && eMust.includes(mustId), 'removing a tier=must section is refused with a named error (the floor, decision 2)', eMust || '(accepted)');
+    setCfg({ scope: { [mustId]: { add: ['test-cases'] } } });
+    const addMust = compileManifest();
+    check(new RegExp(`- id: ${mustId.replace(/[.*+?^${}()|[\]\\/]/g, '\\$&')} .*via: project-override`).test(addMust.sources), 'ADDING to a must section is allowed (the floor blocks removal only)');
+    setCfg({ scope: { [removableId]: { remove: 'test-cases' } } });
+    check(failsWith(['compile', '--skill', 'test-cases']) !== null, 'remove as a bare string (not an array) is refused');
+    setCfg({ scope: { [removableId]: { rename: ['x'] } } });
+    check(failsWith(['compile', '--skill', 'test-cases']) !== null, 'unknown override key is refused');
+    setCfg({ scope: [] });
+    check(failsWith(['compile', '--skill', 'test-cases']) !== null, 'compiler.scope as an array is refused');
+    // The refusal happens before any run state is written for THIS compile: config errors must not
+    // leave half-started runs behind. (The marker from the last good compile is still there — fine.)
+    setCfg({});
+    check(compileManifest().sources.includes(`- id: ${removableId} `), 'empty compiler config = shipped behaviour again (overrides are opt-in)');
+  } finally {
+    fs.rmSync(tmp, { recursive: true, force: true });
+  }
+}
+
 function testFingerprints() {
   console.log('\n🫆 Fingerprints + scoreboard (RFC 0001 PR6 — failure classes, falsified/duplicate-by-fp, in_slice)');
   const { execFileSync } = require('child_process');
@@ -1540,6 +1621,7 @@ await testRuntimeHelper();
 testLearningsGates();
 testReferenceIndex();
 testCompile();
+testScopeOverrides();
 testFingerprints();
 testExcludeConditions();
 testEvalFixtures();

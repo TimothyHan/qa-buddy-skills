@@ -10,7 +10,7 @@
 [![Skills: 13](https://img.shields.io/badge/Skills-13-green.svg)](#skills)
 [![Platform: Claude Code](https://img.shields.io/badge/Platform-Claude_Code-purple.svg)](#how-it-works)
 [![Locales: en, ko](https://img.shields.io/badge/Locales-en_|_ko-orange.svg)](#locales)
-[![Structural checks: 1164](https://img.shields.io/badge/Structural_checks-1164-brightgreen.svg)](#how-it-works)
+[![Structural checks: 1180](https://img.shields.io/badge/Structural_checks-1180-brightgreen.svg)](#how-it-works)
 
 An AI partner for Software Developers in Test (SDTs) working in Scrum teams.<br>
 Covers the full workflow — from epic test planning through sprint execution to release verification.<br>
@@ -147,6 +147,7 @@ Run `/qa-setup` to configure. Settings saved to `.qabuddy.json`:
 | **Upstream contributions** | Yes, no | Auto-PR improvements to QABuddy repo |
 | **Learnings path** | default `features-kb/LEARNINGS.md` | Where the learnings layer lives |
 | **Runs directory** | default `.qa-reports/runs` | Where each run's compiled slice, manifest and scratchpad are written |
+| **Scope overrides** | hand-edited: `compiler.scope` | Add/remove which skills receive a shipped reference section — per project, survives updates. `tier=must` cannot be removed; unknown ids are refused loudly ([RFC 0002](docs/rfc/0002-project-owned-compiler.md)) |
 
 > **No Jira? No problem.** Set context source to "spec" or "chat". Bugs are written
 > to `features-kb/` as markdown. Works with any project management tool.
@@ -296,7 +297,7 @@ Skills are authored once in `core/skills/`. The build script generates platform-
 ```bash
 node build.js all                  # Build for all platforms
 node build.js all --locale ko      # Build Korean version
-node test.js                       # Run 1164 structural checks
+node test.js                       # Run 1180 structural checks
 ```
 
 > **Structural checks are not behavioural verification.** `node test.js` inspects
@@ -312,7 +313,7 @@ node test.js                       # Run 1164 structural checks
 ```
 QABuddy/
 ├── build.js                     # Build script (node, zero deps)
-├── test.js                      # Structural check suite (1164 checks)
+├── test.js                      # Structural check suite (1180 checks)
 ├── bin/qab.js                   # Runtime helper (compile, log, fp, stats, scoreboard)
 ├── core/                        # Single source of truth — edit here
 │   ├── skills/ (13)             # Skill templates with {{placeholders}}
