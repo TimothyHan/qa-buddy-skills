@@ -18,12 +18,17 @@
 | `events.jsonl` | 이 실행의 로그 라인 (프로젝트 `learnings-log.jsonl`에도 추가됨) |
 | `fingerprints.jsonl` | 이 실행의 실패 지문 (있는 경우; 프로젝트 `fingerprints.jsonl`에도 추가됨; `self-improve.md` §실패 지문) |
 
-**후보** = `scope`가 이 스킬을 지명하는 레퍼런스 섹션(+ `all` 스코프의 `tier=must` 섹션) ∪ `Scope`에
+**후보** = `scope`가 이 스킬을 지명하는 레퍼런스 섹션(+ `all` 스코프의 `tier=must` 섹션) — 배포된
+`REF-`와 프로젝트 소유 `PRJ-`(`compiler.references`) 모두 — ∪ `Scope`에
 이 스킬(또는 `all`)이 있고 `Profile:`이 맞는 `active` 학습.
 **패킹 (unscored, PR5):** `must` 먼저, 그 다음 파일 순서; 각 학습은 자기가 `Overrides`하는 섹션 바로 뒤,
 없으면 맨 끝. **예산 상한 없음** — 슬라이스는 구성상 스킬이 이전에 읽던 것과 같고, `budget.used`만
 기록해 슬라이스 크기를 지표로 삼습니다. `all` 스코프이면서 `must`가 아닌 섹션(KB 스펙, 용어)은
-`dropped: general-scope`로 표시하고 넣지 않습니다. 점수와 상한은 나중에 플래그 뒤에서 옵니다.
+`dropped: general-scope`로 표시하고 넣지 않습니다. 프로젝트의 `.qabuddy.json`이 섹션의 스코프를
+오버라이드할 수 있습니다(`compiler.scope`, RFC 0002): 오버라이드 때문에 들어간 섹션은
+`via: project-override`를, 오버라이드가 뺀 섹션은 `dropped:`에 `reason: project-override`를
+달고 나타납니다 — 슬라이스는 항상 스스로를 설명합니다. `tier=must`는 제거할 수 없습니다.
+점수와 상한은 나중에 플래그 뒤에서 옵니다.
 
 ## 슬라이스 읽기
 <!-- qab: id=reading-the-slice -->

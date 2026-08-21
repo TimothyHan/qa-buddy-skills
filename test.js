@@ -1341,6 +1341,195 @@ function testCompile() {
   }
 }
 
+function testScopeOverrides() {
+  console.log('\n🎛  Scope overrides (RFC 0002 PR A — .qabuddy.json compiler.scope)');
+  const { execFileSync } = require('child_process');
+  const os = require('os');
+  const shipped = path.join(resolvePlatformDir('claude'), 'references', 'bin', 'qab.js');
+  const indexPath = path.join(resolvePlatformDir('claude'), 'references', 'index.json');
+  if (!fs.existsSync(shipped) || !fs.existsSync(indexPath)) { fail('shipped qab.js + index.json present for override tests', 'run node build.js all'); return; }
+  const index = JSON.parse(fs.readFileSync(indexPath, 'utf8'));
+
+  // Real ids from the shipped index, picked by property so the test tracks reality, not a hardcoded name.
+  const pick = (pred) => (Object.entries(index).find(([, e]) => pred(e)) || [null])[0];
+  const removableId = pick(e => e.tier !== 'must' && e.scope.includes('test-cases') && !e.scope.includes('all'));
+  const addableId = pick(e => e.tier !== 'must' && !e.scope.includes('test-cases') && !e.scope.includes('all'));
+  const mustId = pick(e => e.tier === 'must');
+  if (!removableId || !addableId || !mustId) { fail('index has a removable / addable / must section for override tests', `got ${removableId} / ${addableId} / ${mustId}`); return; }
+
+  const tmp = fs.mkdtempSync(path.join(os.tmpdir(), 'qab-ovr-'));
+  const env = { ...process.env, QAB_CWD: tmp, QAB_TS: '2026-08-20T00:00:00Z' };
+  const run = (args) => execFileSync(process.execPath, [shipped, ...args], { env, encoding: 'utf8', stdio: ['ignore', 'pipe', 'pipe'] });
+  const failsWith = (args) => { try { run(args); return null; } catch (e) { return e.status !== 0 ? String(e.stderr || '') : null; } };
+  const setCfg = (compiler) => fs.writeFileSync(path.join(tmp, '.qabuddy.json'), JSON.stringify({ compiler }));
+  const compileManifest = () => {
+    const out = run(['compile', '--skill', 'test-cases', '--ticket', `PROJ-${++compileManifest.n}`]); // fresh ticket → fresh run, no marker reuse
+    const slice = fs.readFileSync(path.join(tmp, out.split('\n')[0].trim()), 'utf8');
+    const fm = slice.split('\n---\n')[0];
+    return {
+      sources: (fm.split('\nsources:\n')[1] || '').split('\ndropped:')[0],
+      dropped: fm.split('\ndropped:')[1] || '',
+    };
+  };
+  compileManifest.n = 0;
+
+  try {
+    fs.mkdirSync(path.join(tmp, 'features-kb'), { recursive: true });
+
+    // Baseline (no compiler config): the sections behave per their shipped scope.
+    setCfg(undefined);
+    const base = compileManifest();
+    check(base.sources.includes(`- id: ${removableId} `), `baseline packs ${removableId} (shipped scope)`);
+    check(!base.sources.includes(`- id: ${addableId} `), `baseline does not pack ${addableId} (scoped elsewhere)`);
+    check(!/project-override/.test(base.sources + base.dropped), 'baseline manifest has no project-override markers');
+
+    // remove + add: effective scope = (scope − remove) ∪ add, with manifest causality both ways (§2.1).
+    setCfg({ scope: { [removableId]: { remove: ['test-cases'] }, [addableId]: { add: ['test-cases'] } } });
+    const ovr = compileManifest();
+    check(!ovr.sources.includes(`- id: ${removableId} `), `override removes ${removableId} from the slice`);
+    check(new RegExp(`^  - id: ${removableId.replace(/[.*+?^${}()|[\]\\/]/g, '\\$&')}   reason: project-override$`, 'm').test(ovr.dropped),
+      'removed section listed under dropped with reason: project-override');
+    check(new RegExp(`^  - id: ${addableId.replace(/[.*+?^${}()|[\]\\/]/g, '\\$&')}   tier: \\w+   lines: \\d+   via: project-override$`, 'm').test(ovr.sources),
+      'added section packed with via: project-override');
+    check((ovr.sources.match(/via: project-override/g) || []).length === 1, 'via: project-override marks ONLY the override-caused section');
+    // Overrides change selection, not validity: the removed id is still citable.
+    run(['log', 'applied', removableId]);
+    check(true, 'log applied still accepts a section an override removed (scope ≠ validity)');
+
+    // Refusals — every one loud, nothing written (decisions 2–3).
+    setCfg({ scope: { [removableId.slice(0, -1)]: { remove: ['qa'] } } });
+    const eUnknown = failsWith(['compile', '--skill', 'test-cases']);
+    check(eUnknown !== null && /unknown section id/.test(eUnknown), 'unknown override id refuses the compile');
+    check(eUnknown !== null && eUnknown.includes(removableId), 'unknown-id refusal suggests the nearest real id', eUnknown || '(accepted)');
+    setCfg({ scope: { [mustId]: { remove: [index[mustId].scope[0] || 'qa'] } } });
+    const eMust = failsWith(['compile', '--skill', 'test-cases']);
+    check(eMust !== null && /tier=must/.test(eMust) && eMust.includes(mustId), 'removing a tier=must section is refused with a named error (the floor, decision 2)', eMust || '(accepted)');
+    setCfg({ scope: { [mustId]: { add: ['test-cases'] } } });
+    const addMust = compileManifest();
+    check(new RegExp(`- id: ${mustId.replace(/[.*+?^${}()|[\]\\/]/g, '\\$&')} .*via: project-override`).test(addMust.sources), 'ADDING to a must section is allowed (the floor blocks removal only)');
+    setCfg({ scope: { [removableId]: { remove: 'test-cases' } } });
+    check(failsWith(['compile', '--skill', 'test-cases']) !== null, 'remove as a bare string (not an array) is refused');
+    setCfg({ scope: { [removableId]: { rename: ['x'] } } });
+    check(failsWith(['compile', '--skill', 'test-cases']) !== null, 'unknown override key is refused');
+    setCfg({ scope: [] });
+    check(failsWith(['compile', '--skill', 'test-cases']) !== null, 'compiler.scope as an array is refused');
+    // The refusal happens before any run state is written for THIS compile: config errors must not
+    // leave half-started runs behind. (The marker from the last good compile is still there — fine.)
+    setCfg({});
+    check(compileManifest().sources.includes(`- id: ${removableId} `), 'empty compiler config = shipped behaviour again (overrides are opt-in)');
+  } finally {
+    fs.rmSync(tmp, { recursive: true, force: true });
+  }
+}
+
+function testProjectRefs() {
+  console.log('\n🏠 Project reference sections (RFC 0002 PR B — compiler.references, PRJ- ids)');
+  const { execFileSync } = require('child_process');
+  const os = require('os');
+  const shipped = path.join(resolvePlatformDir('claude'), 'references', 'bin', 'qab.js');
+  const indexPath = path.join(resolvePlatformDir('claude'), 'references', 'index.json');
+  if (!fs.existsSync(shipped) || !fs.existsSync(indexPath)) { fail('shipped qab.js + index.json present for project-ref tests', 'run node build.js all'); return; }
+
+  const tmp = fs.mkdtempSync(path.join(os.tmpdir(), 'qab-prj-'));
+  const env = { ...process.env, QAB_CWD: tmp, QAB_TS: '2026-08-20T00:00:00Z' };
+  const run = (args) => execFileSync(process.execPath, [shipped, ...args], { env, encoding: 'utf8', stdio: ['ignore', 'pipe', 'pipe'] });
+  const { spawnSync } = require('child_process');
+  const runFull = (args) => { // stdout + stderr + exit code, whether it fails or not
+    const r = spawnSync(process.execPath, [shipped, ...args], { env, encoding: 'utf8' });
+    return { out: r.stdout || '', err: r.stderr || '', code: r.status };
+  };
+  const setCfg = (compiler) => fs.writeFileSync(path.join(tmp, '.qabuddy.json'), JSON.stringify({ compiler }));
+  let ticketN = 0;
+  const compileSlice = () => {
+    const out = run(['compile', '--skill', 'test-cases', '--ticket', `PROJ-${++ticketN}`]);
+    return fs.readFileSync(path.join(tmp, out.split('\n')[0].trim()), 'utf8');
+  };
+
+  try {
+    fs.mkdirSync(path.join(tmp, 'features-kb', 'house'), { recursive: true });
+    fs.writeFileSync(path.join(tmp, 'features-kb', 'house', 'payments.md'), [
+      '# Payments testing', '<!-- qab: scope=test-cases -->', '',
+      '## Seed rules', '<!-- qab: id=seed-rules -->', '',
+      'We test payments with sandbox account P-77; never real cards.', '',
+      '## QA-only note', '<!-- qab: id=qa-note scope=qa -->', '',
+      'Refund checks run against the ledger export.', '',
+      '## Always rule', '<!-- qab: id=always-rule tier=must scope=all -->', '',
+      'House rule that reaches every skill.', '',
+    ].join('\n'));
+    setCfg({ references: ['features-kb/house/*.md'] });
+
+    // Compile: same qab: contract, PRJ- namespace, verbatim body (§2.2).
+    const slice = compileSlice();
+    const fm = slice.split('\n---\n')[0];
+    const sources = (fm.split('\nsources:\n')[1] || '').split('\ndropped:')[0];
+    check(/^  - id: PRJ-payments#seed-rules   tier: should   lines: \d+$/m.test(sources), 'project section packed under its PRJ-<stem>#<id>');
+    check(/^  - id: PRJ-payments#always-rule   tier: must   lines: \d+$/m.test(sources), 'project tier=must scope=all section packs for any skill (same rule as shipped)');
+    check(!sources.includes('PRJ-payments#qa-note'), 'project section scoped to another skill is not packed');
+    check(slice.includes('## PRJ-payments#seed-rules — Seed rules\n') && slice.includes('We test payments with sandbox account P-77; never real cards.'),
+      'slice body is the verbatim project file text under the PRJ header');
+    check(!/<!--\s*qab:/.test(slice.split('\n---\n').slice(1).join('')), 'qab metadata stripped from project section bodies too');
+    // must-first ordering holds across the merged namespace
+    const ids = [...sources.matchAll(/^  - id: (\S+)   tier: (\w+)/gm)].map(m => ({ id: m[1], tier: m[2] }));
+    const lastMust = ids.map(x => x.tier).lastIndexOf('must');
+    const firstOther = ids.findIndex(x => x.tier !== 'must' && x.tier !== 'lrn');
+    check(firstOther === -1 || lastMust < firstOther, 'merged pack keeps every must section before any non-must');
+
+    // Citation: accepted, counted, suggested-on-typo (validated against the project's own files).
+    const cite = runFull(['log', 'applied', 'PRJ-payments#seed-rules']);
+    check(cite.code === 0, 'log applied accepts a PRJ id that exists in the configured files', cite.err || '');
+    run(['log', 'outcome', '--status', 'DONE']);
+    const eTypo = runFull(['log', 'applied', 'PRJ-payments#seed-rule']);
+    check(eTypo.code !== 0 && /unknown PRJ id/.test(eTypo.err) && eTypo.err.includes('PRJ-payments#seed-rules'),
+      'unknown PRJ id is rejected with the nearest suggestion', eTypo.err || '(accepted)');
+    const eMal = runFull(['log', 'applied', 'PRJ-Payments#x']);
+    check(eMal.code !== 0 && /malformed PRJ id/.test(eMal.err), 'malformed PRJ id is rejected');
+    const st = JSON.parse(run(['stats', '--json']));
+    const prjRow = (st.rows || []).find(r => r.src === 'PRJ-payments#seed-rules') || {};
+    check(prjRow.kind === 'PRJ' && prjRow.applied === 1 && prjRow.in_slice === 1, `stats: PRJ rows carry kind=PRJ with applied/in_slice counts (${JSON.stringify(prjRow)})`);
+    check(prjRow.promotion_candidate === false, 'stats: a PRJ section is never a promotion candidate (it already is a reference)');
+    const comp = st.compliance || {};
+    const withRef = Object.values(comp).reduce((a, c) => a + c.with_ref, 0);
+    check(withRef === 1, 'compliance: a PRJ citation counts as a reference citation (with_ref)', JSON.stringify(comp));
+
+    // PR A × PR B: overrides address the merged namespace.
+    setCfg({ references: ['features-kb/house/*.md'], scope: { 'PRJ-payments#seed-rules': { remove: ['test-cases'] } } });
+    const ovr = compileSlice().split('\n---\n')[0];
+    check(/^  - id: PRJ-payments#seed-rules   reason: project-override$/m.test(ovr.split('\ndropped:')[1] || ''),
+      'a scope override can remove a PRJ section (one namespace, manifest causality intact)');
+
+    // Refusals and edges — loud, named, never silent (same spirit as decision 3).
+    fs.writeFileSync(path.join(tmp, 'features-kb', 'house', 'broken.md'), '# House\n\n## Untagged\n\ntext\n');
+    setCfg({ references: ['features-kb/house/*.md'] });
+    const eBroken = runFull(['compile', '--skill', 'test-cases']);
+    check(eBroken.code !== 0 && /broken\.md:3/.test(eBroken.err) && /no <!-- qab: id=/.test(eBroken.err),
+      'a project file with an untagged ## refuses the compile, naming file:line', eBroken.err || '(accepted)');
+    fs.rmSync(path.join(tmp, 'features-kb', 'house', 'broken.md'));
+    fs.mkdirSync(path.join(tmp, 'features-kb', 'house2'), { recursive: true });
+    fs.writeFileSync(path.join(tmp, 'features-kb', 'house2', 'payments.md'), '# Other payments\n<!-- qab: id=other scope=all -->\n\ntext\n');
+    setCfg({ references: ['features-kb/house/*.md', 'features-kb/house2/*.md'] });
+    const eStem = runFull(['compile', '--skill', 'test-cases']);
+    check(eStem.code !== 0 && /share the stem "payments"/.test(eStem.err), 'two project files sharing a stem are refused (PRJ ids must be unambiguous)', eStem.err || '(accepted)');
+    fs.rmSync(path.join(tmp, 'features-kb', 'house2'), { recursive: true });
+    setCfg({ references: ['features-kb/house/*.md', 'nowhere/*.md'] });
+    const warn = runFull(['compile', '--skill', 'test-cases', '--ticket', `PROJ-${++ticketN}`]);
+    check(warn.code === 0 && /matched no files/.test(warn.err), 'a zero-match pattern warns on stderr but does not block the compile');
+    setCfg({ references: 'features-kb/house/*.md' });
+    check(runFull(['compile', '--skill', 'test-cases']).code !== 0, 'compiler.references as a bare string (not an array) is refused');
+    // No config → PRJ citations are refused with a pointer, not accepted blind.
+    setCfg({});
+    const eNoCfg = runFull(['log', 'applied', 'PRJ-payments#seed-rules', '--run', 'open-run-000001']);
+    check(eNoCfg.code !== 0 && /declares no compiler\.references/.test(eNoCfg.err), 'a PRJ citation without compiler.references configured is refused with a pointer');
+  } finally {
+    fs.rmSync(tmp, { recursive: true, force: true });
+  }
+
+  // Preamble + docs carry the PRJ id form (citation obligation, PR4 lineage).
+  for (const platform of PLATFORMS) {
+    const distSkill = readFile(path.join(resolvePlatformDir(platform), 'skills', 'qa', 'SKILL.md')) || '';
+    check(/PRJ-<stem>#<id>/.test(distSkill), `dist/${platform}: preamble obligation 2 names the PRJ id form`);
+  }
+}
+
 function testFingerprints() {
   console.log('\n🫆 Fingerprints + scoreboard (RFC 0001 PR6 — failure classes, falsified/duplicate-by-fp, in_slice)');
   const { execFileSync } = require('child_process');
@@ -1534,12 +1723,261 @@ function testFingerprints() {
   }
 }
 
+function testGate() {
+  console.log('\n🚪 Gate report (RFC 0002 PR C — qab.js gate, the §9.3 gate per project)');
+  const { execFileSync } = require('child_process');
+  const os = require('os');
+  const shipped = path.join(resolvePlatformDir('claude'), 'references', 'bin', 'qab.js');
+  if (!fs.existsSync(shipped)) { fail('shipped qab.js present for gate tests', 'run node build.js all'); return; }
+
+  const tmp = fs.mkdtempSync(path.join(os.tmpdir(), 'qab-gate-'));
+  const env = { ...process.env, QAB_CWD: tmp, QAB_TS: '2026-08-20T00:00:00Z' };
+  const run = (args) => execFileSync(process.execPath, [shipped, ...args], { env, encoding: 'utf8', stdio: ['ignore', 'pipe', 'pipe'] });
+  const logFile = path.join(tmp, 'features-kb', 'learnings-log.jsonl');
+  // The log is written directly because the READER is what's under test (same approach as the
+  // synthetic compiled events in testFingerprints).
+  const writeLog = ({ aRuns, bRuns, orphanOutcomes, withApplied = true, withDormant = true }) => {
+    const lines = [];
+    const ev = (o) => lines.push(JSON.stringify({ v: 1, ts: '2026-08-15T00:00:00Z', ...o }));
+    for (let i = 0; i < aRuns; i++) {
+      const r = `qa-A-${String(i).padStart(6, '0')}`;
+      ev({ run: r, skill: 'qa', event: 'compiled', pfp: 'aaaaaaaaaaaa', sources: withDormant ? ['REF-playwright-patterns#never', 'LRN-20260801-01'] : ['LRN-20260801-01'], used: 200, max: 0, dropped: [] });
+      if (withApplied) ev({ run: r, skill: 'qa', event: 'applied', src: 'LRN-20260801-01' });
+      ev({ run: r, skill: 'qa', event: 'outcome', status: 'DONE' });
+    }
+    for (let i = 0; i < bRuns; i++) {
+      const r = `tp-B-${String(i).padStart(6, '0')}`;
+      ev({ run: r, skill: 'test-plan', event: 'compiled', pfp: 'bbbbbbbbbbbb', sources: withDormant ? ['REF-playwright-patterns#never'] : [], used: 150, max: 0, dropped: [] });
+      ev({ run: r, skill: 'test-plan', event: 'outcome', status: 'DONE_WITH_CONCERNS' });
+    }
+    for (let i = 0; i < orphanOutcomes; i++) ev({ run: `old-${i}`, skill: 'qa', event: 'outcome', status: 'DONE' });
+    fs.writeFileSync(logFile, lines.join('\n') + '\n');
+  };
+
+  try {
+    fs.mkdirSync(path.join(tmp, 'features-kb'), { recursive: true });
+
+    // Eligible: 2 profiles ≥ 8 outcomes, one dormant source (in_slice 17 ≥ 10) vs one applied in ≥ 3 runs.
+    writeLog({ aRuns: 9, bRuns: 8, orphanOutcomes: 3 });
+    const g = JSON.parse(run(['gate', '--json']));
+    check(g.eligible === true && g.threshold_met === true && g.uneven === true, `gate: 9+8 outcomes across 2 profiles with uneven application → eligible (${g.reason})`);
+    const pA = (g.profiles || []).find(p => p.pfp === 'aaaaaaaaaaaa') || {};
+    const pB = (g.profiles || []).find(p => p.pfp === 'bbbbbbbbbbbb') || {};
+    check(pA.outcomes === 9 && pA.statuses && pA.statuses.DONE === 9, 'gate: profile outcome counts come from outcome events joined to compiled pfp', JSON.stringify(pA));
+    check(pB.outcomes === 8, 'gate: second profile counted independently');
+    check(g.no_profile_runs === 3 && (g.profiles || []).length === 2,
+      'gate: outcome runs without a compiled pfp are reported, NEVER summed into a profile (the §9.3 #23 mis-attribution guard)');
+    check((g.dormant || []).some(d => d.src === 'REF-playwright-patterns#never' && d.in_slice === 17),
+      'gate: dormant lists in_slice ≥ 10 ∧ applied = 0 sources with their in_slice', JSON.stringify(g.dormant));
+    check(g.slice_by_skill && g.slice_by_skill.qa && g.slice_by_skill.qa.last === 200 && g.slice_by_skill['test-plan'].compiles === 8,
+      'gate: slice size per skill from compiled events (last + compiles)', JSON.stringify(g.slice_by_skill));
+    const table = run(['gate']);
+    check(/verdict: ELIGIBLE/.test(table), 'gate table prints an explicit verdict line');
+    check(/does not classify causes/.test(table) && /cannot fire \/ duplicated elsewhere/.test(table),
+      'an eligible report ends by asking the human for cause classification (decision 6) — the tool never guesses');
+
+    // One outcome short on profile B → not eligible, reason names the counts.
+    writeLog({ aRuns: 9, bRuns: 7, orphanOutcomes: 0 });
+    const g2 = JSON.parse(run(['gate', '--json']));
+    check(g2.eligible === false && g2.threshold_met === false && /have 1/.test(g2.reason),
+      `gate: 8-outcome threshold is exact — 7 outcomes does not qualify (${g2.reason})`);
+    check(!/does not classify causes/.test(run(['gate'])), 'a not-eligible report does not print the classification ask');
+
+    // Threshold met but nothing dormant → not eligible: there is nothing for scoring to demote.
+    writeLog({ aRuns: 9, bRuns: 8, orphanOutcomes: 0, withDormant: false });
+    const g3 = JSON.parse(run(['gate', '--json']));
+    check(g3.eligible === false && g3.threshold_met === true && /no dormant source/.test(g3.reason),
+      `gate: even application fails the gate even past the outcome threshold (${g3.reason})`);
+
+    // Threshold met, dormancy present, but nothing repeatedly applied → the contrast is one-sided.
+    writeLog({ aRuns: 9, bRuns: 8, orphanOutcomes: 0, withApplied: false });
+    const g4 = JSON.parse(run(['gate', '--json']));
+    check(g4.eligible === false && /no source applied in ≥ 3/.test(g4.reason),
+      `gate: dormancy without a repeatedly-applied side is not "uneven" (${g4.reason})`);
+
+    // Empty log → a clean, honest zero report.
+    fs.rmSync(logFile);
+    const g5 = JSON.parse(run(['gate', '--json']));
+    check(g5.eligible === false && (g5.profiles || []).length === 0, 'gate on an empty log reports not eligible, no crash');
+  } finally {
+    fs.rmSync(tmp, { recursive: true, force: true });
+  }
+
+  // The command is documented where the model and the human look for it.
+  const helpOut = (() => { try { return execFileSync(process.execPath, [shipped, 'help'], { encoding: 'utf8' }); } catch { return ''; } })();
+  check(/qab\.js gate \[--json\]/.test(helpOut), 'qab.js help lists the gate subcommand');
+}
+
+function testScoring() {
+  console.log('\n⚖️  Scoring (RFC 0002 PR D — compiler.scoring behind the gate) + gate-opened notification');
+  const { execFileSync, spawnSync } = require('child_process');
+  const os = require('os');
+  const shipped = path.join(resolvePlatformDir('claude'), 'references', 'bin', 'qab.js');
+  const indexPath = path.join(resolvePlatformDir('claude'), 'references', 'index.json');
+  if (!fs.existsSync(shipped) || !fs.existsSync(indexPath)) { fail('shipped qab.js + index.json present for scoring tests', 'run node build.js all'); return; }
+  const index = JSON.parse(fs.readFileSync(indexPath, 'utf8'));
+
+  // Four real rankable sections (non-must, test-cases-scoped) with distinct roles in the scenarios.
+  const rankableIds = Object.entries(index).filter(([, e]) => e.tier !== 'must' && e.scope.includes('test-cases') && !e.scope.includes('all')).map(([id]) => id);
+  if (rankableIds.length < 4) { fail('index has ≥ 4 rankable test-cases sections for scoring tests', `have ${rankableIds.length}`); return; }
+  const [hot, mid, pen, cold] = rankableIds;
+  const mustIds = Object.entries(index).filter(([, e]) => e.tier === 'must' && (e.scope.includes('test-cases') || e.scope.includes('all'))).map(([id]) => id);
+
+  const tmp = fs.mkdtempSync(path.join(os.tmpdir(), 'qab-score-'));
+  const env = { ...process.env, QAB_CWD: tmp, QAB_TS: '2026-08-20T00:00:00Z' };
+  const run = (args) => execFileSync(process.execPath, [shipped, ...args], { env, encoding: 'utf8', stdio: ['ignore', 'pipe', 'pipe'] });
+  const runFull = (args) => { const r = spawnSync(process.execPath, [shipped, ...args], { env, encoding: 'utf8' }); return { out: r.stdout || '', err: r.stderr || '', code: r.status }; };
+  const setCfg = (compiler) => fs.writeFileSync(path.join(tmp, '.qabuddy.json'), JSON.stringify({ compiler }));
+  const logFile = path.join(tmp, 'features-kb', 'learnings-log.jsonl');
+  let ticketN = 0;
+  const compileSlice = () => {
+    const out = run(['compile', '--skill', 'test-cases', '--ticket', `PROJ-${++ticketN}`]);
+    return fs.readFileSync(path.join(tmp, out.split('\n')[0].trim()), 'utf8');
+  };
+  const esc = (s) => s.replace(/[.*+?^${}()|[\]\\/]/g, '\\$&');
+
+  // Synthetic per-pfp history: `closedRuns` runs of `pfp`, applying per the pattern, + a second
+  // profile with `otherOutcomes` outcomes so the gate threshold can be met. `cold` never applies
+  // and rides ≥ 10 slices → the dormant half of "uneven". Written directly: the READER is under test.
+  const writeLog = ({ pfp, closedRuns, otherOutcomes, appliedAt, contradictAt = {} }) => {
+    const lines = [];
+    const ev = (o) => lines.push(JSON.stringify({ v: 1, ts: '2026-08-15T00:00:00Z', ...o }));
+    for (let i = 0; i < closedRuns; i++) {
+      const r = `tc-P-${String(i).padStart(6, '0')}`;
+      ev({ run: r, skill: 'test-cases', event: 'compiled', pfp, sources: [hot, mid, pen, cold], used: 100, max: 0, dropped: [] });
+      for (const [src, runsSet] of Object.entries(appliedAt)) if (runsSet.includes(i)) ev({ run: r, skill: 'test-cases', event: 'applied', src });
+      for (const [src, runsSet] of Object.entries(contradictAt)) if (runsSet.includes(i)) ev({ run: r, skill: 'test-cases', event: 'contradicted', src, note: 'x' });
+      ev({ run: r, skill: 'test-cases', event: 'outcome', status: 'DONE' });
+    }
+    ev({ run: 'tc-P-extra', skill: 'test-cases', event: 'compiled', pfp, sources: [cold], used: 10, max: 0, dropped: [] });
+    for (let i = 0; i < otherOutcomes; i++) {
+      ev({ run: `q-F-${String(i).padStart(6, '0')}`, skill: 'qa', event: 'compiled', pfp: 'ffffffffffff', sources: [cold], used: 50, max: 0, dropped: [] });
+      ev({ run: `q-F-${String(i).padStart(6, '0')}`, skill: 'qa', event: 'outcome', status: 'DONE' });
+    }
+    fs.writeFileSync(logFile, lines.join('\n') + '\n');
+  };
+
+  try {
+    fs.mkdirSync(path.join(tmp, 'features-kb'), { recursive: true });
+    fs.writeFileSync(path.join(tmp, 'features-kb', 'LEARNINGS.md'), [
+      '# Project Learnings', '',
+      '## LRN-20260801-01: floor learning', '- **Status:** active', '- **Scope:** test-cases', '- **Statement:** always packed', '- **Overrides:** none', '- **Evidence:** run', '',
+    ].join('\n'));
+
+    // The project's own pfp, learned from a baseline compile (profile is deterministic per directory state).
+    const out0 = run(['compile', '--skill', 'test-cases', '--ticket', 'PROJ-0']);
+    const pfp = JSON.parse(fs.readFileSync(path.join(tmp, path.dirname(out0.split('\n')[0].trim()), 'profile.json'), 'utf8')).pfp;
+    const unscoredCount = (fs.readFileSync(path.join(tmp, out0.split('\n')[0].trim()), 'utf8').split('\nsources:\n')[1] || '').split('\ndropped:')[0].match(/^  - id: /gm).length;
+
+    // History: hot applied every run (→ floor via recent), mid runs 0–4 (score > 0, not recent),
+    // pen like mid but contradicted in the last run (→ ×0.25), cold never (dormant).
+    writeLog({ pfp, closedRuns: 9, otherOutcomes: 8, appliedAt: { [hot]: [0, 1, 2, 3, 4, 5, 6, 7, 8], [mid]: [0, 1, 2, 3, 4], [pen]: [0, 1, 2, 3, 4] }, contradictAt: { [pen]: [8] } });
+    check(JSON.parse(run(['gate', '--json'])).eligible === true, 'scoring scenario log opens the gate (precondition)');
+
+    // Self-calibrating budget: read every section's rendered line count from an uncapped scored run.
+    setCfg({ scoring: true, budget_lines: 100000 });
+    const wide = compileSlice();
+    const linesOf = (id) => parseInt((wide.match(new RegExp(`^  - id: ${esc(id)}   tier: \\w+   lines: (\\d+)`, 'm')) || [])[1] || 'NaN', 10);
+    const floorUsed = [...mustIds, hot].reduce((a, id) => a + linesOf(id), 0) + linesOf('LRN-20260801-01');
+    const budget = floorUsed + linesOf(mid) + linesOf(pen);   // fits mid and pen after the floor; cold does not
+
+    setCfg({ scoring: true, budget_lines: budget });
+    const slice = compileSlice();
+    const fm = slice.split('\n---\n')[0];
+    const sources = (fm.split('\nsources:\n')[1] || '').split('\ndropped:')[0];
+    const droppedBlock = fm.split('\ndropped:')[1] || '';
+    check(/scoring: on$/m.test(fm) && new RegExp(`^budget: \\{max: ${budget}, used: \\d+\\}`, 'm').test(fm), 'scored manifest declares scoring: on and the line budget');
+    check(mustIds.every(id => sources.includes(`- id: ${id} `)), 'every tier=must section is packed regardless of budget (the floor)');
+    check(sources.includes(`- id: ${hot} `) && !new RegExp(`- id: ${esc(hot)} .*score:`).test(sources), 'a source applied in the last 3 profile runs is floor — packed without competing on score');
+    check(sources.includes('- id: LRN-20260801-01 '), 'learnings are floor — a project\'s own corrections are never budget-dropped');
+    const midLine = sources.match(new RegExp(`^  - id: ${esc(mid)} .*score: ([\\d.]+)   n: (\\d+)$`, 'm'));
+    check(midLine !== null && parseFloat(midLine[1]) > 0, 'a rankable candidate with applied history packs WITH its score and n in the manifest', sources);
+    const coldDrop = droppedBlock.match(new RegExp(`^  - id: ${esc(cold)}   reason: budget   score: 0   n: (\\d+)$`, 'm'));
+    check(coldDrop !== null && parseInt(coldDrop[1], 10) >= 10, 'the dormant source is dropped by BUDGET with score 0 and its n — dormancy alone never drops', droppedBlock);
+    const penLine = (sources + droppedBlock).match(new RegExp(`id: ${esc(pen)} .*score: ([\\d.]+)`));
+    check(penLine !== null && Math.abs(parseFloat(penLine[1]) - parseFloat(midLine[1]) * 0.25) < 0.002,
+      `a contradiction in the last 3 profile runs multiplies the score by 0.25 (${penLine && penLine[1]} vs ${midLine[1]})`);
+
+    // §9.3: never a global ranking. Gate eligible on OTHER profiles, this pfp thin → unscored compile.
+    writeLog({ pfp: 'eeeeeeeeeeee', closedRuns: 9, otherOutcomes: 8, appliedAt: { [hot]: [0, 1, 2, 3, 4, 5, 6, 7, 8] } });
+    const thin = compileSlice();
+    check(/scoring: on \(insufficient data for this profile: 0\/8 outcomes — unscored\)/.test(thin), 'a profile below 8 outcomes compiles UNSCORED — thin per-profile data never falls back to a global ranking');
+    const thinSources = (thin.split('\nsources:\n')[1] || '').split('\ndropped:')[0];
+    check(thinSources.match(/^  - id: /gm).length === unscoredCount && /^budget: \{max: 0,/m.test(thin), 'the insufficient-data compile equals the unscored set, uncapped');
+
+    // Audition: on every 10th closed run of the pfp, the best budget-dropped candidate rides along.
+    writeLog({ pfp, closedRuns: 10, otherOutcomes: 8, appliedAt: { [hot]: [0, 1, 2, 3, 4, 5, 6, 7, 8, 9], [mid]: [0, 1, 2, 3, 4] } });
+    setCfg({ scoring: true, budget_lines: 1 });   // floor only; every rankable is over budget
+    const aud = compileSlice();
+    check(new RegExp(`^  - id: ${esc(mid)} .*score: [\\d.]+   n: \\d+   \\(audition\\)$`, 'm').test((aud.split('\nsources:\n')[1] || '').split('\ndropped:')[0]),
+      'every 10th profile run packs the best budget-dropped candidate marked (audition) — deterministic exploration', aud.split('\n---\n')[0]);
+
+    // Enablement guard (RFC 0002 §2.4): not eligible → refuse; override → compile + ONE logged decision.
+    writeLog({ pfp, closedRuns: 9, otherOutcomes: 0, appliedAt: { [hot]: [0, 1, 2] } });
+    setCfg({ scoring: true, budget_lines: budget });
+    const eGate = runFull(['compile', '--skill', 'test-cases', '--ticket', `PROJ-${++ticketN}`]);
+    check(eGate.code !== 0 && /gate is not eligible/.test(eGate.err) && /scoringOverride/.test(eGate.err),
+      'scoring with an ineligible gate refuses the compile, naming the gate reason and the override path', eGate.err || '(compiled)');
+    setCfg({ scoring: true, budget_lines: budget, scoringOverride: 'pilot: maintainer accepts thin data' });
+    const oc = runFull(['compile', '--skill', 'test-cases', '--ticket', `PROJ-${++ticketN}`]);
+    check(oc.code === 0 && /decision recorded in the log/.test(oc.err), 'an explicit override compiles and announces the recorded decision', oc.err);
+    const decisions = () => fs.readFileSync(logFile, 'utf8').split('\n').filter(l => l.includes('"scoring-override"')).length;
+    check(decisions() === 1, 'the override decision lands in the log as a decision line with the note');
+    runFull(['compile', '--skill', 'test-cases', '--ticket', `PROJ-${++ticketN}`]);
+    check(decisions() === 1, 'recompiling does not duplicate the decision — one line per distinct note');
+
+    // Config refusals.
+    setCfg({ scoring: true });
+    check(runFull(['compile', '--skill', 'test-cases']).code !== 0, 'scoring without budget_lines is refused');
+    setCfg({ scoring: 'yes', budget_lines: budget });
+    check(runFull(['compile', '--skill', 'test-cases']).code !== 0, 'scoring must be boolean true — anything else is refused');
+    setCfg({ scorring: true });
+    check(/unknown compiler key "scorring"/.test(runFull(['compile', '--skill', 'test-cases']).err), 'a mistyped compiler key is refused, not silently ignored');
+
+    // Gate-opened notification: fires on the exact outcome that tips the gate, and only then.
+    setCfg(undefined);
+    const noteLines = [];
+    const nev = (o) => noteLines.push(JSON.stringify({ v: 1, ts: '2026-08-15T00:00:00Z', ...o }));
+    for (let i = 0; i < 9; i++) {
+      nev({ run: `a-${i}`, skill: 'qa', event: 'compiled', pfp: 'aaaaaaaaaaaa', sources: [cold, hot], used: 9, max: 0, dropped: [] });
+      nev({ run: `a-${i}`, skill: 'qa', event: 'applied', src: hot });
+      nev({ run: `a-${i}`, skill: 'qa', event: 'outcome', status: 'DONE' });
+    }
+    nev({ run: 'a-x', skill: 'qa', event: 'compiled', pfp: 'aaaaaaaaaaaa', sources: [cold], used: 1, max: 0, dropped: [] });
+    for (let i = 0; i < 7; i++) {
+      nev({ run: `b-${i}`, skill: 'qa', event: 'compiled', pfp: 'bbbbbbbbbbbb', sources: [], used: 1, max: 0, dropped: [] });
+      nev({ run: `b-${i}`, skill: 'qa', event: 'outcome', status: 'DONE' });
+    }
+    nev({ run: 'b-7', skill: 'qa', event: 'compiled', pfp: 'bbbbbbbbbbbb', sources: [], used: 1, max: 0, dropped: [] });
+    nev({ run: 'b-8', skill: 'qa', event: 'compiled', pfp: 'bbbbbbbbbbbb', sources: [], used: 1, max: 0, dropped: [] });
+    fs.writeFileSync(logFile, noteLines.join('\n') + '\n');
+    const tip = run(['log', 'outcome', '--status', 'DONE', '--run', 'b-7', '--skill', 'qa']);
+    check(/scoring gate OPENED/.test(tip) && /never enable it yourself/.test(tip) && /Gain:/.test(tip) && /Risk:/.test(tip),
+      'the opened notice carries the plain-language trade-off (gain AND risk) plus the SDT-decides instruction', tip);
+    const after = run(['log', 'outcome', '--status', 'DONE', '--run', 'b-8', '--skill', 'qa']);
+    check(!/scoring gate OPENED/.test(after), 'the NEXT outcome does not re-announce — the notice fires on the transition only');
+  } finally {
+    fs.rmSync(tmp, { recursive: true, force: true });
+  }
+
+  // The relay obligation ships in the preamble (both locales; en via dist, ko via source twin).
+  for (const platform of PLATFORMS) {
+    const distSkill = readFile(path.join(resolvePlatformDir(platform), 'skills', 'qa', 'SKILL.md')) || '';
+    check(/scoring gate opened|점수화 게이트가 열렸다/.test(distSkill), `dist/${platform}: preamble tells the model to relay the gate-opened notice and ask the SDT`);
+  }
+  check(/점수화 게이트가 열렸다/.test(readFile(path.join(ROOT, 'locales', 'ko', 'preamble-base.md')) || ''), 'ko preamble twin carries the relay obligation');
+}
+
 (async () => {   // one async step (the EPIPE spawn check); everything else stays synchronous
 testSkillManifest();
 await testRuntimeHelper();
 testLearningsGates();
 testReferenceIndex();
 testCompile();
+testScopeOverrides();
+testProjectRefs();
+testGate();
+testScoring();
 testFingerprints();
 testExcludeConditions();
 testEvalFixtures();

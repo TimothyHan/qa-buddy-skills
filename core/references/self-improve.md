@@ -59,6 +59,9 @@ Every reference section is an addressable **source**, like a learning:
 
 - **Id form:** `REF-<file-stem>#<id>`; under `playbook/` → `REF-playbook/<stem>#<id>`.
   Example: `REF-playwright-patterns#never`, `REF-playbook/risk-and-priority#severity-scale`.
+  Project-owned sections (`.qabuddy.json` `compiler.references`, RFC 0002) use the same
+  contract with the `PRJ-<file-stem>#<id>` namespace — a citation is always unambiguous
+  about whose knowledge it was, and collision with shipped ids is impossible.
 - **Where it lives:** an HTML comment on the line right after the heading —
   `## Selectors` / `<!-- qab: id=selectors tier=must -->`. Never in the heading
   text. `##` headings outside code fences are addressable; the H1 comment may

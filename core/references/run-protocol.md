@@ -19,12 +19,16 @@ exact command). It starts the run if none is current, then writes `<runsDir>/<ru
 | `fingerprints.jsonl` | this run's failure fingerprints, if any (also appended to the project `fingerprints.jsonl`; `self-improve.md` §Failure fingerprints) |
 
 **Candidates** = reference sections whose `scope` names this skill (+ `tier=must` sections scoped
-`all`) ∪ `active` learnings whose `Scope` includes the skill (or `all`) and whose `Profile:` matches.
+`all`) — shipped `REF-` and project-owned `PRJ-` (`compiler.references`) alike — ∪ `active`
+learnings whose `Scope` includes the skill (or `all`) and whose `Profile:` matches.
 **Packing (unscored, PR5):** `must` first, then sections in file order; each learning right after the
 section it `Overrides`, else at the end. **No budget cap** — the slice equals what the skill read
 before, by construction; `budget.used` is recorded so slice size becomes a metric. Sections scoped
 `all` that are not `must` (KB spec, terminology) are listed under `dropped: general-scope`, not packed.
-Scoring and caps arrive later, behind a flag.
+A project's `.qabuddy.json` may override a section's scope (`compiler.scope`, RFC 0002): a section
+packed only because of an override carries `via: project-override`, one an override removed is listed
+under `dropped:` with `reason: project-override` — the slice always explains itself. `tier=must`
+cannot be removed. Scoring and caps arrive later, behind a flag.
 
 ## Reading the slice
 <!-- qab: id=reading-the-slice -->

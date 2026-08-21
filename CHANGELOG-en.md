@@ -7,6 +7,55 @@ may remove a skill.
 
 한국어: [CHANGELOG.md](CHANGELOG.md)
 
+## [0.7.0] — 2026-08-21
+
+The release that ships RFC 0002. v0.6.0's verdict was "the selection layer isn't
+user-owned" — this release hands that layer to the project. Fixing scopes yourself,
+adding team knowledge, measuring scoring eligibility on your own data, and being told
+the moment the gate opens: all four land as **opt-in** capabilities behind `.qabuddy.json`.
+
+### ⚠️ Upgrade note
+
+No breaking changes — none of the new capabilities change behaviour unless configured.
+`git pull` then re-run `node build.js all` (Korean: `--locale ko`); installs are
+symlinked, so no reinstall needed. One thing got stricter: unknown keys under
+`compiler` in `.qabuddy.json` are now refused loudly — so a typo can't silently
+disable a capability.
+
+### Added
+- **Scope overrides — `compiler.scope`** (#46). Add/remove which skills receive a
+  shipped reference section, from project config. `tier=must` is a floor (removal
+  refused), unknown ids are refused with a nearest-match suggestion, and every
+  override is visible in the manifest as `via:`/`reason: project-override`.
+- **Project-owned reference sections — `compiler.references`** (#47). Team-authored
+  methodology files compile under the same `qab:` contract as shipped references.
+  Ids are namespaced `PRJ-<stem>#<id>` — no collision with shipped ids, and a
+  citation is always unambiguous about provenance.
+- **Gate report — `qab.js gate`** (#48). Evaluates the RFC 0001 §9.3 scoring
+  eligibility gate on this project's own logs. It assembles evidence and never
+  classifies causes — judging why a section is dormant stays human (decision 6).
+- **Scoring — `compiler.scoring` + the gate-opened notification** (#50). Per-profile
+  scored selection with a floor (`tier=must` ∪ recently applied ∪ all learnings) —
+  a global ranking is forbidden by design (§9.3). Refuses to enable without gate
+  eligibility; the only exception is a `scoringOverride` note recorded in the log as
+  a decision. On the exact outcome that tips the gate, `log outcome` prints a 🔓
+  notice and the skill explains the gain and the risk in plain language before
+  asking the SDT — the decision and the config edit always stay human.
+- **The Self-Learning & Context Compiler user's guide** (#49) —
+  [docs/self-learning-guide-en.md](docs/self-learning-guide-en.md) (en+ko): the
+  automatic per-run loop, how to read a manifest, the three knowledge layers,
+  recipes for all four capabilities above, and what the unbuilt E (auto status
+  changes) would do — and why it waits until the data asks for it.
+
+### Changed
+- RFC 0002 status Draft → **Accepted, A–D built** — decisions 8–13 recorded (gate
+  lives in qab.js, knobs are constants, learnings are floor, audition is
+  deterministic, thin profile data compiles unscored).
+- Structural check suite 1,164 → **1,239** — behavioural tests plus mutation smokes
+  for every new capability (17 mutations in total, each detected by a named check).
+- The manifest's compiler stamp moves to 0.7.0, and a scored compile shows
+  `scoring: on` with `score`/`n`/`(audition)` and `reason: budget` evidence.
+
 ## [0.6.0] — 2026-08-20
 
 Closes the RFC 0001 arc. v0.5.0 shipped it mid-flight (PR0–PR6 out, PR7/PR8 pending);

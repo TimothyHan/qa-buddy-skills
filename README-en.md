@@ -10,7 +10,7 @@
 [![Skills: 13](https://img.shields.io/badge/Skills-13-green.svg)](#skills)
 [![Platform: Claude Code](https://img.shields.io/badge/Platform-Claude_Code-purple.svg)](#how-it-works)
 [![Locales: en, ko](https://img.shields.io/badge/Locales-en_|_ko-orange.svg)](#locales)
-[![Structural checks: 1164](https://img.shields.io/badge/Structural_checks-1164-brightgreen.svg)](#how-it-works)
+[![Structural checks: 1239](https://img.shields.io/badge/Structural_checks-1239-brightgreen.svg)](#how-it-works)
 
 An AI partner for Software Developers in Test (SDTs) working in Scrum teams.<br>
 Covers the full workflow — from epic test planning through sprint execution to release verification.<br>
@@ -23,7 +23,7 @@ Built on the native **skills system** of your AI coding assistant.<br>
 QABuddy is a collection of `SKILL.md` files that your AI discovers and invokes automatically —<br>
 no separate app, no daemon, no dependencies beyond Node.js.
 
-[Quick Start](#quick-start) · [Skills](#skills) · [Guided Workflow](#the-guided-workflow) · [Changelog](CHANGELOG-en.md) · [Contributing](CONTRIBUTING-en.md)
+[Quick Start](#quick-start) · [Skills](#skills) · [Guided Workflow](#the-guided-workflow) · [Self-Learning Guide](docs/self-learning-guide-en.md) · [Changelog](CHANGELOG-en.md) · [Contributing](CONTRIBUTING-en.md)
 
 </div>
 
@@ -147,6 +147,9 @@ Run `/qa-setup` to configure. Settings saved to `.qabuddy.json`:
 | **Upstream contributions** | Yes, no | Auto-PR improvements to QABuddy repo |
 | **Learnings path** | default `features-kb/LEARNINGS.md` | Where the learnings layer lives |
 | **Runs directory** | default `.qa-reports/runs` | Where each run's compiled slice, manifest and scratchpad are written |
+| **Scope overrides** | hand-edited: `compiler.scope` | Add/remove which skills receive a shipped reference section — per project, survives updates. `tier=must` cannot be removed; unknown ids are refused loudly ([RFC 0002](docs/rfc/0002-project-owned-compiler.md)) |
+| **Project reference sections** | hand-edited: `compiler.references` | Team-authored methodology files compiled like shipped references — same `qab:` contract, ids namespaced `PRJ-<stem>#<id>`, cited and counted like `REF-` ([RFC 0002](docs/rfc/0002-project-owned-compiler.md)) |
+| **Scoring (opt-in)** | hand-edited: `compiler.scoring` + `budget_lines` | Per-profile scored selection with a floor (`tier=must`, recently-applied, learnings). Refuses to enable unless `qab.js gate` reports eligible — or `scoringOverride: "<note>"`, recorded in the log as a decision ([RFC 0002 §2.4](docs/rfc/0002-project-owned-compiler.md)) |
 
 > **No Jira? No problem.** Set context source to "spec" or "chat". Bugs are written
 > to `features-kb/` as markdown. Works with any project management tool.
@@ -256,7 +259,7 @@ flowchart LR
     C -. proven repeatedly .-> F["/qa-improve distill:<br>promote to references<br>+ upstream PR"]
 ```
 
-**The context compiler (automatic, before every skill run).** A skill never opens the whole reference library. First the shipped `qab.js` helper **compiles** the reference sections and active learnings scoped to *that* skill into a single `slice.md`, alongside a manifest naming what went in and what was left out. Both land in `.qa-reports/runs/<run>/` — so what actually reached the model on a given run is an artifact you can open and read back afterwards, not something to be inferred. When a source shapes the output, the run cites it by id and logs that it was *applied*; when reality contradicts one, it logs that instead. Design: [RFC 0001 — Context Compiler](docs/rfc/0001-context-compiler.md).
+**The context compiler (automatic, before every skill run).** A skill never opens the whole reference library. First the shipped `qab.js` helper **compiles** the reference sections and active learnings scoped to *that* skill into a single `slice.md`, alongside a manifest naming what went in and what was left out. Both land in `.qa-reports/runs/<run>/` — so what actually reached the model on a given run is an artifact you can open and read back afterwards, not something to be inferred. When a source shapes the output, the run cites it by id and logs that it was *applied*; when reality contradicts one, it logs that instead. `node qab.js gate` evaluates those logs against the scoring eligibility gate — profiles × outcomes, dormant sources, slice sizes — and says whether *this* project's data would justify scored selection ([RFC 0002](docs/rfc/0002-project-owned-compiler.md); the verdict on QABuddy's own data was no). Design: [RFC 0001 — Context Compiler](docs/rfc/0001-context-compiler.md).
 
 **The learnings layer (automatic, every skill run).** Every run reads `features-kb/LEARNINGS.md` at start — active entries are project-specific rules that *override* the shipped references — and checks three capture triggers at the end: a documented rule failed against reality, an undocumented decision was made, or the SDT corrected the output. Entries require evidence; clean runs write nothing. Each run's *applied* / *contradicted* / *captured* / *outcome* events append to `features-kb/learnings-log.jsonl` (append-only, written by `qab.js` alone — never by hand), and recurring failure classes are named in `features-kb/fingerprints.jsonl`, so a learning that claimed to prevent one is falsified by count rather than by opinion. These files live in your repo, so learnings travel to your whole team via git and survive QABuddy upgrades. Protocol: [`core/references/self-improve.md`](core/references/self-improve.md).
 
@@ -296,7 +299,7 @@ Skills are authored once in `core/skills/`. The build script generates platform-
 ```bash
 node build.js all                  # Build for all platforms
 node build.js all --locale ko      # Build Korean version
-node test.js                       # Run 1164 structural checks
+node test.js                       # Run 1239 structural checks
 ```
 
 > **Structural checks are not behavioural verification.** `node test.js` inspects
@@ -312,7 +315,7 @@ node test.js                       # Run 1164 structural checks
 ```
 QABuddy/
 ├── build.js                     # Build script (node, zero deps)
-├── test.js                      # Structural check suite (1164 checks)
+├── test.js                      # Structural check suite (1239 checks)
 ├── bin/qab.js                   # Runtime helper (compile, log, fp, stats, scoreboard)
 ├── core/                        # Single source of truth — edit here
 │   ├── skills/ (13)             # Skill templates with {{placeholders}}
