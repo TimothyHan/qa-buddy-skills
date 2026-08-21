@@ -37,11 +37,14 @@ All setup scripts support these flags:
 
 | Flag | Bash | PowerShell | Effect |
 |------|------|------------|--------|
-| Default | `setup` | `setup.ps1` | Install with `qa-` prefix |
+| Default | `setup` | `setup.ps1` | Install with `qa-` prefix; also prunes QABuddy-owned entries left over from removed skills |
 | No prefix | `--no-prefix` | `-NoPrefix` | Install without prefix |
-| Uninstall | `--uninstall` | `-Uninstall` | Remove all QABuddy symlinks |
-| Status | `--status` | `-Status` | Show current installation |
+| Uninstall | `--uninstall` | `-Uninstall` | Remove every QABuddy-owned entry, orphans included — other tools' skills are never touched |
+| Status | `--status` | `-Status` | Show current installation; leftovers from skills QABuddy no longer ships report as `ORPHAN` |
+| Adopt (Cursor/Copilot) | `--adopt` | `-Adopt` | Stamp ownership markers onto pre-v0.2.3 copied installs so status/uninstall can tell them apart from foreign skills |
 | Project (Cursor) | `--project` | `-Project` | Copy to project instead of global |
+
+Conflicting action flags (e.g. `--status --uninstall`) are refused with an error instead of one silently winning.
 
 Setup scripts also check for:
 - Atlassian MCP configuration

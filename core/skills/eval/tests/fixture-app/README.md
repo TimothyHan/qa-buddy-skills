@@ -1,7 +1,7 @@
 # Eval fixture app — "Acme Projects"
 
 Target application for execute-mode evals of the e2e skills
-(`/e2e-setup`, `/e2e-pom`, `/e2e-write`). Zero dependencies, no build step.
+(`/qa-e2e-setup`, `/qa-e2e-pom`, `/qa-e2e-write`). Zero dependencies, no build step.
 
 ```bash
 node server.js                    # v1 — baseline build target      :4173
