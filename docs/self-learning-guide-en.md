@@ -323,8 +323,11 @@ gate (RFC 0001 §9.3, evaluated on this project's logs — RFC 0002 §2.3):
   failures — a tool that guessed the cause would reproduce exactly the error that
   verdict warns about.
 
-Scoring (D) and auto status changes (E) don't exist as code yet; when they do, they
-default off and refuse to enable without the gate.
+Scoring (D) and auto status changes (E) don't exist as code yet. When they do, they
+default off, and there are two ways to turn them on: **pass the gate on your own
+data**, or a maintainer sets an **explicit override recorded in the log as a
+decision** (RFC 0002 §2.4). What's blocked is not scoring itself — it's turning it
+on *silently*.
 
 ---
 
