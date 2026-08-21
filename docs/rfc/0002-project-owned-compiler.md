@@ -2,6 +2,7 @@
 
 **Status:** Accepted — A–D built (2026-08-20); E stays gated | **Author:** Timothy Han (with Claude) | **Created:** 2026-08-19
 **Depends on:** RFC 0001 (PR0–PR6, shipped as v0.5.0) · **Supersedes:** RFC 0001 §8 PR7/PR8 framing
+**Locale:** English is the normative record; a non-normative full Korean translation is at [0002-project-owned-compiler-ko.md](0002-project-owned-compiler-ko.md).
 
 ## 한국어 요약
 
