@@ -359,7 +359,30 @@ refuses with the reason. To proceed anyway, set `"scoringOverride": "<one-line
 note>"` — the note is **recorded in the log as a decision** (exactly once per
 distinct note). What's blocked is not scoring — it's turning it on *silently*.
 
-Auto status changes (E) still don't exist as code — when they do, the same rules apply.
+### 6.5 The last piece, E — and the manual work that remains yours
+
+The one unbuilt piece of RFC 0002 is **E (auto status changes)**. When built, it
+would auto-apply the transitions the log has mechanically decided — retiring a
+learning whose fingerprint-confirmed falsification recurred, promoting one past the
+evidence threshold (applied ≥ 8, zero contradictions) — with an audit event each
+time. Reference edits stay human even then.
+
+**Without E, the entirety of your manual work:**
+
+| Manual step | How often | Would E remove it? |
+|---|---|---|
+| The distill session — launch it when a skill suggests, read the plan, approve | ~once per sprint | **Partly** — only the mechanically-decided rows (fingerprint retirements, threshold promotions) get pre-checked. Merges, copy detection and generalizability judgment stay human+LLM even with E |
+| Classifying dormant sections when the gate opens | once, when it opens | No — human by design (decision 6) |
+| Editing `.qabuddy.json` (overrides, house files, scoring) | only when deciding | No — the signature stays human (§6 non-goal) |
+| Authoring house reference files | when team methodology exists | No — only your team can write it |
+| Approving reference (canon) edits on promotion | per promotion | No — human forever |
+
+So **the distill session survives E** — E only pre-handles a few rows of its
+agenda. Today those mechanical rows number one or two per session, so the
+automation would not yet pay for its risk. **The signal to build it:** when your
+distill plans start filling with rubber-stamp mechanical rows — at that point the
+logs justify E, and they will also have answered its open design questions
+(whether to introduce a `candidate` status, and where the transition triggers).
 
 ---
 
