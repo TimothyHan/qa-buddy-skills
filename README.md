@@ -10,7 +10,7 @@
 [![Skills: 13](https://img.shields.io/badge/Skills-13-green.svg)](#스킬)
 [![Platform: Claude Code](https://img.shields.io/badge/Platform-Claude_Code-purple.svg)](#작동-방식)
 [![Locales: en, ko](https://img.shields.io/badge/Locales-en_|_ko-orange.svg)](#로케일)
-[![Structural checks: 1239](https://img.shields.io/badge/Structural_checks-1239-brightgreen.svg)](#작동-방식)
+[![Structural checks: 1243](https://img.shields.io/badge/Structural_checks-1243-brightgreen.svg)](#작동-방식)
 
 스크럼 팀에서 일하는 SDT(Software Developers in Test)를 위한 AI 파트너입니다.<br>
 에픽 테스트 계획 수립부터 스프린트 실행, 릴리스 검증까지 전체 워크플로우를 지원합니다.<br>
@@ -299,7 +299,7 @@ flowchart LR
 ```bash
 node build.js all                  # 모든 플랫폼용 빌드
 node build.js all --locale ko      # 한국어 버전 빌드
-node test.js                       # 1239개 구조 검사 실행
+node test.js                       # 1243개 구조 검사 실행
 ```
 
 > **구조 검사와 동작 검증은 다릅니다.** `node test.js`는 빌드 산출물의 형태를
@@ -314,7 +314,7 @@ node test.js                       # 1239개 구조 검사 실행
 ```
 QABuddy/
 ├── build.js                     # 빌드 스크립트 (node, 의존성 없음)
-├── test.js                      # 구조 검사 스위트 (1239개 검사)
+├── test.js                      # 구조 검사 스위트 (1243개 검사)
 ├── bin/qab.js                   # 런타임 헬퍼 (compile, log, fp, stats, scoreboard)
 ├── core/                        # 단일 소스 — 여기서 편집
 │   ├── skills/ (13)             # {{플레이스홀더}} 포함 스킬 템플릿

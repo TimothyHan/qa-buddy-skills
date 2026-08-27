@@ -1325,6 +1325,25 @@ function testCompile() {
     // fallback path is documented, not required: compile without index next to helper → clear error (source copy has no index)
     let errText = ''; try { execFileSync(process.execPath, [path.join(ROOT, 'bin', 'qab.js'), 'compile', '--skill', 'qa'], { env, encoding: 'utf8', stdio: ['ignore', 'pipe', 'pipe'] }); } catch (e) { errText = String(e.stderr || ''); }
     check(/index\.json not found/.test(errText), 'compile without a shipped index fails loudly (fallback is the model reading files, not a silent empty slice)');
+    // Installed-alias normalization (caught live 2026-08-27: `--skill qa-exploratory` compiled a
+    // 0-source slice silently — installed skills are named qa-*, scope vocabulary uses short names)
+    const outAlias = run(['compile', '--skill', 'qa-test-cases', '--ticket', 'PROJ-1']);
+    check(/skill alias: qa-test-cases → test-cases/.test(outAlias), 'compile normalizes the installed qa- prefix and says so');
+    const aliasSlice = fs.readFileSync(path.join(tmp, outAlias.split('\n')[0].trim()), 'utf8');
+    const aliasFm = aliasSlice.split('\n---\n')[0];
+    const aliasRefs = [...(aliasFm.split('\nsources:\n')[1] || '').split('\ndropped:')[0].matchAll(/^  - id: (\S+)/gm)].map(m => m[1]).filter(id => id.startsWith('REF-')).sort();
+    check(JSON.stringify(aliasRefs) === JSON.stringify(expectedRefs), `qa-test-cases packs the same REF set as test-cases (${aliasRefs.length})`);
+    // a 0-source compile must warn loudly on stderr, never succeed silently
+    // (separate scratch dir: the main fixture has a scope=all learning, which packs for ANY skill)
+    const { spawnSync } = require('child_process');
+    const tmp2 = fs.mkdtempSync(path.join(os.tmpdir(), 'qab-compile2-'));
+    try {
+      const resUnknown = spawnSync(process.execPath, [shipped, 'compile', '--skill', 'no-such-skill'], { env: { ...process.env, QAB_CWD: tmp2 }, encoding: 'utf8' });
+      check(resUnknown.status === 0 && /warning — 0 sources/.test(resUnknown.stderr || ''), 'a 0-source compile prints a loud stderr warning (not a silent empty slice)');
+      check(/Known scope tokens: .*test-cases/.test(resUnknown.stderr || ''), 'the 0-source warning lists the known scope tokens');
+    } finally {
+      fs.rmSync(tmp2, { recursive: true, force: true });
+    }
   } finally {
     fs.rmSync(tmp, { recursive: true, force: true });
   }

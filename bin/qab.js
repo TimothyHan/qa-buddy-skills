@@ -111,10 +111,21 @@ function gitBranch() {
   } catch { return 'nobranch'; }
 }
 
+// Installed platform skills carry a `qa-` prefix (~/.claude/skills/qa-exploratory →
+// dist skill `exploratory`; `qa-qa` → `qa`), but every scope vocabulary — reference
+// `qab:` comments, LEARNINGS `Scope:`, core/skills dir names — uses the short name.
+// Normalize so `--skill <installed-name>` matches; the prefix maps installed names to
+// core names bijectively. (Caught live 2026-08-27: four TalentHub runs compiled
+// 0-source slices silently because the model passed the invoked name `qa-exploratory`.)
+function canonSkill(raw) {
+  const s = String(raw);
+  return s.startsWith('qa-') ? s.slice(3) : s;
+}
+
 // ─── run-id ─────────────────────────────────────────────────────────────
 function cmdRunId(args) {
-  const skill = args.skill;
-  if (!skill || skill === true) die('run-id requires --skill <name>');
+  if (!args.skill || args.skill === true) die('run-id requires --skill <name>');
+  const skill = canonSkill(args.skill);
   const scope = (args.ticket && args.ticket !== true) ? String(args.ticket) : gitBranch();
   const hex = crypto.createHash('sha256').update(`${nowIso()}|${process.pid}|${Math.random()}`).digest('hex').slice(0, 6);
   const run = `${skill}-${scope}-${hex}`;
@@ -629,8 +640,8 @@ function resolveScoring() {
 }
 
 function cmdCompile(args) {
-  const skill = args.skill;
-  if (!skill || skill === true) die('compile requires --skill <name>');
+  if (!args.skill || args.skill === true) die('compile requires --skill <name>');
+  const skill = canonSkill(args.skill);
   validateCompilerKeys();
   const ticket = args.ticket && args.ticket !== true ? String(args.ticket) : null;
   const shippedIndex = loadRefIndex();
@@ -677,7 +688,8 @@ function cmdCompile(args) {
     .filter(r => packs(r.scope, r.tier))
     .sort((a, b) => (TIER_RANK[a.tier] ?? 1) - (TIER_RANK[b.tier] ?? 1) || (a.explicit === b.explicit ? 0 : a.explicit ? -1 : 1) || a.file.localeCompare(b.file) || 0);
   // candidate LRNs (active, scoped, profile-compatible); profile-narrowed ones that don't match are dropped, visibly
-  const scopedLrns = parseLearnings().filter(l => l.status === 'active' && (l.scope.includes('all') || l.scope.includes(skill)));
+  const allLrns = parseLearnings();
+  const scopedLrns = allLrns.filter(l => l.status === 'active' && (l.scope.includes('all') || l.scope.includes(skill)));
   const profileOk = (l) => Object.entries(l.profile).every(([k, v]) => profile[k] === undefined || profile[k] === v);
   const lrns = scopedLrns.filter(profileOk);
   for (const l of scopedLrns) if (!profileOk(l)) dropped.push({ id: l.id, reason: 'profile' });
@@ -752,7 +764,7 @@ function cmdCompile(args) {
   const manifest = [
     '---', 'manifest: 1', `run: ${run.run}`, `skill: ${skill}`, `pfp: ${pfp}`,
     `profile: {surface: ${profile.surface}, pom: ${profile.pom}, ticket_kind: ${profile.ticket_kind}}`,
-    `compiler: qab 0.7.0   scoring: ${scoringLabel}`,
+    `compiler: qab 0.7.1   scoring: ${scoringLabel}`,
     `budget: {max: ${budgetMax}, used: ${used}}${budgetMax === 0 ? '   # max 0 = uncapped (unscored compile, RFC 0001 PR5)' : '   # compiler.budget_lines (RFC 0002 PR D; the floor packs regardless)'}`,
     'sources:', ...sources.map(x => `  - id: ${x.id}   tier: ${x.tier}   lines: ${x.lines}${x.via ? `   via: ${x.via}` : ''}${x.tag ? `   score: ${fmtScore(x.tag.score)}   n: ${x.tag.n}${x.tag.audition ? '   (audition)' : ''}` : ''}`),
     'dropped:', ...(dropped.length ? dropped.map(d => `  - id: ${d.id}   reason: ${d.reason}${d.reason === 'budget' ? `   score: ${fmtScore(d.score)}   n: ${d.n}` : ''}`) : ['  []']),
@@ -767,6 +779,14 @@ function cmdCompile(args) {
   appendEvent({ v: 1, ts: nowIso(), run: run.run, skill, pfp, event: 'compiled', sources: sources.map(x => x.id), used, max: budgetMax, dropped: dropped.map(d => d.id) }, marker);
   process.stdout.write(`${rel(slicePath)}\n`);
   process.stdout.write(`  run ${run.run} · ${sources.length} sources (${sources.filter(x => x.tier === 'must').length} must, ${sources.filter(x => x.tier === 'lrn').length} learnings) · ${used} lines · scratchpad ${rel(scratch)}\n`);
+  if (skill !== String(args.skill)) process.stdout.write(`  skill alias: ${args.skill} → ${skill}\n`);
+  // An empty slice is almost always a naming problem, never silently fine (caught live 2026-08-27).
+  if (sources.length === 0) {
+    const known = new Set();
+    for (const e of Object.values(index)) for (const sc of e.scope) if (sc !== 'all') known.add(sc);
+    for (const l of allLrns) if (l.status === 'active') for (const sc of l.scope) if (sc !== 'all') known.add(sc);
+    process.stderr.write(`qab: warning — 0 sources: no reference section or active learning is scoped to skill '${skill}'. Known scope tokens: ${[...known].sort().join(', ') || '(none)'}\n`);
+  }
 }
 
 // ─── fp (RFC 0001 §3.4, PR6: failure fingerprints) ───────────────────────
