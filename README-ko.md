@@ -21,9 +21,9 @@ QA를 위한 AI 파트너입니다 — 소프트웨어를 테스트하는 사람
 
 AI 코딩 어시스턴트의 네이티브 **스킬 시스템** 위에 구축되었습니다.<br>
 QABuddy는 AI가 자동으로 인식하고 실행하는 `SKILL.md` 파일 모음입니다 —<br>
-별도의 앱, 데몬, Node.js 외 의존성이 없습니다.
+별도의 앱과 데몬이 없고, 고정 의존성은 하나 — [Akela](https://github.com/TimothyHan/akela) 엔진(그 자체는 의존성 0)이며 빌드 시점에 dist로 벤더링됩니다.
 
-[빠른 시작](#빠른-시작) · [스킬](#스킬) · [안내 워크플로우](#안내-워크플로우) · [셀프러닝 가이드](docs/self-learning-guide.md) · [변경 이력](CHANGELOG.md) · [기여하기](CONTRIBUTING.md)
+[빠른 시작](#빠른-시작) · [스킬](#스킬) · [안내 워크플로우](#안내-워크플로우) · [셀프러닝 가이드](docs/self-learning-guide.md) · [변경 이력](CHANGELOG-ko.md) · [기여하기](CONTRIBUTING.md)
 
 </div>
 
@@ -62,6 +62,7 @@ QABuddy는 무한히 자라는 메모리 파일을 두지 않습니다. 프로�
 
 ```bash
 git clone https://github.com/TimothyHan/qa-buddy-skills.git && cd qa-buddy-skills
+npm ci                         # 엔진 설치 (Akela, 버전 고정)
 node build.js all --locale ko  # 한국어 버전 빌드
 dist/ko/claude/setup           # 설치
 ```
@@ -78,6 +79,7 @@ dist/ko/claude/setup           # 설치
 ```powershell
 git clone https://github.com/TimothyHan/qa-buddy-skills.git
 cd qa-buddy-skills
+npm ci
 node build.js all --locale ko
 .\dist\ko\claude\setup.ps1
 ```
@@ -195,7 +197,7 @@ node build.js all --locale ko
 
 ## 사전 요구 사항
 
-- **Node.js** — 빌드 스크립트용 (npm 의존성 없음)
+- **Node.js ≥ 18** — 빌드 + 엔진; 고정 npm 의존성 1개(`akela`), `npm ci`로 설치
 - **Atlassian MCP** — 선택, Jira 모드에서만 필요
 - **Playwright MCP** — 브라우저 테스팅용 대체 수단 (Claude Code는 Chrome 확장 프로그램 권장)
 
@@ -332,7 +334,7 @@ node test.js                       # 1275개 구조 검사 실행
 
 ```
 QABuddy/
-├── build.js                     # 빌드 스크립트 (node, 의존성 없음)
+├── build.js                     # 빌드 스크립트 (node; 고정 버전 엔진을 벤더링)
 ├── test.js                      # 구조 검사 스위트 (1275개 검사)
 ├── bin/akela.js                   # 런타임 헬퍼 (compile, log, fp, stats, scoreboard)
 ├── core/                        # 단일 소스 — 여기서 편집

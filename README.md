@@ -21,9 +21,9 @@ Officially supports **Claude Code**. No Jira required.<br>
 
 Built on the native **skills system** of your AI coding assistant.<br>
 QABuddy is a collection of `SKILL.md` files that your AI discovers and invokes automatically —<br>
-no separate app, no daemon, no dependencies beyond Node.js.
+no separate app, no daemon; one pinned dependency — the [Akela](https://github.com/TimothyHan/akela) engine (itself zero-dependency), vendored into dist at build time.
 
-[Quick Start](#quick-start) · [Skills](#skills) · [Guided Workflow](#the-guided-workflow) · [Self-Learning Guide](docs/self-learning-guide-en.md) · [Changelog](CHANGELOG-en.md) · [Contributing](CONTRIBUTING-en.md)
+[Quick Start](#quick-start) · [Skills](#skills) · [Guided Workflow](#the-guided-workflow) · [Self-Learning Guide](docs/self-learning-guide-en.md) · [Changelog](CHANGELOG.md) · [Contributing](CONTRIBUTING-en.md)
 
 </div>
 
@@ -62,6 +62,7 @@ Three knowledge layers, one contract: `REF-` (shipped references) · `PRJ-` (you
 
 ```bash
 git clone https://github.com/TimothyHan/qa-buddy-skills.git && cd qa-buddy-skills
+npm ci                         # Install the engine (Akela, pinned)
 node build.js all              # Build for all platforms
 dist/claude/setup              # Install
 ```
@@ -78,6 +79,7 @@ Then:
 ```powershell
 git clone https://github.com/TimothyHan/qa-buddy-skills.git
 cd qa-buddy-skills
+npm ci
 node build.js all
 .\dist\claude\setup.ps1
 ```
@@ -195,7 +197,7 @@ If defined, skills follow them automatically. If not, skills ask case-by-case.
 
 ## Prerequisites
 
-- **Node.js** — for the build script (zero npm dependencies)
+- **Node.js ≥ 18** — build + engine; one pinned npm dependency (`akela`), installed with `npm ci`
 - **Atlassian MCP** — optional, only for Jira mode
 - **Playwright MCP** — fallback for browser testing (Chrome extension recommended on Claude Code)
 
@@ -333,7 +335,7 @@ node test.js                       # Run 1275 structural checks
 
 ```
 QABuddy/
-├── build.js                     # Build script (node, zero deps)
+├── build.js                     # Build script (node; vendors the pinned engine)
 ├── test.js                      # Structural check suite (1275 checks)
 ├── bin/akela.js                   # Runtime helper (compile, log, fp, stats, scoreboard)
 ├── core/                        # Single source of truth — edit here
