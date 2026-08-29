@@ -718,8 +718,11 @@ function testAkelaEquivalence() {
   check(init1.status === 0 && fs.existsSync(path.join(tmpA, 'akela.json')),
         'akela-init generates akela.json from .qabuddy.json', init1.stderr);
   const gen = JSON.parse(fs.readFileSync(path.join(tmpA, 'akela.json'), 'utf8'));
-  check(fs.existsSync(gen.domain) && /qa\.domain\.json$/.test(gen.domain),
-        'generated config points at the shipped qa domain pack');
+  // akela-init emits ~-portable paths (akela ≥ 0.1.4 expands them) — the
+  // harness expands the same way before checking existence.
+  const expandHome = (p) => p.startsWith('~/') ? path.join(os.homedir(), p.slice(2)) : p;
+  check(fs.existsSync(expandHome(gen.domain)) && /qa\.domain\.json$/.test(gen.domain),
+        'generated config points at the shipped qa domain pack (portable ~ path)');
   check(gen.knowledge.length === 2 && gen.knowledge[0].namespace === 'REF'
         && gen.knowledge[1].namespace === 'PRJ' && gen.knowledge[1].path === 'features-kb/house',
         'generated knowledge roots: shipped REF + PRJ dir widened from the compiler.references glob',

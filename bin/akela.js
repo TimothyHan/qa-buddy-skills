@@ -16,8 +16,17 @@
  * bin/qab.js remains as a deprecation shim that requires this file.
  */
 const fs = require('fs');
+const os = require('os');
 const path = require('path');
 const { spawnSync } = require('child_process');
+
+// akela ≥ 0.1.4 expands a leading `~/` — emit portable paths in generated
+// config so a committed akela.json travels across teammates' machines
+// (closes RFC 0003 §7).
+function portable(p) {
+  const home = os.homedir();
+  return p.startsWith(home + path.sep) ? '~/' + path.relative(home, p) : p;
+}
 
 function die(msg) { process.stderr.write(`akela-launcher: ${msg}\n`); process.exit(1); }
 
@@ -64,13 +73,13 @@ function generateConfig({ force, firstRun }) {
   }
   const cfg = readQabuddyConfig();
   const comp = (cfg.compiler && typeof cfg.compiler === 'object' && !Array.isArray(cfg.compiler)) ? cfg.compiler : {};
-  const knowledge = [{ path: refs, namespace: 'REF' }];
+  const knowledge = [{ path: portable(refs), namespace: 'REF' }];
   const prjDirs = [...new Set((Array.isArray(comp.references) ? comp.references : []).map(g => path.dirname(g)))];
   if (prjDirs.length > 1) {
     die(`compiler.references spans multiple directories (${prjDirs.join(', ')}) — Akela takes one root per namespace; consolidate house methodology under one directory, then re-run`);
   }
   for (const d of prjDirs) knowledge.push({ path: d, namespace: 'PRJ' });
-  const akela = { domain: pack, knowledge };
+  const akela = { domain: portable(pack), knowledge };
   if (cfg.learningsPath) akela.learnings = cfg.learningsPath;
   if (cfg.runsDir) akela.runs = cfg.runsDir;
   const carry = {};
@@ -97,8 +106,14 @@ if (sub === 'akela-init') {
   if (PROJECT_CMDS.has(sub) && !fs.existsSync(path.join(CWD, 'akela.json'))) {
     generateConfig({ force: false, firstRun: true });
   }
-  // The engine bin only runs under `require.main === module` — delegate as a
-  // child process, streams inherited, exit code passed through.
-  const r = spawnSync(process.execPath, [enginePath(), ...process.argv.slice(2)], { stdio: 'inherit' });
-  process.exit(r.status === null ? 1 : r.status);
+  // akela ≥ 0.1.4 exports main() — run in-process (no second node startup on
+  // the hot path). The child-process fallback covers an older vendored copy.
+  const engine = require(enginePath());
+  if (typeof engine.main === 'function') {
+    process.stdout.on('error', (e) => { if (e && e.code === 'EPIPE') process.exit(0); throw e; });
+    engine.main(process.argv.slice(2));
+  } else {
+    const r = spawnSync(process.execPath, [enginePath(), ...process.argv.slice(2)], { stdio: 'inherit' });
+    process.exit(r.status === null ? 1 : r.status);
+  }
 }

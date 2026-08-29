@@ -52,10 +52,12 @@ lines), same inputs:
   **one knowledge root per namespace** (the old stem-collision class is now
   refused at config time); stats labels absent ids "history — no longer in the
   knowledge base" instead of ever promoting them.
-- **Open (§7): generated `akela.json` paths are absolute.** `qab.js akela-init`
-  writes machine-specific `domain`/knowledge paths, so a committed akela.json
-  does not travel across teammates' machines until Akela learns `~/` expansion
-  (upstream candidate for 0.1.4); meanwhile each machine runs akela-init once.
+- **Resolved (was §7 open):** akela 0.1.4 ships `~/` expansion (with the other
+  first-consumer findings: exported `main()` for in-process embedding, and
+  knowledge-root `exclude` patterns). `akela-init` now emits `~/…` paths, so a
+  committed akela.json travels across teammates' machines; the launcher runs
+  the engine in-process. Pin bumped to 0.1.4; the harness re-proved the
+  upgrade.
 - **Log compatibility is one-way**: Akela reads historical `skill`-keyed lines;
   qab.js does not read `activity`-keyed lines. Existing projects migrate with
   zero log changes; there is no engine rollback once new lines are written.
