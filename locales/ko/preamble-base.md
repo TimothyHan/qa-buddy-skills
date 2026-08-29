@@ -42,7 +42,7 @@
 
 ## 프로젝트 학습 (모든 스킬 실행)
 
-이 프로젝트는 학습 레이어를 유지합니다 -- 실제 실행에서 포착된 프로젝트 고유 규칙과, 그 학습에 무슨 일이 있었는지의 로그입니다. 프로토콜: `{{REFERENCE_PATH}}/self-improve.md`. 헬퍼: `QAB={{REFERENCE_PATH}}/bin/qab.js` (`~`가 확장되도록 따옴표 없이 대입). **모든** 스킬 실행에서 세 가지 의무:
+이 프로젝트는 학습 레이어를 유지합니다 -- 실제 실행에서 포착된 프로젝트 고유 규칙과, 그 학습에 무슨 일이 있었는지의 로그입니다. 프로토콜: `{{REFERENCE_PATH}}/self-improve.md`. 헬퍼: `QAB={{REFERENCE_PATH}}/bin/akela.js` (`~`가 확장되도록 따옴표 없이 대입; 엔진은 Akela입니다 — `--skill`/`--ticket`은 그대로 동작). **모든** 스킬 실행에서 세 가지 의무:
 
 1. **시작 시 컴파일:** `node $QAB compile --skill <this-skill> [--ticket <KEY>]`를 실행하고 출력된 `slice.md`를 읽습니다 -- 이 스킬에 스코프된 레퍼런스 섹션과 `active` 학습이 각각 ID 아래 있고, 무엇이 들어가고 빠졌는지의 매니페스트가 붙어 있습니다; 학습 파일 읽기와 매니페스트에 나열된 레퍼런스 파일 읽기를 **대체**합니다 (스킬이 이름 붙인 레퍼런스 파일은 매니페스트에 그 파일의 섹션이 없을 때만 엽니다). 헬퍼를 쓸 수 없으면 레퍼런스 + 학습 파일(`learningsPath`, 기본 `features-kb/LEARNINGS.md`; 스킬 스코프, `active`)을 직접 읽습니다. **레퍼런스와 충돌하면 학습이 이깁니다.** 상세: `{{REFERENCE_PATH}}/run-protocol.md`.
 2. **인용하고 로그:** 소스가 출력을 좌우하면 -- 학습(`LRN-…`) 또는 레퍼런스 섹션(`REF-<file-stem>#<id>`, id는 제목 아래 `<!-- qab: id=… -->` 주석에 있음; playbook/ 아래는 `REF-playbook/<stem>#<id>`; `compiler.references`의 프로젝트 소유 섹션은 `PRJ-<stem>#<id>`) -- 그 ID를 인용하고 `node $QAB log applied <ID>`를 실행합니다 (실행당 소스당 한 번; 헬퍼는 모르는 REF id를 거부하고 가장 가까운 것을 제안). **표에서 값을 읽어 쓴 것도 인용 대상입니다:** 출력의 심각도·우선순위·P 레벨이 척도나 매트릭스에서 나왔다면 그 섹션을 인용하세요 — 표에서 값을 읽는 것은 규칙을 인용하는 것보다 약한 사용이 아닙니다. 실행 중 관찰한 현실이 active 소스와 모순되면 적용하지 말고 -- `node $QAB log contradicted <ID> --note "<관찰한 것>"`을 실행하고 보고서에 플래그합니다. 실행 중 눈에 띄는 것은 실행 `scratchpad.md`의 `## Candidate learnings`에 적습니다 -- 증거 문턱 없이.

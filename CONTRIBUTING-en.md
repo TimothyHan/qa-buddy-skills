@@ -52,7 +52,7 @@ measured, not targets: it grew with the RFC 0001 runtime obligations (compile �
 qa-buddy-skills/
 ├── build.js                     # Build script (node, zero deps)
 ├── test.js                      # Structural + behavioural checks (`node test.js`)
-├── bin/qab.js                   # Runtime helper (run-id, compile, log, fp, stats, gate, scoreboard)
+├── bin/akela.js                   # Runtime helper (run-id, compile, log, fp, stats, gate, scoreboard)
 ├── core/                        # Edit here — single source of truth
 │   ├── skills/ (13)             # Skill templates (procedure)
 │   ├── references/              # Knowledge: playwright-patterns, self-improve, KB spec
@@ -159,7 +159,8 @@ Assertion operators — simulate mode: `eq`, `contains`, `not_contains`, `matche
 - Add to skills table + routing in `core/project-instructions.md`
 - Add to playbook `index.md` "Used by" column if referencing playbook files
 - Build: `node build.js all`
-- Test: `node test.js`
+- Test: `npm ci` once (installs the pinned `akela` engine the equivalence
+  harness runs — RFC 0003), then `node test.js`
 
 ---
 
@@ -235,16 +236,16 @@ The preamble enforces these on every skill run; skill authors must not contradic
 
 | When | Obligation | Written to |
 |---|---|---|
-| Whenever a learning shapes output | Cite its ID; `qab.js log applied LRN-…` | `learnings-log.jsonl` |
-| Live observation contradicts an active learning | Do not apply it; `qab.js log contradicted LRN-… --note`; flag in report | `learnings-log.jsonl` |
+| Whenever a learning shapes output | Cite its ID; `akela.js log applied LRN-…` | `learnings-log.jsonl` |
+| Live observation contradicts an active learning | Do not apply it; `akela.js log contradicted LRN-… --note`; flag in report | `learnings-log.jsonl` |
 | Completion | Apply the three capture triggers; if one fires, write the LRN and `log captured`; then `log outcome --status <S>` | `LEARNINGS.md`, `learnings-log.jsonl` |
-| Start | `qab.js compile --skill <name>` → read `slice.md` (replaces reading the learnings file + the reference sections it lists); fallback: references + `LEARNINGS.md` | `.qa-reports/runs/<run>/{slice.md,profile.json,scratchpad.md,events.jsonl}` |
+| Start | `akela.js compile --skill <name>` → read `slice.md` (replaces reading the learnings file + the reference sections it lists); fallback: references + `LEARNINGS.md` | `.qa-reports/runs/<run>/{slice.md,profile.json,scratchpad.md,events.jsonl}` |
 | Mid-run | Anything noteworthy → `## Candidate learnings` (no evidence bar); tier-2 skills also keep `## Plan` / `## State` and re-read at pauses | `scratchpad.md` |
 | Completion | The three capture triggers are applied to the **candidates** only | `LEARNINGS.md`, `learnings-log.jsonl` |
-| Named failure class hit (`e2e-pom` heal → `locator-not-found`; `e2e-write` gates → `spec-flaky`, `fixture-missing`; `qa` → `ac-unmapped`, `env-unreachable`, `auth-failed`, `assertion-mismatch`; `verify-fix` → `ci-step-failed`) | `qab.js fp <kind> "<key>"` — one line per distinct class per run; if the helper lists a learning under `active`, flag it | `fingerprints.jsonl` |
-| Capture after trigger 1 with a fingerprint this run | Set the new LRN's `Fingerprint:` to that ffp (`qab.js fp --list`) | `LEARNINGS.md` |
+| Named failure class hit (`e2e-pom` heal → `locator-not-found`; `e2e-write` gates → `spec-flaky`, `fixture-missing`; `qa` → `ac-unmapped`, `env-unreachable`, `auth-failed`, `assertion-mismatch`; `verify-fix` → `ci-step-failed`) | `akela.js fp <kind> "<key>"` — one line per distinct class per run; if the helper lists a learning under `active`, flag it | `fingerprints.jsonl` |
+| Capture after trigger 1 with a fingerprint this run | Set the new LRN's `Fingerprint:` to that ffp (`akela.js fp --list`) | `LEARNINGS.md` |
 
-`bin/qab.js` is the only writer of `learnings-log.jsonl` and `fingerprints.jsonl` — the model passes bare arguments and never hand-writes JSON. It ships to `dist/<platform>/references/bin/` and is tested behaviourally in `test.js` (`testRuntimeHelper`, `testCompile`, `testFingerprints`). Schema: `self-improve.md` §Learnings log and §Failure fingerprints (`"v": 1`; readers accept every earlier version — logs are append-only and live in users' repos for years). The fingerprint `kind` vocabulary is closed (`FP_KINDS` in `qab.js`, mirrored in `self-improve.md`; `test.js` checks they match) — add a kind only with a detection point in a skill and its ko twin. `qab.js scoreboard` writes `features-kb/.cache/scoreboard.json`, a derived cache — never read it as truth, never commit it. Runtime files (`LEARNINGS.md`, `learnings-log.jsonl`, `fingerprints.jsonl`, `.qa-reports/`) are project content: never in this repo, never dual-locale. **Changing the compiler** (scope resolution, packing, the score formula or its floor, the gate) is measurement-bound: the PR must carry behavioural tests plus a mutation smoke proving each new guard detects its own removal, and the scoring shape is fixed by RFC 0002 decisions 10–13 (per-profile with a floor, constants not knobs — never a global ranking).
+`bin/akela.js` is the only writer of `learnings-log.jsonl` and `fingerprints.jsonl` — the model passes bare arguments and never hand-writes JSON. It ships to `dist/<platform>/references/bin/` and is tested behaviourally in `test.js` (`testRuntimeHelper`, `testCompile`, `testFingerprints`). Schema: `self-improve.md` §Learnings log and §Failure fingerprints (`"v": 1`; readers accept every earlier version — logs are append-only and live in users' repos for years). The fingerprint `kind` vocabulary is closed (`FP_KINDS` in `akela.js`, mirrored in `self-improve.md`; `test.js` checks they match) — add a kind only with a detection point in a skill and its ko twin. `akela.js scoreboard` writes `features-kb/.cache/scoreboard.json`, a derived cache — never read it as truth, never commit it. Runtime files (`LEARNINGS.md`, `learnings-log.jsonl`, `fingerprints.jsonl`, `.qa-reports/`) are project content: never in this repo, never dual-locale. **Changing the compiler** (scope resolution, packing, the score formula or its floor, the gate) is measurement-bound: the PR must carry behavioural tests plus a mutation smoke proving each new guard detects its own removal, and the scoring shape is fixed by RFC 0002 decisions 10–13 (per-profile with a floor, constants not knobs — never a global ranking). During the RFC 0003 migration this includes the **equivalence harness** (`testAkelaEquivalence` in `test.js`, fixture in `test-fixtures/equivalence/`): akela.js and the pinned `akela` must select identically on the committed fixture, and the harness must stay green through every migration PR.
 
 ---
 

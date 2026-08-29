@@ -1,0 +1,16 @@
+{
+  "name": "qabuddy",
+  "private": true,
+  "description": "A QA foundation for Claude Code that learns your project. The self-learning engine is Akela (npm: akela), consumed per RFC 0003.",
+  "license": "Apache-2.0",
+  "engines": {
+    "node": ">=18"
+  },
+  "scripts": {
+    "build": "node build.js all",
+    "test": "node test.js"
+  },
+  "dependencies": {
+    "akela": "0.1.4"
+  }
+}

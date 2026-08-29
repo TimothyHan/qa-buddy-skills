@@ -1,164 +1,237 @@
-# 변경 이력
+# Changelog
 
-QABuddy의 주요 변경 사항을 기록합니다. 형식은
-[Keep a Changelog](https://keepachangelog.com/ko/1.1.0/), 버전은
-[유의적 버전](https://semver.org/lang/ko/)을 따릅니다 — 1.0 이전이므로 마이너 버전에서
-스킬이 제거될 수 있습니다.
+All notable changes to QABuddy are recorded here. Format follows
+[Keep a Changelog](https://keepachangelog.com/en/1.1.0/); versions follow
+[Semantic Versioning](https://semver.org/spec/v2.0.0.html) — pre-1.0, so a minor bump
+may remove a skill.
 
-English: [CHANGELOG-en.md](CHANGELOG-en.md)
+한국어: [CHANGELOG-ko.md](CHANGELOG-ko.md)
+
+## [0.8.0] — 2026-08-29
+
+The engine release. QABuddy's in-tree compiler/learning engine (`qab.js`,
+1,189 lines) is replaced by [Akela](https://github.com/TimothyHan/akela) —
+the same engine, extracted and generalized, now maintained upstream (npm
+`akela`, pinned 0.1.4, vendored into dist at build time so installs stay
+self-contained). [RFC 0003](docs/rfc/0003-akela-adoption.md) records every
+decision and every behavioral delta.
+
+### ⚠️ Upgrade notes
+
+- **Building now needs one `npm ci`** before `node build.js all` — the build
+  vendors the pinned engine and refuses to run without it. Installs are still
+  symlinked; no reinstall.
+- **Existing projects: zero manual steps.** The first skill run generates
+  `akela.json` from your `.qabuddy.json` + the shipped qa domain pack and
+  announces it on stderr. From then on the file is yours — engine settings
+  (scope overrides, PRJ knowledge, scoring) live there; `.qabuddy.json`
+  keeps workflow settings. Paths are `~/`-portable, so commit it.
+- **Logs are one-way.** Akela reads historical `skill`-keyed lines, but new
+  lines are `activity`-keyed — once new runs are logged there is no engine
+  rollback to 0.7.x.
+- **`bin/qab.js` is now a deprecation shim** (same arguments, prints a
+  notice) and survives one release; point scripts at `bin/akela.js`.
+- **Two configurations stop working, loudly** (each refusal names its fix):
+  `compiler.references` globs spanning **multiple directories** (Akela takes
+  one knowledge root per namespace — consolidate house methodology under one
+  directory), and a configured knowledge directory that **does not exist**
+  (was a zero-match warning; now a config error). Everything else migrated
+  in our upgrade simulation with zero manual steps — scope overrides, PRJ
+  files, learnings, mixed old/new logs, and a stale run marker included.
+
+### Changed
+
+- **The engine is Akela.** `bin/akela.js` (91 lines) maps `QAB_*` env onto
+  `AKELA_*`, auto-generates `akela.json` on first run, and runs the engine
+  in-process. The **qa domain pack** (`references/engine/qa.domain.json`)
+  carries QABuddy's QA-ness: 13 activities, the profile probes as declarative
+  rules (pfp proven identical), the closed fingerprint vocabulary, statuses,
+  scratchpad sections, `qa-` alias prefixes.
+- **Stricter by design** (each asserted in the suite): unknown skill names
+  are refused with the full activity vocabulary (exit 1, no junk run — the
+  final form of the #54 guard); a missing knowledge root refuses the compile
+  (was a warning); one knowledge root per namespace (the old stem-collision
+  class is refused at config time).
+- **Detection power kept the strong way:** nothing was retired — all 1,275
+  structural checks now run against Akela through the shim, every divergence
+  adjudicated and recorded in RFC 0003 §2.
+- This file is now English-primary (`CHANGELOG.md`), Korean in
+  [CHANGELOG-ko.md](CHANGELOG-ko.md) — matching the repo's README convention.
+
+### Upstreamed
+
+Three first-consumer findings shipped as **akela 0.1.4** and were consumed
+the same day: an exported `main()` (in-process embedding), `~/` path
+expansion (portable committed config), and knowledge-root `exclude` patterns.
 
 ## [0.7.1] — 2026-08-28
 
-패치 릴리스: 컴파일러 버그 수정 하나(#54, main에 선반영)와 저장소의 영어 기본 전환.
+Patch release: one compiler bugfix (#54, already on main) and the repo's switch
+to English-default.
 
-### 수정
+### Fixed
 
-**컴파일러가 설치된 스킬 이름에 빈 슬라이스를 반환** (#54)
-`compile --skill qa-exploratory`처럼 설치된 이름(`qa-` 접두사)이 들어오면 스코프가
-매칭되지 않아 0-소스 슬라이스가 **조용히** 만들어졌습니다 — 모델은 지식 없이
-진행하고, 아무도 모릅니다 (2026-08-27 실사용 4회 연속 실측). 이제 `qa-` 접두사를
-정규화하고(`skill alias: qa-x → x` 표기), 0-소스 컴파일은 알려진 스코프 토큰
-목록과 함께 stderr로 크게 경고합니다. 구조 검사 4건 추가 (1,243).
-이 수정은 추출된 엔진 [Akela](https://github.com/TimothyHan/akela) 0.1.3에도
-일반화되어 반영되었습니다 (`aliasPrefixes`).
+**Compiler returned an empty slice for installed skill names** (#54)
+An installed name like `compile --skill qa-exploratory` (`qa-` prefix) matched
+no scope, producing a 0-source slice **silently** — the model proceeded with no
+knowledge and nothing said so (observed live 4 runs in a row, 2026-08-27). The
+`qa-` prefix is now normalized (printed as `skill alias: qa-x → x`), and any
+0-source compile warns loudly on stderr with the list of known scope tokens.
+4 structural checks added (1,243). The fix is also generalized upstream in the
+extracted engine [Akela](https://github.com/TimothyHan/akela) 0.1.3
+(`aliasPrefixes`).
 
-### 변경
+### Changed
 
-- **README 영어 기본 전환** — 루트가 하위 디렉터리 규약과 일치합니다:
-  `README.md` = 영어, `README-ko.md` = 한국어. 내용 변화는 스왑이 아니라 소폭
-  개정입니다 (파일당 +27/−11).
-- **"How It Learns" 섹션 신설** (양 언어) — 5단계 증거 루프(컴파일 → 인용 →
-  포착 → 반증 → 정제)와 `REF-`/`PRJ-`/`LRN-` 계약을 접힘 없이 상단에.
-- **SDT → QA 용어 전환** (방문자 표면: README·셀프러닝 가이드) — 소프트웨어를
-  테스트하는 누구에게나 해당된다는 의도를 반영. 스킬 내부 텍스트는 후속 작업.
-- 클론 URL을 리네임된 저장소 이름(`qa-buddy-skills`)으로 갱신 — 기존 URL은
-  리다이렉트에 의존하고 있었습니다.
+- **English-default README** — the root now matches the subdirectory
+  convention: `README.md` = English, `README-ko.md` = Korean. The content delta
+  is a light revision, not just a swap (+27/−11 per file).
+- **New "How It Learns" section** (both languages) — the 5-step evidence loop
+  (compile → cite → capture → falsify → distill) and the `REF-`/`PRJ-`/`LRN-`
+  contract, above the fold.
+- **SDT → QA terminology** (visitor surfaces: READMEs, self-learning guides) —
+  reflecting that this applies to anyone testing software. Skill-internal text
+  is a follow-up.
+- Clone URLs updated to the renamed repo (`qa-buddy-skills`) — the old URLs
+  were riding on a redirect.
 
-### 업그레이드 안내
+### Upgrade note
 
-파괴적 변경 없음. `git pull` 후 `node build.js all`(한국어 `--locale ko`)만
-재실행하면 됩니다 — qab.js가 변경되어 리빌드가 필요합니다.
+No breaking changes. `git pull` then re-run `node build.js all` (Korean:
+`--locale ko`) — qab.js changed, so a rebuild is needed.
 
 ## [0.7.0] — 2026-08-21
 
-RFC 0002를 배포하는 릴리스입니다. v0.6.0의 판정은 "선택(selection) 레이어가 사용자
-것이 아니다"였습니다 — 이번 릴리스가 그 레이어를 프로젝트에게 넘깁니다. 스코프를
-직접 고치고, 팀 지식을 넣고, 자기 데이터로 점수화 자격을 재고, 게이트가 열리는
-순간 알림을 받는 네 가지 능력이 전부 `.qabuddy.json` 뒤의 **opt-in**으로 들어갑니다.
+The release that ships RFC 0002. v0.6.0's verdict was "the selection layer isn't
+user-owned" — this release hands that layer to the project. Fixing scopes yourself,
+adding team knowledge, measuring scoring eligibility on your own data, and being told
+the moment the gate opens: all four land as **opt-in** capabilities behind `.qabuddy.json`.
 
-### ⚠️ 업그레이드 안내
+### ⚠️ Upgrade note
 
-파괴적 변경 없음 — 새 능력은 전부 설정하지 않으면 동작이 바뀌지 않습니다.
-`git pull` 후 `node build.js all`(한국어는 `--locale ko`)만 다시 실행하면 됩니다
-(설치는 심볼릭 링크라 재설치 불필요). 한 가지 엄격해진 것: `.qabuddy.json`의
-`compiler` 아래 모르는 키는 이제 큰 소리로 거부됩니다 — 오타가 능력을 조용히
-꺼버리는 일을 막기 위해서입니다.
+No breaking changes — none of the new capabilities change behaviour unless configured.
+`git pull` then re-run `node build.js all` (Korean: `--locale ko`); installs are
+symlinked, so no reinstall needed. One thing got stricter: unknown keys under
+`compiler` in `.qabuddy.json` are now refused loudly — so a typo can't silently
+disable a capability.
 
-### 추가됨
-- **스코프 오버라이드 — `compiler.scope`** (#46). 배포된 레퍼런스 섹션을 어떤 스킬이
-  받을지 프로젝트 설정으로 추가/제거합니다. `tier=must`는 바닥값이라 제거 거부,
-  모르는 id는 최근접 제안과 함께 거부, 모든 오버라이드는 매니페스트에
-  `via:`/`reason: project-override`로 남습니다.
-- **프로젝트 소유 레퍼런스 섹션 — `compiler.references`** (#47). 팀이 작성한 방법론
-  파일이 배포 레퍼런스와 같은 `qab:` 규약으로 컴파일됩니다. id는 `PRJ-<stem>#<id>`
-  네임스페이스 — 배포 id와 충돌 불가, 인용의 출처가 항상 명확합니다.
-- **게이트 리포트 — `qab.js gate`** (#48). RFC 0001 §9.3의 점수화 자격 게이트를
-  이 프로젝트 자신의 로그로 평가합니다. 증거를 모으되 원인은 분류하지 않습니다 —
-  휴면 섹션의 원인 판단은 사람 몫입니다 (결정 6).
-- **점수화 — `compiler.scoring` + 게이트 열림 알림** (#50). 바닥값(`tier=must` ∪ 최근
-  적용 ∪ 학습 전체)을 가진 프로파일별 점수 선택 — 전역 랭킹은 설계로 금지 (§9.3).
-  게이트 자격 없이는 켜기를 거부하며, 예외는 로그에 결정으로 기록되는
-  `scoringOverride` 메모뿐입니다. 게이트를 넘기는 바로 그 outcome에서 `log outcome`이
-  🔓 알림을 출력하고, 스킬이 얻는 것과 감수하는 것을 쉬운 말로 설명한 뒤 SDT에게
-  묻습니다 — 켜는 결정과 설정 편집은 언제나 사람 몫입니다.
-- **셀프러닝 & 컨텍스트 컴파일러 사용자 가이드** (#49) —
-  [docs/self-learning-guide.md](docs/self-learning-guide.md) (en+ko). 매 실행의 자동
-  루프, 매니페스트 읽는 법, 세 지식 층, 위 네 능력의 레시피, 그리고 아직 만들지 않은
-  E(자동 상태 변경)가 무엇이고 왜 데이터가 요구할 때까지 미루는지까지.
+### Added
+- **Scope overrides — `compiler.scope`** (#46). Add/remove which skills receive a
+  shipped reference section, from project config. `tier=must` is a floor (removal
+  refused), unknown ids are refused with a nearest-match suggestion, and every
+  override is visible in the manifest as `via:`/`reason: project-override`.
+- **Project-owned reference sections — `compiler.references`** (#47). Team-authored
+  methodology files compile under the same `qab:` contract as shipped references.
+  Ids are namespaced `PRJ-<stem>#<id>` — no collision with shipped ids, and a
+  citation is always unambiguous about provenance.
+- **Gate report — `qab.js gate`** (#48). Evaluates the RFC 0001 §9.3 scoring
+  eligibility gate on this project's own logs. It assembles evidence and never
+  classifies causes — judging why a section is dormant stays human (decision 6).
+- **Scoring — `compiler.scoring` + the gate-opened notification** (#50). Per-profile
+  scored selection with a floor (`tier=must` ∪ recently applied ∪ all learnings) —
+  a global ranking is forbidden by design (§9.3). Refuses to enable without gate
+  eligibility; the only exception is a `scoringOverride` note recorded in the log as
+  a decision. On the exact outcome that tips the gate, `log outcome` prints a 🔓
+  notice and the skill explains the gain and the risk in plain language before
+  asking the SDT — the decision and the config edit always stay human.
+- **The Self-Learning & Context Compiler user's guide** (#49) —
+  [docs/self-learning-guide-en.md](docs/self-learning-guide-en.md) (en+ko): the
+  automatic per-run loop, how to read a manifest, the three knowledge layers,
+  recipes for all four capabilities above, and what the unbuilt E (auto status
+  changes) would do — and why it waits until the data asks for it.
 
-### 변경됨
-- RFC 0002 상태 Draft → **Accepted, A–D built** — 결정 8–13 기록 (게이트는 qab.js에,
-  노브는 상수로, 학습은 바닥값, 오디션은 결정적, 얇은 프로파일 데이터는 비점수).
-- 구조 검사 스위트 1,164 → **1,239개** — 새 능력 전부에 행동 테스트 + 뮤테이션 스모크
-  (총 17종 뮤테이션, 전부 이름 붙은 검사로 검출).
-- 매니페스트의 컴파일러 스탬프가 0.7.0로 올라가고, 점수화가 켜진 컴파일은
-  `scoring: on`과 `score`/`n`/`(audition)`/`reason: budget`을 보여줍니다.
+### Changed
+- RFC 0002 status Draft → **Accepted, A–D built** — decisions 8–13 recorded (gate
+  lives in qab.js, knobs are constants, learnings are floor, audition is
+  deterministic, thin profile data compiles unscored).
+- Structural check suite 1,164 → **1,239** — behavioural tests plus mutation smokes
+  for every new capability (17 mutations in total, each detected by a named check).
+- The manifest's compiler stamp moves to 0.7.0, and a scored compile shows
+  `scoring: on` with `score`/`n`/`(audition)` and `reason: budget` evidence.
 
 ## [0.6.0] — 2026-08-20
 
-RFC 0001의 호(arc)를 닫는 릴리스입니다. v0.5.0은 그 한가운데서 나갔습니다(PR0–PR6은
-배포, PR7·PR8은 미결). 이번 릴리스는 그 결론을 배포합니다 — 게이트는 열렸고, 측정을
-수행했고, 그 측정이 PR7을 만들지 말라고 답했습니다.
+Closes the RFC 0001 arc. v0.5.0 shipped it mid-flight (PR0–PR6 out, PR7/PR8 pending);
+this release ships the conclusion — the gate opened, the measurement was taken, and it
+argued against building PR7.
 
-### ⚠️ 업그레이드 안내
+### ⚠️ Upgrade note
 
-`/qa-sprint-status`가 제거되었습니다. v0.5.0 이하에서 설치했다면 더 이상 존재하지 않는
-스킬을 가리키는 항목이 남아 있습니다. **설치 스크립트를 다시 실행하면 자동으로
-정리됩니다** — `dist/claude/setup` (또는 `setup.ps1`). `--status`는 잔여물을 `ORPHAN`으로
-보고하고, install·uninstall이 제거합니다. 다른 도구의 스킬은 절대 건드리지 않습니다.
+`/qa-sprint-status` was removed. If you installed v0.5.0 or earlier, its entry is left
+behind pointing at a skill that no longer exists. **Re-run your installer and it is pruned
+automatically** — `dist/claude/setup` (or `setup.ps1`). `--status` reports leftovers as
+`ORPHAN`; install and uninstall remove them. Skills belonging to other tools are never
+touched.
 
-### 제거됨
-- **`/qa-sprint-status`** (#29). 이 스킬이 쓰던 레퍼런스 섹션은 실제로 그것을 필요로 하는
-  스킬들로 재배치했습니다 — 사라진 지식은 없습니다.
-- `test-behavioral.md` (#36) — v0.1.0 이후 손대지 않은 수동 테스트 계획으로, 13개 스킬 중
-  9개만 다루고 있었습니다. 그 역할은 eval 픽스처(13개 스킬 전부, 픽스처 67개)와 CI의
-  설치·adopt 스모크가 대신합니다.
+### Removed
+- **`/qa-sprint-status`** (#29). Its reference sections were rehomed to the skills that
+  actually used them; nothing else lost knowledge.
+- `test-behavioral.md` (#36) — a manual test plan untouched since v0.1.0, covering 9 of
+  13 skills. Its job is done by eval fixtures (all 13 skills, 67 fixtures) and by CI's
+  install/adopt smokes.
 
-### 추가됨
-- **"재현 불가"로 닫기 전에 실행 조건을 복원** (#24). 재현 단계는 보고자가 *한 일*을
-  기록할 뿐, 그때 함께 참이었던 실행 조건 — 시각과 타임존, 로케일, 뷰포트, 계정, 데이터
-  상태, 빌드 — 은 기록하지 않습니다. 하나씩 되돌려 보고, 그래도 재현되지 않으면
-  *"다음 조건에서 재현되지 않음: {시도한 조건}"*으로 적습니다. 스코프: `/qa-qa`,
-  `/qa-verify-fix`, `/qa-exploratory`, `/qa-review-ticket`, `/qa-test-cases`.
-- **심각도 척도에 데이터 노출 축** (#27). 지금까지 심각도는 버그가 무엇을 *막는지*로
-  매겼습니다. 이제 무엇을 *노출하는지*로도 매깁니다 — 자격 증명이나 개인정보를 봐서는 안
-  될 사람이 읽을 수 있으면 Blocker, 다른 사용자의 데이터나 인증 없는 쓰기에 도달하면
-  Critical, 인가는 동작하지만 새어 나가는 경우(상태 코드로 존재 여부 노출, 열거 가능한
-  id, URL·로그의 민감 값)는 Major.
-- **`playwright-patterns.md`로 승격된 패턴 2건** (#28) — 둘 다 실측된 실패에서 나왔습니다:
-  Next.js 라우트 어나운서 함정, 그리고 단언 **이전에** 정리를 큐잉하는 규칙 — 4xx를
-  기대했는데 201이 온 네거티브 테스트도 정리는 해야 하는데, 먼저 단언하면 throw가 큐잉을
-  건너뛰기 때문입니다.
-- **더 이상 배포하지 않는 스킬의 잔여 링크 정리** (#40) — 6개 설치 스크립트 전부, bash와
-  PowerShell 5.1 CI 스모크 포함.
-- **문서가 주장하는 사실을 저장소에서 도출해 검증** (#34, #37). 스킬 개수, `/qa-*` 명령
-  참조, 플레이북 파일 수, 프리앰블 크기, 상대 링크가 이제 손 관리 대신 도출됩니다 —
-  11행 중 5행이 어긋나 있던 플레이북 index의 "Used by" 열도 마찬가지입니다.
+### Added
+- **Reproduction conditions before "cannot reproduce"** (#24). A rule that repro steps
+  record what the reporter *did*, not the run conditions that were also true — time and
+  timezone, locale, viewport, account, data state, build. Restore them one at a time; if
+  it still will not reproduce, record *"not reproduced under: {conditions tried}"*.
+  Scoped to `/qa-qa`, `/qa-verify-fix`, `/qa-exploratory`, `/qa-review-ticket`,
+  `/qa-test-cases`.
+- **A data-exposure axis in the severity scale** (#27). Severity was graded by what a bug
+  blocks; it now also grades by what it exposes — credentials or personal data readable by
+  the wrong person is a Blocker, another user's data or an unauthenticated write is
+  Critical, and leaks that survive correct authorization (existence disclosed by status
+  code, enumerable ids, sensitive values in URLs or logs) are Major.
+- **Two patterns promoted into `playwright-patterns.md`** (#28), both from measured
+  failures: the Next.js route-announcer pitfall, and queueing an entity's cleanup
+  **before** asserting on it — a negative test that expected a 4xx but got a 201 must
+  still clean up, and asserting first means the throw skips the queueing.
+- **Orphaned-skill pruning** in all six installers (#40), with CI smokes on bash and
+  PowerShell 5.1.
+- **Doc claims verified against the repo** (#34, #37). Skill counts, `/qa-*` command
+  references, playbook file counts, preamble sizes and relative links are now derived
+  rather than hand-maintained — as is the playbook index's "Used by" column, which had
+  drifted on 5 of 11 rows.
 
-### 수정됨
-- `qab.js compile`이 `--ticket`이 다르면 마커 run을 재사용하지 않습니다 (#19) — 버그 키
-  실행이 스토리 run의 프로파일을 물려받던 결함.
-- `qab.js`가 stdout이 닫혀도 EPIPE 스택 트레이스로 죽지 않습니다 (#22, `qab.js stats | head`).
-- `qab.js`가 이미 outcome을 보고한 run에는 이벤트를 붙이지 않습니다 (#30).
-- 심각도·우선순위 척도가 프리앰블에 중복되어 있었습니다. 이제 레퍼런스가 단일
-  출처입니다 (#26). 로그에서 `#severity-scale`이 유휴로 보이던 원인이었습니다.
-- 레퍼런스가 스킬 이름을 설치 기본값인 `qa-` 접두사로 표기합니다 (#20, 66곳).
+### Fixed
+- `qab.js compile` no longer reuses a run marker when `--ticket` differs (#19) — bug-key
+  runs were inheriting a story run's profile.
+- `qab.js` no longer dies with an EPIPE stack trace when stdout closes, e.g.
+  `qab.js stats | head` (#22).
+- `qab.js` refuses to append events to a run that already reported its outcome (#30).
+- The severity and priority scales were duplicated in the preamble; the references are now
+  the single source (#26). This is why `#severity-scale` looked dormant in the logs.
+- Reference files now name skills with the installed `qa-` prefix (#20, 66 places).
 
-### 변경됨
-- **RFC 0001을 PR0–PR6에서 닫습니다** (#31). §9.3 게이트가 열렸고 — 프로파일 2개에
-  outcome 9건·8건, 적용 편차 확인 — 게이트가 허가한 측정을 실제로 수행했습니다. 그 측정이
-  점수화에 반대했습니다: 28회 실행에서 한 번도 적용되지 않은 18개 섹션 중 **선택 실패는
-  0건**. 점수화가 얻어내려던 감축은 스코프 정리가 결정론적으로 달성했습니다. 이것은 한
-  프로젝트의 데이터에 대한 판정이지, 점수화라는 발상에 대한 판정이 아닙니다.
-- **PR7·PR8 재정의** — QABuddy가 한 번 배포하는 단계가 아니라 프로젝트가 자기 측정으로
-  여는 능력으로. [RFC 0002](docs/rfc/0002-project-owned-compiler.md) (Draft, #32).
-- README·CONTRIBUTING을 배포된 도구에 맞춰 정합 (#33, #34, #35, #38): 컨텍스트 컴파일러가
-  이름과 다이어그램 자리를 갖고, `features-kb/` 트리가 학습 레이어를 보여주며, 낡은 수치를
-  바로잡았습니다.
+### Changed
+- **RFC 0001 closes at PR0–PR6** (#31). Its §9.3 gate opened — two profiles with 9 and 8
+  attributed outcomes, application measurably uneven — so the measurement it authorized was
+  taken, and it argued against scoring: of 18 sections never applied across 28 runs, **0
+  were selection failures**. Scope hygiene achieved the reduction scoring was meant to
+  earn, deterministically. This is a verdict on one project's data, not on scoring as an
+  idea.
+- **PR7/PR8 re-framed** as capabilities a project opens with its own measurements, rather
+  than phases QABuddy ships once — [RFC 0002](docs/rfc/0002-project-owned-compiler.md)
+  (Draft, #32).
+- README and CONTRIBUTING realigned with the shipped tool (#33, #34, #35, #38): the
+  context compiler is now named and diagrammed, the `features-kb/` tree shows the learnings
+  layer, and stale counts are corrected.
 
-## 이전 릴리스
+## Earlier releases
 
-이 파일 이전입니다. 릴리스 노트를 참고하세요:
-[v0.5.0](https://github.com/TimothyHan/qa-buddy-skills/releases/tag/v0.5.0) — 컨텍스트
-컴파일러 (RFC 0001 PR0–PR6) ·
-[v0.4.0](https://github.com/TimothyHan/qa-buddy-skills/releases/tag/v0.4.0) — 테스트 스위트
-검증 방법론 ·
-[v0.3.0](https://github.com/TimothyHan/qa-buddy-skills/releases/tag/v0.3.0) — 지원 정책,
-`--adopt` 마이그레이션, 셀프 도그푸드 ·
-[v0.2.3](https://github.com/TimothyHan/qa-buddy-skills/releases/tag/v0.2.3) — 설치 스크립트
-소유권 검증 ·
+Predate this file. See the release notes:
+[v0.5.0](https://github.com/TimothyHan/qa-buddy-skills/releases/tag/v0.5.0) — context
+compiler (RFC 0001 PR0–PR6) ·
+[v0.4.0](https://github.com/TimothyHan/qa-buddy-skills/releases/tag/v0.4.0) — test-suite
+verification methodology ·
+[v0.3.0](https://github.com/TimothyHan/qa-buddy-skills/releases/tag/v0.3.0) — support
+policy, `--adopt` migration, self-dogfooding ·
+[v0.2.3](https://github.com/TimothyHan/qa-buddy-skills/releases/tag/v0.2.3) — installer
+ownership verification ·
 [v0.2.2](https://github.com/TimothyHan/qa-buddy-skills/releases/tag/v0.2.2) ·
-[v0.2.1](https://github.com/TimothyHan/qa-buddy-skills/releases/tag/v0.2.1) — Windows 수정 ·
-[v0.2.0](https://github.com/TimothyHan/qa-buddy-skills/releases/tag/v0.2.0) — 스스로
-진화하는 QA 파운데이션 ·
-[v0.1.0](https://github.com/TimothyHan/qa-buddy-skills/releases/tag/v0.1.0) — 첫 릴리스
+[v0.2.1](https://github.com/TimothyHan/qa-buddy-skills/releases/tag/v0.2.1) — Windows
+fixes ·
+[v0.2.0](https://github.com/TimothyHan/qa-buddy-skills/releases/tag/v0.2.0) — the
+self-evolving QA foundation ·
+[v0.1.0](https://github.com/TimothyHan/qa-buddy-skills/releases/tag/v0.1.0) — first
+release

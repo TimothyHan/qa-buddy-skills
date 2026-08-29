@@ -1,0 +1,9 @@
+{
+  "compiler": {
+    "scope": {
+      "REF-playbook/terminology#terms": { "add": ["qa"] },
+      "REF-playbook/defect-lifecycle#not-reproducible": { "remove": ["qa"] }
+    },
+    "references": ["features-kb/house/*.md"]
+  }
+}

@@ -10,7 +10,7 @@
 [![Skills: 13](https://img.shields.io/badge/Skills-13-green.svg)](#스킬)
 [![Platform: Claude Code](https://img.shields.io/badge/Platform-Claude_Code-purple.svg)](#작동-방식)
 [![Locales: en, ko](https://img.shields.io/badge/Locales-en_|_ko-orange.svg)](#로케일)
-[![Structural checks: 1243](https://img.shields.io/badge/Structural_checks-1243-brightgreen.svg)](#작동-방식)
+[![Structural checks: 1275](https://img.shields.io/badge/Structural_checks-1275-brightgreen.svg)](#작동-방식)
 
 QA를 위한 AI 파트너입니다 — 소프트웨어를 테스트하는 사람이라면 누구나.<br>
 에픽 테스트 계획 수립부터 스프린트 실행, 릴리스 검증까지 전체 워크플로우를 지원합니다.<br>
@@ -21,9 +21,9 @@ QA를 위한 AI 파트너입니다 — 소프트웨어를 테스트하는 사람
 
 AI 코딩 어시스턴트의 네이티브 **스킬 시스템** 위에 구축되었습니다.<br>
 QABuddy는 AI가 자동으로 인식하고 실행하는 `SKILL.md` 파일 모음입니다 —<br>
-별도의 앱, 데몬, Node.js 외 의존성이 없습니다.
+별도의 앱과 데몬이 없고, 고정 의존성은 하나 — [Akela](https://github.com/TimothyHan/akela) 엔진(그 자체는 의존성 0)이며 빌드 시점에 dist로 벤더링됩니다.
 
-[빠른 시작](#빠른-시작) · [스킬](#스킬) · [안내 워크플로우](#안내-워크플로우) · [셀프러닝 가이드](docs/self-learning-guide.md) · [변경 이력](CHANGELOG.md) · [기여하기](CONTRIBUTING.md)
+[빠른 시작](#빠른-시작) · [스킬](#스킬) · [안내 워크플로우](#안내-워크플로우) · [셀프러닝 가이드](docs/self-learning-guide.md) · [변경 이력](CHANGELOG-ko.md) · [기여하기](CONTRIBUTING.md)
 
 </div>
 
@@ -62,6 +62,7 @@ QABuddy는 무한히 자라는 메모리 파일을 두지 않습니다. 프로�
 
 ```bash
 git clone https://github.com/TimothyHan/qa-buddy-skills.git && cd qa-buddy-skills
+npm ci                         # 엔진 설치 (Akela, 버전 고정)
 node build.js all --locale ko  # 한국어 버전 빌드
 dist/ko/claude/setup           # 설치
 ```
@@ -78,6 +79,7 @@ dist/ko/claude/setup           # 설치
 ```powershell
 git clone https://github.com/TimothyHan/qa-buddy-skills.git
 cd qa-buddy-skills
+npm ci
 node build.js all --locale ko
 .\dist\ko\claude\setup.ps1
 ```
@@ -154,7 +156,10 @@ node build.js all --locale ko
 
 ## 설정
 
-`/qa-setup`을 실행하여 구성합니다. 설정은 `.qabuddy.json`에 저장됩니다:
+`/qa-setup`을 실행하여 구성합니다. 워크플로우 설정은 `.qabuddy.json`에, 엔진
+설정은 `akela.json`에 삽니다 — 첫 실행 시 `.qabuddy.json` + 배포된 qa 도메인
+팩으로부터 생성되고(명시적으로는 `akela.js akela-init`), 그 뒤로는 직접
+편집·커밋하는 사용자 소유 파일입니다 ([RFC 0003](docs/rfc/0003-akela-adoption.md)):
 
 | 설정 | 옵션 | 제어 대상 |
 |------|------|-----------|
@@ -163,9 +168,9 @@ node build.js all --locale ko
 | **업스트림 기여** | 예, 아니오 | 개선 사항을 QABuddy 저장소에 자동 PR |
 | **학습 파일 경로** | 기본 `features-kb/LEARNINGS.md` | 학습 레이어가 사는 위치 |
 | **실행 디렉터리** | 기본 `.qa-reports/runs` | 실행마다 컴파일된 슬라이스·매니페스트·스크래치패드가 쓰이는 위치 |
-| **스코프 오버라이드** | 직접 편집: `compiler.scope` | 배포된 레퍼런스 섹션을 어떤 스킬이 받을지 프로젝트 단위로 추가/제거 — 업데이트에도 살아남습니다. `tier=must`는 제거 불가, 모르는 id는 큰 소리로 거부됩니다 ([RFC 0002](docs/rfc/0002-project-owned-compiler-ko.md)) |
-| **프로젝트 레퍼런스 섹션** | 직접 편집: `compiler.references` | 팀이 작성한 방법론 파일을 배포 레퍼런스와 똑같이 컴파일 — 같은 `qab:` 규약, id는 `PRJ-<stem>#<id>` 네임스페이스, `REF-`처럼 인용·집계됩니다 ([RFC 0002](docs/rfc/0002-project-owned-compiler-ko.md)) |
-| **점수화 (opt-in)** | 직접 편집: `compiler.scoring` + `budget_lines` | 바닥값(`tier=must`, 최근 적용, 학습)을 가진 프로파일별 점수 선택. `qab.js gate`가 자격 있음을 보고하지 않으면 켜기를 거부 — 예외는 로그에 결정으로 기록되는 `scoringOverride: "<메모>"`뿐 ([RFC 0002 §2.4](docs/rfc/0002-project-owned-compiler-ko.md)) |
+| **스코프 오버라이드** | `akela.json`: `compiler.scope` | 배포된 레퍼런스 섹션을 어떤 스킬이 받을지 프로젝트 단위로 추가/제거 — 업데이트에도 살아남습니다. `tier=must`는 제거 불가, 모르는 id는 큰 소리로 거부됩니다 ([RFC 0002](docs/rfc/0002-project-owned-compiler-ko.md)) |
+| **프로젝트 레퍼런스 섹션** | `akela.json`: `knowledge[]` (`namespace: "PRJ"`, 루트 1개) | 팀이 작성한 방법론 파일을 배포 레퍼런스와 똑같이 컴파일 — 같은 `qab:` 태그 규약, id는 `PRJ-<stem>#<id>` 네임스페이스, `REF-`처럼 인용·집계됩니다 ([RFC 0002](docs/rfc/0002-project-owned-compiler-ko.md)) |
+| **점수화 (opt-in)** | `akela.json`: `compiler.scoring` + `budget_lines` | 바닥값(`tier=must`, 최근 적용, 학습)을 가진 프로파일별 점수 선택. `akela.js gate`가 자격 있음을 보고하지 않으면 켜기를 거부 — 예외는 로그에 결정으로 기록되는 `scoringOverride: "<메모>"`뿐 ([RFC 0002 §2.4](docs/rfc/0002-project-owned-compiler-ko.md)) |
 
 > **Jira가 없어도 괜찮습니다.** 컨텍스트 소스를 "spec" 또는 "chat"으로 설정하세요. 결함은
 > `features-kb/`에 마크다운으로 기록됩니다. 어떤 프로젝트 관리 도구와도 호환됩니다.
@@ -192,7 +197,7 @@ node build.js all --locale ko
 
 ## 사전 요구 사항
 
-- **Node.js** — 빌드 스크립트용 (npm 의존성 없음)
+- **Node.js ≥ 18** — 빌드 + 엔진; 고정 npm 의존성 1개(`akela`), `npm ci`로 설치
 - **Atlassian MCP** — 선택, Jira 모드에서만 필요
 - **Playwright MCP** — 브라우저 테스팅용 대체 수단 (Claude Code는 Chrome 확장 프로그램 권장)
 
@@ -275,9 +280,9 @@ flowchart LR
     C -. 반복 증명됨 .-> F["/qa-improve 정제:<br>레퍼런스 승격<br>+ 업스트림 PR"]
 ```
 
-**컨텍스트 컴파일러 (자동, 모든 스킬 실행 직전).** 스킬은 레퍼런스 전체를 열지 않습니다. 먼저 함께 배포되는 `qab.js` 헬퍼가 *그 스킬*에 스코프된 레퍼런스 섹션과 active 학습을 `slice.md` 하나로 **컴파일**하고, 무엇이 들어가고 무엇이 빠졌는지의 매니페스트를 함께 씁니다. 둘 다 `.qa-reports/runs/<run>/`에 남습니다 — 그래서 그 실행에서 모델에 실제로 무엇이 도달했는지는 추측할 대상이 아니라 나중에 열어서 다시 읽을 수 있는 산출물입니다. 소스가 출력을 좌우하면 실행이 그 id를 인용하고 *적용*으로 기록하며, 현실이 소스와 모순되면 그렇게 기록합니다. `node qab.js gate`는 그 로그를 점수화 자격 게이트에 대조합니다 — 프로파일 × outcome, 휴면 소스, 슬라이스 크기 — 그리고 *이* 프로젝트의 데이터가 점수화 선택을 정당화하는지 말해줍니다 ([RFC 0002](docs/rfc/0002-project-owned-compiler-ko.md); QABuddy 자신의 데이터에 대한 판정은 '아니오'였습니다). 설계: [RFC 0001 — Context Compiler](docs/rfc/0001-context-compiler-ko.md).
+**컨텍스트 컴파일러 (자동, 모든 스킬 실행 직전).** 스킬은 레퍼런스 전체를 열지 않습니다. 먼저 함께 배포되는 `akela.js` 헬퍼가 *그 스킬*에 스코프된 레퍼런스 섹션과 active 학습을 `slice.md` 하나로 **컴파일**하고, 무엇이 들어가고 무엇이 빠졌는지의 매니페스트를 함께 씁니다. 둘 다 `.qa-reports/runs/<run>/`에 남습니다 — 그래서 그 실행에서 모델에 실제로 무엇이 도달했는지는 추측할 대상이 아니라 나중에 열어서 다시 읽을 수 있는 산출물입니다. 소스가 출력을 좌우하면 실행이 그 id를 인용하고 *적용*으로 기록하며, 현실이 소스와 모순되면 그렇게 기록합니다. `node akela.js gate`는 그 로그를 점수화 자격 게이트에 대조합니다 — 프로파일 × outcome, 휴면 소스, 슬라이스 크기 — 그리고 *이* 프로젝트의 데이터가 점수화 선택을 정당화하는지 말해줍니다 ([RFC 0002](docs/rfc/0002-project-owned-compiler-ko.md); QABuddy 자신의 데이터에 대한 판정은 '아니오'였습니다). 설계: [RFC 0001 — Context Compiler](docs/rfc/0001-context-compiler-ko.md).
 
-**학습 레이어 (자동, 모든 스킬 실행).** 모든 실행은 시작 시 `features-kb/LEARNINGS.md`를 읽고 — active 항목은 배포된 레퍼런스를 *오버라이드*하는 프로젝트 고유 규칙입니다 — 종료 시 세 가지 포착 트리거를 확인합니다: 문서화된 규칙이 현실 앞에서 깨짐, 문서화되지 않은 결정을 내림, QA가 출력을 수정함. 항목에는 증거가 필수이며, 깨끗한 실행은 아무것도 기록하지 않습니다. 실행마다 *적용*·*모순*·*포착*·*종료 상태*가 `features-kb/learnings-log.jsonl`에 추가되고 (append-only, `qab.js`만 씀 — 절대 손으로 쓰지 않음), 재발하는 실패 클래스는 `features-kb/fingerprints.jsonl`에 이름이 붙어 그것을 막는다고 주장한 학습이 산문이 아니라 숫자로 반증됩니다. 이 파일들은 당신의 저장소에 살기 때문에 학습이 git으로 팀 전체에 전파되고 QABuddy 업그레이드에도 살아남습니다. 프로토콜: [`core/references/self-improve.md`](core/references/self-improve.md).
+**학습 레이어 (자동, 모든 스킬 실행).** 모든 실행은 시작 시 `features-kb/LEARNINGS.md`를 읽고 — active 항목은 배포된 레퍼런스를 *오버라이드*하는 프로젝트 고유 규칙입니다 — 종료 시 세 가지 포착 트리거를 확인합니다: 문서화된 규칙이 현실 앞에서 깨짐, 문서화되지 않은 결정을 내림, QA가 출력을 수정함. 항목에는 증거가 필수이며, 깨끗한 실행은 아무것도 기록하지 않습니다. 실행마다 *적용*·*모순*·*포착*·*종료 상태*가 `features-kb/learnings-log.jsonl`에 추가되고 (append-only, `akela.js`만 씀 — 절대 손으로 쓰지 않음), 재발하는 실패 클래스는 `features-kb/fingerprints.jsonl`에 이름이 붙어 그것을 막는다고 주장한 학습이 산문이 아니라 숫자로 반증됩니다. 이 파일들은 당신의 저장소에 살기 때문에 학습이 git으로 팀 전체에 전파되고 QABuddy 업그레이드에도 살아남습니다. 프로토콜: [`core/references/self-improve.md`](core/references/self-improve.md).
 
 **스킬 수정.** 하나의 흐름, 하나의 소유자: `/qa-improve`. 모든 중단 지점에서 **(C) 도구 피드백**을 선택하거나(`/qa-improve`로 디스패치 후 워크플로우 재개), 직접 실행하거나, 포착된 학습이 스킬 결함을 가리킬 때 실행 종료 시의 제안을 수락하세요 — 구조화된 제안, 목표 수정, eval 회귀 실행, PR.
 
@@ -315,7 +320,7 @@ flowchart LR
 ```bash
 node build.js all                  # 모든 플랫폼용 빌드
 node build.js all --locale ko      # 한국어 버전 빌드
-node test.js                       # 1243개 구조 검사 실행
+node test.js                       # 1275개 구조 검사 실행
 ```
 
 > **구조 검사와 동작 검증은 다릅니다.** `node test.js`는 빌드 산출물의 형태를
@@ -329,9 +334,9 @@ node test.js                       # 1243개 구조 검사 실행
 
 ```
 QABuddy/
-├── build.js                     # 빌드 스크립트 (node, 의존성 없음)
-├── test.js                      # 구조 검사 스위트 (1243개 검사)
-├── bin/qab.js                   # 런타임 헬퍼 (compile, log, fp, stats, scoreboard)
+├── build.js                     # 빌드 스크립트 (node; 고정 버전 엔진을 벤더링)
+├── test.js                      # 구조 검사 스위트 (1275개 검사)
+├── bin/akela.js                   # 런타임 헬퍼 (compile, log, fp, stats, scoreboard)
 ├── core/                        # 단일 소스 — 여기서 편집
 │   ├── skills/ (13)             # {{플레이스홀더}} 포함 스킬 템플릿
 │   ├── references/playbook/     # 11개 방법론 파일

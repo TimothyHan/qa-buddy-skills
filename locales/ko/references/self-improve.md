@@ -73,7 +73,7 @@ ID 형식은 `LRN-YYYYMMDD-NN` (생성일 + 순번). ID는 영구적 — 은퇴 
   실패하고, 도구용 `references/index.json`(id → 파일, 제목, scope, tier, 줄 수)을
   배포합니다.
 - **학습처럼 인용하세요.** 섹션이 출력을 결정하면 `LRN-…`을 인용하듯 id를 인용하고
-  `qab.js log applied REF-…`를 실행합니다 -- 실행당 소스당 한 번. 헬퍼는
+  `akela.js log applied REF-…`를 실행합니다 -- 실행당 소스당 한 번. 헬퍼는
   `index.json`에 없는 id를 거부하고 가장 가까운 것을 제안하므로 오타 id는 로그에
   들어가지 않습니다. `applied ≠ read`: 읽었지만 아무것도 결정하지 않은 섹션은
   인용하지 않습니다 -- 그 간극이 정제의 신호입니다.
@@ -92,11 +92,11 @@ ID 형식은 `LRN-YYYYMMDD-NN` (생성일 + 순번). ID는 영구적 — 은퇴 
    레퍼런스는 그 외 모든 곳에서 기본값으로 유지됩니다.
 4. **적용한 것은 인용하고 — 로그하세요.** 학습이 출력을 결정했으면 보고서에
    ID를 명시하고 (예: "LRN-20260807-01에 따라 `data-test` 사용") **또한**
-   `qab.js log applied LRN-…`를 실행하세요 (아래 *학습 로그* 참조). 인용이 이
+   `akela.js log applied LRN-…`를 실행하세요 (아래 *학습 로그* 참조). 인용이 이
    레이어를 감사 가능하게 만들고 — 조용한 적용은 드리프트로 보입니다 — 로그가
    셀 수 있게 만듭니다.
 5. active 학습이 **실행 중 관찰한 현실과 모순되면** 적용하지 마세요.
-   `qab.js log contradicted LRN-… --note "<관찰한 것>"`을 실행하고, 보고서에
+   `akela.js log contradicted LRN-… --note "<관찰한 것>"`을 실행하고, 보고서에
    반증 증거로 플래그하고 `/qa-improve` 정제를 제안하세요. 관찰된 현실은 기록된
    학습보다 우선합니다 — 레퍼런스보다 우선하는 것과 같은 원리입니다.
 
@@ -124,11 +124,11 @@ ID 형식은 `LRN-YYYYMMDD-NN` (생성일 + 순번). ID는 영구적 — 은퇴 
   오래된 포크가 갱신된 정본을 조용히 가리는 것이 바로 이 레이어가 막으려는 실패입니다.
 - **항목당 사실 하나.** 한 실행에서 학습 둘 = 항목 둘.
 - **지문을 연결하세요.** 트리거 1이 발화했고 이 실행이 그 실패의 지문을 냈다면
-  (`qab.js fp --list`가 보여줌), 새 항목의 `Fingerprint:`를 그 `ffp`로 설정합니다 —
+  (`akela.js fp --list`가 보여줌), 새 항목의 `Fingerprint:`를 그 `ffp`로 설정합니다 —
   같은 클래스를 다시 만나는 다음 실행이 누구의 재판단 없이 그 항목을 자동으로
   반증합니다.
 - 보고서에 포착을 언급: "LRN-{id} 포착: {한 줄 요약}." 그리고
-  `qab.js log captured LRN-{id}`를 실행하세요.
+  `akela.js log captured LRN-{id}`를 실행하세요.
 
 ### 포착 금지 대상
 
@@ -152,29 +152,29 @@ ID 형식은 `LRN-YYYYMMDD-NN` (생성일 + 순번). ID는 영구적 — 은퇴 
 함께 배포되는 헬퍼로 쓰고, 절대 손으로 쓰지 마세요:
 
 ```bash
-node <references>/bin/qab.js run-id --skill <this-skill> [--ticket <KEY>]   # 시작 시 한 번; 실행 id 출력
-node <references>/bin/qab.js log applied LRN-20260807-01                    # 학습이 출력을 결정함
-node <references>/bin/qab.js log applied REF-playwright-patterns#never       # 레퍼런스 섹션이 출력을 결정함
-node <references>/bin/qab.js log applied REF-playbook/risk-and-priority#severity-scale # 값을 읽어 쓴 척도
-node <references>/bin/qab.js log contradicted LRN-… --note "<관찰한 것>"    # 실행 중 현실이 어긋남
-node <references>/bin/qab.js log captured LRN-…                             # 새 항목을 추가함
-node <references>/bin/qab.js fp locator-not-found "checkout/place-order-btn" # 이름 붙은 실패 클래스를 만남 (아래 실패 지문)
-node <references>/bin/qab.js log outcome --status DONE                      # 상태 블록 직전 마지막
+node <references>/bin/akela.js run-id --skill <this-skill> [--ticket <KEY>]   # 시작 시 한 번; 실행 id 출력
+node <references>/bin/akela.js log applied LRN-20260807-01                    # 학습이 출력을 결정함
+node <references>/bin/akela.js log applied REF-playwright-patterns#never       # 레퍼런스 섹션이 출력을 결정함
+node <references>/bin/akela.js log applied REF-playbook/risk-and-priority#severity-scale # 값을 읽어 쓴 척도
+node <references>/bin/akela.js log contradicted LRN-… --note "<관찰한 것>"    # 실행 중 현실이 어긋남
+node <references>/bin/akela.js log captured LRN-…                             # 새 항목을 추가함
+node <references>/bin/akela.js fp locator-not-found "checkout/place-order-btn" # 이름 붙은 실패 클래스를 만남 (아래 실패 지문)
+node <references>/bin/akela.js log outcome --status DONE                      # 상태 블록 직전 마지막
 ```
 
 `<references>`는 플랫폼의 레퍼런스 경로입니다 (정확한 명령은 프리앰블에 있음).
 `run-id`는 현재 실행을 `.qa-reports/.qab-run`에 기억합니다; 스킬을 병렬로 실행할
 때는 각 `log` 호출에 `--run <id>`를 넘기세요.
 스키마 v1: `{"v":1,"ts":"<UTC ISO>","run":"<skill>-<ticket|branch>-<6hex>","skill":"…","event":"…","src":"LRN-…"}`
-+ `note`(contradicted) 또는 `status`(outcome). `compiled`는 `qab.js compile`이 씁니다
++ `note`(contradicted) 또는 `status`(outcome). `compiled`는 `akela.js compile`이 씁니다
 (`pfp`, `sources[]`, `used`, `dropped[]`); `escalated`는 예약. 모든 라인은 실행의
 `events.jsonl`에도 미러됩니다(`run-protocol.md`). Node를 쓸 수 없으면 같은 형태를 `echo … >>`로 추가하되
 `"writer":"manual"`을 넣어 정제가 비율을 보고할 수 있게 하세요.
 
-`qab.js stats`는 로그를 소스별 카운트(`in_slice`, `applied`, `contradicted`,
+`akela.js stats`는 로그를 소스별 카운트(`in_slice`, `applied`, `contradicted`,
 `runs`, `last_applied`, LRN·REF 행 모두), 아래 계산 판정들, 지문 재발 표, 그리고
 **인용 준수율** -- outcome이 있는 실행 중 REF `applied`를 하나 이상 로그한 비율(RFC
-0001 PR4 게이트: ≥ 4/5) -- 로 바꿉니다. `qab.js scoreboard`는 같은 숫자를 학습 파일
+0001 PR4 게이트: ≥ 4/5) -- 로 바꿉니다. `akela.js scoreboard`는 같은 숫자를 학습 파일
 옆 `.cache/scoreboard.json`에 씁니다 -- 파생 캐시(`features-kb/.cache/`를 gitignore)이며,
 필요할 때마다 두 로그에서 다시 만들어지고, 절대 진실의 원천이 아닙니다. 스킬은
 로그도 스코어보드도 읽지 않습니다; 정제(그리고 나중에는 점수 컴파일러)만 읽습니다.
@@ -187,8 +187,8 @@ node <references>/bin/qab.js log outcome --status DONE                      # �
 스킬이 닫힌 종류 중 하나를 만나면 실행합니다:
 
 ```bash
-node <references>/bin/qab.js fp <kind> "<key>"       # 예: fp locator-not-found "checkout/place-order-btn"
-node <references>/bin/qab.js fp --list               # 이 실행의 지문들 (ffp · kind · key · active)
+node <references>/bin/akela.js fp <kind> "<key>"       # 예: fp locator-not-found "checkout/place-order-btn"
+node <references>/bin/akela.js fp --list               # 이 실행의 지문들 (ffp · kind · key · active)
 ```
 
 - **kind** -- 닫힌 어휘, 신중하게 늘리고, 즉흥적으로 만들지 않습니다:
@@ -223,7 +223,7 @@ node <references>/bin/qab.js fp --list               # 이 실행의 지문들 (
 트리거하거나, 스킬이 반증된 항목을 플래그했을 때, 또는 active 항목이 ~30개를
 넘었을 때 실행하세요. 정제는 `Evidence:` 산문이 아니라 로그로 계산합니다:
 
-| 판정 | 규칙 (`qab.js stats` 기준) |
+| 판정 | 규칙 (`akela.js stats` 기준) |
 |---|---|
 | **승격 후보** | `applied ≥ 3` (서로 다른 실행 `≥ 3`) ∧ `contradicted = 0` ∧ (`Fingerprint:`가 있으면) 그 `ffp`가 항목 날짜 이후 조용함 — 그 다음 사람의 판단: 이 프로젝트 밖에서도 일반화되는가? |
 | **반증됨 (모순)** | `contradicted ≥ 2` ∧ 마지막 모순 이후 `applied` 없음 |
