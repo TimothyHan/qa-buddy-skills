@@ -1154,6 +1154,45 @@ function cmdScoreboard() {
 }
 
 // ─── main ───────────────────────────────────────────────────────────────
+
+// ─── akela-init (RFC 0003 PR B: the akela.json contract + converter) ──────
+//
+// Generates akela.json for this project from .qabuddy.json + the shipped qa
+// domain pack, so the Akela engine selects exactly what qab.js selects today
+// (proven by testAkelaEquivalence). One-shot and loud: refuses to overwrite —
+// akela.json is user-owned after generation (RFC 0003 decision 2) — and
+// refuses to run from a copy without shipped references/engine beside it.
+// Known gap (RFC 0003 §7): the generated domain/knowledge paths are absolute,
+// so a committed akela.json is machine-specific until Akela learns `~/`
+// expansion — teammates re-run akela-init once per machine meanwhile.
+function cmdAkelaInit(args) {
+  const out = path.join(CWD, 'akela.json');
+  if (fs.existsSync(out) && !args.force) {
+    die('akela.json already exists — it is user-owned after generation (RFC 0003 decision 2); re-run with --force to regenerate');
+  }
+  const refs = refsRoot();
+  const pack = path.join(refs, 'engine', 'qa.domain.json');
+  if (!fs.existsSync(path.join(refs, 'index.json')) || !fs.existsSync(pack)) {
+    die('shipped references/engine not found next to this helper — run node build.js all and use the dist/installed copy');
+  }
+  const cfg = readConfig();
+  const comp = compilerConfig();
+  const knowledge = [{ path: refs, namespace: 'REF' }];
+  const prjDirs = [...new Set((Array.isArray(comp.references) ? comp.references : []).map(g => path.dirname(g)))];
+  for (const d of prjDirs) knowledge.push({ path: d, namespace: 'PRJ' });
+  const akela = { domain: pack, knowledge };
+  if (cfg.learningsPath) akela.learnings = cfg.learningsPath;
+  if (cfg.runsDir) akela.runs = cfg.runsDir;
+  const carry = {};
+  for (const k of ['scope', 'scoring', 'budget_lines', 'scoringOverride']) if (comp[k] !== undefined) carry[k] = comp[k];
+  if (Object.keys(carry).length) akela.compiler = carry;
+  fs.writeFileSync(out, JSON.stringify(akela, null, 2) + '\n');
+  process.stdout.write(`akela.json written — domain: qa pack, knowledge roots: ${knowledge.length}` +
+    (prjDirs.length ? ` (PRJ from compiler.references: ${prjDirs.join(', ')})` : '') + '\n');
+  if (comp.references) process.stdout.write('  note: compiler.references file globs widened to their PRJ directories\n');
+  process.stdout.write('  .qabuddy.json keeps workflow config; akela.json owns engine config from here\n');
+}
+
 function main() {
   const [sub, ...rest] = process.argv.slice(2);
   const args = parseArgs(rest);
@@ -1165,6 +1204,7 @@ function main() {
     case 'stats': return cmdStats(args);
     case 'gate': return cmdGate(args);
     case 'scoreboard': return cmdScoreboard(args);
+    case 'akela-init': return cmdAkelaInit(args);
     case undefined: case '--help': case '-h': case 'help':
       process.stdout.write([
         'usage: qab.js run-id --skill <name> [--ticket <key>]',
@@ -1175,9 +1215,10 @@ function main() {
         '       qab.js stats [--since <YYYY-MM-DD>] [--json]',
         '       qab.js gate [--json]                               → RFC 0001 §9.3 gate on this project\'s logs (read-only)',
         '       qab.js scoreboard                                  → rebuilds <kb>/.cache/scoreboard.json',
+        '       qab.js akela-init [--force]                        → generate akela.json from .qabuddy.json + the shipped qa domain pack (RFC 0003)',
       ].join('\n') + '\n');
       return;
-    default: die(`unknown subcommand "${sub}" (run-id | compile | log | fp | stats | gate | scoreboard)`);
+    default: die(`unknown subcommand "${sub}" (run-id | compile | log | fp | stats | gate | scoreboard | akela-init)`);
   }
 }
 
