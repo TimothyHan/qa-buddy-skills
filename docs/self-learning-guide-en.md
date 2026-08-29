@@ -47,7 +47,7 @@ times a source rode in a slice).
 | Layer | ID prefix | Owner | Lives in | Survives updates |
 |---|---|---|---|---|
 | Shipped references | `REF-` | QABuddy | installed `references/` | overwritten (upstream owns it) |
-| **Project references** | `PRJ-` | **your team** | your repo (`compiler.references`) | ✅ |
+| **Project references** | `PRJ-` | **your team** | your repo (`akela.json` `PRJ` knowledge root) | ✅ |
 | **Learnings** | `LRN-` | **your project** | `features-kb/LEARNINGS.md` | ✅ |
 
 - **`REF-`** — methodology QABuddy ships (severity scales, Playwright patterns, the
@@ -104,8 +104,9 @@ or out:
 ---
 manifest: 1
 run: qa-PROJ-123-3f9a2c
-skill: qa
+activity: qa
 pfp: 5408a28cb4ac
+compiler: akela 0.1.4   domain: qa   scoring: off
 sources:
   - id: REF-playbook/risk-and-priority#severity-scale   tier: must   lines: 18
   - id: PRJ-payments#seed-rules   tier: should   lines: 4   via: project-override
@@ -406,9 +407,9 @@ it can't fire in your domain, `remove` it via `compiler.scope` → verify
 work hasn't happened yet," leave it — dormancy is not a crime.
 
 **"Our team wiki has a testing-methodology doc"**
-→ Move it under `features-kb/house/`, add `qab:` comments, add the pattern to
-`compiler.references` → from the next run it rides in the scoped skills' slices,
-and citations show up in `stats`.
+→ Move it under `features-kb/house/`, add `qab:` comments, declare the directory
+as the `PRJ` knowledge root in `akela.json` (§6.2) → from the next run it rides in
+the scoped skills' slices, and citations show up in `stats`.
 
 **"We want to turn scoring on"**
 → `node $QAB gate`. NOT ELIGIBLE is the answer (usually: the data is still thin).
@@ -421,7 +422,8 @@ of them are selection failures, there is nothing for scoring to fix.
 |---|---|---|
 | `unknown section id … did you mean:` | typo'd override ID (or upstream rename) | use the suggested ID |
 | `… is tier=must — a must section is a floor` | tried to remove a rail | delete the `remove` — rails can't go |
-| `pattern "…" matched no files` | references glob found nothing (warning only) | check the path; ignorable if files come later |
+| `unknown activity "…" — this domain declares: …` | a skill name outside the 13 (typo, or an un-normalized alias) | use a listed name — the refusal prints the whole vocabulary |
+| `knowledge root "…" does not exist` | a configured knowledge directory is missing (config error, not a warning) | create the directory, or remove the root from `akela.json` |
 | `"## …" has no <!-- qab: id=… -->` | house-file section missing its ID | add the comment under the heading |
 | `run "…" already reported an outcome` | logging onto a closed run (usually a stale marker) | start a new run with `run-id` |
 
@@ -437,6 +439,7 @@ of them are selection failures, there is nothing for scoring to fix.
 | `akela.js stats [--json]` | per-source counts + computed findings + compliance |
 | `akela.js gate [--json]` | the scoring-eligibility gate — on your data |
 | `akela.js scoreboard` | rebuild the derived cache (never a source of truth) |
+| `akela.js akela-init [--force]` | (re)generate `akela.json` from `.qabuddy.json` + the qa domain pack |
 
 File map: slices, profiles and scratchpads live in `.qa-reports/runs/<run>/`;
 learnings, log and fingerprints in `features-kb/`; engine configuration in
