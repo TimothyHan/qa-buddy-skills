@@ -336,10 +336,13 @@ node test.js                       # 1275개 구조 검사 실행
 QABuddy/
 ├── build.js                     # 빌드 스크립트 (node; 고정 버전 엔진을 벤더링)
 ├── test.js                      # 구조 검사 스위트 (1275개 검사)
-├── bin/akela.js                   # 런타임 헬퍼 (compile, log, fp, stats, scoreboard)
+├── package.json                 # 고정 의존성 1개: akela (엔진)
+├── bin/akela.js                 # 엔진 런처 (환경변수 매핑 · 첫 실행 akela.json · 위임)
+├── bin/qab.js                   # 지원 중단 심 (한 릴리스)
 ├── core/                        # 단일 소스 — 여기서 편집
 │   ├── skills/ (13)             # {{플레이스홀더}} 포함 스킬 템플릿
 │   ├── references/playbook/     # 11개 방법론 파일
+│   ├── engine/qa.domain.json    # qa 도메인 팩 (활동 · 프로브 · 지문 어휘)
 │   ├── preamble-base.md         # Tier 1 프리앰블 (모든 스킬)
 │   ├── preamble-full.md         # Tier 2 추가 사항
 │   └── project-instructions.md

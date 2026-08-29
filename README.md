@@ -54,6 +54,8 @@ QABuddy doesn't keep an unbounded memory file. Project knowledge is handled the 
 
 Three knowledge layers, one contract: `REF-` (shipped references) · `PRJ-` (your team's own methodology) · `LRN-` (learned from your runs — overrides the other two when reality disagrees).
 
+The engine that runs this loop is **[Akela](https://github.com/TimothyHan/akela)** — extracted from QABuddy, generalized, and maintained upstream. QABuddy contributes the qa domain pack and consumes the engine pinned ([RFC 0003](docs/rfc/0003-akela-adoption.md)).
+
 [Full architecture →](docs/self-learning-guide-en.md)
 
 ---
@@ -280,7 +282,7 @@ flowchart LR
     C -. proven repeatedly .-> F["/qa-improve distill:<br>promote to references<br>+ upstream PR"]
 ```
 
-**The context compiler (automatic, before every skill run).** A skill never opens the whole reference library. First the shipped `akela.js` helper **compiles** the reference sections and active learnings scoped to *that* skill into a single `slice.md`, alongside a manifest naming what went in and what was left out. Both land in `.qa-reports/runs/<run>/` — so what actually reached the model on a given run is an artifact you can open and read back afterwards, not something to be inferred. When a source shapes the output, the run cites it by id and logs that it was *applied*; when reality contradicts one, it logs that instead. `node akela.js gate` evaluates those logs against the scoring eligibility gate — profiles × outcomes, dormant sources, slice sizes — and says whether *this* project's data would justify scored selection ([RFC 0002](docs/rfc/0002-project-owned-compiler.md); the verdict on QABuddy's own data was no). Design: [RFC 0001 — Context Compiler](docs/rfc/0001-context-compiler.md).
+**The context compiler (automatic, before every skill run).** A skill never opens the whole reference library. First the [Akela](https://github.com/TimothyHan/akela) engine — vendored at a pinned version, launched via `bin/akela.js` — **compiles** the reference sections and active learnings scoped to *that* skill into a single `slice.md`, alongside a manifest naming what went in and what was left out. Both land in `.qa-reports/runs/<run>/` — so what actually reached the model on a given run is an artifact you can open and read back afterwards, not something to be inferred. When a source shapes the output, the run cites it by id and logs that it was *applied*; when reality contradicts one, it logs that instead. `node akela.js gate` evaluates those logs against the scoring eligibility gate — profiles × outcomes, dormant sources, slice sizes — and says whether *this* project's data would justify scored selection ([RFC 0002](docs/rfc/0002-project-owned-compiler.md); the verdict on QABuddy's own data was no). Design: [RFC 0001 — Context Compiler](docs/rfc/0001-context-compiler.md).
 
 **The learnings layer (automatic, every skill run).** Every run reads `features-kb/LEARNINGS.md` at start — active entries are project-specific rules that *override* the shipped references — and checks three capture triggers at the end: a documented rule failed against reality, an undocumented decision was made, or the QA corrected the output. Entries require evidence; clean runs write nothing. Each run's *applied* / *contradicted* / *captured* / *outcome* events append to `features-kb/learnings-log.jsonl` (append-only, written by `akela.js` alone — never by hand), and recurring failure classes are named in `features-kb/fingerprints.jsonl`, so a learning that claimed to prevent one is falsified by count rather than by opinion. These files live in your repo, so learnings travel to your whole team via git and survive QABuddy upgrades. Protocol: [`core/references/self-improve.md`](core/references/self-improve.md).
 
@@ -337,10 +339,13 @@ node test.js                       # Run 1275 structural checks
 QABuddy/
 ├── build.js                     # Build script (node; vendors the pinned engine)
 ├── test.js                      # Structural check suite (1275 checks)
-├── bin/akela.js                   # Runtime helper (compile, log, fp, stats, scoreboard)
+├── package.json                 # One pinned dependency: akela (the engine)
+├── bin/akela.js                 # Engine launcher (env map · first-run akela.json · delegation)
+├── bin/qab.js                   # Deprecation shim (one release)
 ├── core/                        # Single source of truth — edit here
 │   ├── skills/ (13)             # Skill templates with {{placeholders}}
 │   ├── references/playbook/     # 11 methodology files
+│   ├── engine/qa.domain.json    # The qa domain pack (activities · probes · fingerprint vocabulary)
 │   ├── preamble-base.md         # Tier 1 preamble (all skills)
 │   ├── preamble-full.md         # Tier 2 additions
 │   └── project-instructions.md
