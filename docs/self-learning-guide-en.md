@@ -212,18 +212,24 @@ your team's knowledge (§6.2), and measure whether **your data** justifies scori
 
 ---
 
-## 6. Owning the compiler — `.qabuddy.json`
+## 6. Owning the compiler — `akela.json`
 
-This is RFC 0002. All three are **opt-in**: without configuration, nothing changes.
-The config file is versioned with your project, reviewable in a PR, and survives
-QABuddy updates — which is exactly the difference from editing shipped files.
+This is RFC 0002 — delivered, since v0.8.0, through the extracted engine
+[Akela](https://github.com/TimothyHan/akela) ([RFC 0003](rfc/0003-akela-adoption.md)).
+Engine configuration lives in **`akela.json`**: generated on your first run from
+`.qabuddy.json` + the shipped qa domain pack (or explicitly via
+`node $QAB akela-init`), then **yours** — its paths are `~/`-portable, so commit
+it; it is reviewable in a PR and survives QABuddy updates, which is exactly the
+difference from editing shipped files. `.qabuddy.json` keeps workflow settings
+only. All three capabilities below are **opt-in**: without configuration,
+nothing changes.
 
 ### 6.1 Scope overrides — `compiler.scope`
 
 Change, per project, which sections ride in which skills' slices:
 
 ```jsonc
-// .qabuddy.json
+// akela.json
 {
   "compiler": {
     "scope": {
@@ -249,13 +255,17 @@ resolution — upstream changes to a section's default scope still flow through.
 judgment* says it cannot fire in your domain. Or the reverse — a section scoped to
 another skill is knowledge your team's workflow needs in this one: `add`.
 
-### 6.2 Project reference sections — `compiler.references`
+### 6.2 Project reference sections — a `PRJ` knowledge root
 
 Put your team's methodology files into the compile pipeline with the same standing
-as shipped references:
+as shipped references — one directory, declared as a knowledge root (Akela takes
+**one root per namespace**, which is what keeps `PRJ-` ids unambiguous):
 
 ```jsonc
-{ "compiler": { "references": ["features-kb/house/*.md"] } }
+// akela.json
+{ "knowledge": [
+    { "path": "~/.claude/skills/qa-references", "namespace": "REF" },
+    { "path": "features-kb/house", "namespace": "PRJ" } ] }
 ```
 
 Files use the **same contract** as shipped references — a `qab:` comment on the
@@ -283,8 +293,9 @@ Refund verification is cross-checked against the ledger export.
   unambiguous about whose knowledge it was.
 - They participate fully: compiled, cited, counted by `stats`, reviewed by distill —
   exactly like `REF-` sections.
-- Broken files (an untagged `##`, duplicate IDs, two files sharing a stem) refuse
-  the compile naming file:line. A pattern matching no files only warns.
+- Broken files (an untagged `##`, duplicate IDs) refuse the compile naming
+  file:line; a knowledge directory that does not exist refuses too, naming the
+  root — configuration errors are never a shrug.
 
 **What belongs here rather than in learnings:** stable methodology your team
 *decided*. Facts *observed* during runs are still learnings. When unsure, ask: "is
@@ -326,7 +337,7 @@ gate (RFC 0001 §9.3, evaluated on this project's logs — RFC 0002 §2.3):
 **QABuddy tells you the moment the gate opens.** When the exact outcome that tips
 the threshold is logged, `log outcome` prints a 🔓 notice, and the skill relays it to
 you and asks whether you want scoring — it fires exactly once, on the transition,
-and the decision plus the `.qabuddy.json` edit always stay human.
+and the decision plus the `akela.json` edit always stay human.
 
 ### 6.4 Turning scoring on — `compiler.scoring` (PR D)
 
@@ -373,7 +384,7 @@ time. Reference edits stay human even then.
 |---|---|---|
 | The distill session — launch it when a skill suggests, read the plan, approve | ~once per sprint | **Partly** — only the mechanically-decided rows (fingerprint retirements, threshold promotions) get pre-checked. Merges, copy detection and generalizability judgment stay human+LLM even with E |
 | Classifying dormant sections when the gate opens | once, when it opens | No — human by design (decision 6) |
-| Editing `.qabuddy.json` (overrides, house files, scoring) | only when deciding | No — the signature stays human (§6 non-goal) |
+| Editing `akela.json` (overrides, house files, scoring) | only when deciding | No — the signature stays human (§6 non-goal) |
 | Authoring house reference files | when team methodology exists | No — only your team can write it |
 | Approving reference (canon) edits on promotion | per promotion | No — human forever |
 
@@ -428,5 +439,6 @@ of them are selection failures, there is nothing for scoring to fix.
 | `akela.js scoreboard` | rebuild the derived cache (never a source of truth) |
 
 File map: slices, profiles and scratchpads live in `.qa-reports/runs/<run>/`;
-learnings, log and fingerprints in `features-kb/`; configuration in `.qabuddy.json`
+learnings, log and fingerprints in `features-kb/`; engine configuration in
+`akela.json`, workflow configuration in `.qabuddy.json`
 (see the [README configuration table](../README.md#configuration)).
