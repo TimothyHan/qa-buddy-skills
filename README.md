@@ -42,8 +42,9 @@ with      feature ──→ compiled slice of YOUR project's knowledge ──→
                   ──→ tests + logged evidence ──→ proven learnings ──→ better next run
 ```
 
-Three commands to the loop: install → `/qa-setup` → `/qa-start EPIC-123`.
-Everything below is how that loop stays honest.
+Three commands to the loop: install → `/qa-setup` → `/qa-start EPIC-123` —
+your agent **plans → tests → verifies → learns**. Everything below is how that
+loop stays honest.
 
 ---
 
