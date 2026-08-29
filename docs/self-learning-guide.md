@@ -44,7 +44,7 @@ QABuddy 스킬을 쓰는 QA를 위한 문서입니다. QABuddy 자체를 고치�
 | 층 | ID 접두사 | 소유 | 어디 사는가 | 업데이트 후 생존 |
 |---|---|---|---|---|
 | 배포 레퍼런스 | `REF-` | QABuddy | 설치된 `references/` | 덮어써짐 (업스트림이 관리) |
-| **프로젝트 레퍼런스** | `PRJ-` | **당신 팀** | 당신 저장소 (`compiler.references`) | ✅ |
+| **프로젝트 레퍼런스** | `PRJ-` | **당신 팀** | 당신 저장소 (`akela.json`의 `PRJ` 지식 루트) | ✅ |
 | **학습** | `LRN-` | **당신 프로젝트** | `features-kb/LEARNINGS.md` | ✅ |
 
 - **`REF-`** — QABuddy가 배포하는 방법론 (심각도 척도, Playwright 패턴, 결함
@@ -97,8 +97,9 @@ node $QAB compile --skill qa --ticket PROJ-123
 ---
 manifest: 1
 run: qa-PROJ-123-3f9a2c
-skill: qa
+activity: qa
 pfp: 5408a28cb4ac
+compiler: akela 0.1.4   domain: qa   scoring: off
 sources:
   - id: REF-playbook/risk-and-priority#severity-scale   tier: must   lines: 18
   - id: PRJ-payments#seed-rules   tier: should   lines: 4   via: project-override
@@ -384,7 +385,8 @@ RFC 0002에서 아직 안 만든 것은 **E(자동 상태 변경)** 하나입니
 휴면은 죄가 아닙니다.
 
 **"팀 위키에 테스트 방법론 문서가 있다"**
-→ `features-kb/house/`로 옮기고 `qab:` 주석을 달고 `compiler.references`에 패턴
+→ `features-kb/house/`로 옮기고 `qab:` 주석을 달고 그 디렉터리를 `akela.json`의
+`PRJ` 지식 루트로 선언(§6.2)
 추가 → 다음 실행부터 해당 스킬 슬라이스에 실리고, 인용되면 `stats`에 집계됩니다.
 
 **"점수화를 켜고 싶다"**
@@ -398,7 +400,8 @@ RFC 0002에서 아직 안 만든 것은 **E(자동 상태 변경)** 하나입니
 |---|---|---|
 | `unknown section id … did you mean:` | 오버라이드 ID 오타 (또는 업스트림 개명) | 제안된 ID로 수정 |
 | `… is tier=must — a must section is a floor` | must 제거 시도 | `remove` 삭제 — 레일은 못 뺍니다 |
-| `pattern "…" matched no files` | references 글롭이 빈 결과 (경고만) | 경로 확인; 파일을 나중에 만들 거면 무시 가능 |
+| `unknown activity "…" — this domain declares: …` | 13개 밖의 스킬 이름 (오타, 또는 정규화 안 된 별칭) | 나열된 이름을 쓰세요 — 거부 메시지가 어휘 전체를 출력합니다 |
+| `knowledge root "…" does not exist` | 설정된 지식 디렉터리가 없음 (경고가 아니라 설정 오류) | 디렉터리를 만들거나 `akela.json`에서 루트를 제거 |
 | `"## …" has no <!-- qab: id=… -->` | 하우스 파일의 섹션에 ID 누락 | 제목 다음 줄에 주석 추가 |
 | `run "…" already reported an outcome` | 닫힌 실행에 로그 시도 (보통 낡은 마커) | `run-id`로 새 실행 시작 |
 
@@ -414,6 +417,7 @@ RFC 0002에서 아직 안 만든 것은 **E(자동 상태 변경)** 하나입니
 | `akela.js stats [--json]` | 소스별 집계 + 계산된 발견 + 준수율 |
 | `akela.js gate [--json]` | 점수화 자격 게이트 — 당신 데이터로 |
 | `akela.js scoreboard` | 파생 캐시 재생성 (진실의 원천 아님) |
+| `akela.js akela-init [--force]` | `.qabuddy.json` + qa 도메인 팩으로부터 `akela.json` (재)생성 |
 
 파일 지도: 슬라이스·프로파일·스크래치패드는 `.qa-reports/runs/<run>/`,
 학습·로그·지문은 `features-kb/`, 엔진 설정은 `akela.json`, 워크플로우 설정은 `.qabuddy.json`
