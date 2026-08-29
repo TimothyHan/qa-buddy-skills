@@ -12,10 +12,10 @@
 [![Locales: en, ko](https://img.shields.io/badge/Locales-en_|_ko-orange.svg)](#locales)
 [![Structural checks: 1275](https://img.shields.io/badge/Structural_checks-1275-brightgreen.svg)](#how-it-works)
 
-An AI partner for QA — anyone who tests software.<br>
-Covers the full workflow — from epic test planning through sprint execution to release verification.<br>
-Every team's QA needs are different — so QABuddy ships as a foundation that **self-improves**:<br>
-every skill run captures project-specific learnings and applies them on the next run.<br>
+An AI partner for anyone who tests software —<br>
+from epic test planning through sprint execution to release verification.<br>
+It applies **your team's** QA practices consistently and learns from QA outcomes —<br>
+without turning every interaction into permanent memory.<br>
 Officially supports **Claude Code**. No Jira required.<br>
 (Unverified installers for Cursor/Copilot are still built — see below.)
 

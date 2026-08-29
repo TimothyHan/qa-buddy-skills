@@ -12,10 +12,10 @@
 [![Locales: en, ko](https://img.shields.io/badge/Locales-en_|_ko-orange.svg)](#로케일)
 [![Structural checks: 1275](https://img.shields.io/badge/Structural_checks-1275-brightgreen.svg)](#작동-방식)
 
-QA를 위한 AI 파트너입니다 — 소프트웨어를 테스트하는 사람이라면 누구나.<br>
-에픽 테스트 계획 수립부터 스프린트 실행, 릴리스 검증까지 전체 워크플로우를 지원합니다.<br>
-팀마다 QA의 요구는 다릅니다 — 그래서 QABuddy는 **자기 개선**하는 파운데이션으로 제공됩니다:<br>
-모든 스킬 실행이 프로젝트 고유의 학습을 포착하고 다음 실행에 적용합니다.<br>
+소프트웨어를 테스트하는 사람이라면 누구나를 위한 AI 파트너 —<br>
+에픽 테스트 계획 수립부터 스프린트 실행, 릴리스 검증까지.<br>
+**당신 팀의** QA 관행을 일관되게 적용하고, QA 결과로부터 학습합니다 —<br>
+모든 대화를 영구 메모리로 만들지 않으면서.<br>
 공식 지원 플랫폼은 **Claude Code**입니다. Jira 없이도 작동합니다.<br>
 (Cursor/Copilot용 미검증 설치 스크립트도 빌드에 포함됩니다 — 아래 참고)
 
