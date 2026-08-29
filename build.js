@@ -406,6 +406,14 @@ function buildPlatform(platform, locale) {
   copyDirRecursive(binSrc, path.join(outDir, 'references', 'bin'));
   console.log('    OK  references/bin/qab.js');
 
+  // Ship the engine assets under references/engine/ — the qa domain pack that
+  // configures Akela for QABuddy projects (RFC 0003 PR B). Locale-independent.
+  const engineSrc = path.join(ROOT, 'core', 'engine');
+  if (fs.existsSync(engineSrc)) {
+    copyDirRecursive(engineSrc, path.join(outDir, 'references', 'engine'));
+    console.log('    OK  references/engine/ (qa domain pack)');
+  }
+
   // Build project instructions file (locale-aware)
   const projectContent = buildProjectFile(config, locale);
   if (projectContent && config.project_file) {

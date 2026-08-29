@@ -38,6 +38,16 @@ lines), same inputs:
   stream, Akela follows `knowledge[]` array order. Same set, same content, same
   `via:` causality; the harness set-compares where PRJ is configured and
   byte-compares where it is not.
+- **Unknown activity names diverge deliberately** (found in PR B): qab compiles
+  them (scope-`all` learnings still pack); Akela with the qa pack — which
+  declares the 13 activities — refuses with exit 1 and names the vocabulary,
+  writing no run. This ships at cutover as a strictness upgrade: it is the
+  strongest form of the #54 guard (no junk runs, no log pollution), asserted
+  as a divergence in the harness.
+- **Open (§7): generated `akela.json` paths are absolute.** `qab.js akela-init`
+  writes machine-specific `domain`/knowledge paths, so a committed akela.json
+  does not travel across teammates' machines until Akela learns `~/` expansion
+  (upstream candidate for 0.1.4); meanwhile each machine runs akela-init once.
 - **Log compatibility is one-way**: Akela reads historical `skill`-keyed lines;
   qab.js does not read `activity`-keyed lines. Existing projects migrate with
   zero log changes; there is no engine rollback once new lines are written.
