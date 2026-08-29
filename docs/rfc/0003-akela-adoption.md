@@ -33,7 +33,11 @@ lines), same inputs:
 - **Gate: identical arithmetic** on identical logs (profiles, outcome counts,
   dormancy threshold). Wording differs only in RFC cross-references.
 - Deltas confined to the manifest header (`skill:`→`activity:`, `compiler: akela
-  <ver> domain: <pack>`) and one scratchpad comment line.
+  <ver> domain: <pack>`), one scratchpad comment line, and — when PRJ knowledge
+  is configured — **PRJ placement order**: qab merges PRJ into the id-sorted
+  stream, Akela follows `knowledge[]` array order. Same set, same content, same
+  `via:` causality; the harness set-compares where PRJ is configured and
+  byte-compares where it is not.
 - **Log compatibility is one-way**: Akela reads historical `skill`-keyed lines;
   qab.js does not read `activity`-keyed lines. Existing projects migrate with
   zero log changes; there is no engine rollback once new lines are written.

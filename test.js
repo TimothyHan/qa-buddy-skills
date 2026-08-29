@@ -671,6 +671,151 @@ function testBadgeCount() {
         `${problems.join(' | ')} — suite runs ${total}`);
 }
 
+
+// ─── Akela equivalence harness (RFC 0003, PR A) ──────────────────────────
+//
+// Proves the in-tree engine (shipped qab.js) and the pinned npm engine (akela)
+// make the SAME selection on the committed fixture (test-fixtures/equivalence).
+// Documented deltas (RFC 0003 §2) are stripped before comparison: the manifest
+// header lines (run/skill/activity/pfp/profile/compiler), the budget comment
+// wording, and PRJ placement order (set-compared where PRJ is configured).
+// This harness is the measurement that CONTRIBUTING's "changing the compiler"
+// rule demands for the migration: it must stay green through PR B and the
+// cutover, and it dies loudly — never skips — when the engine is missing.
+function testAkelaEquivalence() {
+  console.log('\n⚖️  Akela equivalence (RFC 0003)');
+  const { execFileSync, spawnSync } = require('child_process');
+  const os = require('os');
+
+  // 1 · dependency contract
+  const pkg = JSON.parse(readFile(path.join(ROOT, 'package.json')) || '{}');
+  const pin = pkg.dependencies && pkg.dependencies.akela;
+  check(/^\d+\.\d+\.\d+$/.test(pin || ''), 'package.json pins akela to an exact version', `got: ${pin}`);
+  const akelaPkgPath = path.join(ROOT, 'node_modules', 'akela', 'package.json');
+  check(fs.existsSync(akelaPkgPath), 'node_modules/akela is installed (run: npm ci)',
+        'the equivalence harness needs the pinned engine — npm ci, then rerun');
+  if (!fs.existsSync(akelaPkgPath)) return;
+  const akelaVer = JSON.parse(fs.readFileSync(akelaPkgPath, 'utf8')).version;
+  check(akelaVer === pin, `installed akela ${akelaVer} matches the pin`, `pin says ${pin}`);
+  const akelaBin = path.join(ROOT, 'node_modules', 'akela', 'bin', 'akela.js');
+
+  const refsDir = path.join(resolvePlatformDir('claude'), 'references');
+  const qabBin = path.join(refsDir, 'bin', 'qab.js');
+  if (!fs.existsSync(qabBin) || !fs.existsSync(path.join(refsDir, 'index.json'))) {
+    fail('shipped references present for the harness', 'run node build.js all'); return;
+  }
+
+  // 2 · two scratch copies of the committed fixture, one config each
+  const FIX = path.join(ROOT, 'test-fixtures', 'equivalence');
+  const tmpQ = fs.mkdtempSync(path.join(os.tmpdir(), 'equiv-qab-'));
+  const tmpA = fs.mkdtempSync(path.join(os.tmpdir(), 'equiv-akela-'));
+  fs.cpSync(FIX, tmpQ, { recursive: true });
+  fs.cpSync(FIX, tmpA, { recursive: true });
+  const qcfg = JSON.parse(fs.readFileSync(path.join(FIX, '.qabuddy.json'), 'utf8'));
+  // akela.json needs absolute knowledge paths, so it is generated — the
+  // committed .qabuddy.json stays the single source of the override spec.
+  fs.writeFileSync(path.join(tmpA, 'akela.json'), JSON.stringify({
+    knowledge: [
+      { path: refsDir, namespace: 'REF' },
+      { path: path.join(tmpA, 'features-kb', 'house'), namespace: 'PRJ' },
+    ],
+    learnings: 'features-kb/LEARNINGS.md',
+    runs: '.qa-reports/runs',
+    aliasPrefixes: ['qa-'],
+    compiler: { scope: qcfg.compiler.scope },
+  }, null, 2));
+  fs.rmSync(path.join(tmpA, '.qabuddy.json'));
+
+  const TS = '2026-08-28T00:00:00Z';
+  const envQ = { ...process.env, QAB_CWD: tmpQ, QAB_TS: TS };
+  const envA = { ...process.env, AKELA_CWD: tmpA, AKELA_TS: TS };
+  const runQ = (args) => execFileSync(process.execPath, [qabBin, ...args], { env: envQ, encoding: 'utf8', stdio: ['ignore', 'pipe', 'pipe'] });
+  const runA = (args) => execFileSync(process.execPath, [akelaBin, ...args], { env: envA, encoding: 'utf8', stdio: ['ignore', 'pipe', 'pipe'] });
+  const slice = (root, out) => fs.readFileSync(path.join(root, out.split('\n')[0].trim()), 'utf8');
+  const HEADER = /^(run|skill|activity|pfp|profile|compiler): /;
+  const normalize = (s) => s.split('\n').filter(l => !HEADER.test(l))
+    .map(l => l.replace(/# max 0 = uncapped.*/, '# uncapped')).join('\n');
+  // sources: and dropped: entries share the "  - id:" shape — compare them separately
+  const section = (s, from, to) => {
+    const lines = s.split('\n'); const i = lines.indexOf(from);
+    const j = to ? lines.indexOf(to) : lines.length;
+    return lines.slice(i + 1, j === -1 ? lines.length : j).filter(l => /^  - id: /.test(l));
+  };
+  const srcSet = (s) => section(s, 'sources:', 'dropped:').sort().join('\n');
+  const droppedSet = (s) => section(s, 'dropped:', null).sort().join('\n');
+  const bodySet = (s) => s.split('\n').filter(l => /^## /.test(l)).sort().join('\n');
+
+  try {
+    // 3 · REF+LRN only (no PRJ, no override touches `improve`) → byte-identical
+    const q1 = normalize(slice(tmpQ, runQ(['compile', '--skill', 'improve'])));
+    const a1 = normalize(slice(tmpA, runA(['compile', '--skill', 'improve'])));
+    check(q1 === a1, 'REF+LRN slice: byte-identical modulo documented header deltas',
+          'engines disagree on packing — diff the two slice.md files under equiv-* in tmpdir');
+    check(q1.includes('LRN-20260801-02') && !q1.includes('LRN-20260801-03') && /  - id: REF-/.test(q1),
+          'normalization is not vacuous: slice keeps REF + active LRN, excludes retired',
+          'over-broad normalization would compare empty strings as equal');
+    // anti-vacuous guard: an injected source line must be detected
+    check(normalize(q1 + '\n  - id: REF-fake#x   tier: should   lines: 1') !== a1,
+          'harness detects an injected source line (diff is not over-normalized)');
+
+    // 4 · PRJ + scope overrides (skill `qa`) → same set; order may differ (RFC 0003 §2)
+    const q2 = slice(tmpQ, runQ(['compile', '--skill', 'qa']));
+    const a2 = slice(tmpA, runA(['compile', '--skill', 'qa']));
+    check(srcSet(q2) === srcSet(a2), 'PRJ+override slice: identical source set (ids · tiers · lines · via)',
+          'set difference — an RFC 0002 capability diverged between engines');
+    check(bodySet(q2) === bodySet(a2), 'PRJ+override slice: identical body sections');
+    check(droppedSet(q2) === droppedSet(a2), 'PRJ+override slice: identical dropped set (ids · reasons)');
+    for (const [name, s] of [['qab', q2], ['akela', a2]]) {
+      check(s.includes('PRJ-payments#refund-double-check'), `${name}: PRJ section compiled under the PRJ- namespace`);
+      check(/REF-playbook\/terminology#terms.*via: project-override/.test(s), `${name}: scope add lands with via: project-override`);
+      check(!srcSet(s).includes('defect-lifecycle#not-reproducible')
+            && /defect-lifecycle#not-reproducible\s+reason: project-override/.test(s),
+            `${name}: scope remove is honored (dropped with reason, never packed)`);
+    }
+
+    // 5 · alias normalization (installed `qa-` names) — same selection as canonical
+    const outQ = runQ(['compile', '--skill', 'qa-improve']);
+    const outA = runA(['compile', '--skill', 'qa-improve']);
+    check(/skill alias: qa-improve → improve/.test(outQ), 'qab: prints the alias notice');
+    check(/activity alias: qa-improve → improve/.test(outA), 'akela: prints the alias notice');
+    check(srcSet(slice(tmpQ, outQ)) === srcSet(q1 + '\n'), 'qab: aliased compile selects the canonical set');
+    check(srcSet(slice(tmpA, outA)) === srcSet(a1 + '\n'), 'akela: aliased compile selects the canonical set');
+
+    // 6 · unknown skill still packs scope-all learnings — identically
+    const uQ = runQ(['compile', '--skill', 'unknown-name']);
+    const uA = runA(['compile', '--activity', 'unknown-name']);
+    check(srcSet(slice(tmpQ, uQ)) === srcSet(slice(tmpA, uA)) && /1 sources/.test(uQ) && /1 sources/.test(uA),
+          'unknown skill: both engines still pack the scope-all learning, identically');
+
+    // 7 · a genuinely empty compile warns loudly on both engines (the #54 / akela 0.1.3 fix).
+    // Bare dirs: no learnings file, so nothing at all can pack for an unknown name.
+    const bareQ = fs.mkdtempSync(path.join(os.tmpdir(), 'equiv-bare-q-'));
+    const bareA = fs.mkdtempSync(path.join(os.tmpdir(), 'equiv-bare-a-'));
+    fs.writeFileSync(path.join(bareA, 'akela.json'), JSON.stringify({ knowledge: [{ path: refsDir, namespace: 'REF' }] }));
+    const wQ = spawnSync(process.execPath, [qabBin, 'compile', '--skill', 'no-such-skill'], { env: { ...process.env, QAB_CWD: bareQ, QAB_TS: TS }, encoding: 'utf8' });
+    const wA = spawnSync(process.execPath, [akelaBin, 'compile', '--activity', 'no-such-skill'], { env: { ...process.env, AKELA_CWD: bareA, AKELA_TS: TS }, encoding: 'utf8' });
+    fs.rmSync(bareQ, { recursive: true, force: true });
+    fs.rmSync(bareA, { recursive: true, force: true });
+    check(wQ.status === 0 && /warning — 0 sources/.test(wQ.stderr), 'qab: 0-source compile warns on stderr, exit 0');
+    check(wA.status === 0 && /warning — 0 sources/.test(wA.stderr), 'akela: 0-source compile warns on stderr, exit 0');
+
+    // 8 · the log contract: same event, same src, activity/skill key alias
+    runQ(['log', 'applied', 'LRN-20260801-01']);
+    runA(['log', 'applied', 'LRN-20260801-01']);
+    const last = (root) => JSON.parse(fs.readFileSync(path.join(root, 'features-kb', 'learnings-log.jsonl'), 'utf8').trim().split('\n').pop());
+    const lq = last(tmpQ), la = last(tmpA);
+    check(lq.event === 'applied' && la.event === 'applied' && lq.src === la.src && (lq.skill || lq.activity) === (la.activity || la.skill),
+          'log applied: equivalent line from both engines (skill/activity key aliased)',
+          `qab=${JSON.stringify(lq)} akela=${JSON.stringify(la)}`);
+    const badQ = spawnSync(process.execPath, [qabBin, 'log', 'applied', 'REF-nope#nothing'], { env: envQ, encoding: 'utf8' });
+    const badA = spawnSync(process.execPath, [akelaBin, 'log', 'applied', 'REF-nope#nothing'], { env: envA, encoding: 'utf8' });
+    check(badQ.status !== 0 && badA.status !== 0, 'both engines refuse an unknown source id in log applied');
+  } finally {
+    fs.rmSync(tmpQ, { recursive: true, force: true });
+    fs.rmSync(tmpA, { recursive: true, force: true });
+  }
+}
+
 // ─── Run ────────────────────────────────────────────────────────────────
 
 console.log('QABuddy — Test');
@@ -1998,6 +2143,7 @@ testProjectRefs();
 testGate();
 testScoring();
 testFingerprints();
+testAkelaEquivalence();
 testExcludeConditions();
 testEvalFixtures();
 testCrlfTolerance();
