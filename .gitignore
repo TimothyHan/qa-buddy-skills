@@ -23,3 +23,6 @@ features-kb/.cache/
 
 # 미공개 개발 이야기 초안 — 공개 여부는 메인테이너가 결정 (로컬 전용)
 docs/blog/
+
+# npm — akela 엔진 의존성 (RFC 0003); dist는 빌드가 자급자족으로 복사
+node_modules/

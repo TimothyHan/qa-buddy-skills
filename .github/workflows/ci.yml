@@ -25,6 +25,11 @@ jobs:
         with:
           node-version: 20
 
+      # The equivalence harness (RFC 0003) runs the pinned akela engine from
+      # node_modules — install it before the first `node test.js`.
+      - name: Install engine dependency
+        run: npm ci
+
       # ko FIRST, then structural tests before the en build exists —
       # proves a ko-only checkout passes (TC-INST-014, was a reported P2)
       - name: Build (ko)
