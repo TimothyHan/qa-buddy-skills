@@ -7,7 +7,7 @@ The compiler *selects* knowledge; it never rewrites it. Design: RFC 0001 (§3.7,
 ## The compile step
 <!-- qab: id=compile-step -->
 
-`node <references>/bin/qab.js compile --skill <skill> [--ticket <KEY>]` (the preamble gives the
+`node <references>/bin/akela.js compile --skill <skill> [--ticket <KEY>]` (the preamble gives the
 exact command). It starts the run if none is current, then writes `<runsDir>/<run>/`:
 
 | File | Contents |
@@ -35,7 +35,7 @@ cannot be removed. Scoring and caps arrive later, behind a flag.
 
 Read `slice.md` once at start; it **replaces** reading the learnings file and the reference sections it
 lists. Only open a reference file the skill names if the manifest does not contain a section from it.
-The manifest is provenance: cite the `## <id>` headers exactly as before (`qab.js log applied <id>`),
+The manifest is provenance: cite the `## <id>` headers exactly as before (`akela.js log applied <id>`),
 and use `dropped:` to see what nearly made it. **Fallback:** if the helper is unavailable, read the
 skill's references and the learnings file directly (skill-scoped, `active`) — same set, no manifest.
 

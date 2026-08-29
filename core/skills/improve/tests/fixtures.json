@@ -167,7 +167,7 @@
     },
     {
       "id": "fx-007",
-      "description": "SELF-IMPROVE distill computes from the log: runs qab.js stats, shows applied/contradicted/runs columns, and does NOT promote an entry whose prose says '3 runs' when the log shows applied=1. Wrong output this catches: promotion decided from Evidence: prose.",
+      "description": "SELF-IMPROVE distill computes from the log: runs akela.js stats, shows applied/contradicted/runs columns, and does NOT promote an entry whose prose says '3 runs' when the log shows applied=1. Wrong output this catches: promotion decided from Evidence: prose.",
       "input": {
         "request": "distill learnings",
         "precondition": "LEARNINGS.md has LRN-20260808-02 with Evidence: 'seen in 3 runs' and learnings-log.jsonl where LRN-20260808-02 has applied=1 across 1 run, contradicted=0; LRN-20260808-05 has applied=4 across 4 runs, contradicted=0"
@@ -309,10 +309,10 @@
     },
     {
       "id": "fx-010",
-      "description": "SELF-IMPROVE distill reads fingerprint findings from qab.js stats: an entry named in a fingerprint line's `active` is listed as falsified (fingerprint) with the ffp; a same-Fingerprint same-Scope pair is a duplicate of the older id; an entry with in_slice ≥ 10 and applied 0 is never-applied; a class recurring across runs with no learning in `active` is called out as a capture candidate, not written. Wrong output this catches: judging falsification from prose, marking the OLDER entry as the duplicate, promoting the fingerprint-falsified entry, or the sweep silently authoring a new LRN for the recurring class.",
+      "description": "SELF-IMPROVE distill reads fingerprint findings from akela.js stats: an entry named in a fingerprint line's `active` is listed as falsified (fingerprint) with the ffp; a same-Fingerprint same-Scope pair is a duplicate of the older id; an entry with in_slice ≥ 10 and applied 0 is never-applied; a class recurring across runs with no learning in `active` is called out as a capture candidate, not written. Wrong output this catches: judging falsification from prose, marking the OLDER entry as the duplicate, promoting the fingerprint-falsified entry, or the sweep silently authoring a new LRN for the recurring class.",
       "input": {
         "request": "distill learnings",
-        "precondition": "qab.js stats shows: LRN-20260801-01 (Fingerprint ffp-a3f9c21b0e44, Scope e2e-pom) applied=4 across 4 runs, contradicted=0, finding 'falsified (fingerprint a3f9c21b0e44 ×2)'; LRN-20260801-03 (same Fingerprint, same Scope) finding 'duplicate (fingerprint) of LRN-20260801-01'; LRN-20260801-04 in_slice=12 applied=0 finding 'never applied (in_slice 12)'; recurrence table has ffp 5fef5ee66732 locator-not-found checkout/cancel-btn count=3 runs=3 active —."
+        "precondition": "akela.js stats shows: LRN-20260801-01 (Fingerprint ffp-a3f9c21b0e44, Scope e2e-pom) applied=4 across 4 runs, contradicted=0, finding 'falsified (fingerprint a3f9c21b0e44 ×2)'; LRN-20260801-03 (same Fingerprint, same Scope) finding 'duplicate (fingerprint) of LRN-20260801-01'; LRN-20260801-04 in_slice=12 applied=0 finding 'never applied (in_slice 12)'; recurrence table has ffp 5fef5ee66732 locator-not-found checkout/cancel-btn count=3 runs=3 active —."
       },
       "assertions": [
         {

@@ -52,7 +52,7 @@ QABuddy에 관심을 가져주셔서 감사합니다! 이 가이드는 스킬 �
 qa-buddy-skills/
 ├── build.js                     # Build script (node, zero deps)
 ├── test.js                      # Structural + behavioural checks (`node test.js`)
-├── bin/qab.js                   # Runtime helper (run-id, compile, log, fp, stats, gate, scoreboard)
+├── bin/akela.js                   # Runtime helper (run-id, compile, log, fp, stats, gate, scoreboard)
 ├── core/                        # Edit here — single source of truth
 │   ├── skills/ (13)             # Skill templates (procedure)
 │   ├── references/              # Knowledge: playwright-patterns, self-improve, KB spec
@@ -236,16 +236,16 @@ Cursor와 Copilot은 `tool-groups`를 무시합니다 — 해당 에이전트가
 
 | 시점 | 의무 | 기록 위치 |
 |---|---|---|
-| 학습이 출력을 결정할 때마다 | ID 인용; `qab.js log applied LRN-…` | `learnings-log.jsonl` |
-| 실행 중 관찰이 active 학습과 모순 | 적용하지 않음; `qab.js log contradicted LRN-… --note`; 보고서에 플래그 | `learnings-log.jsonl` |
+| 학습이 출력을 결정할 때마다 | ID 인용; `akela.js log applied LRN-…` | `learnings-log.jsonl` |
+| 실행 중 관찰이 active 학습과 모순 | 적용하지 않음; `akela.js log contradicted LRN-… --note`; 보고서에 플래그 | `learnings-log.jsonl` |
 | 완료 | 세 가지 포착 트리거 적용; 발화하면 LRN 작성 + `log captured`; 그 다음 `log outcome --status <S>` | `LEARNINGS.md`, `learnings-log.jsonl` |
-| 시작 | `qab.js compile --skill <name>` → `slice.md` 읽기 (학습 파일 + 매니페스트에 나열된 레퍼런스 섹션 읽기를 대체); 폴백: 레퍼런스 + `LEARNINGS.md` | `.qa-reports/runs/<run>/{slice.md,profile.json,scratchpad.md,events.jsonl}` |
+| 시작 | `akela.js compile --skill <name>` → `slice.md` 읽기 (학습 파일 + 매니페스트에 나열된 레퍼런스 섹션 읽기를 대체); 폴백: 레퍼런스 + `LEARNINGS.md` | `.qa-reports/runs/<run>/{slice.md,profile.json,scratchpad.md,events.jsonl}` |
 | 실행 중 | 눈에 띄는 것 → `## Candidate learnings` (증거 문턱 없음); tier-2 스킬은 `## Plan` / `## State`도 유지하고 일시정지마다 다시 읽음 | `scratchpad.md` |
 | 완료 | 세 가지 포착 트리거는 **후보들에게만** 적용 | `LEARNINGS.md`, `learnings-log.jsonl` |
-| 이름 붙은 실패 클래스를 만남 (`e2e-pom` heal → `locator-not-found`; `e2e-write` 게이트 → `spec-flaky`, `fixture-missing`; `qa` → `ac-unmapped`, `env-unreachable`, `auth-failed`, `assertion-mismatch`; `verify-fix` → `ci-step-failed`) | `qab.js fp <kind> "<key>"` — 실행당 서로 다른 클래스마다 한 줄; 헬퍼가 `active` 아래 학습을 나열하면 플래그 | `fingerprints.jsonl` |
-| 이 실행에 지문이 있는 트리거 1 포착 | 새 LRN의 `Fingerprint:`를 그 ffp로 설정 (`qab.js fp --list`) | `LEARNINGS.md` |
+| 이름 붙은 실패 클래스를 만남 (`e2e-pom` heal → `locator-not-found`; `e2e-write` 게이트 → `spec-flaky`, `fixture-missing`; `qa` → `ac-unmapped`, `env-unreachable`, `auth-failed`, `assertion-mismatch`; `verify-fix` → `ci-step-failed`) | `akela.js fp <kind> "<key>"` — 실행당 서로 다른 클래스마다 한 줄; 헬퍼가 `active` 아래 학습을 나열하면 플래그 | `fingerprints.jsonl` |
+| 이 실행에 지문이 있는 트리거 1 포착 | 새 LRN의 `Fingerprint:`를 그 ffp로 설정 (`akela.js fp --list`) | `LEARNINGS.md` |
 
-`bin/qab.js`가 `learnings-log.jsonl`과 `fingerprints.jsonl`의 유일한 작성자입니다 — 모델은 인자만 넘기고 JSON을 손으로 쓰지 않습니다. `dist/<platform>/references/bin/`으로 배포되며 `test.js`(`testRuntimeHelper`, `testCompile`, `testFingerprints`)가 동작을 검증합니다. 스키마: `self-improve.md` §학습 로그·§실패 지문 (`"v": 1`; 리더는 모든 이전 버전을 수용 — 로그는 append-only이고 사용자 저장소에 수년간 남습니다). 지문 `kind` 어휘는 닫혀 있습니다(`qab.js`의 `FP_KINDS`, `self-improve.md`에 미러; `test.js`가 일치를 검사) — 스킬에 감지 지점과 ko 대응본을 함께 넣을 때만 kind를 추가하세요. `qab.js scoreboard`는 `features-kb/.cache/scoreboard.json`(파생 캐시)을 씁니다 — 진실로 읽지도, 커밋하지도 마세요. 런타임 파일(`LEARNINGS.md`, `learnings-log.jsonl`, `fingerprints.jsonl`, `.qa-reports/`)은 프로젝트 콘텐츠입니다: 이 저장소에 없고, 이중 로케일도 아닙니다. **컴파일러를 바꾸는 일**(스코프 해석, 패킹, 점수 공식과 바닥값, 게이트)은 측정에 묶여 있습니다: PR에 행동 테스트와, 새 가드마다 자기 제거를 검출함을 증명하는 뮤테이션 스모크가 있어야 하며, 점수화의 형태는 RFC 0002 결정 10–13(바닥값을 가진 프로파일별, 노브가 아닌 상수 — 전역 랭킹 금지)에 고정되어 있습니다. RFC 0003 이행 기간에는 **동등성 하니스**(`test.js`의 `testAkelaEquivalence`, 픽스처는 `test-fixtures/equivalence/`)도 여기 포함됩니다: qab.js와 고정 버전 `akela`는 커밋된 픽스처에서 동일하게 선택해야 하고, 하니스는 모든 이행 PR에서 green을 유지해야 합니다.
+`bin/akela.js`가 `learnings-log.jsonl`과 `fingerprints.jsonl`의 유일한 작성자입니다 — 모델은 인자만 넘기고 JSON을 손으로 쓰지 않습니다. `dist/<platform>/references/bin/`으로 배포되며 `test.js`(`testRuntimeHelper`, `testCompile`, `testFingerprints`)가 동작을 검증합니다. 스키마: `self-improve.md` §학습 로그·§실패 지문 (`"v": 1`; 리더는 모든 이전 버전을 수용 — 로그는 append-only이고 사용자 저장소에 수년간 남습니다). 지문 `kind` 어휘는 닫혀 있습니다(`akela.js`의 `FP_KINDS`, `self-improve.md`에 미러; `test.js`가 일치를 검사) — 스킬에 감지 지점과 ko 대응본을 함께 넣을 때만 kind를 추가하세요. `akela.js scoreboard`는 `features-kb/.cache/scoreboard.json`(파생 캐시)을 씁니다 — 진실로 읽지도, 커밋하지도 마세요. 런타임 파일(`LEARNINGS.md`, `learnings-log.jsonl`, `fingerprints.jsonl`, `.qa-reports/`)은 프로젝트 콘텐츠입니다: 이 저장소에 없고, 이중 로케일도 아닙니다. **컴파일러를 바꾸는 일**(스코프 해석, 패킹, 점수 공식과 바닥값, 게이트)은 측정에 묶여 있습니다: PR에 행동 테스트와, 새 가드마다 자기 제거를 검출함을 증명하는 뮤테이션 스모크가 있어야 하며, 점수화의 형태는 RFC 0002 결정 10–13(바닥값을 가진 프로파일별, 노브가 아닌 상수 — 전역 랭킹 금지)에 고정되어 있습니다. RFC 0003 이행 기간에는 **동등성 하니스**(`test.js`의 `testAkelaEquivalence`, 픽스처는 `test-fixtures/equivalence/`)도 여기 포함됩니다: akela.js와 고정 버전 `akela`는 커밋된 픽스처에서 동일하게 선택해야 하고, 하니스는 모든 이행 PR에서 green을 유지해야 합니다.
 
 ---
 

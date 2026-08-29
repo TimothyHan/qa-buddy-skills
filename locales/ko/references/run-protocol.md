@@ -7,7 +7,7 @@
 ## 컴파일 단계
 <!-- qab: id=compile-step -->
 
-`node <references>/bin/qab.js compile --skill <skill> [--ticket <KEY>]` (정확한 명령은 프리앰블에
+`node <references>/bin/akela.js compile --skill <skill> [--ticket <KEY>]` (정확한 명령은 프리앰블에
 있음). 현재 실행이 없으면 실행을 시작하고, `<runsDir>/<run>/`에 씁니다:
 
 | 파일 | 내용 |
@@ -35,7 +35,7 @@
 
 시작 시 `slice.md`를 한 번 읽습니다; 학습 파일 읽기와 매니페스트에 나열된 레퍼런스 섹션 읽기를
 **대체**합니다. 스킬이 이름 붙인 레퍼런스 파일은 매니페스트에 그 파일의 섹션이 없을 때만 엽니다.
-매니페스트가 곧 출처입니다: `## <id>` 헤더를 이전과 똑같이 인용하고(`qab.js log applied <id>`),
+매니페스트가 곧 출처입니다: `## <id>` 헤더를 이전과 똑같이 인용하고(`akela.js log applied <id>`),
 `dropped:`로 아깝게 빠진 것을 확인합니다. **폴백:** 헬퍼를 쓸 수 없으면 스킬의 레퍼런스와 학습 파일을
 직접 읽습니다(스킬 스코프, `active`) — 같은 집합, 매니페스트만 없음.
 

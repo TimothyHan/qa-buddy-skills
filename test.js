@@ -718,8 +718,11 @@ function testAkelaEquivalence() {
   check(init1.status === 0 && fs.existsSync(path.join(tmpA, 'akela.json')),
         'akela-init generates akela.json from .qabuddy.json', init1.stderr);
   const gen = JSON.parse(fs.readFileSync(path.join(tmpA, 'akela.json'), 'utf8'));
-  check(fs.existsSync(gen.domain) && /qa\.domain\.json$/.test(gen.domain),
-        'generated config points at the shipped qa domain pack');
+  // akela-init emits ~-portable paths (akela ≥ 0.1.4 expands them) — the
+  // harness expands the same way before checking existence.
+  const expandHome = (p) => p.startsWith('~/') ? path.join(os.homedir(), p.slice(2)) : p;
+  check(fs.existsSync(expandHome(gen.domain)) && /qa\.domain\.json$/.test(gen.domain),
+        'generated config points at the shipped qa domain pack (portable ~ path)');
   check(gen.knowledge.length === 2 && gen.knowledge[0].namespace === 'REF'
         && gen.knowledge[1].namespace === 'PRJ' && gen.knowledge[1].path === 'features-kb/house',
         'generated knowledge roots: shipped REF + PRJ dir widened from the compiler.references glob',
@@ -795,8 +798,8 @@ function testAkelaEquivalence() {
     // 6 · alias normalization (installed `qa-` names) — same selection as canonical
     const outQ = runQ(['compile', '--skill', 'qa-improve']);
     const outA = runA(['compile', '--skill', 'qa-improve']);
-    check(/skill alias: qa-improve → improve/.test(outQ), 'qab: prints the alias notice');
-    check(/activity alias: qa-improve → improve/.test(outA), 'akela: prints the alias notice');
+    check(/activity alias: qa-improve → improve/.test(outQ), 'shim path: prints the alias notice (delegation fidelity)');
+    check(/activity alias: qa-improve → improve/.test(outA), 'direct path: prints the alias notice');
     check(srcSet(slice(tmpQ, outQ)) === srcSet(q1 + '\n'), 'qab: aliased compile selects the canonical set');
     check(srcSet(slice(tmpA, outA)) === srcSet(a1 + '\n'), 'akela: aliased compile selects the canonical set');
 
@@ -804,13 +807,16 @@ function testAkelaEquivalence() {
     // Bare dirs: no learnings file, so nothing at all can pack for an unknown name.
     const bareQ = fs.mkdtempSync(path.join(os.tmpdir(), 'equiv-bare-q-'));
     const bareA = fs.mkdtempSync(path.join(os.tmpdir(), 'equiv-bare-a-'));
-    fs.writeFileSync(path.join(bareA, 'akela.json'), JSON.stringify({ knowledge: [{ path: refsDir, namespace: 'REF' }] }));
+    fs.writeFileSync(path.join(bareA, 'akela.json'), JSON.stringify({ domain: path.join(refsDir, 'engine', 'qa.domain.json'), knowledge: [{ path: refsDir, namespace: 'REF' }] }));
     const wQ = spawnSync(process.execPath, [qabBin, 'compile', '--skill', 'no-such-skill'], { env: { ...process.env, QAB_CWD: bareQ, QAB_TS: TS }, encoding: 'utf8' });
     const wA = spawnSync(process.execPath, [akelaBin, 'compile', '--activity', 'no-such-skill'], { env: { ...process.env, AKELA_CWD: bareA, AKELA_TS: TS }, encoding: 'utf8' });
     fs.rmSync(bareQ, { recursive: true, force: true });
     fs.rmSync(bareA, { recursive: true, force: true });
-    check(wQ.status === 0 && /warning — 0 sources/.test(wQ.stderr), 'qab: 0-source compile warns on stderr, exit 0');
-    check(wA.status === 0 && /warning — 0 sources/.test(wA.stderr), 'akela: 0-source compile warns on stderr, exit 0');
+    // Post-cutover both entry points carry the qa pack (the shim auto-inits
+    // one), so an unknown name is REFUSED identically — delegation fidelity
+    // on the strict path replaces the old warn-vs-warn comparison.
+    check(wQ.status === 1 && /unknown activity/.test(wQ.stderr), 'shim path: unknown name refused (auto-initialized pack)');
+    check(wA.status === 1 && /unknown activity/.test(wA.stderr), 'direct path: unknown name refused identically');
 
     // 8 · the log contract: same event, same src, activity/skill key alias
     runQ(['log', 'applied', 'LRN-20260801-01']);
@@ -824,16 +830,15 @@ function testAkelaEquivalence() {
     const badA = spawnSync(process.execPath, [akelaBin, 'log', 'applied', 'REF-nope#nothing'], { env: envA, encoding: 'utf8' });
     check(badQ.status !== 0 && badA.status !== 0, 'both engines refuse an unknown source id in log applied');
 
-    // 9 · unknown names: documented divergence (RFC 0003 §2). qab compiles —
-    // scope-all learnings still pack. Akela with the qa pack REFUSES (exit 1,
-    // no run written) and names the activity vocabulary: the strictest form of
-    // the #54 guard, shipping as a deliberate upgrade at cutover.
-    const uQ = runQ(['compile', '--skill', 'unknown-name']);
-    check(/1 sources/.test(uQ), 'qab: unknown skill still packs the scope-all learning (pre-cutover behavior)');
+    // 9 · unknown names, fixture projects: cutover-strict on BOTH entry
+    // points (RFC 0003 §2) — refused with the vocabulary, exit 1, and the
+    // refusal is byte-equal modulo the shim's deprecation prefix.
+    const uQ = spawnSync(process.execPath, [qabBin, 'compile', '--skill', 'unknown-name'], { env: envQ, encoding: 'utf8' });
     const uA = spawnSync(process.execPath, [akelaBin, 'compile', '--activity', 'unknown-name'], { env: envA, encoding: 'utf8' });
-    check(uA.status === 1 && !fs.existsSync(path.join(tmpA, '.qa-reports', 'runs')) === false
-          && /unknown activity .*declares: .*test-cases/.test(uA.stderr),
-          'akela + qa pack: unknown name refused with the activity vocabulary, exit 1 (strictness upgrade)');
+    const refusal = (s) => (s.split('\n').find(l => l.startsWith('akela: unknown activity')) || '');
+    check(uQ.status === 1 && uA.status === 1 && refusal(uQ.stderr) && refusal(uQ.stderr) === refusal(uA.stderr)
+          && /declares: .*test-cases/.test(uA.stderr),
+          'unknown name refused identically via shim and direct paths, vocabulary named (strictness upgrade)');
 
   } finally {
     fs.rmSync(tmpQ, { recursive: true, force: true });
@@ -1107,7 +1112,7 @@ async function testRuntimeHelper() {
   // Node a literal "~" — caught live while building PR1), and every call goes through `node $QAB`.
   for (const platform of PLATFORMS) {
     const distSkill = readFile(path.join(resolvePlatformDir(platform), 'skills', 'qa', 'SKILL.md')) || '';
-    check(/`QAB=[^"'`\s]+\/bin\/qab\.js`/.test(distSkill), `dist/${platform}: preamble assigns QAB=<path>/bin/qab.js unquoted`);
+    check(/`QAB=[^"'`\s]+\/bin\/akela\.js`/.test(distSkill), `dist/${platform}: preamble assigns QAB=<path>/bin/akela.js unquoted (the engine launcher)`);
     check(!/QAB="node/.test(distSkill), `dist/${platform}: preamble does not quote "node ~/…" (tilde would not expand)`);
     check((distSkill.match(/node \$QAB (run-id|log)/g) || []).length >= 4, `dist/${platform}: preamble calls node $QAB for run-id/log (≥4 sites)`);
     check(/REF-<file-stem>#<id>/.test(distSkill) && /REF-playbook\/<stem>#<id>/.test(distSkill), `dist/${platform}: preamble item 2 tells the model the REF id form (PR4 citation obligation)`);
@@ -1125,10 +1130,18 @@ async function testRuntimeHelper() {
     // .qabuddy.json with a custom learningsPath → log lands next to it
     fs.mkdirSync(path.join(tmp, 'kb'), { recursive: true });
     fs.writeFileSync(path.join(tmp, '.qabuddy.json'), JSON.stringify({ learningsPath: 'kb/LEARNINGS.md' }));
+    // The logged ids must exist in the knowledge base: akela's stats cross-
+    // references it and labels absent ids "history — no longer in the
+    // knowledge base" instead of ever calling them promotion candidates.
+    fs.writeFileSync(path.join(tmp, 'kb', 'LEARNINGS.md'), ['# Project Learnings', '',
+      ...['03', '04', '07', '08', '09'].map(n => [
+        `## LRN-20260808-${n}: fixture entry ${n}`, '- **Status:** active', '- **Scope:** all',
+        `- **Statement:** statement ${n}`, '- **Overrides:** none', '- **Evidence:** fixture', ''].join('\n')),
+    ].join('\n'));
 
     const runId = run(['run-id', '--skill', 'qa', '--ticket', 'PROJ-1']).trim();
     check(/^qa-PROJ-1-[0-9a-f]{6}$/.test(runId), `run-id prints <skill>-<ticket>-<6hex> (${runId})`);
-    check(fs.existsSync(path.join(tmp, '.qa-reports', '.qab-run')), 'run-id writes .qa-reports/.qab-run marker');
+    check(fs.existsSync(path.join(tmp, '.qa-reports', 'run')), 'run-id writes the .qa-reports/run marker (akela layout)');
 
     // Each run logs its events and is CLOSED BY ITS OUTCOME last — the helper refuses events on a
     // run that already reported one, so this ordering is also what real runs look like.
@@ -1162,15 +1175,15 @@ async function testRuntimeHelper() {
     for (const l of lines) { try { parsed.push(JSON.parse(l)); } catch { allJson = false; } }
     check(allJson, 'every log line is valid JSON');
     const first = parsed[0] || {};
-    check(first.v === 1 && first.ts === '2026-08-17T00:00:00Z' && first.run === runId && first.skill === 'qa' && first.event === 'applied' && first.src === 'LRN-20260808-03',
-      'first line has v/ts/run/skill/event/src from marker + args', JSON.stringify(first));
+    check(first.v === 1 && first.ts === '2026-08-17T00:00:00Z' && first.run === runId && (first.activity || first.skill) === 'qa' && first.event === 'applied' && first.src === 'LRN-20260808-03',
+      'first line has v/ts/run/activity/event/src from marker + args', JSON.stringify(first));
     check(parsed[1] && parsed[1].note === 'script uses --prefix', 'contradicted line carries --note');
     // Found by content, not by index: these assertions are about the line's shape, and a fixture
     // reorder should not be able to break them (it did, when runs were made to close last).
     const outcomeLine = parsed.find(l => l.event === 'outcome' && l.run === runId) || {};
     check(outcomeLine.status === 'DONE', 'outcome line carries --status', JSON.stringify(outcomeLine));
     const overrideLine = parsed.find(l => l.run === 'test-cases-x-abcdef' && l.src === 'LRN-20260808-03') || {};
-    check(overrideLine.skill === 'test-cases', 'QAB_RUN / --skill override the marker', JSON.stringify(overrideLine));
+    check((overrideLine.activity || overrideLine.skill) === 'test-cases', 'QAB_RUN / --skill override the marker', JSON.stringify(overrideLine));
 
     // Validation: bad input exits non-zero and writes nothing
     const before = fs.readFileSync(logFile, 'utf8');
@@ -1198,7 +1211,7 @@ async function testRuntimeHelper() {
     check(stats.runs_with_outcome === 3 && stats.outcomes.DONE === 2 && stats.outcomes.DONE_WITH_CONCERNS === 1, 'stats: outcome counts per status');
     const table = run(['stats']);
     check(/\| source \| kind \| in_slice \| applied \| contradicted \| runs \| last_applied \|/.test(table), 'stats prints the computed-columns table (with kind, in_slice)');
-    check(/LRN-20260808-03[^\n]*promotion candidate/.test(table) && /LRN-20260808-08[^\n]*falsified/.test(table), 'stats table labels findings per row');
+    check(/LRN-20260808-03[^\n]*promotion candidate/.test(table) && /LRN-20260808-08[^\n]*falsified/.test(table), 'stats table labels findings per row', table);
 
     // ── PR4: REF citation. Validation needs index.json next to the helper, so exercise the SHIPPED copy.
     const shipped = path.join(resolvePlatformDir('claude'), 'references', 'bin', 'qab.js'); // en or ko-only dist
@@ -1213,11 +1226,11 @@ async function testRuntimeHelper() {
       const refLine = JSON.parse(afterRef[afterRef.length - 3]);
       check(refLine.event === 'applied' && refLine.src === 'REF-playwright-patterns#never', 'log applied accepts a REF id that exists in index.json');
       const e1 = failsS(['log', 'applied', 'REF-playwright-patterns#nevr']);
-      check(e1 !== null && /unknown REF id/.test(e1) && /REF-playwright-patterns#never/.test(e1), 'unknown REF id is rejected with the nearest suggestion (nevr → never)', e1 || 'accepted');
+      check(e1 !== null && /unknown (REF id|section id)/.test(e1) && /REF-playwright-patterns#never/.test(e1), 'unknown REF id is rejected with the nearest suggestion (nevr → never)', e1 || 'accepted');
       const e2 = failsS(['log', 'applied', 'REF-test-types#automation-guidelines']);
       check(e2 !== null && /REF-playbook\/test-types#automation-guidelines/.test(e2), 'missing playbook/ prefix is rejected and the playbook id is suggested', e2 || 'accepted');
       const e3 = failsS(['log', 'applied', 'REF-Bad']);
-      check(e3 !== null && /malformed REF id/.test(e3), 'malformed REF id is rejected');
+      check(e3 !== null && /malformed REF id|source id must be/.test(e3), 'malformed REF id is rejected');
       const e4 = failsS(['log', 'applied', 'not-an-id']);
       check(e4 !== null, 'non LRN/REF source id is rejected');
       check(fs.readFileSync(logFile, 'utf8').split('\n').length === beforeRef.split('\n').length + 3, 'rejected REF ids append nothing');
@@ -1238,20 +1251,20 @@ async function testRuntimeHelper() {
       const guardErr = failsS(['log', 'applied', 'REF-playwright-patterns#never'], { QAB_RUN: 'ref-run-000001' });
       check(guardErr !== null, 'log on a run that already reported an outcome is refused');
       check(/already reported an outcome/.test(guardErr || ''), 'closed-run refusal names the reason', guardErr || '(no stderr)');
-      check(/run-id --skill/.test(guardErr || ''), 'closed-run refusal says how to open a new run', guardErr || '(no stderr)');
+      check(/run-id --(skill|activity)/.test(guardErr || ''), 'closed-run refusal says how to open a new run', guardErr || '(no stderr)');
       check(fs.readFileSync(logFile, 'utf8').trim().split('\n').length === linesBeforeGuard,
         'a refused append writes nothing to the log');
       check(failsS(['log', 'outcome', '--status', 'DONE'], { QAB_RUN: 'ref-run-000001' }) !== null,
         'a second outcome on the same run is refused too (no double counting)');
       // A malformed id on a closed run must still report the id, not the run state (validation first).
       const closedBadId = failsS(['log', 'applied', 'REF-Bad'], { QAB_RUN: 'ref-run-000001' });
-      check(/malformed REF id/.test(closedBadId || ''), 'argument validation still wins over the closed-run check', closedBadId || '(accepted)');
+      check(/malformed REF id|source id must be/.test(closedBadId || ''), 'argument validation still wins over the closed-run check', closedBadId || '(accepted)');
       // An open run is unaffected.
       runS(['log', 'applied', 'REF-playwright-patterns#never'], { QAB_RUN: 'ref-run-000002' });
       check(fs.readFileSync(logFile, 'utf8').trim().split('\n').length === linesBeforeGuard + 1,
         'an open run still accepts events after a different run closed');
       const table2 = runS(['stats']);
-      check(/citation compliance/.test(table2) && /overall: 1\/4 REF/.test(table2), 'stats prints the compliance readout with the PR4 gate');
+      check(/citation compliance/.test(table2) && /overall: 1\/4/.test(table2), 'stats prints the compliance readout with the PR4 gate');
     } else {
       fail('shipped qab.js + index.json present for REF validation test', 'run node build.js all');
     }
@@ -1492,13 +1505,15 @@ function testCompile() {
     const runDir3 = path.dirname(path.join(tmp, out3.split('\n')[0].trim()));
     check(runDir3 !== runDir && /test-cases-BUG-7-[0-9a-f]{6}$/.test(runDir3), 'compile with a different --ticket starts a new run instead of reusing the marker');
     check(JSON.parse(fs.readFileSync(path.join(runDir3, 'profile.json'), 'utf8')).ticket_kind === 'bug', 'the new run\'s profile reflects the new ticket (ticket_kind=bug)');
-    // fallback path is documented, not required: compile without index next to helper → clear error (source copy has no index)
-    let errText = ''; try { execFileSync(process.execPath, [path.join(ROOT, 'bin', 'qab.js'), 'compile', '--skill', 'qa'], { env, encoding: 'utf8', stdio: ['ignore', 'pipe', 'pipe'] }); } catch (e) { errText = String(e.stderr || ''); }
-    check(/index\.json not found/.test(errText), 'compile without a shipped index fails loudly (fallback is the model reading files, not a silent empty slice)');
+    // Post-cutover: the repo-checkout copy is a supported dev mode — the
+    // launcher falls back to core/engine + core/references (no built index
+    // needed; Akela self-indexes). The old failure mode is gone by design.
+    const repoOut = execFileSync(process.execPath, [path.join(ROOT, 'bin', 'qab.js'), 'compile', '--skill', 'qa', '--ticket', 'PROJ-9'], { env, encoding: 'utf8', stdio: ['ignore', 'pipe', 'pipe'] });
+    check(/slice\.md/.test(repoOut), 'the repo-checkout copy compiles via the core/ dev fallback (self-indexed, no dist needed)');
     // Installed-alias normalization (caught live 2026-08-27: `--skill qa-exploratory` compiled a
     // 0-source slice silently — installed skills are named qa-*, scope vocabulary uses short names)
     const outAlias = run(['compile', '--skill', 'qa-test-cases', '--ticket', 'PROJ-1']);
-    check(/skill alias: qa-test-cases → test-cases/.test(outAlias), 'compile normalizes the installed qa- prefix and says so');
+    check(/(skill|activity) alias: qa-test-cases → test-cases/.test(outAlias), 'compile normalizes the installed qa- prefix and says so');
     const aliasSlice = fs.readFileSync(path.join(tmp, outAlias.split('\n')[0].trim()), 'utf8');
     const aliasFm = aliasSlice.split('\n---\n')[0];
     const aliasRefs = [...(aliasFm.split('\nsources:\n')[1] || '').split('\ndropped:')[0].matchAll(/^  - id: (\S+)/gm)].map(m => m[1]).filter(id => id.startsWith('REF-')).sort();
@@ -1509,8 +1524,11 @@ function testCompile() {
     const tmp2 = fs.mkdtempSync(path.join(os.tmpdir(), 'qab-compile2-'));
     try {
       const resUnknown = spawnSync(process.execPath, [shipped, 'compile', '--skill', 'no-such-skill'], { env: { ...process.env, QAB_CWD: tmp2 }, encoding: 'utf8' });
-      check(resUnknown.status === 0 && /warning — 0 sources/.test(resUnknown.stderr || ''), 'a 0-source compile prints a loud stderr warning (not a silent empty slice)');
-      check(/Known scope tokens: .*test-cases/.test(resUnknown.stderr || ''), 'the 0-source warning lists the known scope tokens');
+      // Post-cutover semantics (RFC 0003 §2): the qa pack declares the activity
+      // vocabulary, so an unknown skill name is REFUSED — exit 1, no run — which
+      // is stricter than the 0.7.1 warning this check used to assert.
+      check(resUnknown.status === 1 && /unknown activity/.test(resUnknown.stderr || ''), 'an unknown skill name is refused loudly (no silent empty slice, no junk run)');
+      check(/declares: .*test-cases/.test(resUnknown.stderr || ''), 'the refusal names the activity vocabulary');
     } finally {
       fs.rmSync(tmp2, { recursive: true, force: true });
     }
@@ -1550,7 +1568,19 @@ function testScopeOverrides() {
   const env = { ...process.env, QAB_CWD: tmp, QAB_TS: '2026-08-20T00:00:00Z' };
   const run = (args) => execFileSync(process.execPath, [shipped, ...args], { env, encoding: 'utf8', stdio: ['ignore', 'pipe', 'pipe'] });
   const failsWith = (args) => { try { run(args); return null; } catch (e) { return e.status !== 0 ? String(e.stderr || '') : null; } };
-  const setCfg = (compiler) => fs.writeFileSync(path.join(tmp, '.qabuddy.json'), JSON.stringify({ compiler }));
+  // Post-cutover contract (RFC 0003 decision 2): engine config lives in
+  // akela.json — scenarios write it directly, translated the way akela-init
+  // does (compiler.references globs → PRJ knowledge directories).
+  const setCfg = (compiler) => {
+    const refs = path.join(resolvePlatformDir('claude'), 'references');
+    const cfg = { domain: path.join(refs, 'engine', 'qa.domain.json'), knowledge: [{ path: refs, namespace: 'REF' }] };
+    if (compiler) {
+      const { references, ...rest } = compiler;
+      for (const d of [...new Set((references || []).map(g => path.dirname(g)))]) cfg.knowledge.push({ path: d, namespace: 'PRJ' });
+      if (Object.keys(rest).length) cfg.compiler = rest;
+    }
+    fs.writeFileSync(path.join(tmp, 'akela.json'), JSON.stringify(cfg));
+  };
   const compileManifest = () => {
     const out = run(['compile', '--skill', 'test-cases', '--ticket', `PROJ-${++compileManifest.n}`]); // fresh ticket → fresh run, no marker reuse
     const slice = fs.readFileSync(path.join(tmp, out.split('\n')[0].trim()), 'utf8');
@@ -1627,7 +1657,19 @@ function testProjectRefs() {
     const r = spawnSync(process.execPath, [shipped, ...args], { env, encoding: 'utf8' });
     return { out: r.stdout || '', err: r.stderr || '', code: r.status };
   };
-  const setCfg = (compiler) => fs.writeFileSync(path.join(tmp, '.qabuddy.json'), JSON.stringify({ compiler }));
+  // Post-cutover contract (RFC 0003 decision 2): engine config lives in
+  // akela.json — scenarios write it directly, translated the way akela-init
+  // does (compiler.references globs → PRJ knowledge directories).
+  const setCfg = (compiler) => {
+    const refs = path.join(resolvePlatformDir('claude'), 'references');
+    const cfg = { domain: path.join(refs, 'engine', 'qa.domain.json'), knowledge: [{ path: refs, namespace: 'REF' }] };
+    if (compiler) {
+      const { references, ...rest } = compiler;
+      for (const d of [...new Set((references || []).map(g => path.dirname(g)))]) cfg.knowledge.push({ path: d, namespace: 'PRJ' });
+      if (Object.keys(rest).length) cfg.compiler = rest;
+    }
+    fs.writeFileSync(path.join(tmp, 'akela.json'), JSON.stringify(cfg));
+  };
   let ticketN = 0;
   const compileSlice = () => {
     const out = run(['compile', '--skill', 'test-cases', '--ticket', `PROJ-${++ticketN}`]);
@@ -1668,10 +1710,10 @@ function testProjectRefs() {
     check(cite.code === 0, 'log applied accepts a PRJ id that exists in the configured files', cite.err || '');
     run(['log', 'outcome', '--status', 'DONE']);
     const eTypo = runFull(['log', 'applied', 'PRJ-payments#seed-rule']);
-    check(eTypo.code !== 0 && /unknown PRJ id/.test(eTypo.err) && eTypo.err.includes('PRJ-payments#seed-rules'),
+    check(eTypo.code !== 0 && /unknown (PRJ|section) id/.test(eTypo.err) && eTypo.err.includes('PRJ-payments#seed-rules'),
       'unknown PRJ id is rejected with the nearest suggestion', eTypo.err || '(accepted)');
     const eMal = runFull(['log', 'applied', 'PRJ-Payments#x']);
-    check(eMal.code !== 0 && /malformed PRJ id/.test(eMal.err), 'malformed PRJ id is rejected');
+    check(eMal.code !== 0 && /malformed PRJ id|source id must be/.test(eMal.err), 'malformed PRJ id is rejected');
     const st = JSON.parse(run(['stats', '--json']));
     const prjRow = (st.rows || []).find(r => r.src === 'PRJ-payments#seed-rules') || {};
     check(prjRow.kind === 'PRJ' && prjRow.applied === 1 && prjRow.in_slice === 1, `stats: PRJ rows carry kind=PRJ with applied/in_slice counts (${JSON.stringify(prjRow)})`);
@@ -1690,24 +1732,36 @@ function testProjectRefs() {
     fs.writeFileSync(path.join(tmp, 'features-kb', 'house', 'broken.md'), '# House\n\n## Untagged\n\ntext\n');
     setCfg({ references: ['features-kb/house/*.md'] });
     const eBroken = runFull(['compile', '--skill', 'test-cases']);
-    check(eBroken.code !== 0 && /broken\.md:3/.test(eBroken.err) && /no <!-- qab: id=/.test(eBroken.err),
+    check(eBroken.code !== 0 && /broken\.md:3/.test(eBroken.err) && /no <!-- (qab|akela): id=/.test(eBroken.err),
       'a project file with an untagged ## refuses the compile, naming file:line', eBroken.err || '(accepted)');
     fs.rmSync(path.join(tmp, 'features-kb', 'house', 'broken.md'));
+    // Post-cutover, ambiguity is guarded one level up: Akela takes ONE root
+    // per namespace, so a second PRJ root — the old stem-collision setup — is
+    // refused at config time, before any id can become ambiguous.
     fs.mkdirSync(path.join(tmp, 'features-kb', 'house2'), { recursive: true });
     fs.writeFileSync(path.join(tmp, 'features-kb', 'house2', 'payments.md'), '# Other payments\n<!-- qab: id=other scope=all -->\n\ntext\n');
-    setCfg({ references: ['features-kb/house/*.md', 'features-kb/house2/*.md'] });
+    fs.writeFileSync(path.join(tmp, 'akela.json'), JSON.stringify({
+      domain: path.join(resolvePlatformDir('claude'), 'references', 'engine', 'qa.domain.json'),
+      knowledge: [{ path: path.join(resolvePlatformDir('claude'), 'references'), namespace: 'REF' },
+                  { path: 'features-kb/house', namespace: 'PRJ' }, { path: 'features-kb/house2', namespace: 'PRJ' }] }));
     const eStem = runFull(['compile', '--skill', 'test-cases']);
-    check(eStem.code !== 0 && /share the stem "payments"/.test(eStem.err), 'two project files sharing a stem are refused (PRJ ids must be unambiguous)', eStem.err || '(accepted)');
+    check(eStem.code !== 0 && /share the namespace "PRJ"/.test(eStem.err), 'a second PRJ root is refused (one root per namespace — PRJ ids stay unambiguous)', eStem.err || '(accepted)');
     fs.rmSync(path.join(tmp, 'features-kb', 'house2'), { recursive: true });
-    setCfg({ references: ['features-kb/house/*.md', 'nowhere/*.md'] });
+    // Post-cutover strictness (loud-config doctrine): a knowledge root that
+    // does not exist refuses the compile and names the root — the 0.7.x
+    // behavior was a warning; a missing dir is a config error, not a shrug.
+    setCfg({ references: ['nowhere/*.md'] });
     const warn = runFull(['compile', '--skill', 'test-cases', '--ticket', `PROJ-${++ticketN}`]);
-    check(warn.code === 0 && /matched no files/.test(warn.err), 'a zero-match pattern warns on stderr but does not block the compile');
-    setCfg({ references: 'features-kb/house/*.md' });
-    check(runFull(['compile', '--skill', 'test-cases']).code !== 0, 'compiler.references as a bare string (not an array) is refused');
+    check(warn.code !== 0 && /"nowhere" does not exist/.test(warn.err), 'a missing knowledge root refuses the compile, naming the root');
+    fs.writeFileSync(path.join(tmp, 'akela.json'), JSON.stringify({
+      domain: path.join(resolvePlatformDir('claude'), 'references', 'engine', 'qa.domain.json'),
+      knowledge: 'features-kb/house' }));
+    check(runFull(['compile', '--skill', 'test-cases']).code !== 0, 'knowledge as a bare string (not an array) is refused');
     // No config → PRJ citations are refused with a pointer, not accepted blind.
     setCfg({});
     const eNoCfg = runFull(['log', 'applied', 'PRJ-payments#seed-rules', '--run', 'open-run-000001']);
-    check(eNoCfg.code !== 0 && /declares no compiler\.references/.test(eNoCfg.err), 'a PRJ citation without compiler.references configured is refused with a pointer');
+    check(eNoCfg.code !== 0 && /unknown namespace "PRJ"/.test(eNoCfg.err) && /configured knowledge roots: REF/.test(eNoCfg.err),
+      'a PRJ citation with no PRJ knowledge root is refused, naming the configured roots');
   } finally {
     fs.rmSync(tmp, { recursive: true, force: true });
   }
@@ -1727,17 +1781,18 @@ function testFingerprints() {
   const shipped = path.join(resolvePlatformDir('claude'), 'references', 'bin', 'qab.js');
   const indexPath = path.join(resolvePlatformDir('claude'), 'references', 'index.json');
   if (!fs.existsSync(shipped) || !fs.existsSync(indexPath)) { fail('shipped qab.js + index.json present for fingerprint tests', 'run node build.js all'); return; }
-  const helper = require(path.join(ROOT, 'bin', 'qab.js'));
-
   // ── Text guards: vocabulary + emission points + distill rows, en and ko (runtime-facing → same PR, decision 14)
+  // Post-cutover the closed vocabulary lives in the qa domain pack — the pack
+  // is what the engine enforces, so the pack is what this guard reads.
   const KINDS = ['locator-not-found', 'ac-unmapped', 'spec-flaky', 'ci-step-failed', 'env-unreachable', 'auth-failed', 'fixture-missing', 'assertion-mismatch', 'tool-unavailable'];
-  check(JSON.stringify(helper.FP_KINDS) === JSON.stringify(KINDS), 'qab.js FP_KINDS is the closed vocabulary from RFC 0001 §3.4');
+  const qaPack = JSON.parse(readFile(path.join(CORE_DIR, 'engine', 'qa.domain.json')) || '{}');
+  check(JSON.stringify(qaPack.fingerprints) === JSON.stringify(KINDS), 'the qa domain pack carries the closed fingerprint vocabulary (RFC 0001 §3.4)');
   for (const [label, refPath] of [['en', 'core/references/self-improve.md'], ['ko', 'locales/ko/references/self-improve.md']]) {
     const t = readFile(path.join(ROOT, refPath)) || '';
     check(/<!--\s*qab:\s*id=fingerprints\b/.test(t), `self-improve.md (${label}): has the fingerprints section (qab: id=fingerprints)`);
     for (const k of KINDS) check(t.includes(`\`${k}\``), `self-improve.md (${label}): names kind ${k}`);
-    check(/qab\.js fp --list/.test(t) && /Fingerprint:/.test(t), `self-improve.md (${label}): capture rule links Fingerprint: via fp --list`);
-    check(/qab\.js scoreboard/.test(t) && /\.cache\/scoreboard\.json/.test(t), `self-improve.md (${label}): names qab.js scoreboard + cache path`);
+    check(/akela\.js fp --list/.test(t) && /Fingerprint:/.test(t), `self-improve.md (${label}): capture rule links Fingerprint: via fp --list`);
+    check(/akela\.js scoreboard/.test(t) && /\.cache\/scoreboard\.json/.test(t), `self-improve.md (${label}): names akela.js scoreboard + cache path`);
     check(/in_slice ≥ 10/.test(t) && /applied = 0/.test(t), `self-improve.md (${label}): never-applied rule = in_slice ≥ 10 ∧ applied = 0`);
   }
   const EMIT = { 'e2e-pom': ['locator-not-found'], 'e2e-write': ['spec-flaky', 'fixture-missing'], qa: ['ac-unmapped', 'env-unreachable', 'auth-failed', 'assertion-mismatch'], 'verify-fix': ['ci-step-failed'] };
@@ -1756,7 +1811,7 @@ function testFingerprints() {
     const t = readFile(path.join(ROOT, p)) || '';
     check(/\*\*(Falsified|반증됨) \((fingerprint|지문)\)\*\*/.test(t) && /\*\*(Duplicate|중복) \((fingerprint|지문)\)\*\*/.test(t) && /\*\*(Never applied|적용된 적 없음)\*\*/.test(t), `improve (${label}): distill table has falsified/duplicate-by-fingerprint + never-applied rows`);
     check(/in_slice · applied · contradicted · runs · last_applied/.test(t), `improve (${label}): computed columns include in_slice`);
-    check(/qab\.js scoreboard/.test(t), `improve (${label}): rebuilds the scoreboard after applying changes`);
+    check(/akela\.js scoreboard/.test(t), `improve (${label}): rebuilds the scoreboard after applying changes`);
   }
   for (const [label, p] of [['en', 'core/skills/setup/SKILL.md'], ['ko', 'locales/ko/skills/setup/SKILL.md']]) {
     const t = readFile(path.join(ROOT, p)) || '';
@@ -1811,7 +1866,7 @@ function testFingerprints() {
     const fps = fs.readFileSync(fpFile, 'utf8').trim().split('\n').map(l => JSON.parse(l));
     check(fps.length === 6, `fp appends one line per call (${fps.length}/6)`);
     const l1 = fps[0] || {};
-    check(l1.v === 1 && l1.ts === '2026-08-17T00:00:00Z' && l1.run === runId && l1.skill === 'e2e-pom' && l1.kind === 'locator-not-found' && l1.key === 'checkout/place-order-btn' && /^[0-9a-f]{12}$/.test(l1.pfp || ''), 'fp line has v/ts/run/skill/pfp/kind/key from marker + args', JSON.stringify(l1));
+    check(l1.v === 1 && l1.ts === '2026-08-17T00:00:00Z' && l1.run === runId && (l1.activity || l1.skill) === 'e2e-pom' && l1.kind === 'locator-not-found' && l1.key === 'checkout/place-order-btn' && /^[0-9a-f]{12}$/.test(l1.pfp || ''), 'fp line has v/ts/run/activity/pfp/kind/key from marker + args', JSON.stringify(l1));
     check(l1.ffp === F1, `ffp = sha256(kind + "\\n" + key)[:12] (${l1.ffp} vs ${F1})`);
     check(fps[1].ffp === F1, 'normalization: case, spaces around /, a hex hash and a timestamp do not change the ffp (mutation guard: unnormalized key)');
     check(fps[2].ffp !== F1, 'a different element hashes to a different ffp');
@@ -1958,8 +2013,9 @@ function testGate() {
       'gate: outcome runs without a compiled pfp are reported, NEVER summed into a profile (the §9.3 #23 mis-attribution guard)');
     check((g.dormant || []).some(d => d.src === 'REF-playwright-patterns#never' && d.in_slice === 17),
       'gate: dormant lists in_slice ≥ 10 ∧ applied = 0 sources with their in_slice', JSON.stringify(g.dormant));
-    check(g.slice_by_skill && g.slice_by_skill.qa && g.slice_by_skill.qa.last === 200 && g.slice_by_skill['test-plan'].compiles === 8,
-      'gate: slice size per skill from compiled events (last + compiles)', JSON.stringify(g.slice_by_skill));
+    const sbs = g.slice_by_skill || g.slice_by_activity;
+    check(sbs && sbs.qa && sbs.qa.last === 200 && sbs['test-plan'].compiles === 8,
+      'gate: slice size per skill from compiled events (last + compiles)', JSON.stringify(sbs));
     const table = run(['gate']);
     check(/verdict: ELIGIBLE/.test(table), 'gate table prints an explicit verdict line');
     check(/does not classify causes/.test(table) && /cannot fire \/ duplicated elsewhere/.test(table),
@@ -1994,7 +2050,7 @@ function testGate() {
 
   // The command is documented where the model and the human look for it.
   const helpOut = (() => { try { return execFileSync(process.execPath, [shipped, 'help'], { encoding: 'utf8' }); } catch { return ''; } })();
-  check(/qab\.js gate \[--json\]/.test(helpOut), 'qab.js help lists the gate subcommand');
+  check(/(qab\.js|akela) gate +\[--json\]/.test(helpOut), 'the help output lists the gate subcommand');
 }
 
 function testScoring() {
@@ -2016,7 +2072,19 @@ function testScoring() {
   const env = { ...process.env, QAB_CWD: tmp, QAB_TS: '2026-08-20T00:00:00Z' };
   const run = (args) => execFileSync(process.execPath, [shipped, ...args], { env, encoding: 'utf8', stdio: ['ignore', 'pipe', 'pipe'] });
   const runFull = (args) => { const r = spawnSync(process.execPath, [shipped, ...args], { env, encoding: 'utf8' }); return { out: r.stdout || '', err: r.stderr || '', code: r.status }; };
-  const setCfg = (compiler) => fs.writeFileSync(path.join(tmp, '.qabuddy.json'), JSON.stringify({ compiler }));
+  // Post-cutover contract (RFC 0003 decision 2): engine config lives in
+  // akela.json — scenarios write it directly, translated the way akela-init
+  // does (compiler.references globs → PRJ knowledge directories).
+  const setCfg = (compiler) => {
+    const refs = path.join(resolvePlatformDir('claude'), 'references');
+    const cfg = { domain: path.join(refs, 'engine', 'qa.domain.json'), knowledge: [{ path: refs, namespace: 'REF' }] };
+    if (compiler) {
+      const { references, ...rest } = compiler;
+      for (const d of [...new Set((references || []).map(g => path.dirname(g)))]) cfg.knowledge.push({ path: d, namespace: 'PRJ' });
+      if (Object.keys(rest).length) cfg.compiler = rest;
+    }
+    fs.writeFileSync(path.join(tmp, 'akela.json'), JSON.stringify(cfg));
+  };
   const logFile = path.join(tmp, 'features-kb', 'learnings-log.jsonl');
   let ticketN = 0;
   const compileSlice = () => {

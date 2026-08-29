@@ -139,7 +139,7 @@ features-kb/
 ├── LEARNINGS.md                         # Project learnings (self-improve.md); committed
 ├── learnings-log.jsonl                  # Append-only run log: applied/contradicted/captured/outcome; committed
 ├── fingerprints.jsonl                   # Append-only failure fingerprints (kind/key/ffp/active); committed
-├── .cache/scoreboard.json               # Derived from the two logs by `qab.js scoreboard`; gitignored
+├── .cache/scoreboard.json               # Derived from the two logs by `akela.js scoreboard`; gitignored
 ├── index.json                           # Feature index for fast lookup
 ├── features/
 │   ├── {EPIC-KEY}/

@@ -80,7 +80,7 @@
           "field": "cmd:tail -n1 features-kb/learnings-log.jsonl",
           "op": "output_matches",
           "value": "\"run\":\"e2e-setup-",
-          "note": "run id came from qab.js run-id --skill e2e-setup, not hand-written"
+          "note": "run id came from akela.js run-id --skill e2e-setup, not hand-written"
         },
         {
           "field": "cmd:ls .qa-reports/runs/*/slice.md",
