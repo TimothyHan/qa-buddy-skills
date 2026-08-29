@@ -29,6 +29,24 @@ no separate app, no daemon; one pinned dependency — the [Akela](https://github
 
 ---
 
+## QABuddy in 30 seconds
+
+AI agents forget your team's QA practices — every run starts from zero, and
+"memory" files that merely accumulate are noise, not knowledge. QABuddy is not
+a prompt pack: it's a QA workflow suite on top of an **evidence engine**.
+
+```
+without   feature ──→ agent ──→ generic tests, every project the same
+
+with      feature ──→ compiled slice of YOUR project's knowledge ──→ agent
+                  ──→ tests + logged evidence ──→ proven learnings ──→ better next run
+```
+
+Three commands to the loop: install → `/qa-setup` → `/qa-start EPIC-123`.
+Everything below is how that loop stays honest.
+
+---
+
 ## Why QABuddy?
 
 | Without QABuddy | With QABuddy |
