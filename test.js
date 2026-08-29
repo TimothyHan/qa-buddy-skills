@@ -393,7 +393,7 @@ function testPlaybookBudget() {
 function testDocClaims() {
   console.log('\n📄 Doc claims vs repo');
 
-  const DOCS = ['README.md', 'README-en.md', 'CONTRIBUTING.md', 'CONTRIBUTING-en.md'];
+  const DOCS = ['README.md', 'README-ko.md', 'CONTRIBUTING.md', 'CONTRIBUTING-en.md'];
   const docs = DOCS.map(f => [f, readFile(path.join(ROOT, f))]).filter(([, s]) => s);
   check(docs.length === DOCS.length, `all ${DOCS.length} top-level docs present`,
         `missing: ${DOCS.filter(f => !readFile(path.join(ROOT, f))).join(', ')}`);
@@ -656,7 +656,7 @@ function testBadgeCount() {
   const total = passed + failed + 1;
   const BADGE = /Structural_checks-(\d+)-brightgreen/;
   const problems = [];
-  for (const f of ['README.md', 'README-en.md']) {
+  for (const f of ['README.md', 'README-ko.md']) {
     const src = readFile(path.join(ROOT, f));
     if (!src) { problems.push(`${f}: not found`); continue; }
     const badge = src.match(BADGE);

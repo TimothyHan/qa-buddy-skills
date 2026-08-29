@@ -2,186 +2,202 @@
 
 # QABuddy
 
-**당신의 프로젝트를 학습하는 QA 파운데이션**
+**A QA foundation that learns your project**
 
-[한국어](README.md) · [English](README-en.md)
+[English](README.md) · [한국어](README-ko.md)
 
 [![License: Apache 2.0](https://img.shields.io/badge/License-Apache_2.0-blue.svg)](LICENSE)
-[![Skills: 13](https://img.shields.io/badge/Skills-13-green.svg)](#스킬)
-[![Platform: Claude Code](https://img.shields.io/badge/Platform-Claude_Code-purple.svg)](#작동-방식)
-[![Locales: en, ko](https://img.shields.io/badge/Locales-en_|_ko-orange.svg)](#로케일)
-[![Structural checks: 1243](https://img.shields.io/badge/Structural_checks-1243-brightgreen.svg)](#작동-방식)
+[![Skills: 13](https://img.shields.io/badge/Skills-13-green.svg)](#skills)
+[![Platform: Claude Code](https://img.shields.io/badge/Platform-Claude_Code-purple.svg)](#how-it-works)
+[![Locales: en, ko](https://img.shields.io/badge/Locales-en_|_ko-orange.svg)](#locales)
+[![Structural checks: 1243](https://img.shields.io/badge/Structural_checks-1243-brightgreen.svg)](#how-it-works)
 
-스크럼 팀에서 일하는 SDT(Software Developers in Test)를 위한 AI 파트너입니다.<br>
-에픽 테스트 계획 수립부터 스프린트 실행, 릴리스 검증까지 전체 워크플로우를 지원합니다.<br>
-팀마다 QA의 요구는 다릅니다 — 그래서 QABuddy는 **자기 개선**하는 파운데이션으로 제공됩니다:<br>
-모든 스킬 실행이 프로젝트 고유의 학습을 포착하고 다음 실행에 적용합니다.<br>
-공식 지원 플랫폼은 **Claude Code**입니다. Jira 없이도 작동합니다.<br>
-(Cursor/Copilot용 미검증 설치 스크립트도 빌드에 포함됩니다 — 아래 참고)
+An AI partner for QA — anyone who tests software.<br>
+Covers the full workflow — from epic test planning through sprint execution to release verification.<br>
+Every team's QA needs are different — so QABuddy ships as a foundation that **self-improves**:<br>
+every skill run captures project-specific learnings and applies them on the next run.<br>
+Officially supports **Claude Code**. No Jira required.<br>
+(Unverified installers for Cursor/Copilot are still built — see below.)
 
-AI 코딩 어시스턴트의 네이티브 **스킬 시스템** 위에 구축되었습니다.<br>
-QABuddy는 AI가 자동으로 인식하고 실행하는 `SKILL.md` 파일 모음입니다 —<br>
-별도의 앱, 데몬, Node.js 외 의존성이 없습니다.
+Built on the native **skills system** of your AI coding assistant.<br>
+QABuddy is a collection of `SKILL.md` files that your AI discovers and invokes automatically —<br>
+no separate app, no daemon, no dependencies beyond Node.js.
 
-[빠른 시작](#빠른-시작) · [스킬](#스킬) · [안내 워크플로우](#안내-워크플로우) · [셀프러닝 가이드](docs/self-learning-guide.md) · [변경 이력](CHANGELOG.md) · [기여하기](CONTRIBUTING.md)
+[Quick Start](#quick-start) · [Skills](#skills) · [Guided Workflow](#the-guided-workflow) · [Self-Learning Guide](docs/self-learning-guide-en.md) · [Changelog](CHANGELOG-en.md) · [Contributing](CONTRIBUTING-en.md)
 
 </div>
 
 ---
 
-## QABuddy를 사용해야 하는 이유
+## Why QABuddy?
 
-| QABuddy 없이 | QABuddy와 함께 |
+| Without QABuddy | With QABuddy |
 |---|---|
-| 테스트 계획을 처음부터 수동으로 작성 | `/qa-start`가 에픽 컨텍스트를 기반으로 테스트 계획 자동 생성 |
-| 그루밍 시 기억에 의존하여 티켓 리뷰 | `/qa-review-ticket`이 구조화된 체크리스트로 인수 조건(AC) 점검 |
-| 스프레드시트로 테스트 커버리지 추적 | 지식 베이스가 추적성 매핑으로 커버리지 관리 |
-| 복사-붙여넣기로 Jira에 결함 등록 | `/qa-qa`가 재현 단계 + 스크린샷과 함께 결함 자동 등록 |
-| 스킬 문제 수정? 처음부터 다시 작성 | `/qa-improve`가 실패를 분석하고, 수정하고, 회귀 테스트 실행 |
-| 어느 팀에서나 영원히 똑같은 정적 도구 | 모든 실행이 프로젝트의 특성을 학습 레이어에 포착 — QABuddy가 팀에 맞게 진화 |
+| Manually write test plans from scratch | `/qa-start` generates test plans from epic context |
+| Review tickets by memory during grooming | `/qa-review-ticket` audits ACs with structured checklists |
+| Track test coverage in spreadsheets | Knowledge base tracks coverage with traceability mappings |
+| File bugs via copy-paste into Jira | `/qa-qa` files bugs automatically with repro steps + screenshots |
+| Fix a skill issue? Rewrite from scratch | `/qa-improve` analyzes the failure, fixes it, runs regression tests |
+| Same static tool forever, on every team | Every run captures your project's quirks into a learnings layer — QABuddy evolves to fit your team |
 
 ---
 
-## 빠른 시작
+## How It Learns
+
+QABuddy doesn't keep an unbounded memory file. Project knowledge is handled the way a QA engineer handles a bug report — no claim without evidence:
+
+1. **Compile** — before every run, only the knowledge scoped to that skill is compiled into a `slice.md`, with a manifest naming what went in and what was left out.
+2. **Cite** — when a rule shapes the output, the run cites its id and logs it as *applied*; when reality contradicts it, that gets logged instead.
+3. **Capture** — genuinely new project facts become learnings (`LRN-`) — with evidence attached, or not at all. Clean runs write nothing.
+4. **Falsify** — recurring failures hash to fingerprints; a learning that claimed to prevent one is falsified by count, not by opinion.
+5. **Distill** — `/qa-improve` merges, retires, or promotes learnings using the log's numbers. Changes to canon stay behind human approval.
+
+Three knowledge layers, one contract: `REF-` (shipped references) · `PRJ-` (your team's own methodology) · `LRN-` (learned from your runs — overrides the other two when reality disagrees).
+
+[Full architecture →](docs/self-learning-guide-en.md)
+
+---
+
+## Quick Start
 
 ```bash
-git clone https://github.com/TimothyHan/QABuddy.git && cd QABuddy
-node build.js all --locale ko  # 한국어 버전 빌드
-dist/ko/claude/setup           # 설치
+git clone https://github.com/TimothyHan/qa-buddy-skills.git && cd qa-buddy-skills
+node build.js all              # Build for all platforms
+dist/claude/setup              # Install
 ```
 
-그런 다음:
+Then:
 ```
-/qa-setup                      # 프로젝트 구성 (최초 1회만)
-/qa-start EPIC-123             # 안내 워크플로우 시작
+/qa-setup                      # Configure your project (first time only)
+/qa-start EPIC-123             # Begin the guided workflow
 ```
 
 <details>
 <summary><strong>Windows (PowerShell)</strong></summary>
 
 ```powershell
-git clone https://github.com/TimothyHan/QABuddy.git
-cd QABuddy
-node build.js all --locale ko
-.\dist\ko\claude\setup.ps1
+git clone https://github.com/TimothyHan/qa-buddy-skills.git
+cd qa-buddy-skills
+node build.js all
+.\dist\claude\setup.ps1
 ```
 
-> 심볼릭 링크를 사용하려면 개발자 모드를 활성화하거나 관리자 권한으로 실행해야 합니다.
-> 심볼릭 링크 생성에 실패하면 자동으로 디렉터리 정션(junction)으로 대체합니다.
+> Symlinks require Developer Mode enabled or running as Administrator.
+> Falls back to directory junctions automatically if symlinks fail.
 
 </details>
 
 ---
 
-## 스킬
+## Skills
 
-### 안내 워크플로우
+### Guided Workflow
 
-| 스킬 | 명령어 | 기능 |
-|-------|---------|------|
-| **Setup** | `/qa-setup` | 최초 실행 마법사: 컨텍스트 소스, 팀 모드, 프로젝트 설정 구성 |
-| **Start** | `/qa-start` | 안내 엔드투엔드 워크플로우: 설정 → 테스트 계획 → 리뷰 → 테스트 케이스 |
+| Skill | Command | What it does |
+|-------|---------|-------------|
+| **Setup** | `/qa-setup` | First-run wizard: context source, team mode, project preferences |
+| **Start** | `/qa-start` | Guided end-to-end workflow: setup → test plan → reviews → test cases |
 
-### QA 스킬
+### QA Skills
 
-| 스킬 | 명령어 | 스프린트 단계 | 기능 |
-|-------|---------|--------------|------|
-| **Test Plan** | `/qa-test-plan` | 에픽 생성 시 | 테스트 전략, 자동화 갭 분석, 성공 기준, 리스크 수립 |
-| **Review Ticket** | `/qa-review-ticket` | 그루밍 | 인수 조건(AC), 테스트 가능성, 누락된 엣지 케이스, 블로커 점검 |
-| **Test Cases** | `/qa-test-cases` | 스프린트 실행 | AC 기반 Playwright e2e + 단위 테스트 체크리스트 생성 |
-| **QA** | `/qa-qa` | 기능 완성 시 | 테스트 케이스 실행, AC 검증, 결함 등록 |
-| **Verify Fix** | `/qa-verify-fix` | 결함 수정 후 | 수정 재테스트, 회귀 확인, 결함 상태 업데이트 |
-| **Exploratory** | `/qa-exploratory` | 기능 완성 시 | 차터 기반 탐색적 테스팅 세션 |
-| **E2E Setup** | `/qa-e2e-setup` | 자동화 시작 | 앱 프로빙, Playwright 스캐폴드, AUTOMATION.md에 결정 기록 |
-| **E2E POM** | `/qa-e2e-pom` | 자동화 | 실시간 탐색으로 페이지 객체 빌드/힐링 — 모든 로케이터를 증명, 추측 금지 |
-| **E2E Write** | `/qa-e2e-write` | 자동화 | 테스트 케이스로부터 스위트 생성: API 사전 조건, 의도만 담은 스펙, 네 개의 품질 게이트 |
+| Skill | Command | Sprint Phase | What it does |
+|-------|---------|-------------|-------------|
+| **Test Plan** | `/qa-test-plan` | Epic created | Test strategy, automation gaps, success criteria, risks |
+| **Review Ticket** | `/qa-review-ticket` | Grooming | Audit ACs, testability, missing edge cases, blockers |
+| **Test Cases** | `/qa-test-cases` | Sprint execution | Playwright e2e + unit test checklist from ACs |
+| **QA** | `/qa-qa` | Feature ready | Execute test cases, verify ACs, file bugs |
+| **Verify Fix** | `/qa-verify-fix` | Bug fixed | Re-test fix, check regressions, update bug status |
+| **Exploratory** | `/qa-exploratory` | Feature ready | Charter-driven exploratory testing session |
+| **E2E Setup** | `/qa-e2e-setup` | Automation start | Probe the app, scaffold Playwright, record decisions in AUTOMATION.md |
+| **E2E POM** | `/qa-e2e-pom` | Automation | Build/heal page objects by live discovery — every locator proven, never guessed |
+| **E2E Write** | `/qa-e2e-write` | Automation | Test suites from test cases: API preconditions, intent-only specs, four quality gates |
 
-### 메타 스킬
+### Meta Skills
 
-| 스킬 | 명령어 | 기능 |
-|-------|---------|------|
-| **Improve** | `/qa-improve` | 스킬 실패 수정; 학습 레이어 정제 (중복 제거, 은퇴, 정본 승격) |
-| **Eval** | `/qa-eval` | 스킬의 eval 픽스처를 실행하여 정확성 검증 |
+| Skill | Command | What it does |
+|-------|---------|-------------|
+| **Improve** | `/qa-improve` | Fix skill failures; distill the learnings layer (dedupe, retire, promote to canon) |
+| **Eval** | `/qa-eval` | Run eval fixtures against a skill to verify correctness |
 
 
-> 명령어는 기본 `qa-` 접두사 기준입니다. `--no-prefix`로 설치하면 접두사 없이 사용합니다.
+> Commands use the default `qa-` prefix. Install with `--no-prefix` to use bare names.
 
 ---
 
-## 안내 워크플로우
+## The Guided Workflow
 
-스킬을 개별적으로 호출하는 대신, `/qa-start`가 전체 QA 계획 워크플로우를 단계별로 안내합니다:
+Instead of invoking skills individually, `/qa-start` walks you through the full QA planning workflow:
 
 ```
 /qa-start EPIC-123
 
-  Phase 1: Setup ─────── 설정 읽기, 컨텍스트 로드
+  Phase 1: Setup ─────── reads config, loads context
        ↓ pause
-  Phase 2: Test Plan ─── 전략 수립, KB 초기화
+  Phase 2: Test Plan ─── drafts strategy, initializes KB
        ↓ pause
-  Phase 3: Reviews ───── 각 스토리 점검 (Jira 모드)
+  Phase 3: Reviews ───── audits each story (Jira mode)
        ↓ pause
-  Phase 4: Test Cases ── 테스트 생성 + 추적성 매핑
+  Phase 4: Test Cases ── generates tests + traceability
        ↓ pause
-  Phase 5: Summary ───── "계획 완료. QA 준비 완료."
+  Phase 5: Summary ───── "Planning complete. Ready for QA."
 ```
 
-모든 중단 지점에서 다음을 선택할 수 있습니다:
+At every pause, you choose:
 
-| 옵션 | 동작 |
-|--------|------|
-| **(A) 승인** | 다음 단계로 진행 |
-| **(B) 내용 피드백** | 결과물을 반복 수정 |
-| **(C) 도구 피드백** | `/qa-improve`로 디스패치: 근본 원인, 승인된 수정, 리빌드, eval — 이후 재개 |
+| Option | What happens |
+|--------|-------------|
+| **(A) Approve** | Continue to next phase |
+| **(B) Content feedback** | Iterate on the output |
+| **(C) Tool feedback** | Dispatches to `/qa-improve`: root cause, approved fix, rebuild, eval — then resumes |
 
 ---
 
-## 설정
+## Configuration
 
-`/qa-setup`을 실행하여 구성합니다. 설정은 `.qabuddy.json`에 저장됩니다:
+Run `/qa-setup` to configure. Settings saved to `.qabuddy.json`:
 
-| 설정 | 옵션 | 제어 대상 |
-|------|------|-----------|
-| **컨텍스트 소스** | Jira, 사양 문서, 채팅, 커스텀 | 스킬이 기능 컨텍스트를 가져오는 위치 |
-| **팀 모드** | 솔로, 팀 | 솔로 = 로컬 변경. 팀 = `gh` CLI를 통한 PR |
-| **업스트림 기여** | 예, 아니오 | 개선 사항을 QABuddy 저장소에 자동 PR |
-| **학습 파일 경로** | 기본 `features-kb/LEARNINGS.md` | 학습 레이어가 사는 위치 |
-| **실행 디렉터리** | 기본 `.qa-reports/runs` | 실행마다 컴파일된 슬라이스·매니페스트·스크래치패드가 쓰이는 위치 |
-| **스코프 오버라이드** | 직접 편집: `compiler.scope` | 배포된 레퍼런스 섹션을 어떤 스킬이 받을지 프로젝트 단위로 추가/제거 — 업데이트에도 살아남습니다. `tier=must`는 제거 불가, 모르는 id는 큰 소리로 거부됩니다 ([RFC 0002](docs/rfc/0002-project-owned-compiler-ko.md)) |
-| **프로젝트 레퍼런스 섹션** | 직접 편집: `compiler.references` | 팀이 작성한 방법론 파일을 배포 레퍼런스와 똑같이 컴파일 — 같은 `qab:` 규약, id는 `PRJ-<stem>#<id>` 네임스페이스, `REF-`처럼 인용·집계됩니다 ([RFC 0002](docs/rfc/0002-project-owned-compiler-ko.md)) |
-| **점수화 (opt-in)** | 직접 편집: `compiler.scoring` + `budget_lines` | 바닥값(`tier=must`, 최근 적용, 학습)을 가진 프로파일별 점수 선택. `qab.js gate`가 자격 있음을 보고하지 않으면 켜기를 거부 — 예외는 로그에 결정으로 기록되는 `scoringOverride: "<메모>"`뿐 ([RFC 0002 §2.4](docs/rfc/0002-project-owned-compiler-ko.md)) |
+| Setting | Options | What it controls |
+|---------|---------|-----------------|
+| **Context source** | Jira, spec docs, chat, custom | Where skills pull feature context |
+| **Team mode** | Solo, team | Solo = local. Team = PRs via `gh` CLI |
+| **Upstream contributions** | Yes, no | Auto-PR improvements to QABuddy repo |
+| **Learnings path** | default `features-kb/LEARNINGS.md` | Where the learnings layer lives |
+| **Runs directory** | default `.qa-reports/runs` | Where each run's compiled slice, manifest and scratchpad are written |
+| **Scope overrides** | hand-edited: `compiler.scope` | Add/remove which skills receive a shipped reference section — per project, survives updates. `tier=must` cannot be removed; unknown ids are refused loudly ([RFC 0002](docs/rfc/0002-project-owned-compiler.md)) |
+| **Project reference sections** | hand-edited: `compiler.references` | Team-authored methodology files compiled like shipped references — same `qab:` contract, ids namespaced `PRJ-<stem>#<id>`, cited and counted like `REF-` ([RFC 0002](docs/rfc/0002-project-owned-compiler.md)) |
+| **Scoring (opt-in)** | hand-edited: `compiler.scoring` + `budget_lines` | Per-profile scored selection with a floor (`tier=must`, recently-applied, learnings). Refuses to enable unless `qab.js gate` reports eligible — or `scoringOverride: "<note>"`, recorded in the log as a decision ([RFC 0002 §2.4](docs/rfc/0002-project-owned-compiler.md)) |
 
-> **Jira가 없어도 괜찮습니다.** 컨텍스트 소스를 "spec" 또는 "chat"으로 설정하세요. 결함은
-> `features-kb/`에 마크다운으로 기록됩니다. 어떤 프로젝트 관리 도구와도 호환됩니다.
+> **No Jira? No problem.** Set context source to "spec" or "chat". Bugs are written
+> to `features-kb/` as markdown. Works with any project management tool.
 
 <details>
-<summary><strong>팀 프랙티스 (선택)</strong></summary>
+<summary><strong>Team Practices (optional)</strong></summary>
 
-설정 중에 QABuddy는 팀에 문서화된 프로세스가 있는지 확인합니다:
+During setup, QABuddy asks if your team has documented processes for:
 
-| 프랙티스 | 저장 위치 |
+| Practice | Saved to |
 |----------|----------|
-| 결함 분류 / 접수 | `features-kb/team-practices/bug-triage.md` |
-| 핫픽스 테스트 | `features-kb/team-practices/hotfix-testing.md` |
-| 테스트 데이터 관리 | `features-kb/team-practices/test-data.md` |
-| 릴리스 워크플로우 | `features-kb/team-practices/release-workflow.md` |
-| 접근성 요구 사항 | `features-kb/team-practices/accessibility.md` |
-| CI/CD 파이프라인 | `features-kb/team-practices/ci-cd-pipeline.md` |
+| Bug triage / intake | `features-kb/team-practices/bug-triage.md` |
+| Hotfix testing | `features-kb/team-practices/hotfix-testing.md` |
+| Test data management | `features-kb/team-practices/test-data.md` |
+| Release workflow | `features-kb/team-practices/release-workflow.md` |
+| Accessibility requirements | `features-kb/team-practices/accessibility.md` |
+| CI/CD pipeline | `features-kb/team-practices/ci-cd-pipeline.md` |
 
-정의된 경우 스킬이 자동으로 따릅니다. 정의되지 않은 경우 스킬이 상황에 맞게 질문합니다.
+If defined, skills follow them automatically. If not, skills ask case-by-case.
 
 </details>
 
 ---
 
-## 사전 요구 사항
+## Prerequisites
 
-- **Node.js** — 빌드 스크립트용 (npm 의존성 없음)
-- **Atlassian MCP** — 선택, Jira 모드에서만 필요
-- **Playwright MCP** — 브라우저 테스팅용 대체 수단 (Claude Code는 Chrome 확장 프로그램 권장)
+- **Node.js** — for the build script (zero npm dependencies)
+- **Atlassian MCP** — optional, only for Jira mode
+- **Playwright MCP** — fallback for browser testing (Chrome extension recommended on Claude Code)
 
 <details>
-<summary><strong>MCP 설정</strong></summary>
+<summary><strong>MCP Configuration</strong></summary>
 
 **Atlassian:**
 ```json
@@ -209,142 +225,143 @@ node build.js all --locale ko
 }
 ```
 
-설정 파일 위치: `~/.claude/settings.json` (Claude) · `.cursor/mcp.json` (Cursor) · `.vscode/mcp.json` (Copilot)
+Add to: `~/.claude/settings.json` (Claude) · `.cursor/mcp.json` (Cursor) · `.vscode/mcp.json` (Copilot)
 
 </details>
 
 ---
 
-## 기능 지식 베이스
+## Feature Knowledge Base
 
-스킬들은 `features-kb/`에서 테스트 산출물을 생성하고 참조합니다 — 이것이 스킬들이 서로 연결되는 방식입니다:
+Skills produce and consume test artifacts from `features-kb/` — this is how they stay connected:
 
 ```
 features-kb/
-├── index.json                        # 기능 인덱스 + 워크플로우 상태
-├── LEARNINGS.md                      # 프로젝트 학습 — 배포된 레퍼런스를 오버라이드; 커밋됨
-├── learnings-log.jsonl               # append-only: applied / contradicted / captured / outcome; 커밋됨
-├── fingerprints.jsonl                # append-only: 재발하는 실패 클래스; 커밋됨
-├── .cache/scoreboard.json            # 두 로그에서 파생; gitignore 대상
-├── team-practices/                   # 팀별 프로세스
+├── index.json                        # Feature index + workflow state
+├── LEARNINGS.md                      # Project learnings — override the shipped references; committed
+├── learnings-log.jsonl               # Append-only: applied / contradicted / captured / outcome; committed
+├── fingerprints.jsonl                # Append-only: recurring failure classes; committed
+├── .cache/scoreboard.json            # Derived from the two logs; gitignored
+├── team-practices/                   # Team-specific processes
 └── features/{EPIC-KEY}/
-    ├── feature.md                    # 에픽 요약, 기능, AC
-    ├── test-plan.md                  # 테스트 전략
-    ├── test-cases/{TICKET}.md        # 테스트 케이스 + 추적성 매핑
-    ├── reviews/{TICKET}-review.md    # 티켓 리뷰
-    ├── qa-reports/{TICKET}-{DATE}.md # QA 결과
-    └── bugs/BUG-{NNN}.md            # 결함 (Jira 미사용 시)
+    ├── feature.md                    # Epic summary, capabilities, ACs
+    ├── test-plan.md                  # Test strategy
+    ├── test-cases/{TICKET}.md        # Test cases + traceability mappings
+    ├── reviews/{TICKET}-review.md    # Ticket reviews
+    ├── qa-reports/{TICKET}-{DATE}.md # QA results
+    └── bugs/BUG-{NNN}.md            # Bugs (when no Jira)
 ```
 
-| 컨텍스트 소스 | 네이밍 규칙 | 예시 |
+| Context source | Naming convention | Example |
 |---|---|---|
-| Jira | Jira 키 | `features/PROJ-123/test-cases/PROJ-456.md` |
-| GitHub Issues | `GH-42` 또는 슬러그 | `features/GH-42/test-cases/GH-55.md` |
-| Spec / Chat | 설명형 슬러그 | `features/auth-system/test-cases/login-page.md` |
+| Jira | Jira keys | `features/PROJ-123/test-cases/PROJ-456.md` |
+| GitHub Issues | `GH-42` or slug | `features/GH-42/test-cases/GH-55.md` |
+| Spec / Chat | Descriptive slugs | `features/auth-system/test-cases/login-page.md` |
 
 ---
 
-## 자기 개선
+## Self-Improvement
 
-QABuddy는 완성품이 아니라 파운데이션입니다. SDT의 요구는 프로젝트마다, 팀마다 다릅니다 — 그래서 하나의 정적 동작을 배포하는 대신 QABuddy는 **진화**합니다: 어디에나 같은 파운데이션을 설치해도, 6개월 후 당신의 QABuddy는 다른 어느 팀의 것과도 다릅니다. 당신 앱의 특성, 팀의 컨벤션, 축적된 실패를 흡수했기 때문입니다.
+QABuddy is a foundation, not a finished tool. Every QA team's needs differ per project and per team — so instead of shipping one static behavior, QABuddy **evolves**: install the same foundation everywhere, and six months later yours is different from every other team's, because it has absorbed your app's quirks, your team's conventions, and your accumulated failures.
 
 ```mermaid
 flowchart LR
-    Z[컴파일: 이 스킬에 스코프된<br>레퍼런스 + 학습 → slice.md] --> A[스킬 실행]
-    A --> B{프로젝트가<br>무언가 가르쳤나?}
-    B -- "규칙 깨짐 / 새 결정 /<br>SDT 수정" --> C[증거와 함께<br>LEARNINGS.md에<br>포착]
-    B -- 깨끗한 실행 --> D[흔적 없음]
-    C --> E[다음 실행이 컴파일해 넣음 —<br>학습이 레퍼런스를 오버라이드]
+    Z[Compile: references + learnings<br>scoped to this skill → slice.md] --> A[Skill run]
+    A --> B{Did the project<br>teach something?}
+    B -- "rule failed / new decision /<br>QA correction" --> C[Capture to<br>LEARNINGS.md<br>with evidence]
+    B -- clean run --> D[No trace]
+    C --> E[Next run compiles them in —<br>learnings override references]
     E --> Z
-    C -. 반복 증명됨 .-> F["/qa-improve 정제:<br>레퍼런스 승격<br>+ 업스트림 PR"]
+    C -. proven repeatedly .-> F["/qa-improve distill:<br>promote to references<br>+ upstream PR"]
 ```
 
-**컨텍스트 컴파일러 (자동, 모든 스킬 실행 직전).** 스킬은 레퍼런스 전체를 열지 않습니다. 먼저 함께 배포되는 `qab.js` 헬퍼가 *그 스킬*에 스코프된 레퍼런스 섹션과 active 학습을 `slice.md` 하나로 **컴파일**하고, 무엇이 들어가고 무엇이 빠졌는지의 매니페스트를 함께 씁니다. 둘 다 `.qa-reports/runs/<run>/`에 남습니다 — 그래서 그 실행에서 모델에 실제로 무엇이 도달했는지는 추측할 대상이 아니라 나중에 열어서 다시 읽을 수 있는 산출물입니다. 소스가 출력을 좌우하면 실행이 그 id를 인용하고 *적용*으로 기록하며, 현실이 소스와 모순되면 그렇게 기록합니다. `node qab.js gate`는 그 로그를 점수화 자격 게이트에 대조합니다 — 프로파일 × outcome, 휴면 소스, 슬라이스 크기 — 그리고 *이* 프로젝트의 데이터가 점수화 선택을 정당화하는지 말해줍니다 ([RFC 0002](docs/rfc/0002-project-owned-compiler-ko.md); QABuddy 자신의 데이터에 대한 판정은 '아니오'였습니다). 설계: [RFC 0001 — Context Compiler](docs/rfc/0001-context-compiler-ko.md).
+**The context compiler (automatic, before every skill run).** A skill never opens the whole reference library. First the shipped `qab.js` helper **compiles** the reference sections and active learnings scoped to *that* skill into a single `slice.md`, alongside a manifest naming what went in and what was left out. Both land in `.qa-reports/runs/<run>/` — so what actually reached the model on a given run is an artifact you can open and read back afterwards, not something to be inferred. When a source shapes the output, the run cites it by id and logs that it was *applied*; when reality contradicts one, it logs that instead. `node qab.js gate` evaluates those logs against the scoring eligibility gate — profiles × outcomes, dormant sources, slice sizes — and says whether *this* project's data would justify scored selection ([RFC 0002](docs/rfc/0002-project-owned-compiler.md); the verdict on QABuddy's own data was no). Design: [RFC 0001 — Context Compiler](docs/rfc/0001-context-compiler.md).
 
-**학습 레이어 (자동, 모든 스킬 실행).** 모든 실행은 시작 시 `features-kb/LEARNINGS.md`를 읽고 — active 항목은 배포된 레퍼런스를 *오버라이드*하는 프로젝트 고유 규칙입니다 — 종료 시 세 가지 포착 트리거를 확인합니다: 문서화된 규칙이 현실 앞에서 깨짐, 문서화되지 않은 결정을 내림, SDT가 출력을 수정함. 항목에는 증거가 필수이며, 깨끗한 실행은 아무것도 기록하지 않습니다. 실행마다 *적용*·*모순*·*포착*·*종료 상태*가 `features-kb/learnings-log.jsonl`에 추가되고 (append-only, `qab.js`만 씀 — 절대 손으로 쓰지 않음), 재발하는 실패 클래스는 `features-kb/fingerprints.jsonl`에 이름이 붙어 그것을 막는다고 주장한 학습이 산문이 아니라 숫자로 반증됩니다. 이 파일들은 당신의 저장소에 살기 때문에 학습이 git으로 팀 전체에 전파되고 QABuddy 업그레이드에도 살아남습니다. 프로토콜: [`core/references/self-improve.md`](core/references/self-improve.md).
+**The learnings layer (automatic, every skill run).** Every run reads `features-kb/LEARNINGS.md` at start — active entries are project-specific rules that *override* the shipped references — and checks three capture triggers at the end: a documented rule failed against reality, an undocumented decision was made, or the QA corrected the output. Entries require evidence; clean runs write nothing. Each run's *applied* / *contradicted* / *captured* / *outcome* events append to `features-kb/learnings-log.jsonl` (append-only, written by `qab.js` alone — never by hand), and recurring failure classes are named in `features-kb/fingerprints.jsonl`, so a learning that claimed to prevent one is falsified by count rather than by opinion. These files live in your repo, so learnings travel to your whole team via git and survive QABuddy upgrades. Protocol: [`core/references/self-improve.md`](core/references/self-improve.md).
 
-**스킬 수정.** 하나의 흐름, 하나의 소유자: `/qa-improve`. 모든 중단 지점에서 **(C) 도구 피드백**을 선택하거나(`/qa-improve`로 디스패치 후 워크플로우 재개), 직접 실행하거나, 포착된 학습이 스킬 결함을 가리킬 때 실행 종료 시의 제안을 수락하세요 — 구조화된 제안, 목표 수정, eval 회귀 실행, PR.
+**Skill fixes.** One flow, one owner: `/qa-improve`. Choose **(C) Tool feedback** at any pause point (it dispatches to `/qa-improve` and resumes your workflow), run it directly, or accept the end-of-run suggestion when a captured learning points at a skill defect — structured proposal, targeted fix, eval regression run, PR.
 
-**정제와 승격.** `/qa-improve` distill 모드가 로그의 숫자로 학습 레이어를 정리합니다 (`applied ≥ 3`, 서로 다른 실행 `≥ 3`, 모순 없음 → 승격 후보; `contradicted ≥ 2` 이후 적용 없음 → 반증): 중복 병합, 반증된 항목 은퇴, 증명된 규칙의 정본 레퍼런스 승격 — `contributeUpstream`이 활성화되어 있으면 QABuddy 저장소에 PR로 제출되어 모든 사용자에게 도움이 됩니다.
+**Distillation & promotion.** `/qa-improve` distill mode sweeps the learnings layer with the log's numbers (`applied ≥ 3` across `≥ 3` runs and never contradicted → promotion candidate; `contradicted ≥ 2` with no application since → falsified): merges duplicates, retires falsified entries, and promotes proven rules into the canonical references — and, with `contributeUpstream` enabled, PRs them to the QABuddy repo so everyone benefits.
 
-**품질 게이트.** `/qa-eval`이 모든 스킬에 대해 픽스처 스위트를 실행합니다 — 번들된 픽스처 앱에 대해 실제 `npx playwright test` 종료 코드로 채점하는 execute 모드 픽스처 포함.
+**Quality gate.** `/qa-eval` runs fixture suites against any skill — including execute-mode fixtures that grade real `npx playwright test` exit codes against a bundled fixture app.
 
 ---
 
-## 작동 방식
+## How It Works
 
-**공식 지원은 Claude Code입니다** — CI가 모든 push마다 Linux와 Windows(PowerShell 5.1)에서
-빌드·설치·제거 전체 사이클을 검증하는 유일한 플랫폼입니다.
+**Claude Code is the officially supported platform** — the only one CI verifies end to end
+(build → install → status → uninstall) on Linux and Windows (PowerShell 5.1) on every push.
 
-> **Cursor / Copilot (미검증):** 빌드는 세 플랫폼 산출물을 모두 생성하며
-> `dist/cursor/`, `dist/copilot/`의 설치 스크립트도 그대로 제공됩니다. 구조 테스트
-> (소유권 검증, 동적 스킬 순회)는 통과하지만 **CI가 실행을 검증하지 않으므로**
-> 사용은 자기 책임입니다. 문제 리포트는 환영합니다.
+> **Cursor / Copilot (unverified):** the build still produces all three platform outputs, and
+> the installers in `dist/cursor/` and `dist/copilot/` ship as-is. They pass the structural
+> test suite (ownership verification, dynamic skill enumeration), but **CI does not execute
+> them** — use at your own risk. Issue reports welcome.
 >
-> **v0.2.2 이하에서 업그레이드:** 구버전 복사 설치본에는 소유권 마커가 없어
-> 새 설치가 안전을 위해 FAIL합니다. 수동 삭제 대신 `--adopt`(bash) /
-> `-Adopt`(PowerShell)를 한 번 실행하세요 — SKILL.md에 QABuddy 흔적이 있는
-> 레거시 복사본만 증거 검사 후 인수하며, 타 도구 디렉터리는 건드리지 않습니다.
+> **Upgrading from ≤ v0.2.2:** legacy copy installs carry no ownership marker, so a fresh
+> install FAILs on them for safety. Instead of manual deletion, run once with `--adopt`
+> (bash) / `-Adopt` (PowerShell) — it adopts only evidence-checked legacy QABuddy copies
+> (SKILL.md must mention QABuddy) and never touches other tools' directories.
 
-스킬은 `core/skills/`에서 한 번만 작성됩니다. 빌드 스크립트가 플랫폼별 출력을 생성합니다:
+Skills are authored once in `core/skills/`. The build script generates platform-specific output:
 
 | | Claude Code | Cursor | Copilot |
 |---|---|---|---|
-| **프론트매터** | `allowed-tools` | `name` + `description` | `name` + `description` |
-| **브라우저** | Chrome 확장 > Preview > Playwright | Playwright MCP | Playwright MCP |
-| **프로젝트 파일** | `CLAUDE.md` | `.cursor/rules/qabuddy.mdc` | `.github/copilot-instructions.md` |
-| **설치** | 전역 심볼릭 링크 | 심볼릭 링크 또는 프로젝트 복사 | 저장소 복사 |
-| **훅** | SessionStart | SessionStart | 프리앰블이 설정을 읽음 |
+| **Frontmatter** | `allowed-tools` | `name` + `description` | `name` + `description` |
+| **Browser** | Chrome ext > Preview > Playwright | Playwright MCP | Playwright MCP |
+| **Project file** | `CLAUDE.md` | `.cursor/rules/qabuddy.mdc` | `.github/copilot-instructions.md` |
+| **Install** | Global symlinks | Symlinks or project copy | Repo copy |
+| **Hooks** | SessionStart | SessionStart | Preamble reads config |
 
 ```bash
-node build.js all                  # 모든 플랫폼용 빌드
-node build.js all --locale ko      # 한국어 버전 빌드
-node test.js                       # 1243개 구조 검사 실행
+node build.js all                  # Build for all platforms
+node build.js all --locale ko      # Build Korean version
+node test.js                       # Run 1243 structural checks
 ```
 
-> **구조 검사와 동작 검증은 다릅니다.** `node test.js`는 빌드 산출물의 형태를
-> 검사합니다 — 프론트매터, 로케일 대칭, 플레이스홀더 치환, dist BOM, 설치
-> 스크립트에 소유권 로직이 존재하는지. 설치 스크립트가 실제로 **올바르게 동작하는지**는
-> CI의 실행 잡이 검증합니다: 외부 도구 스킬을 심어두는 디코이 테스트, 재설치 멱등성,
-> `--adopt` 마이그레이션 스모크, PowerShell 5.1/7 전체 사이클.
+> **Structural checks are not behavioural verification.** `node test.js` inspects
+> the *shape* of the build output — frontmatter, locale parity, placeholder
+> substitution, dist BOM, and whether the setup scripts contain their ownership
+> logic. Whether those scripts actually *behave* correctly is verified by the CI
+> execution jobs: the foreign-decoy test, reinstall idempotency, the `--adopt`
+> migration smokes, and full PowerShell 5.1/7 cycles.
 
 <details>
-<summary><strong>프로젝트 구조</strong></summary>
+<summary><strong>Project Structure</strong></summary>
 
 ```
 QABuddy/
-├── build.js                     # 빌드 스크립트 (node, 의존성 없음)
-├── test.js                      # 구조 검사 스위트 (1243개 검사)
-├── bin/qab.js                   # 런타임 헬퍼 (compile, log, fp, stats, scoreboard)
-├── core/                        # 단일 소스 — 여기서 편집
-│   ├── skills/ (13)             # {{플레이스홀더}} 포함 스킬 템플릿
-│   ├── references/playbook/     # 11개 방법론 파일
-│   ├── preamble-base.md         # Tier 1 프리앰블 (모든 스킬)
-│   ├── preamble-full.md         # Tier 2 추가 사항
+├── build.js                     # Build script (node, zero deps)
+├── test.js                      # Structural check suite (1243 checks)
+├── bin/qab.js                   # Runtime helper (compile, log, fp, stats, scoreboard)
+├── core/                        # Single source of truth — edit here
+│   ├── skills/ (13)             # Skill templates with {{placeholders}}
+│   ├── references/playbook/     # 11 methodology files
+│   ├── preamble-base.md         # Tier 1 preamble (all skills)
+│   ├── preamble-full.md         # Tier 2 additions
 │   └── project-instructions.md
-├── platforms/                   # 3개 플랫폼 설정 + 6개 설치 스크립트
-├── locales/ko/                  # 한국어 번역
-└── dist/                        # 생성된 출력 (gitignored)
+├── platforms/                   # 3 platform configs + 6 setup scripts
+├── locales/ko/                  # Korean translation
+└── dist/                        # Generated (gitignored)
 ```
 
 </details>
 
 ---
 
-## 기여하기
+## Contributing
 
-전체 가이드는 [CONTRIBUTING.md](CONTRIBUTING.md)를 참고하세요. 핵심 사항:
+See [CONTRIBUTING.md](CONTRIBUTING-en.md) for the full guide. Key points:
 
-- **Sonnet이 최소 모델** — 스킬은 Opus뿐만 아니라 Sonnet에서도 작동해야 합니다
-- **스킬당 300줄 예산**, 호출당 총 530줄 컨텍스트 제한
-- **상단에 제약 조건**, 모든 스킬에 자기 평가, 완료 상태 블록 포함
-- **변경 후 `node test.js`로 테스트**
-- **한국어 로케일** — 새 스킬은 `locales/ko/`에 번역 필요
+- **Sonnet is the minimum model** — skills must work on Sonnet, not just Opus
+- **300-line budget** per skill, 530-line total context per invocation
+- **Constraints at top**, self-evaluation on every skill, completion status block
+- **Test with `node test.js`** after every change
+- **Korean locale** — new skills need a translation in `locales/ko/`
 
-## 라이선스
+## License
 
-[Apache 2.0](LICENSE) — 저작자 표시와 함께 자유롭게 사용, 수정, 재배포할 수 있습니다.
+[Apache 2.0](LICENSE) — free to use, modify, and redistribute with attribution.
 
-## 행동 강령
+## Code of Conduct
 
-[Contributor Covenant 2.1](CODE_OF_CONDUCT.md)
+[Contributor Covenant 2.1](CODE_OF_CONDUCT-en.md)

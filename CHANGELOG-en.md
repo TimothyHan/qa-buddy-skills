@@ -7,6 +7,42 @@ may remove a skill.
 
 한국어: [CHANGELOG.md](CHANGELOG.md)
 
+## [0.7.1] — 2026-08-28
+
+Patch release: one compiler bugfix (#54, already on main) and the repo's switch
+to English-default.
+
+### Fixed
+
+**Compiler returned an empty slice for installed skill names** (#54)
+An installed name like `compile --skill qa-exploratory` (`qa-` prefix) matched
+no scope, producing a 0-source slice **silently** — the model proceeded with no
+knowledge and nothing said so (observed live 4 runs in a row, 2026-08-27). The
+`qa-` prefix is now normalized (printed as `skill alias: qa-x → x`), and any
+0-source compile warns loudly on stderr with the list of known scope tokens.
+4 structural checks added (1,243). The fix is also generalized upstream in the
+extracted engine [Akela](https://github.com/TimothyHan/akela) 0.1.3
+(`aliasPrefixes`).
+
+### Changed
+
+- **English-default README** — the root now matches the subdirectory
+  convention: `README.md` = English, `README-ko.md` = Korean. The content delta
+  is a light revision, not just a swap (+27/−11 per file).
+- **New "How It Learns" section** (both languages) — the 5-step evidence loop
+  (compile → cite → capture → falsify → distill) and the `REF-`/`PRJ-`/`LRN-`
+  contract, above the fold.
+- **SDT → QA terminology** (visitor surfaces: READMEs, self-learning guides) —
+  reflecting that this applies to anyone testing software. Skill-internal text
+  is a follow-up.
+- Clone URLs updated to the renamed repo (`qa-buddy-skills`) — the old URLs
+  were riding on a redirect.
+
+### Upgrade note
+
+No breaking changes. `git pull` then re-run `node build.js all` (Korean:
+`--locale ko`) — qab.js changed, so a rebuild is needed.
+
 ## [0.7.0] — 2026-08-21
 
 The release that ships RFC 0002. v0.6.0's verdict was "the selection layer isn't

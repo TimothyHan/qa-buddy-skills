@@ -6,7 +6,7 @@ QABuddy calls itself "a QA foundation that learns your project." This guide expl
 what that sentence actually means: **what happens automatically** every time you run
 a skill, **the files** that process leaves behind, and **the levers you own**.
 
-This is for SDTs *using* QABuddy skills. To change QABuddy itself, see
+This is for QA folks *using* QABuddy skills. To change QABuddy itself, see
 [CONTRIBUTING-en.md](../CONTRIBUTING-en.md). For the design rationale, the primary
 sources are [RFC 0001](rfc/0001-context-compiler.md) (the compiler) and
 [RFC 0002](rfc/0002-project-owned-compiler.md) (project-owned configuration).
@@ -157,7 +157,7 @@ Before closing a run, the skill applies three triggers to the scratchpad candida
 
 1. a documented rule broke in the face of reality
 2. an undocumented decision was made
-3. the SDT made a correction that carried project knowledge
+3. the QA made a correction that carried project knowledge
 
 If one fires, an evidence-backed `LRN-` entry is added to `LEARNINGS.md`. If none
 fires, nothing is written — the learnings file is not a scratch pad.
@@ -429,4 +429,4 @@ of them are selection failures, there is nothing for scoring to fix.
 
 File map: slices, profiles and scratchpads live in `.qa-reports/runs/<run>/`;
 learnings, log and fingerprints in `features-kb/`; configuration in `.qabuddy.json`
-(see the [README configuration table](../README-en.md#configuration)).
+(see the [README configuration table](../README.md#configuration)).

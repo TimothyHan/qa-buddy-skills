@@ -20,3 +20,6 @@ features-kb/.cache/
 
 # features-kb/ is intentionally TRACKED here: this repo dogfoods QABuddy on
 # itself — the installer test plan/cases and project learnings live there.
+
+# 미공개 개발 이야기 초안 — 공개 여부는 메인테이너가 결정 (로컬 전용)
+docs/blog/
