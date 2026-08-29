@@ -12,10 +12,10 @@
 [![Locales: en, ko](https://img.shields.io/badge/Locales-en_|_ko-orange.svg)](#locales)
 [![Structural checks: 1275](https://img.shields.io/badge/Structural_checks-1275-brightgreen.svg)](#how-it-works)
 
-An AI partner for QA — anyone who tests software.<br>
-Covers the full workflow — from epic test planning through sprint execution to release verification.<br>
-Every team's QA needs are different — so QABuddy ships as a foundation that **self-improves**:<br>
-every skill run captures project-specific learnings and applies them on the next run.<br>
+An AI partner for anyone who tests software —<br>
+from epic test planning through sprint execution to release verification.<br>
+It applies **your team's** QA practices consistently and learns from QA outcomes —<br>
+without turning every interaction into permanent memory.<br>
 Officially supports **Claude Code**. No Jira required.<br>
 (Unverified installers for Cursor/Copilot are still built — see below.)
 
@@ -26,6 +26,25 @@ no separate app, no daemon; one pinned dependency — the [Akela](https://github
 [Quick Start](#quick-start) · [Skills](#skills) · [Guided Workflow](#the-guided-workflow) · [Self-Learning Guide](docs/self-learning-guide-en.md) · [Changelog](CHANGELOG.md) · [Contributing](CONTRIBUTING-en.md)
 
 </div>
+
+---
+
+## QABuddy in 30 seconds
+
+AI agents forget your team's QA practices — every run starts from zero, and
+"memory" files that merely accumulate are noise, not knowledge. QABuddy is not
+a prompt pack: it's a QA workflow suite on top of an **evidence engine**.
+
+```
+without   feature ──→ agent ──→ generic tests, every project the same
+
+with      feature ──→ compiled slice of YOUR project's knowledge ──→ agent
+                  ──→ tests + logged evidence ──→ proven learnings ──→ better next run
+```
+
+Three commands to the loop: install → `/qa-setup` → `/qa-start EPIC-123` —
+your agent **plans → tests → verifies → learns**. Everything below is how that
+loop stays honest.
 
 ---
 
