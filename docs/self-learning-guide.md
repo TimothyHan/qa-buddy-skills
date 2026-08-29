@@ -24,7 +24,7 @@ QABuddy 스킬을 쓰는 QA를 위한 문서입니다. QABuddy 자체를 고치�
                                 contradicted)                     은퇴·승격)
 ```
 
-1. **컴파일** — 스킬이 시작되면 `qab.js compile`이 그 스킬에 스코프된 지식만
+1. **컴파일** — 스킬이 시작되면 `akela.js compile`이 그 스킬에 스코프된 지식만
    골라 `slice.md` 하나로 만듭니다. 레퍼런스 전체를 여는 대신 슬라이스만 읽습니다.
 2. **실행** — 스킬은 평소처럼 일합니다 (테스트 계획, QA, 리뷰…).
 3. **인용·로그** — 어떤 지식이 출력을 실제로 좌우하면 그 ID를 인용하고
@@ -275,7 +275,7 @@ RFC 0001은 이 루프를 만들고 나서 스스로에게 물었습니다: "이
 *관찰된* 사실은 여전히 학습입니다. 헷갈리면: "이게 은퇴하거나 승격될 수 있는
 가설인가?" — 그렇다면 학습, 아니라면 하우스 섹션.
 
-### 6.3 게이트 리포트 — `qab.js gate`
+### 6.3 게이트 리포트 — `akela.js gate`
 
 ```bash
 node $QAB gate          # 사람이 읽는 표
@@ -399,12 +399,12 @@ RFC 0002에서 아직 안 만든 것은 **E(자동 상태 변경)** 하나입니
 
 | 명령 | 하는 일 |
 |---|---|
-| `qab.js compile --skill <s> [--ticket <k>]` | 슬라이스 컴파일 (스킬이 자동 호출) |
-| `qab.js log applied\|contradicted\|captured\|outcome …` | 증거 로그 (스킬이 자동 호출) |
-| `qab.js fp <kind> "<key>"` | 실패 클래스 지문 |
-| `qab.js stats [--json]` | 소스별 집계 + 계산된 발견 + 준수율 |
-| `qab.js gate [--json]` | 점수화 자격 게이트 — 당신 데이터로 |
-| `qab.js scoreboard` | 파생 캐시 재생성 (진실의 원천 아님) |
+| `akela.js compile --skill <s> [--ticket <k>]` | 슬라이스 컴파일 (스킬이 자동 호출) |
+| `akela.js log applied\|contradicted\|captured\|outcome …` | 증거 로그 (스킬이 자동 호출) |
+| `akela.js fp <kind> "<key>"` | 실패 클래스 지문 |
+| `akela.js stats [--json]` | 소스별 집계 + 계산된 발견 + 준수율 |
+| `akela.js gate [--json]` | 점수화 자격 게이트 — 당신 데이터로 |
+| `akela.js scoreboard` | 파생 캐시 재생성 (진실의 원천 아님) |
 
 파일 지도: 슬라이스·프로파일·스크래치패드는 `.qa-reports/runs/<run>/`,
 학습·로그·지문은 `features-kb/`, 설정은 `.qabuddy.json`

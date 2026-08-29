@@ -44,6 +44,14 @@ lines), same inputs:
   writing no run. This ships at cutover as a strictness upgrade: it is the
   strongest form of the #54 guard (no junk runs, no log pollution), asserted
   as a divergence in the harness.
+- **Further deltas adjudicated during the PR C red-walk** (each asserted in
+  the suite): the run marker moved (`.qa-reports/.qab-run` → `.qa-reports/run`);
+  log/fp lines carry `activity` (readers accept historical `skill`); rejection
+  wording generalized ("unknown section id", "source id must be", did-you-mean
+  lists); a **missing knowledge root refuses the compile** (was a warning);
+  **one knowledge root per namespace** (the old stem-collision class is now
+  refused at config time); stats labels absent ids "history — no longer in the
+  knowledge base" instead of ever promoting them.
 - **Open (§7): generated `akela.json` paths are absolute.** `qab.js akela-init`
   writes machine-specific `domain`/knowledge paths, so a committed akela.json
   does not travel across teammates' machines until Akela learns `~/` expansion

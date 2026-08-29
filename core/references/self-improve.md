@@ -75,7 +75,7 @@ Every reference section is an addressable **source**, like a learning:
   en/ko id-set mismatch, and ships `references/index.json` (id → file, heading,
   scope, tier, lines) for tools.
 - **Cite them like learnings.** When a section shapes output, cite its id the
-  way you cite `LRN-…` and run `qab.js log applied REF-…` — once per source per
+  way you cite `LRN-…` and run `akela.js log applied REF-…` — once per source per
   run. The helper rejects ids that aren't in `index.json` and suggests the nearest,
   so a mistyped id never enters the log. `applied ≠ read`: a section you read but
   that didn't shape anything is not cited — that gap is signal for distill.
@@ -94,11 +94,11 @@ Every reference section is an addressable **source**, like a learning:
    reference stays the default everywhere else.
 4. **Cite what you apply — and log it.** When a learning shapes output, name its
    ID in the report (e.g., "using `data-test` per LRN-20260807-01") **and** run
-   `qab.js log applied LRN-…` (see *Learnings log* below). Citation makes the
+   `akela.js log applied LRN-…` (see *Learnings log* below). Citation makes the
    layer auditable — silent application looks like drift; the log makes it
    countable.
 5. If an active learning is **contradicted by what you observe live**, do not
-   apply it. Run `qab.js log contradicted LRN-… --note "<what you saw>"`, flag it
+   apply it. Run `akela.js log contradicted LRN-… --note "<what you saw>"`, flag it
    in your report as falsification evidence, and suggest `/qa-improve` distill.
    Observed reality outranks recorded learnings, same as it outranks references.
 
@@ -127,11 +127,11 @@ If one occurred, append an entry:
   this layer exists to avoid.
 - **One fact per entry.** Two learnings from one run = two entries.
 - **Link the fingerprint.** If trigger 1 fired and this run emitted a fingerprint
-  for that failure (`qab.js fp --list` shows them), set the new entry's
+  for that failure (`akela.js fp --list` shows them), set the new entry's
   `Fingerprint:` to that `ffp` — the next run that hits the same class then
   falsifies the entry automatically, without anyone re-judging it.
 - Mention the capture in your report: "Captured LRN-{id}: {one-line statement}."
-  and run `qab.js log captured LRN-{id}`.
+  and run `akela.js log captured LRN-{id}`.
 
 ### Do NOT capture
 
@@ -155,30 +155,30 @@ never edited in place — readers accept every earlier `v` forever.
 Write it with the shipped helper, never by hand:
 
 ```bash
-node <references>/bin/qab.js run-id --skill <this-skill> [--ticket <KEY>]   # once, at start; prints the run id
-node <references>/bin/qab.js log applied LRN-20260807-01                    # a learning shaped output
-node <references>/bin/qab.js log applied REF-playwright-patterns#never       # a reference section shaped output
-node <references>/bin/qab.js log applied REF-playbook/risk-and-priority#severity-scale # a scale you read a value out of
-node <references>/bin/qab.js log contradicted LRN-… --note "<what you saw>" # live reality disagreed
-node <references>/bin/qab.js log captured LRN-…                             # you appended a new entry
-node <references>/bin/qab.js fp locator-not-found "checkout/place-order-btn" # a named failure class hit (Failure fingerprints, below)
-node <references>/bin/qab.js log outcome --status DONE                      # last thing before the status block
+node <references>/bin/akela.js run-id --skill <this-skill> [--ticket <KEY>]   # once, at start; prints the run id
+node <references>/bin/akela.js log applied LRN-20260807-01                    # a learning shaped output
+node <references>/bin/akela.js log applied REF-playwright-patterns#never       # a reference section shaped output
+node <references>/bin/akela.js log applied REF-playbook/risk-and-priority#severity-scale # a scale you read a value out of
+node <references>/bin/akela.js log contradicted LRN-… --note "<what you saw>" # live reality disagreed
+node <references>/bin/akela.js log captured LRN-…                             # you appended a new entry
+node <references>/bin/akela.js fp locator-not-found "checkout/place-order-btn" # a named failure class hit (Failure fingerprints, below)
+node <references>/bin/akela.js log outcome --status DONE                      # last thing before the status block
 ```
 
 `<references>` is the platform's reference path (the preamble gives the exact
 command). `run-id` remembers the current run in `.qa-reports/.qab-run`; when
 running skills in parallel, pass `--run <id>` to each `log` call instead.
 Schema v1: `{"v":1,"ts":"<UTC ISO>","run":"<skill>-<ticket|branch>-<6hex>","skill":"…","event":"…","src":"LRN-…"}`
-plus `note` (contradicted) or `status` (outcome). `compiled` is written by `qab.js compile`
+plus `note` (contradicted) or `status` (outcome). `compiled` is written by `akela.js compile`
 (`pfp`, `sources[]`, `used`, `dropped[]`); `escalated` is reserved. Every line is also mirrored
 into the run's `events.jsonl` (`run-protocol.md`). If Node is unavailable, append the same
 shape with `echo … >>` and add `"writer":"manual"` so distill can report the ratio.
 
-`qab.js stats` turns the log into per-source counts (`in_slice`, `applied`,
+`akela.js stats` turns the log into per-source counts (`in_slice`, `applied`,
 `contradicted`, `runs`, `last_applied`, LRN and REF rows alike), the computed
 findings below, the fingerprint recurrence table, and **citation compliance** —
 of runs with an outcome, how many logged at least one REF `applied` (RFC 0001
-PR4 gate: ≥ 4/5). `qab.js scoreboard` writes the same numbers to
+PR4 gate: ≥ 4/5). `akela.js scoreboard` writes the same numbers to
 `.cache/scoreboard.json` next to the learnings file — a derived cache (gitignore
 `features-kb/.cache/`), rebuilt from the two logs whenever needed, never a
 source of truth. A skill never reads the log or the scoreboard; only distill
@@ -192,8 +192,8 @@ recurring in a later run is countable — and counts against the learning that
 claimed to prevent it. When a skill hits one of the closed kinds, it runs:
 
 ```bash
-node <references>/bin/qab.js fp <kind> "<key>"       # e.g. fp locator-not-found "checkout/place-order-btn"
-node <references>/bin/qab.js fp --list               # this run's fingerprints (ffp · kind · key · active)
+node <references>/bin/akela.js fp <kind> "<key>"       # e.g. fp locator-not-found "checkout/place-order-btn"
+node <references>/bin/akela.js fp --list               # this run's fingerprints (ffp · kind · key · active)
 ```
 
 - **kind** — closed vocabulary, grown deliberately, never ad hoc:
@@ -229,7 +229,7 @@ with "distill learnings", or when a skill flags a falsified entry, or when the
 file exceeds ~30 active entries. Distill computes from the log, not from
 `Evidence:` prose:
 
-| Finding | Rule (from `qab.js stats`) |
+| Finding | Rule (from `akela.js stats`) |
 |---|---|
 | **Promotion candidate** | `applied ≥ 3` across `≥ 3` distinct runs ∧ `contradicted = 0` ∧ (if `Fingerprint:`) its `ffp` silent since the entry's date — then the human judgment: generalizable beyond this project? |
 | **Falsified (contradiction)** | `contradicted ≥ 2` ∧ no `applied` after the last contradiction |

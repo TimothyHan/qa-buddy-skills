@@ -24,7 +24,7 @@ sources are [RFC 0001](rfc/0001-context-compiler.md) (the compiler) and
                                  contradicted)                      promote)
 ```
 
-1. **Compile** — when a skill starts, `qab.js compile` selects only the knowledge
+1. **Compile** — when a skill starts, `akela.js compile` selects only the knowledge
    scoped to *that* skill and packs it into one `slice.md`. The skill reads the
    slice instead of opening the whole reference library.
 2. **Run** — the skill does its normal work (test plans, QA, reviews…).
@@ -291,7 +291,7 @@ Refund verification is cross-checked against the ledger export.
 this a hypothesis that could retire or promote?" — if yes, it's a learning; if no,
 it's a house section.
 
-### 6.3 The gate report — `qab.js gate`
+### 6.3 The gate report — `akela.js gate`
 
 ```bash
 node $QAB gate          # human-readable
@@ -420,12 +420,12 @@ of them are selection failures, there is nothing for scoring to fix.
 
 | Command | What it does |
 |---|---|
-| `qab.js compile --skill <s> [--ticket <k>]` | compile the slice (skills call this themselves) |
-| `qab.js log applied\|contradicted\|captured\|outcome …` | evidence logging (skills call this) |
-| `qab.js fp <kind> "<key>"` | failure-class fingerprint |
-| `qab.js stats [--json]` | per-source counts + computed findings + compliance |
-| `qab.js gate [--json]` | the scoring-eligibility gate — on your data |
-| `qab.js scoreboard` | rebuild the derived cache (never a source of truth) |
+| `akela.js compile --skill <s> [--ticket <k>]` | compile the slice (skills call this themselves) |
+| `akela.js log applied\|contradicted\|captured\|outcome …` | evidence logging (skills call this) |
+| `akela.js fp <kind> "<key>"` | failure-class fingerprint |
+| `akela.js stats [--json]` | per-source counts + computed findings + compliance |
+| `akela.js gate [--json]` | the scoring-eligibility gate — on your data |
+| `akela.js scoreboard` | rebuild the derived cache (never a source of truth) |
 
 File map: slices, profiles and scratchpads live in `.qa-reports/runs/<run>/`;
 learnings, log and fingerprints in `features-kb/`; configuration in `.qabuddy.json`

@@ -213,7 +213,7 @@ Skip upstream contribution if:
 
 Read the protocol first: `{{REFERENCE_PATH}}/self-improve.md`. Then read the
 learnings file (`learningsPath` from `.qabuddy.json`, default `features-kb/LEARNINGS.md`)
-and run `node {{REFERENCE_PATH}}/bin/qab.js stats` — the log's per-source counts
+and run `node {{REFERENCE_PATH}}/bin/akela.js stats` — the log's per-source counts
 (LRN and REF rows), the fingerprint recurrence table, and citation compliance;
 report the compliance line as-is. Numbers come from the log, not from
 `Evidence:` prose; if the log is absent or a source has no rows, say so and
@@ -280,10 +280,10 @@ Rules:
    applying is always the SDT's call.
 
 Report: entries swept / merged / retired / promoted (+ residue entries created,
-scope gaps found) / rejected-by-eval / left active, the resulting active count, the log summary line from `qab.js stats`
+scope gaps found) / rejected-by-eval / left active, the resulting active count, the log summary line from `akela.js stats`
 (events, runs with outcome, manual-writer count, fingerprint lines), and — for
 dry-run — the proposal file path and "0 edits". After any applied change run
-`node {{REFERENCE_PATH}}/bin/qab.js scoreboard` so the cache reflects the new state.
+`node {{REFERENCE_PATH}}/bin/akela.js scoreboard` so the cache reflects the new state.
 
 ---
 

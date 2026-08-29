@@ -406,12 +406,48 @@ function buildPlatform(platform, locale) {
   copyDirRecursive(binSrc, path.join(outDir, 'references', 'bin'));
   console.log('    OK  references/bin/qab.js');
 
-  // Ship the engine assets under references/engine/ — the qa domain pack that
-  // configures Akela for QABuddy projects (RFC 0003 PR B). Locale-independent.
+  // Ship the engine under references/engine/ (RFC 0003). Two parts, both
+  // locale-independent: the qa domain pack (core/engine/) and the vendored
+  // Akela engine itself, copied from node_modules at exactly the pinned
+  // version so installs stay self-contained (decision 1 — dist never depends
+  // on node_modules at runtime).
   const engineSrc = path.join(ROOT, 'core', 'engine');
   if (fs.existsSync(engineSrc)) {
     copyDirRecursive(engineSrc, path.join(outDir, 'references', 'engine'));
     console.log('    OK  references/engine/ (qa domain pack)');
+  }
+  {
+    const pin = JSON.parse(fs.readFileSync(path.join(ROOT, 'package.json'), 'utf8')).dependencies.akela;
+    const akelaSrc = path.join(ROOT, 'node_modules', 'akela');
+    if (!fs.existsSync(path.join(akelaSrc, 'package.json'))) {
+      console.error('  ERROR: node_modules/akela missing — the engine must be vendored into dist. Run: npm ci');
+      process.exit(1);
+    }
+    const got = JSON.parse(fs.readFileSync(path.join(akelaSrc, 'package.json'), 'utf8')).version;
+    if (got !== pin) {
+      console.error(`  ERROR: node_modules/akela is ${got} but package.json pins ${pin} — run npm ci`);
+      process.exit(1);
+    }
+    // Code only — the vendored copy lives INSIDE the references knowledge
+    // root, and Akela indexes every .md under a root: its own README/docs
+    // would be indexed as untagged knowledge and refuse the compile (caught
+    // by the engine's own strictness during the cutover red-walk).
+    const engineDst = path.join(outDir, 'references', 'engine', 'akela');
+    for (const part of ['bin', 'lib', 'domains']) {
+      copyDirRecursive(path.join(akelaSrc, part), path.join(engineDst, part));
+    }
+    for (const f of ['package.json', 'LICENSE']) {
+      fs.copyFileSync(path.join(akelaSrc, f), path.join(engineDst, f));
+    }
+    const pruneMd = (dir) => {
+      for (const e of fs.readdirSync(dir, { withFileTypes: true })) {
+        const p = path.join(dir, e.name);
+        if (e.isDirectory()) pruneMd(p);
+        else if (e.name.endsWith('.md')) fs.unlinkSync(p);
+      }
+    };
+    pruneMd(engineDst);
+    console.log(`    OK  references/engine/akela/ (vendored engine ${got}, code only)`);
   }
 
   // Build project instructions file (locale-aware)
