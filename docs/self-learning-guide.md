@@ -6,7 +6,7 @@ QABuddy는 "당신의 프로젝트를 학습하는 QA 파운데이션"입니다.
 실제로 무엇을 뜻하는지 설명합니다: 스킬을 실행할 때마다 **자동으로 일어나는 일**,
 그 과정이 남기는 **파일들**, 그리고 당신이 **직접 조종할 수 있는 것들**입니다.
 
-QABuddy 스킬을 쓰는 SDT를 위한 문서입니다. QABuddy 자체를 고치려면
+QABuddy 스킬을 쓰는 QA를 위한 문서입니다. QABuddy 자체를 고치려면
 [CONTRIBUTING.md](../CONTRIBUTING.md)를 보세요. 설계 배경이 궁금하면
 [RFC 0001](rfc/0001-context-compiler-ko.md)(컴파일러)과
 [RFC 0002](rfc/0002-project-owned-compiler-ko.md)(프로젝트 소유 설정)가 원전입니다.
@@ -149,7 +149,7 @@ node $QAB fp locator-not-found "checkout/place-order-btn"
 
 1. 문서화된 규칙이 현실 앞에서 깨졌다
 2. 문서화되지 않은 결정을 내렸다
-3. SDT가 프로젝트 지식이 담긴 수정을 했다
+3. QA가 프로젝트 지식이 담긴 수정을 했다
 
 하나라도 발화하면 증거가 담긴 `LRN-` 항목이 `LEARNINGS.md`에 추가됩니다.
 발화하지 않으면 아무것도 쓰지 않습니다 — 학습 파일은 잡동사니 메모장이 아닙니다.
@@ -408,4 +408,4 @@ RFC 0002에서 아직 안 만든 것은 **E(자동 상태 변경)** 하나입니
 
 파일 지도: 슬라이스·프로파일·스크래치패드는 `.qa-reports/runs/<run>/`,
 학습·로그·지문은 `features-kb/`, 설정은 `.qabuddy.json`
-([README 설정표](../README.md#설정) 참조).
+([README 설정표](../README-ko.md#설정) 참조).
