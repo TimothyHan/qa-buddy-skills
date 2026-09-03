@@ -1,10 +1,10 @@
 {
   "skill": "test-cases",
-  "version": "0.3.7",
+  "version": "0.4.0",
   "fixtures": [
     {
       "id": "fx-001",
-      "description": "Generates E2E test cases with Playwright sketches",
+      "description": "Generates E2E test cases as steps and expected results — no implementation code",
       "input": {
         "ticket": "story with 3 ACs, existing Playwright tests in repo"
       },
@@ -17,7 +17,7 @@
         {
           "field": "output",
           "op": "contains",
-          "value": "Playwright"
+          "value": "Expected Result"
         },
         {
           "field": "output",
@@ -33,11 +33,17 @@
           "field": "output",
           "op": "contains",
           "value": "DONE"
+        },
+        {
+          "field": "output",
+          "op": "not_contains",
+          "value": "```typescript",
+          "note": "0.4.0: the Playwright sketch block was removed from the template (SDT feedback 2026-09-03: cases are the contract, /qa-e2e-write owns the code)"
         }
       ],
       "tags": [
         "happy-path",
-        "playwright"
+        "no-code"
       ]
     },
     {
@@ -110,7 +116,7 @@
       "description": "SELF-IMPROVE read path: active learnings override references and are cited; retired learnings are ignored",
       "input": {
         "ticket": "story with 2 ACs on the checkout page",
-        "precondition": "features-kb/LEARNINGS.md exists with two entries. LRN-20260807-01 (Status: active, Scope: test-cases, e2e-write): 'This app uses data-test as its test attribute, not data-testid — playwright.config sets testIdAttribute accordingly; sketches must use getByTestId against data-test values like data-test=\"checkout-submit\".' LRN-20260701-09 (Status: retired, Scope: test-cases): 'Use data-cy attributes for all selectors.' The playwright-patterns reference default assumes data-testid."
+        "precondition": "features-kb/LEARNINGS.md exists with two entries. LRN-20260807-01 (Status: active, Scope: test-cases, e2e-write): 'This app uses data-test as its test attribute, not data-testid — playwright.config sets testIdAttribute accordingly; test cases that name an element must refer to its data-test value (e.g. data-test=\"checkout-submit\"), never assume data-testid.' LRN-20260701-09 (Status: retired, Scope: test-cases): 'Use data-cy attributes for all selectors.' The playwright-patterns reference default assumes data-testid."
       },
       "assertions": [
         {
@@ -254,10 +260,10 @@
     },
     {
       "id": "fx-010",
-      "description": "Vacuous-assertion guard: a draft sketch asserting not-contains on possibly-empty output gets flagged (test-suite-verification.md checklist)",
+      "description": "Vacuous-assertion guard: an expected result that only states an absence gets paired with a positive anchor (test-suite-verification.md checklist)",
       "input": {
         "ticket": "story with an AC verified by checking that an error banner does NOT appear",
-        "scenario": "The natural sketch asserts expect(errorLocator).toHaveCount(0) immediately after navigation — which also passes if the page never rendered. The skill must pair the negative assertion with a positive anchor proving the page loaded."
+        "scenario": "The natural expected result is \"the error banner is not shown\" right after navigation — which also holds if the page never rendered. The skill must pair the negative expectation with a positive anchor proving the page loaded."
       },
       "assertions": [
         {
@@ -268,7 +274,7 @@
         {
           "field": "output",
           "op": "not_contains",
-          "value": "toHaveCount(0) is sufficient"
+          "value": "is sufficient on its own"
         }
       ],
       "tags": [
