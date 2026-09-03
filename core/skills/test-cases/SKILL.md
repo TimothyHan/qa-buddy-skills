@@ -1,10 +1,10 @@
 ---
 name: test-cases
-version: 0.3.8
+version: 0.4.0
 description: |
-  Generate test cases from a Jira ticket's acceptance criteria. Produces Playwright
-  e2e test scenarios and a unit test checklist for developers. Test cases map back
-  to requirements for traceability. Use when: "write test cases", "generate tests",
+  Generate test cases from a Jira ticket's acceptance criteria. Produces e2e test
+  scenarios (steps and expected results, no code) and a unit test checklist for
+  developers. Test cases map back to requirements for traceability. Use when: "write test cases", "generate tests",
   "e2e tests for PROJ-789", "test cases for this ticket".
   Do NOT use when: reviewing ticket testability (use /qa-review-ticket), executing tests (use /qa-qa), exploring the app (use /qa-exploratory).
 tool-groups:
@@ -25,14 +25,14 @@ preamble-tier: 2
 
 You are an SDT partner generating test cases for a ticket. You pull the ticket's
 ACs from Jira, cross-reference the epic test plan, and produce:
-1. Playwright e2e test scenarios (ready to implement)
+1. E2E test scenarios (steps and expected results — `/qa-e2e-write` implements them)
 2. Unit test checklist (for developers)
 3. Requirements-to-test mapping (for traceability)
 
 ## Constraints
 
 1. **Match the project's test style.** Read existing Playwright tests first. Use the same patterns, imports, helpers, page objects.
-2. **Playwright sketches are starting points,** not final code. Make them close enough to be useful but don't over-engineer.
+2. **No implementation code in test cases.** Steps and expected results are the contract; `/qa-e2e-write` owns selectors, waits and fixtures. Put automation constraints a writer must know (isolation, run-once, data hygiene) into Preconditions.
 3. **Every test case traces to a requirement.** No orphan tests. No untested ACs.
 4. **Unit test checklist is for devs.** Keep it brief and actionable — describe what to test, not how.
 5. **Don't duplicate existing tests.** If a scenario is already covered, reference it instead of creating a new one.
@@ -55,10 +55,7 @@ ACs from Jira, cross-reference the epic test plan, and produce:
    - `test-distribution.md` — assign tests to lowest appropriate layer, deduplication rules
    - `test-types.md` — manual vs automation, UAT vs functional distinction
    - `maintenance-and-ci.md` — browser matrix (Playwright runs Chrome, Firefox, Safari, Edge)
-   - `test-suite-verification.md` — vacuous-assertion checklist for sketches (empty captures, conditional asserts, fixture text containing the evidence string)
-   - For Playwright sketches also read `{{REFERENCE_PATH}}/playwright-patterns.md` —
-     sketches must follow its selector, wait, and data rules so `/qa-e2e-write`
-     can implement them without rework
+   - `test-suite-verification.md` — vacuous-assertion checklist for expected results (an outcome that would also hold when the feature is broken is not an expected result)
    - Then the project learnings file (per the preamble) — active `LRN-` entries
      scoped here override the references above; cite applied IDs
 
@@ -88,7 +85,7 @@ ACs from Jira, cross-reference the epic test plan, and produce:
 
 ## Phase 2: Design Test Cases
 
-### E2E Test Cases (Playwright)
+### E2E Test Cases
 
 For each AC, generate one or more test cases:
 
@@ -109,21 +106,6 @@ For each AC, generate one or more test cases:
 
 **Expected Result:**
 - {observable outcome}
-
-**Playwright Sketch:**
-```typescript
-test('{test title}', async ({ page }) => {
-  // Arrange
-  await page.goto('{url}');
-
-  // Act
-  await page.getByRole('{role}', { name: '{name}' }).click();
-  await page.getByLabel('{label}').fill('{value}');
-
-  // Assert
-  await expect(page.getByText('{expected}')).toBeVisible();
-});
-```
 ```
 
 **Minimum coverage per AC:**
@@ -184,7 +166,7 @@ Before saving, verify consistency across all three artifacts. Fix issues found. 
 3. No new test case duplicates an existing Playwright test — replace with a reference if so
 4. Unit test checklist items checked against existing unit tests for overlap
 5. P0/P1/P2 distribution: not >50% P0, and at least one P0 exists for the core happy path
-6. Playwright sketches match project conventions (import style, page object pattern, assertion style)
+6. No code blocks in the test cases document; automation constraints a writer needs appear in Preconditions
 
 ---
 
