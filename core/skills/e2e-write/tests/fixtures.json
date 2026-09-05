@@ -1,6 +1,6 @@
 {
   "skill": "e2e-write",
-  "version": "0.1.5",
+  "version": "0.1.6",
   "note": "RED SUITE — written before the skill exists (eval-first). Execute fixtures run against core/skills/eval/tests/fixture-app/. Requires the /e2e-pom fx-001 workspace (POM + inventory + green verification spec against v1). Ground truth: ANSWER-KEY.md (never shown to the skill).",
   "fixtures": [
     {
@@ -175,6 +175,30 @@
       "tags": [
         "honesty",
         "flake-gate"
+      ]
+    },
+    {
+      "id": "fx-005",
+      "description": "Gate output: runs use the line reporter and a red gate reads only the failing tests' error context",
+      "input": {
+        "context": "suite of 40 specs; gate 3 fails for one TC",
+        "precondition": "Playwright writes test-results/<test>/error-context.md for the failure"
+      },
+      "assertions": [
+        {
+          "field": "output",
+          "op": "contains",
+          "value": "--reporter=line"
+        },
+        {
+          "field": "output",
+          "op": "contains",
+          "value": "error-context.md"
+        }
+      ],
+      "tags": [
+        "gates",
+        "output-budget"
       ]
     }
   ]

@@ -1,6 +1,6 @@
 ---
 name: e2e-write
-version: 0.1.5
+version: 0.1.6
 description: |
   Write the e2e test suite from test cases: API client for preconditions,
   fixtures, and intent-only specs on top of a proven POM. Never invents
@@ -117,10 +117,10 @@ One `describe` per feature area. Per test case:
 
 Rationale for these gates: `{{REFERENCE_PATH}}/playbook/test-suite-verification.md` (detection power, vacuous assertions).
 
-1. **Green:** `npx playwright test` exits 0
+1. **Green:** `npx playwright test --reporter=line` exits 0
 2. **Green again:** immediately re-run, exits 0 — leaked data (409s, name
    collisions) fails here; fix cleanup, not the assertion
-3. **Flake gate:** `npx playwright test --repeat-each=3` exits 0. When the
+3. **Flake gate:** `npx playwright test --repeat-each=3 --reporter=line` exits 0. When the
    config has dependent projects, repeat-each does NOT repeat dependency
    projects — flake-gate each project explicitly (`--project={name} --repeat-each=3`).
    Deterministic negative-auth tests (wrong password, etc.) don't belong under
@@ -128,6 +128,9 @@ Rationale for these gates: `{{REFERENCE_PATH}}/playbook/test-suite-verification.
    brute-force lockout, repeating them risks tripping it and cascading
    failures into every other test on that account. Give them their own
    project, run once (caught live 2026-08-07 — see playwright-patterns.md).
+
+When any run gate is red, read only the failing tests' `error-context.md` and trace under `test-results/`, never the full run output — the summary line is the gate's verdict.
+
 4. **Mechanical lint** — grep the generated files; any hit is a failure:
 
 | Pattern | Where banned |
