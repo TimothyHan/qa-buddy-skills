@@ -1,6 +1,6 @@
 ---
 name: test-cases
-version: 0.5.0
+version: 0.5.1
 description: |
   Generate test cases from a Jira ticket's acceptance criteria. Produces e2e test
   scenarios (steps and expected results, no code) and a unit test checklist for
@@ -77,6 +77,7 @@ ACs from Jira, cross-reference the epic test plan, and produce:
 6. **Read existing tests in the repo:**
    - Scan the Playwright test directory for related tests
    - Learn naming conventions, page object patterns, test data setup, test style
+   - For each existing test you intend to credit as covering an AC, open its body and name the assertion that would fail if the AC broke; a test whose assertion cannot fail for that AC (vacuous-assertion checklist) is not coverage — list the AC as a gap
 
 7. **Check existing test cases for this ticket:**
    - `features-kb/features/{EPIC-KEY}/test-cases/{TICKET-KEY}.md`
@@ -170,8 +171,8 @@ Before saving, verify consistency across all three artifacts. Fix issues found. 
 
 1. Every AC in `mappings` has at least one test case; `unmapped_requirements` lists any AC with zero tests
 2. `coverage: "full"` means happy path + negative + boundaries tested; downgrade to `"partial"` otherwise
-3. No new test case duplicates an existing Playwright test — replace with a reference if so
-4. Unit test checklist items checked against existing unit tests for overlap
+3. No new test case duplicates an existing Playwright test — replace with a reference if so; overlap is judged from the assertion body, never the title, and each "already covered" reference names the file and the failing assertion
+4. Unit test checklist items checked against existing unit tests for overlap — same rule: an existing test counts only if its assertion would fail for that item
 5. P0/P1/P2 distribution: not >50% P0, and at least one P0 exists for the core happy path
 6. No code blocks in the test cases document; automation constraints a writer needs appear in Preconditions
 7. Every precondition or step naming a label, seeded record, displayed value or request is backed by an `Observed:` line in the scratchpad or marked `(unverified)`
