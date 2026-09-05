@@ -529,12 +529,15 @@ function cmdCalibrate(skill, opts) {
   for (const c of judgeCrit) {
     let n = 0, ok = 0, fn = 0, fok = 0;
     for (const r of rows) {
+      if (/^proposed:/.test(String(r.human.scored_by || ''))) continue;
       const h = r.human.scores && r.human.scores[c.id]; if (!Number.isInteger(h)) continue;
       for (const p of r.passes) { n++; if (p.criteria[c.id].score === h) ok++; if (c.floor > 0) { fn++; if ((p.criteria[c.id].score < c.floor) === (h < c.floor)) fok++; } }
     }
     agreement[c.id] = n ? +(ok / n).toFixed(2) : null; floorAgree[c.id] = fn ? +(fok / fn).toFixed(2) : null;
   }
-  scoredEntries = rows.filter(r => r.human.acceptable !== null).length;
+  // A proposal drafted by a model (scored_by starting with "proposed:") is not a human score until the
+  // maintainer replaces scored_by with their own name — it must never feed agreement or the threshold.
+  scoredEntries = rows.filter(r => r.human.acceptable !== null && !/^proposed:/.test(String(r.human.scored_by || ''))).length;
   // Repeatability (RFC 0005 §5 c, revised 2026-09-05 after the first pass): measured on real
   // artifacts (eval-run, external) — a control is unambiguous on one criterion by construction
   // and its other criteria are incidental. A one-anchor flip on a weight-3 criterion moves the
@@ -546,7 +549,7 @@ function cmdCalibrate(skill, opts) {
   }
   const pairAgreement = rpPairs ? +(rpSame / rpPairs).toFixed(2) : null;
   const repeatOk = pairAgreement !== null && pairAgreement >= 0.8 && floorFlips.length === 0;
-  const acceptable = rows.filter(r => r.human.acceptable === true && r.source === 'eval-run');
+  const acceptable = rows.filter(r => r.human.acceptable === true && r.source === 'eval-run' && !/^proposed:/.test(String(r.human.scored_by || '')));
   const threshold = acceptable.length ? Math.min(...acceptable.map(r => r.mean)) : null;
   const gateB = judgeCrit.every(c => agreement[c.id] !== null && agreement[c.id] >= 0.8 && (floorAgree[c.id] === null || floorAgree[c.id] === 1));
   const report = [`# Calibration — ${skill} v${rubric.skill_version} (rubric v${rubric.rubric_version}) · judge ${rubric.judge.model} · ${passes} passes · $${cost.toFixed(2)}`, '',

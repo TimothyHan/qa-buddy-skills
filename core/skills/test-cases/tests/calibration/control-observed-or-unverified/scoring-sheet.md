@@ -157,4 +157,4 @@ Every precondition or step that names a control label, a seeded record, a displa
 - **0** — A step names a label or record that does not exist in the app (judge notes list the real ones) and carries no (unverified).
 - **1** — Named details are real but none is backed by an Observed: line and none is marked (unverified).
 - **2** — Named details are backed by Observed: lines or marked (unverified), with at most one omission.
-- **3** — Every named detail is either observed or marked (unverified), and unreachable-app runs mark every dependent step.
+- **3** — Every named detail is either observed or marked (unverified), and unreachable-app runs mark every dependent step — or the document names no such details, in which case there is nothing to verify (whether the app was probed at all is graded by probed-app, not here).
