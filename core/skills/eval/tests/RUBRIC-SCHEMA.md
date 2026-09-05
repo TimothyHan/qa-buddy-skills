@@ -70,3 +70,25 @@ artifact for that case with exactly the graded thing broken. Directory controls 
 `test.js` evaluates `check` and `process` controls now: the check **must fail** on its control.
 `judge` controls are validated structurally here and judged in PR2 (`eval.js controls`), where a
 control scoring at or above its floor fails the job as "rubric vacuous".
+
+## calibration (PR3)
+
+`node bin/eval.js calibrate <skill> --init` assembles `tests/calibration/<id>/` from every markdown
+control (source `control`), every eval-run workspace under `.qa-reports/evals/<skill>/` (source
+`eval-run`, with the run's scratchpad, exec and learnings log so process criteria grade too), and
+`--extra` files (source `external`, no case → no judge notes). Each entry holds `artifact/`,
+`meta.json`, a blank `human.json` and a `scoring-sheet.md` with the anchors.
+
+A human fills `human.json` blind — one 0–3 per judge criterion and `acceptable` — before looking at
+any judge output. `node bin/eval.js calibrate <skill>` then judges every entry N times and reports:
+
+| gate | rule |
+|---|---|
+| (b) agreement | exact-score agreement ≥ 0.8 per judge criterion over every (entry, pass) with a human score; floor agreement 1.0 on floored criteria |
+| (c) repeatability | every entry's total spread across passes ≤ 0.1 |
+| size | ≥ 10 human-scored entries |
+| threshold | the minimum judge mean total among `eval-run` entries the human marked acceptable — controls and external artifacts feed agreement only, since they lack run data |
+
+Only when all four hold does the command write `calibration` and `threshold` into `rubric.json`;
+`--dry-run` / `--judge-only` report without writing. Changing the judge model, an anchor, or a
+cited constraint resets calibration (delete the block and re-run).
