@@ -400,7 +400,10 @@ jobs:
           GH_TOKEN: ${{ github.token }}
         run: |
           set -euo pipefail
-          git add -A features-kb playwright playwright.config.* package.json package-lock.json 2>/dev/null || true
+          # Stage only paths that exist: an unmatched glob would make git reject the whole add.
+          for p in features-kb playwright playwright.config.ts playwright.config.js package.json package-lock.json; do
+            [ -e "$p" ] && git add -A -- "$p"
+          done
           if git diff --cached --quiet; then
             echo "no KB or Playwright changes to deliver"; echo "url=" >> "$GITHUB_OUTPUT"; exit 0
           fi
