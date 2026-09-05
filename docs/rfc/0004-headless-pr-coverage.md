@@ -222,6 +222,8 @@ promotion to `main` and productisation are Timothy's call.**
 | reviewer merges #8 | the `closed` event woke the workflow; resolve read the companion's phases (`kb`) and ran kb + automate (explore skipped — `after-companion-merge` was still `automate`, now `full`); deliver opened companion #9 (page objects, API client, specs, gap report) and announced it; heatmap: 6 covered, 1 AC at risk |
 | reviewer merges #9 | resolve saw the companion already carried automation → chain complete, every other job skipped, $0; the #9 announcement got a 🚀 reaction and a "Merged into `demo/soft-delete-2`" line |
 
+| `/qabuddy heatmap` (or automatically when the automation companion merges) | model-free refresh: re-map the diff, run the merged suite on the branch as it now stands, re-post — **98 s, $0**; 11 tests executed, TC-04 still red → AC4 ⚠️; `gate` advisory-passing |
+
 Lesson recorded as a preflight warning: `pull_request` workflows run from the PR's own
 branch, so a branch cut before the caller was added (PR #2) cannot chain until the base
 branch is merged into it.
