@@ -220,6 +220,8 @@ $1.31) ≈ $12, plus ≈ 10 judge calls.
 4. Anchor revisions are commits; each re-runs calibration. Two failed revisions on one criterion →
    move it to `check`/`process` or drop it (RFC §5 (b) kill).
 
+**Status 2026-09-05:** tooling shipped (`eval.js calibrate --init` / `calibrate`), sets assembled (10 entries per pilot skill, scoring sheets generated), judge repeatability measured (RFC §6). Blocked on the human step: `human.json` is blank in all twenty entries until the maintainer scores them. Thresholds stay `null`; PR4's A/B does not need them.
+
 ### Acceptance
 
 - Both pilot rubrics carry a `calibration` block and a non-null `threshold`.

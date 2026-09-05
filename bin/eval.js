@@ -513,24 +513,34 @@ function cmdCalibrate(skill, opts) {
     agreement[c.id] = n ? +(ok / n).toFixed(2) : null; floorAgree[c.id] = fn ? +(fok / fn).toFixed(2) : null;
   }
   scoredEntries = rows.filter(r => r.human.acceptable !== null).length;
-  const repeatOk = rows.every(r => r.spread <= 0.1);
+  // Repeatability (RFC 0005 §5 c, revised 2026-09-05 after the first pass): measured on real
+  // artifacts (eval-run, external) — a control is unambiguous on one criterion by construction
+  // and its other criteria are incidental. A one-anchor flip on a weight-3 criterion moves the
+  // total by 0.143, so the old "total within 0.1" rule failed on granularity, not noise.
+  let rpPairs = 0, rpSame = 0; const floorFlips = [];
+  for (const r of rows.filter(r => r.source !== 'control')) for (const c of judgeCrit) {
+    const v = r.passes.map(p => p.criteria[c.id].score); rpPairs++; if (v.every(x => x === v[0])) rpSame++;
+    if (c.floor > 0 && new Set(v.map(x => x < c.floor)).size > 1) floorFlips.push(`${r.id}/${c.id}`);
+  }
+  const pairAgreement = rpPairs ? +(rpSame / rpPairs).toFixed(2) : null;
+  const repeatOk = pairAgreement !== null && pairAgreement >= 0.8 && floorFlips.length === 0;
   const acceptable = rows.filter(r => r.human.acceptable === true && r.source === 'eval-run');
   const threshold = acceptable.length ? Math.min(...acceptable.map(r => r.mean)) : null;
   const gateB = judgeCrit.every(c => agreement[c.id] !== null && agreement[c.id] >= 0.8 && (floorAgree[c.id] === null || floorAgree[c.id] === 1));
   const report = [`# Calibration — ${skill} v${rubric.skill_version} (rubric v${rubric.rubric_version}) · judge ${rubric.judge.model} · ${passes} passes · $${cost.toFixed(2)}`, '',
-    `entries ${rows.length} (human-scored ${scoredEntries}, need ≥ 10) · repeatability ${repeatOk ? 'OK (every spread ≤ 0.1)' : 'FAIL'} · agreement gate ${gateB ? 'OK' : 'not met'} · proposed threshold ${threshold === null ? '— (no acceptable eval-run artifact scored yet)' : threshold}`, '',
+    `entries ${rows.length} (human-scored ${scoredEntries}, need ≥ 10) · repeatability ${repeatOk ? 'OK' : 'FAIL'} (pair agreement ${pairAgreement ?? '—'} on real artifacts, floor flips ${floorFlips.length ? floorFlips.join(', ') : 'none'}) · agreement gate ${gateB ? 'OK' : 'not met'} · proposed threshold ${threshold === null ? '— (no acceptable eval-run artifact scored yet)' : threshold}`, '',
     '| criterion | floor | agreement | floor agreement |', '|---|---|---|---|', ...judgeCrit.map(c => `| ${c.id} | ${c.floor} | ${agreement[c.id] === null ? '—' : agreement[c.id]} | ${floorAgree[c.id] === null ? '—' : floorAgree[c.id]} |`), '',
     '| entry | source | case | judge mean | spread | human acceptable |', '|---|---|---|---|---|---|', ...rows.map(r => `| ${r.id} | ${r.source} | ${r.case || '—'} | ${r.mean} | ${r.spread} | ${r.human.acceptable === null ? 'unscored' : r.human.acceptable} |`), ''];
   const outDir = path.join(ROOT, '.qa-reports', 'evals', skill); fs.mkdirSync(outDir, { recursive: true });
   const rp = path.join(outDir, `calibration-${new Date().toISOString().slice(0, 10)}.md`);
-  fs.writeFileSync(rp, report.join('\n')); fs.writeFileSync(rp.replace(/\.md$/, '.json'), JSON.stringify({ skill, rows, agreement, floorAgree, repeatOk, threshold, cost }, null, 2));
+  fs.writeFileSync(rp, report.join('\n')); fs.writeFileSync(rp.replace(/\.md$/, '.json'), JSON.stringify({ skill, rows, agreement, floorAgree, repeatOk, pairAgreement, floorFlips, threshold, cost }, null, 2));
   console.log(report.slice(0, 3).join('\n')); console.log(`report: ${rp}`);
   const canGate = scoredEntries >= 10 && gateB && repeatOk && threshold !== null;
   if (opts['dry-run'] || opts['judge-only']) { console.log(canGate ? 'gates would hold — rerun without --dry-run to write the calibration block' : 'gates not met — rubric stays report-only'); return; }
   if (!canGate) { console.log('gates not met — rubric stays report-only (revise anchors, score more artifacts, or check repeatability)'); process.exit(1); }
   const rp2 = path.join(ROOT, 'core', 'skills', skill, 'tests', 'rubric.json');
   const r = JSON.parse(fs.readFileSync(rp2, 'utf8'));
-  r.threshold = threshold; r.calibration = { date: new Date().toISOString().slice(0, 10), artifacts: rows.length, human_scored: scoredEntries, passes, agreement, floor_agreement: floorAgree, judge: rubric.judge.model };
+  r.threshold = threshold; r.calibration = { date: new Date().toISOString().slice(0, 10), artifacts: rows.length, human_scored: scoredEntries, passes, agreement, floor_agreement: floorAgree, pair_agreement: pairAgreement, judge: rubric.judge.model };
   fs.writeFileSync(rp2, JSON.stringify(r, null, 2) + '\n');
   console.log(`rubric calibrated: threshold ${threshold} written to ${path.relative(ROOT, rp2)}`);
 }

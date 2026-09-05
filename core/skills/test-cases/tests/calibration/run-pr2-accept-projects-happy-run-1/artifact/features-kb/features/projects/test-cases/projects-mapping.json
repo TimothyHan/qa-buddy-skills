@@ -1,0 +1,69 @@
+{
+  "ticket": "projects",
+  "epic": "projects",
+  "spec": "docs/specs/projects.md",
+  "mappings": [
+    {
+      "requirement": "AC1: sign in with valid credentials lands on Projects with list visible; invalid credentials show an error and stay on /login",
+      "e2e_tests": ["TC-001", "TC-002"],
+      "unit_tests": [
+        "auth: valid credentials return success",
+        "auth: invalid password returns failure and error",
+        "auth: unknown email returns failure"
+      ],
+      "coverage": "full"
+    },
+    {
+      "requirement": "AC2: create a project with a unique name shows a success toast and the project in the list",
+      "e2e_tests": ["TC-003", "TC-004"],
+      "unit_tests": [
+        "createProject: unique name succeeds",
+        "createProject: empty/blank name rejected"
+      ],
+      "coverage": "full"
+    },
+    {
+      "requirement": "AC3: duplicate name is rejected with 'Name already exists' error toast and unchanged list",
+      "e2e_tests": ["TC-005"],
+      "unit_tests": [
+        "createProject: exact-duplicate name rejected",
+        "createProject: case-only-difference duplicate handling (unspecified in spec)"
+      ],
+      "coverage": "full"
+    },
+    {
+      "requirement": "AC4: delete a project from its row after confirming a dialog; it no longer appears",
+      "e2e_tests": ["TC-006", "TC-007"],
+      "unit_tests": [
+        "deleteProject: existing id removed and succeeds",
+        "deleteProject: missing/already-deleted id returns error"
+      ],
+      "coverage": "full"
+    },
+    {
+      "requirement": "AC5: search box filters the list so only rows whose name contains the fragment remain visible",
+      "e2e_tests": ["TC-008", "TC-009"],
+      "unit_tests": [
+        "filterProjects: substring match returns only matching rows",
+        "filterProjects: case-sensitivity handling (unspecified in spec)",
+        "filterProjects: empty query returns full list",
+        "filterProjects: no matches returns empty result without throwing"
+      ],
+      "coverage": "full"
+    },
+    {
+      "requirement": "AC6: with zero projects, page shows 'No projects yet' and renders no table",
+      "e2e_tests": ["TC-010"],
+      "unit_tests": [
+        "renderProjectsList: zero projects returns empty-state markup, not a table"
+      ],
+      "coverage": "full"
+    }
+  ],
+  "unmapped_requirements": [],
+  "test_gaps": [
+    "No API-level test suite exists in this repo; API coverage for create/delete/list/auth endpoints is currently only implied by the unit checklist, not a separate layer.",
+    "Case-sensitivity for duplicate-name detection and search filtering is not specified by the spec; TC-005/TC-008 assume exact behavior will be confirmed during automation (/qa-e2e-pom).",
+    "Exact validation UX for an empty project name (TC-004) is not specified — inline field error vs toast is unverified."
+  ]
+}

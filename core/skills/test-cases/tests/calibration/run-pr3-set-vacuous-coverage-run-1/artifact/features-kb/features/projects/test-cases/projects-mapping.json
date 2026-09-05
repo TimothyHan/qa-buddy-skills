@@ -1,0 +1,51 @@
+{
+  "ticket": "projects",
+  "epic": "projects",
+  "mappings": [
+    {
+      "requirement": "AC1: sign in with valid credentials → Projects page with the list; invalid → error on /login.",
+      "e2e_tests": ["TC-01", "TC-01B"],
+      "unit_tests": [],
+      "coverage": "full"
+    },
+    {
+      "requirement": "AC2: create a project with a unique name → success toast, project in list.",
+      "e2e_tests": ["TC-02"],
+      "unit_tests": ["project creation / naming: uniqueness check accepts a non-matching name"],
+      "coverage": "partial",
+      "note": "Happy path only in this AC; the negative (duplicate) path is AC3."
+    },
+    {
+      "requirement": "AC3: duplicate name → error toast, list unchanged.",
+      "e2e_tests": ["TC-03"],
+      "unit_tests": ["project creation / naming: uniqueness check rejects a matching name", "project creation / naming: duplicate rejection returns the specific error"],
+      "coverage": "partial",
+      "note": "No boundary case (e.g. case-sensitivity of the uniqueness check) — spec doesn't define one; flagged in the unit checklist for the team to confirm."
+    },
+    {
+      "requirement": "AC4: delete from the row after confirming → project gone from list.",
+      "e2e_tests": ["TC-04", "TC-04B"],
+      "unit_tests": ["deletion: removes only after confirmation", "deletion: cancel is a no-op"],
+      "coverage": "full"
+    },
+    {
+      "requirement": "AC5: search box filters rows by name fragment.",
+      "e2e_tests": ["TC-05", "TC-05B"],
+      "unit_tests": ["search / filtering: substring match", "search / filtering: empty fragment returns unfiltered list", "search / filtering: zero matches renders empty without erroring"],
+      "coverage": "partial",
+      "note": "Boundary case (case-sensitivity of the filter) undefined by spec; flagged in the unit checklist."
+    },
+    {
+      "requirement": "AC6: zero projects → \"No projects yet\", no table.",
+      "e2e_tests": ["TC-06"],
+      "unit_tests": ["empty state: zero-projects message + no table"],
+      "coverage": "full"
+    }
+  ],
+  "unmapped_requirements": [],
+  "test_gaps": [
+    "AC2/AC3: no defined case-sensitivity rule for name uniqueness — needs a product decision before a boundary test can be written.",
+    "AC5: no defined case-sensitivity rule for search matching, and no spec'd behavior for zero search *results* (as opposed to zero total projects) — needs a product decision.",
+    "playwright/tests/projects.spec.ts is currently non-functional: TC-03's assertion is vacuous and both TC-03/TC-04 import pom/api modules that don't exist in the repo, with no playwright.config or package.json present either. Automation for all 9 test cases needs to be built via /qa-e2e-setup + /qa-e2e-pom + /qa-e2e-write."
+  ]
+}

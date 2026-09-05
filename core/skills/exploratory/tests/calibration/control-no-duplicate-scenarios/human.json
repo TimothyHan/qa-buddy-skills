@@ -1,0 +1,13 @@
+{
+  "scored_by": null,
+  "date": null,
+  "acceptable": null,
+  "scores": {
+    "finding-correctness": null,
+    "classification": null,
+    "evidence": null,
+    "charter-quality": null,
+    "no-duplicate-scenarios": null,
+    "unexplored-noted": null
+  }
+}

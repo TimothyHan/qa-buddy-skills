@@ -1,0 +1,7 @@
+{
+  "id": "control-evidence",
+  "source": "control",
+  "case": "v1-clean",
+  "origin": "tests/controls/evidence.md",
+  "added": "2026-09-05"
+}

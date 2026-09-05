@@ -210,14 +210,34 @@ Detail per PR, with files, checks and acceptance, is in the [plan](0005-rubric-s
 |---|---|---|
 | (a) | every control scores below its floor in 3/3 judge passes | any control passes — that criterion's anchors are rewritten or the criterion dropped |
 | (b) | calibration agreement ≥ 80 % per criterion, 100 % on floors | two anchor revisions do not reach it — the criterion is not judge-gradable, move it to `check`/`process` or drop it |
-| (c) | judge repeatability: same artifact three times, total within 0.1 | exceeded at temperature 0 — the instrument is unusable for that skill |
+| (c) | judge repeatability on real artifacts: no floored criterion changes side of its floor across three passes, and ≥ 80 % of (artifact, criterion) pairs score identically *(revised 2026-09-05 — see §6: the original "total within 0.1" failed on granularity, one anchor step on a weight-3 criterion is 0.143)* | floor flips on real artifacts, or pair agreement below 0.8 — the instrument is unusable for that skill |
 | (d) | discrimination: a deliberately degraded skill variant (e.g. `test-cases` with constraint 7 removed) scores below the intact one beyond the spread on the case that exercises it | it does not — the eval cannot see what the constraint buys, and cannot be used to decide ablations |
 | (e) | cost ≤ $15 per skill run, ≤ $30 per A/B; wall ≤ 45 min | 2× either cap |
 | (f) | at least one of the four open ablations is decided by the eval during the pilot | none — the bench is not paying for itself |
 
 ## 6. Outcomes
 
-*(filled in by PR3 and PR4)*
+### PR2 — bench built (2026-09-05)
+
+- Controls: test-cases 4/4 and exploratory 4/4 judge-criterion controls scored 0 in 3/3 Opus passes — every one below its floor (§5 a). $0.46.
+- First real run, `test-cases` / `projects-happy`: 19 turns, 140 s, 0 questions, $0.71 runner + $0.21 judge; total 0.786, no floor breach. Every judge score carried a quoted line.
+- Judge calls cost ≈ $0.01 each with `judge.md` as the whole system prompt and no tools; the runner is where the money goes ($0.44–0.81 per test-cases run, $2.1–2.9 per exploratory run at 93–118 turns).
+
+### PR3 — calibration sets assembled, judge measured, human scoring pending (2026-09-05)
+
+| skill | entries | sources | judge-only result |
+|---|---|---|---|
+| test-cases | 10 | 6 controls, 3 eval runs (projects-happy, thin-ticket, vacuous-coverage), 1 external (acme `projects.md`) | 3 passes, $2.20; real artifacts: 22/24 (artifact, criterion) pairs identical, **0 floor flips**; eval-run totals 0.881 / 0.857 / 0.762 with spread ≤ 0.024 |
+| exploratory | 10 | 5 controls, 4 eval runs (quick-timebox, v1-clean, v3-planted ×2), 1 external (acme PR #2 session) | see PR3's PR body |
+
+What the first passes changed:
+
+- **§5 (c) rewritten.** A one-anchor flip on a weight-3 criterion moves a 0–1 total by 0.143, so "total within 0.1" failed on granularity. The rule is now measured on real artifacts as pair agreement ≥ 0.8 and zero floor flips; controls report variance but gate detection power only.
+- **Judge notes must be complete about unspecified behaviour.** The v1-clean session filed the case-sensitive duplicate check as a defect; the spec never decides it, and the notes had not said so, so the judge scored the finding as invented. The notes now list the unspecified behaviours and score such a finding 1 (right observation, wrong category), not 0.
+- **The ko build labels duration `소요 시간`.** The `duration-recorded` check failed on 3/3 real runs for that reason alone; it now accepts both labels. A check written from the English template against a Korean install is a locale bug in the rubric, not in the skill.
+- **Skill findings surfaced by the bench, for `/qa-improve`:** `test-cases` skipped the live probe on a reachable app in a headless run and marked details `(unverified)` instead; `thin-ticket` with no app got no "unreachable" note in the scratchpad; the cases document carried a fenced block once in three runs.
+
+Thresholds stay `null` until the maintainer fills `human.json` for the twenty entries (blind, from the scoring sheets) and `eval.js calibrate` passes gates (b) and (c).
 
 ## 7. Non-goals
 
