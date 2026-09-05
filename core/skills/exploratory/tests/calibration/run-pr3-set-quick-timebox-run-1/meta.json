@@ -1,0 +1,7 @@
+{
+  "id": "run-pr3-set-quick-timebox-run-1",
+  "source": "eval-run",
+  "case": "quick-timebox",
+  "origin": ".qa-reports/evals/exploratory/pr3-set/quick-timebox/run-1/workspace",
+  "added": "2026-09-05"
+}

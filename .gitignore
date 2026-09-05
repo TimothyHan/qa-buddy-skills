@@ -14,8 +14,8 @@ Thumbs.db
 node_modules/
 
 # QABuddy per-user config (not part of the tool)
-.qabuddy.json
-.qa-reports/
+/.qabuddy.json
+/.qa-reports/
 features-kb/.cache/
 
 # features-kb/ is intentionally TRACKED here: this repo dogfoods QABuddy on

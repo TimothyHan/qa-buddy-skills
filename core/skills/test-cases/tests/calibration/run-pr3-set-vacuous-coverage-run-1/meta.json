@@ -1,0 +1,7 @@
+{
+  "id": "run-pr3-set-vacuous-coverage-run-1",
+  "source": "eval-run",
+  "case": "vacuous-coverage",
+  "origin": ".qa-reports/evals/test-cases/pr3-set/vacuous-coverage/run-1/workspace",
+  "added": "2026-09-05"
+}
