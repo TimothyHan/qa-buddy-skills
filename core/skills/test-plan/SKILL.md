@@ -1,6 +1,6 @@
 ---
 name: test-plan
-version: 0.5.5
+version: 0.5.6
 description: |
   Build a test plan when a new Epic is created. Pulls epic details and linked
   stories from Jira, analyzes scope, and produces a test plan covering strategy,
@@ -34,7 +34,7 @@ test plan that the SDT reviews and refines.
 ## Constraints
 
 1. **Always pull from Jira first.** Don't ask the SDT to paste ticket details if Jira MCP is available.
-2. **Summarize before drafting.** Never produce a full plan without confirming context with the SDT.
+2. **Summarize before drafting.** Never produce a full plan without confirming context with the SDT. Headless: write the summary to the scratchpad and continue.
 3. **Be specific about automation feasibility.** State which framework, test type, and roughly what the test looks like.
 4. **Flag what's missing.** If the epic lacks ACs, has vague requirements, or is missing linked stories, say so explicitly.
 5. **Prioritize.** Not everything is P0. Help the SDT focus on what matters most for release confidence.
@@ -89,6 +89,7 @@ If Jira MCP is available, verify connectivity with a simple query. If not availa
    ```
    Write `features-kb/features/{EPIC-KEY}/feature.md` with: epic summary, capabilities grouped by story, consolidated ACs per capability, and a "Missing ACs" gap table for stories without real AC content.
    Write to the file as you process each story. Do not rely on in-context memory.
+   Then write `features-kb/features/{EPIC-KEY}/sources.json` (KB spec §6.8): the code globs this feature owns and where its unit/API/e2e tests live — derived from the tickets, `feature.md` **Source**, and `git log`. Interactive: propose and confirm. Headless: mandatory.
 
 5. **Search Confluence** for PRDs, design docs, architecture docs (by epic key and feature name)
 
@@ -101,7 +102,7 @@ If Jira MCP is available, verify connectivity with a simple query. If not availa
    - If evidence found: mark as "Confirmed" with file path
    - If no evidence: mark as "Unverified" and flag in Gap Analysis
 
-8. **Summarize findings** to the SDT. Ask: "Anything missing or incorrect before I draft the plan?"
+8. **Summarize findings** to the SDT. Ask: "Anything missing or incorrect before I draft the plan?" (headless: skip the question)
 
 ---
 
@@ -190,8 +191,8 @@ Fix any issues found. One pass — no looping.
 
 ## Phase 5: Review & Publish
 
-1. **Present the draft** to the SDT for review
-2. **Iterate** based on feedback
+1. **Present the draft** to the SDT for review (headless: presenting is writing the file)
+2. **Iterate** based on feedback (headless: skip)
 3. **Verify `feature.md` is complete** — confirm all stories with ACs are represented and the "Missing ACs" gap table lists all stories without real AC content. Fix any gaps found.
 
    Update `features-kb/index.json`:
@@ -208,7 +209,7 @@ Fix any issues found. One pass — no looping.
    }
    ```
 4. **Save test plan** to `features-kb/features/{EPIC-KEY}/test-plan.md`
-5. **Publish to Confluence** (ask the SDT which space/parent page)
+5. **Publish to Confluence** (ask the SDT which space/parent page; skip when headless or without Confluence tools)
 6. **Link the Confluence page** back to the Jira epic
 7. **Suggest next step:** "Run `/qa-review-ticket` on each story in this epic during grooming."
 

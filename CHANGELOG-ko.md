@@ -7,6 +7,29 @@ QABuddy의 주요 변경 사항을 기록합니다. 형식은
 
 English: [CHANGELOG.md](CHANGELOG.md)
 
+## [Unreleased] — POC 브랜치 `poc/cloud-service`
+
+PR 트리거 실행의 개념 증명([RFC 0004](docs/rfc/0004-headless-pr-coverage.md)).
+`main`에 제안하지 않습니다.
+
+### 추가
+- Tier 1 프리앰블의 **헤드리스 모드**: `QABUDDY_HEADLESS=1` 또는 `--headless`로
+  옵트인; 모든 일시정지는 명시된 권장안을 택하고 Auto-decision으로 기록;
+  에스컬레이션은 `BLOCKED`로 종료; 쓰기 범위는 `features-kb/`, `playwright/`,
+  `.qa-reports/`; 기계가 읽는 마무리 파일. `/qa-start`, `/qa-test-plan`,
+  `/qa-test-cases`, `/qa-exploratory`, `/qa-e2e-setup`, `/qa-e2e-pom`의 게이트
+  오버라이드; `headless` eval fixture 6개.
+- `bin/pr-coverage.js` -- 결정적 diff→기능 매핑(`touched`), *covered*가 디스크 위
+  증거를 요구하는 Unit / API / E2E / Manual / Exploratory별 AC 커버리지
+  히트맵(`heatmap`), 고정 PR 코멘트(`comment`). 구조 검사 48개.
+- KB 명세 §6.8 `sources.json`(기능별 코드·테스트 glob)과 §6.9
+  `exploratory/{date}.md`(AC 키 결과 표를 가진 영속 세션).
+
+### 변경
+- `/qa-test-cases`가 KB 명세 §6.5 매핑 형태(`testCases[{id, layer, type,
+  status}]`)로 씁니다; 예전 `e2e_tests[]` 파일은 계속 읽힙니다.
+- `/qa-exploratory`의 Focus Area Results 표에 `ACs`, `Result` 열이 추가됩니다.
+
 ## [0.8.0] — 2026-08-29
 
 엔진 릴리스입니다. QABuddy의 자가 컴파일러/학습 엔진(`qab.js`, 1,189줄)이

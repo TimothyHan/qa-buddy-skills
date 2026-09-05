@@ -7,6 +7,30 @@ may remove a skill.
 
 한국어: [CHANGELOG-ko.md](CHANGELOG-ko.md)
 
+## [Unreleased] — POC branch `poc/cloud-service`
+
+Proof of concept for PR-triggered runs ([RFC 0004](docs/rfc/0004-headless-pr-coverage.md)).
+Not proposed for `main`.
+
+### Added
+- **Headless Mode** in the Tier 1 preamble: opt-in via `QABUDDY_HEADLESS=1` or
+  `--headless`; every pause takes the stated recommendation and is logged as an
+  Auto-decision; escalations close the run as `BLOCKED`; write scope limited to
+  `features-kb/`, `playwright/`, `.qa-reports/`; machine-readable close file.
+  Gate overrides in `/qa-start`, `/qa-test-plan`, `/qa-test-cases`,
+  `/qa-exploratory`, `/qa-e2e-setup`, `/qa-e2e-pom`; six `headless` eval fixtures.
+- `bin/pr-coverage.js` — deterministic diff→feature mapping (`touched`), a per-AC
+  coverage heatmap over Unit / API / E2E / Manual / Exploratory where *covered*
+  needs evidence on disk (`heatmap`), and a sticky PR comment (`comment`).
+  48 structural checks.
+- KB spec §6.8 `sources.json` (code and test globs per feature) and §6.9
+  `exploratory/{date}.md` (persisted session with an AC-keyed results table).
+
+### Changed
+- `/qa-test-cases` writes the KB spec §6.5 mapping shape (`testCases[{id, layer,
+  type, status}]`); the older `e2e_tests[]` files stay readable.
+- `/qa-exploratory` Focus Area Results table gains `ACs` and `Result` columns.
+
 ## [0.8.0] — 2026-08-29
 
 The engine release. QABuddy's in-tree compiler/learning engine (`qab.js`,

@@ -176,6 +176,35 @@
         "degradation",
         "no-kb"
       ]
+    },
+    {
+      "id": "fx-007",
+      "description": "Headless: drafts without the confirm-context question and writes sources.json",
+      "input": {
+        "env": "QABUDDY_HEADLESS=1",
+        "epic": "EPIC-100 with 2 resolved stories, spec context source"
+      },
+      "assertions": [
+        {
+          "field": "file:features-kb/features/*/sources.json",
+          "op": "exists",
+          "value": true
+        },
+        {
+          "field": "output",
+          "op": "not_contains",
+          "value": "Anything missing or incorrect"
+        },
+        {
+          "field": "output",
+          "op": "contains",
+          "value": "Auto-decisions"
+        }
+      ],
+      "tags": [
+        "headless",
+        "rfc-0004"
+      ]
     }
   ]
 }

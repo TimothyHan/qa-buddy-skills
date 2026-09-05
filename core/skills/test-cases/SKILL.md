@@ -1,6 +1,6 @@
 ---
 name: test-cases
-version: 0.3.8
+version: 0.4.0
 description: |
   Generate test cases from a Jira ticket's acceptance criteria. Produces Playwright
   e2e test scenarios and a unit test checklist for developers. Test cases map back
@@ -62,7 +62,7 @@ ACs from Jira, cross-reference the epic test plan, and produce:
    - Then the project learnings file (per the preamble) — active `LRN-` entries
      scoped here override the references above; cite applied IDs
 
-3. **Pull ticket** (Jira MCP if available, otherwise ask the SDT to provide or point to a file):
+3. **Pull ticket** (Jira MCP if available, otherwise ask the SDT to provide or point to a file; headless: `feature.md` ACs, the spec files, and the diff are the ticket):
    - Summary, description, ACs
    - Parent epic key
    - UI mockups or design links (from attachments or comments)
@@ -158,20 +158,24 @@ Create a mapping from requirements to test cases:
 {
   "ticket": "PROJ-789",
   "epic": "PROJ-123",
+  "lastUpdated": "{ISO timestamp}",
   "mappings": [
     {
-      "requirement": "AC #1: ...",
-      "e2e_tests": ["TC-001"],
-      "unit_tests": ["validate-form-data"],
+      "ac": "AC #1: ...",
+      "testCases": [
+        { "id": "TC-001", "layer": "e2e", "type": "happy-path", "status": "not-run" }
+      ],
+      "unitTests": ["validate-form-data"],
       "coverage": "full"
     }
   ],
-  "unmapped_requirements": [],
-  "test_gaps": []
+  "unmappedACs": [],
+  "testGaps": []
 }
 ```
 
-**Coverage values:** `full` (all aspects tested) | `partial` (gaps noted in `test_gaps`) | `none` (flag clearly)
+**Coverage values:** `full` (all aspects tested) | `partial` (gaps noted in `testGaps`) | `none` (flag clearly)
+**Layer values:** `unit` | `api` | `e2e` | `manual` (per `test-distribution.md`). This is the KB spec §6.5 shape; on `--update` keep existing TC ids and migrate an older `e2e_tests[]` file to this shape only if you touch it.
 
 ---
 
@@ -179,7 +183,7 @@ Create a mapping from requirements to test cases:
 
 Before saving, verify consistency across all three artifacts. Fix issues found. One pass — no looping.
 
-1. Every AC in `mappings` has at least one test case; `unmapped_requirements` lists any AC with zero tests
+1. Every AC in `mappings` has at least one test case; `unmappedACs` lists any AC with zero tests
 2. `coverage: "full"` means happy path + negative + boundaries tested; downgrade to `"partial"` otherwise
 3. No new test case duplicates an existing Playwright test — replace with a reference if so
 4. Unit test checklist items checked against existing unit tests for overlap
@@ -200,6 +204,8 @@ Before saving, verify consistency across all three artifacts. Fix issues found. 
 - "Any scenarios missing?"
 - "Should any P1s be promoted to P0?"
 - "Any test data concerns?"
+
+Headless: answer the three questions yourself from the KB and the diff, and record the answers under **Auto-decisions**.
 
 ### Update epic test plan (if exists):
 Update status column in `features-kb/features/{EPIC-KEY}/test-plan.md` for scenarios that now have test cases.

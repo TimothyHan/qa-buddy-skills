@@ -1,6 +1,6 @@
 ---
 name: e2e-pom
-version: 0.1.3
+version: 0.1.4
 description: |
   Build and maintain Page Object Models by live element discovery — never by
   guessing selectors. Build mode pairs with the user: derives the element
@@ -24,7 +24,9 @@ preamble-tier: 1
 
 # /qa-e2e-pom: Page Object Discovery & Healing
 
-Two modes. **Build** is interactive — the user confirms what you discovered.
+Two modes. **Build** is interactive — the user confirms what you discovered
+(headless: the proof run — count 1, visible — is the confirmation; ambiguity is
+flagged exactly as in Heal, never chosen).
 **Heal** is autonomous — it repairs what drifted and flags what it can't.
 Both read `playwright/AUTOMATION.md` (from `/qa-e2e-setup`) for POM style,
 auth, and white-box mode. No AUTOMATION.md → run `/qa-e2e-setup` first.
@@ -91,7 +93,8 @@ For each element:
 3. Show the user one screenshot per screen: "①–⑥ mapped as listed — confirm?"
    Apply corrections, re-prove, re-confirm. Ambiguous elements (e.g., two
    candidates for "the delete button") are presented as options, never
-   silently chosen.
+   silently chosen. Headless: save the highlighted screenshot to
+   `playwright/pom/proof/{screen}.png` and continue.
 
 ### Phase B4: Gaps
 
@@ -129,7 +132,7 @@ Inventory entry schema:
 ### Phase B6: Gate
 
 Run `npx playwright test pom-verification`. Green + user confirmations
-received → DONE. Report: elements mapped, gaps (with report), fragile count.
+received (headless: the proof log) → DONE. Report: elements mapped, gaps (with report), fragile count.
 
 ---
 
@@ -171,7 +174,7 @@ outside the broken set = report it as an error, revert it.
 - [ ] Inventory covers exactly the test-case demand — nothing extra
 - [ ] Gap report matches the in-scope gap elements exactly
 - [ ] Verification spec is green
-- [ ] Build: user confirmed every screen's highlights
+- [ ] Build: user confirmed every screen's highlights (headless: proof screenshots saved)
 
 **Status:** DONE | DONE_WITH_CONCERNS (fragile/flagged entries — list them) | BLOCKED (app unreachable, unproven elements — list them)
 **Summary:** {mode}: {n} elements proven, {g} gaps, {f} flagged

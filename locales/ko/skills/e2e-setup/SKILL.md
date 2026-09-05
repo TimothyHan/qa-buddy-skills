@@ -1,6 +1,6 @@
 ---
 name: e2e-setup
-version: 0.1.2
+version: 0.1.3
 description: |
   이 팀과 앱에 맞춘 Playwright e2e 자동화를 셋업합니다. 실행 중인 앱을
   프로브(인증 방식, API 표면, 스펙 존재 여부)하고, 열린 질문 대신 추천을
@@ -39,7 +39,8 @@ preamble-tier: 1
    세션 저장 방식)은 프로브하지, 절대 묻지 않습니다.
 2. **열린 질문 대신 추천.** 모든 인터뷰 단계는 프로브에서 도출한 추천을
    "(Recommended)" 표시와 함께 대안과 나란히 제시합니다. 추천 없이 "어떤 인증
-   전략을 원하시나요?"라고 묻지 않습니다.
+   전략을 원하시나요?"라고 묻지 않습니다. 헤드리스: 추천이 곧 결정입니다 --
+   AUTOMATION.md의 **Auto-decisions** 줄에 기록합니다.
 3. **모든 결정은 AUTOMATION.md에.** 기록되지 않은 결정은 나중에 다시 묻게
    됩니다 -- 그것은 결함입니다.
 4. **스캐폴드가 실행되어야만 셋업 완료.** `npx playwright test --list`가 exit
@@ -51,14 +52,16 @@ preamble-tier: 1
 
 ## Phase 1: 입력
 
-사용자(또는 호출 컨텍스트)로부터 수집:
+사용자(또는 호출 컨텍스트; 헤드리스: 환경변수 `BASE_URL`, `TEST_USER`,
+`TEST_PASS` 또는 `.env`)로부터 수집:
 
 - 앱 base URL (로컬 또는 pre-production)
 - 테스트 계정 자격 증명 + **테스트 계정이 몇 개 있는지** (병렬성 상한)
 - 자동화 코드를 둘 대상 레포/디렉토리
 
 기존 셋업 확인: `playwright/AUTOMATION.md`가 있으면 보여주고 재구성-또는-유지를
-묻습니다 (`/qa-setup`이 `.qabuddy.json`에 하듯이).
+묻습니다 (`/qa-setup`이 `.qabuddy.json`에 하듯이). 헤드리스: 유지 -- 절대
+재구성하지 않습니다.
 
 ## Phase 2: 앱 프로브
 
@@ -111,7 +114,7 @@ workers = clamp( floor(cpu_cores / 2), 최소 = 2, 최대 = 사용 가능한 계
 | 상황 | 전략 |
 |---|---|
 | 계정 ≥ worker | **Worker-indexed 계정**: global setup이 계정별 로그인 → `.auth/worker-{i}.json`; `storageState` 옵션 fixture가 `parallelIndex`로 할당. 사용자 상태 완전 격리. |
-| 계정 < worker, 가입 API 존재 | API로 테스트 계정 **추가 프로비저닝** 제안 (먼저 물어볼 것) |
+| 계정 < worker, 가입 API 존재 | API로 테스트 계정 **추가 프로비저닝** 제안 (먼저 물어볼 것; 헤드리스: 프로비저닝하지 않고 제약을 기록) |
 | 계정 하나 / 전역 공유 상태(단일 테넌트) | 엔티티 스코프 테스트를 위해 worker는 ≥2 유지; **전역 또는 사용자별 공유 상태를 변경하는** 테스트는 병렬 페이즈 이후에 실행되는 종속 Playwright 프로젝트(`dependencies: ['parallel'], workers: 1`)로. 프로젝트별 `workers: 1`은 필수 -- `--repeat-each`는 같은 파일의 인스턴스도 워커에 분산시키므로 파일 묶기만으로는 직렬화되지 않습니다. |
 
 어떤 기능이 공유 상태인지 명시적으로 경고하세요 (프로브: 데이터가 사용자별인가
@@ -120,6 +123,7 @@ workers = clamp( floor(cpu_cores / 2), 최소 = 2, 최대 = 사용 가능한 계
 ### 3b. White-box 모드
 
 한 번만 묻습니다: "앱의 소스 레포에 제가 접근할 수 있나요? (경로 또는 'no')"
+헤드리스: `features-kb/features/*/sources.json`이 있으면 cwd가 앱 레포 → (A) 제안.
 - **가능** → 후속 질문: 요소에 안정적인 셀렉터가 없을 때, **(A) 개발자용
   diff로 `data-testid` 패치를 제안**할까요 (Recommended), 아니면 **(B) 앱
   레포의 브랜치에 적용**할까요?

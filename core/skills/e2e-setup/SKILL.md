@@ -1,6 +1,6 @@
 ---
 name: e2e-setup
-version: 0.1.2
+version: 0.1.3
 description: |
   Set up Playwright e2e automation tailored to this team and app. Probes the
   running app (auth mechanism, API surface, spec availability), interviews with
@@ -40,7 +40,8 @@ override those patterns.
 2. **Recommend, don't open-question.** Every interview step presents a
    recommendation derived from the probe, marked "(Recommended)", with
    alternatives. Never ask "what authentication strategy would you like?"
-   without a recommendation attached.
+   without a recommendation attached. Headless: the recommendation is the
+   decision — record it under an **Auto-decisions** line in AUTOMATION.md.
 3. **Every decision lands in AUTOMATION.md.** If it isn't recorded, it will be
    re-asked later — that's a defect.
 4. **Setup is done only when the scaffold has executed.** `npx playwright test
@@ -52,14 +53,16 @@ override those patterns.
 
 ## Phase 1: Inputs
 
-Collect from the user (or the invoking context):
+Collect from the user (or the invoking context; headless: from env `BASE_URL`,
+`TEST_USER`, `TEST_PASS`, or `.env`):
 
 - App base URL (local or pre-production)
 - Test account credentials + **how many test accounts exist** (caps parallelism)
 - Target repo/directory for the automation code
 
 Check for an existing setup: `playwright/AUTOMATION.md` present → show it and
-ask reconfigure-or-keep, like `/qa-setup` does with `.qabuddy.json`.
+ask reconfigure-or-keep, like `/qa-setup` does with `.qabuddy.json`. Headless:
+keep — never reconfigure.
 
 ## Phase 2: Probe the App
 
@@ -113,7 +116,7 @@ in AUTOMATION.md.
 | Situation | Strategy |
 |---|---|
 | Accounts ≥ workers | **Worker-indexed accounts**: global setup logs in each account → `.auth/worker-{i}.json`; a `storageState` option fixture assigns by `parallelIndex`. Full user-state isolation. |
-| Accounts < workers, registration API exists | Offer to **provision** more test accounts via the API (ask first) |
+| Accounts < workers, registration API exists | Offer to **provision** more test accounts via the API (ask first; headless: never provision — record the constraint) |
 | One account / global shared state (single tenant) | Workers stay ≥2 for entity-scoped tests; tests that mutate **global or per-user shared state** go in a dependent Playwright project (`dependencies: ['parallel'], workers: 1`) that runs after the parallel phase. The per-project `workers: 1` is mandatory — `--repeat-each` spreads instances of the same file across workers, so file grouping alone does not serialize. |
 
 Warn explicitly which features are shared state (probe: is data per-user or
@@ -122,6 +125,7 @@ global?) so `/qa-e2e-write` groups their tests accordingly.
 ### 3b. White-box mode
 
 Ask once: "Is the app's source repo available to me? (path or 'no')"
+Headless: the cwd is the app repo when `features-kb/features/*/sources.json` exists → (A) propose.
 - **Available** → follow-up: when elements lack stable selectors, should I
   **(A) propose** `data-testid` patches as a diff for devs (Recommended), or
   **(B) apply** them on a branch in the app repo?

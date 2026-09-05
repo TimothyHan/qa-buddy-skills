@@ -70,6 +70,19 @@ The fix takes effect on the next skill invocation (symlinks auto-resolve to rebu
 
 ---
 
+## Headless Mode
+
+Opt-in only: `QABUDDY_HEADLESS=1` is set in the environment, or the skill was invoked with `--headless` (pass the same setting to every skill you invoke from this run). Otherwise this section does not apply.
+
+When headless:
+1. **Never ask.** Every pause — Review Options, the resume confirmation, "does this look right?", the scoring-gate question, any (A)/(B)/(C) — is decided by the stated recommendation, default (A). Never call AskUserQuestion. Write each decision as one line under `## State` in the scratchpad and list them under **Auto-decisions** in the final report.
+2. **Missing context is an answer.** Read `features-kb/` and the files named in the invocation; if that is not enough to proceed, close with `NEEDS_CONTEXT` and say what was missing — never wait for input.
+3. **Escalations end the run.** Security-sensitive or destructive operations, scope growth, or three consecutive failures close the run as `BLOCKED` with the reason, instead of a question.
+4. **Write scope.** Write only under `features-kb/`, `playwright/`, `playwright.config.*`, and `.qa-reports/`. Never commit, push, or open a PR — the caller owns delivery.
+5. **Machine-readable close.** Before the status block, write `.qa-reports/headless/<skill>.json`: `{ "skill", "status", "artifacts": [paths written], "autoDecisions": [], "concerns": [] }`.
+
+---
+
 ## Completion Status
 
 End every skill run with a clear status:

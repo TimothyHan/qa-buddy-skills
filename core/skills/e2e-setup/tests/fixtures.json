@@ -160,6 +160,35 @@
         "interview",
         "recommend-first"
       ]
+    },
+    {
+      "id": "fx-004",
+      "description": "Headless: recommendations become decisions, inputs from env, existing AUTOMATION.md kept",
+      "input": {
+        "env": "QABUDDY_HEADLESS=1 BASE_URL=http://localhost:4173 TEST_USER=qa@acme.test TEST_PASS=demo123",
+        "app": "Acme Projects, cookie session, one test account"
+      },
+      "assertions": [
+        {
+          "field": "output",
+          "op": "matches",
+          "value": "Auto-decisions|auto-decided"
+        },
+        {
+          "field": "output",
+          "op": "not_contains",
+          "value": "reconfigure"
+        },
+        {
+          "field": "output",
+          "op": "contains",
+          "value": "AUTOMATION.md"
+        }
+      ],
+      "tags": [
+        "headless",
+        "rfc-0004"
+      ]
     }
   ]
 }

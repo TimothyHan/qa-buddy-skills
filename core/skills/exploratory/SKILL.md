@@ -1,6 +1,6 @@
 ---
 name: exploratory
-version: 0.4.5
+version: 0.4.6
 description: |
   Generate and guide exploratory testing sessions. Produces a session charter,
   executes time-boxed unscripted testing using heuristic techniques, captures
@@ -29,7 +29,7 @@ discovers what scripted tests miss.
 ## Constraints
 
 1. **Stay unscripted.** Charter gives direction, not steps. Follow surprises.
-2. **Time-box strictly.** When time is up, wrap up. Don't extend without SDT consent.
+2. **Time-box strictly.** When time is up, wrap up. Don't extend without SDT consent. Headless: run `--quick` and wrap up once every focus area has a result.
 3. **Classify every finding.** Severity and priority per `REF-playbook/risk-and-priority#severity-scale`
    and `#priority-scale` in your compiled slice. No unclassified findings.
 4. **Screenshot everything interesting.** Findings without evidence are not findings.
@@ -55,7 +55,7 @@ discovers what scripted tests miss.
    - `contextSource: "chat"` → skip Jira, ask SDT for context directly
    - `contextSource: "jira"` or no config → current behavior
 
-2. **Parse the request:** feature/ticket key, URL (auto-detect or ask), time box (default 45 min, `--quick` 30, `--deep` 60), focus area if specified.
+2. **Parse the request:** feature/ticket key, URL (`--url`, `.qabuddy.json` `appUrl`, auto-detect, or ask; headless: no URL is `BLOCKED`), time box (default 45 min, `--quick` 30, `--deep` 60), focus area if specified.
 
 3. **Load context from KB first:** `features-kb/index.json`, `feature.md`, existing test cases, prior QA reports. If stale/missing, pull from Jira or ask SDT.
 
@@ -96,7 +96,7 @@ Read `exploratory-heuristics.md` for the heuristic categories table.
 - {excluded areas}
 ```
 
-**Present to SDT.** Ask: "Does this look right? Adjust focus areas before we start?"
+**Present to SDT.** Ask: "Does this look right? Adjust focus areas before we start?" Headless: the charter is approved as written.
 
 ---
 
@@ -154,8 +154,9 @@ Document immediately. Read finding categories from `exploratory-heuristics.md`.
 | New scenarios / Bugs / UX concerns / Missing requirements / Questions | {N each} |
 
 ## Focus Area Results
-| Focus Area | Time | Findings | Notes |
-|-----------|------|----------|-------|
+| Focus Area | ACs | Time | Findings | Result |
+|-----------|-----|------|----------|--------|
+{ACs = feature.md AC ids this area exercised · Result = clean | finding | unexplored}
 
 ## Detailed Findings
 {all from Phase 4}
@@ -173,7 +174,7 @@ Document immediately. Read finding categories from `exploratory-heuristics.md`.
 
 Before filling **Duration**, compute elapsed time from the Phase 1 start timestamp to now (`date +%H:%M`) — report actual minutes, never "not tracked".
 
-Save to `.qa-reports/exploratory-{EPIC-KEY}-{YYYY-MM-DD}.md`. Update KB: add edge cases to `feature.md`, flag new scenarios for `/qa-test-cases --update`, update `index.json`.
+Save to `.qa-reports/exploratory-{EPIC-KEY}-{YYYY-MM-DD}.md` — headless: also to `features-kb/features/{EPIC-KEY}/exploratory/{YYYY-MM-DD}.md` (KB spec §6.9; screenshots by relative path). Update KB: add edge cases to `feature.md`, flag new scenarios for `/qa-test-cases --update`, update `index.json`.
 
 ---
 
@@ -182,3 +183,4 @@ Save to `.qa-reports/exploratory-{EPIC-KEY}-{YYYY-MM-DD}.md`. Update KB: add edg
 **SDT-Led:** SDT drives browser, Claude suggests heuristics, catches console errors, documents findings.
 **Claude-Led:** Claude drives, SDT provides domain knowledge and makes severity calls.
 **Hybrid (default):** Claude handles systematic techniques, SDT handles intuition-driven exploration. Claude documents everything.
+**Headless:** Claude-Led without the SDT — severity and priority come from the scale in the slice; every call is an Auto-decision.

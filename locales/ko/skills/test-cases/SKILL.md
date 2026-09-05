@@ -1,6 +1,6 @@
 ---
 name: test-cases
-version: 0.3.8
+version: 0.4.0
 description: |
   Jira 티켓의 인수 조건(AC)에서 테스트 케이스를 생성합니다. Playwright E2E 테스트
   시나리오와 개발자용 단위 테스트 체크리스트를 작성합니다. 테스트 케이스는 추적성을 위해
@@ -62,7 +62,7 @@ SDT 파트너로서 티켓의 테스트 케이스를 생성합니다. Jira에서
    - 그 다음 프로젝트 학습 파일(프리앰블 참조) — 이 스킬에 스코프된 active
      `LRN-` 항목이 위 레퍼런스들을 오버라이드합니다; 적용한 ID를 인용하세요
 
-3. **티켓을 가져옵니다** (Jira MCP가 있으면 사용, 없으면 SDT에게 제공하거나 파일을 지정하도록 요청):
+3. **티켓을 가져옵니다** (Jira MCP가 있으면 사용, 없으면 SDT에게 제공하거나 파일을 지정하도록 요청; 헤드리스: `feature.md`의 AC, 스펙 파일, diff가 곧 티켓):
    - 요약, 설명, AC
    - 상위 에픽 키
    - UI 목업 또는 디자인 링크 (첨부 파일이나 코멘트에서)
@@ -158,20 +158,24 @@ test('{테스트 제목}', async ({ page }) => {
 {
   "ticket": "PROJ-789",
   "epic": "PROJ-123",
+  "lastUpdated": "{ISO timestamp}",
   "mappings": [
     {
-      "requirement": "AC #1: ...",
-      "e2e_tests": ["TC-001"],
-      "unit_tests": ["validate-form-data"],
+      "ac": "AC #1: ...",
+      "testCases": [
+        { "id": "TC-001", "layer": "e2e", "type": "happy-path", "status": "not-run" }
+      ],
+      "unitTests": ["validate-form-data"],
       "coverage": "full"
     }
   ],
-  "unmapped_requirements": [],
-  "test_gaps": []
+  "unmappedACs": [],
+  "testGaps": []
 }
 ```
 
-**커버리지 값:** `full` (모든 측면 테스트됨) | `partial` (갭이 `test_gaps`에 기록됨) | `none` (명확히 표시)
+**커버리지 값:** `full` (모든 측면 테스트됨) | `partial` (갭이 `testGaps`에 기록됨) | `none` (명확히 표시)
+**레이어 값:** `unit` | `api` | `e2e` | `manual` (`test-distribution.md` 기준). KB 명세 §6.5 형태입니다; `--update`에서는 기존 TC id를 유지하고, 예전 `e2e_tests[]` 파일은 손댈 때만 이 형태로 옮깁니다.
 
 ---
 
@@ -179,7 +183,7 @@ test('{테스트 제목}', async ({ page }) => {
 
 저장 전에 세 가지 산출물 간의 일관성을 확인합니다. 발견된 문제를 수정합니다. 한 번만 확인하고 반복하지 않습니다.
 
-1. `mappings`의 모든 AC에 최소 하나의 테스트 케이스가 있는지. 테스트가 없는 AC는 `unmapped_requirements`에 나열
+1. `mappings`의 모든 AC에 최소 하나의 테스트 케이스가 있는지. 테스트가 없는 AC는 `unmappedACs`에 나열
 2. `coverage: "full"`은 happy path + 네거티브 + 경계값이 테스트된 것을 의미. 그렇지 않으면 `"partial"`로 하향 조정
 3. 새 테스트 케이스가 기존 Playwright 테스트와 중복되지 않는지 — 중복이면 참조로 대체
 4. 단위 테스트 체크리스트 항목이 기존 단위 테스트와 겹치는지 확인
@@ -200,6 +204,8 @@ test('{테스트 제목}', async ({ page }) => {
 - "빠진 시나리오가 있나요?"
 - "P1에서 P0으로 올려야 할 항목이 있나요?"
 - "테스트 데이터 관련 우려 사항이 있나요?"
+
+헤드리스: 세 질문에 KB와 diff를 근거로 스스로 답하고, 답을 **Auto-decisions** 아래에 기록합니다.
 
 ### 에픽 테스트 계획 업데이트 (있는 경우):
 `features-kb/features/{EPIC-KEY}/test-plan.md`에서 테스트 케이스가 생성된 시나리오의 상태 열을 업데이트합니다.

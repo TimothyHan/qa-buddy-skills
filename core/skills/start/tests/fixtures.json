@@ -92,6 +92,35 @@
       "tags": [
         "inline-setup"
       ]
+    },
+    {
+      "id": "fx-005",
+      "description": "Headless: completes every phase without asking, records auto-decisions",
+      "input": {
+        "env": "QABUDDY_HEADLESS=1",
+        "epic": "epic with 3 stories and clear ACs, .qabuddy.json present"
+      },
+      "assertions": [
+        {
+          "field": "output",
+          "op": "contains",
+          "value": "Auto-decisions"
+        },
+        {
+          "field": "output",
+          "op": "not_contains",
+          "value": "Proceed with test planning"
+        },
+        {
+          "field": "output",
+          "op": "contains",
+          "value": "Planning Complete"
+        }
+      ],
+      "tags": [
+        "headless",
+        "rfc-0004"
+      ]
     }
   ]
 }

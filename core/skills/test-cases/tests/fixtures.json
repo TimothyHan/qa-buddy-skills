@@ -276,6 +276,36 @@
         "vacuous-assertion",
         "negative-case"
       ]
+    },
+    {
+      "id": "fx-011",
+      "description": "Headless: writes the layered §6.5 mapping and answers the review questions itself",
+      "input": {
+        "env": "QABUDDY_HEADLESS=1",
+        "ticket": "projects feature with 6 ACs, 4 already mapped",
+        "flags": "--update"
+      },
+      "assertions": [
+        {
+          "field": "file:features-kb/features/*/test-cases/*-mapping.json",
+          "op": "contains",
+          "value": "\"layer\""
+        },
+        {
+          "field": "output",
+          "op": "not_contains",
+          "value": "Any scenarios missing?"
+        },
+        {
+          "field": "output",
+          "op": "contains",
+          "value": "Auto-decisions"
+        }
+      ],
+      "tags": [
+        "headless",
+        "rfc-0004"
+      ]
     }
   ]
 }

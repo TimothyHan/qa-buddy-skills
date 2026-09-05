@@ -1,6 +1,6 @@
 ---
 name: e2e-pom
-version: 0.1.3
+version: 0.1.4
 description: |
   라이브 요소 디스커버리로 Page Object Model을 빌드하고 유지합니다 --
   셀렉터를 절대 추측하지 않습니다. Build 모드는 사용자와 페어링: 테스트
@@ -24,7 +24,9 @@ preamble-tier: 1
 
 # /qa-e2e-pom: 페이지 객체 디스커버리 & 힐링
 
-두 가지 모드. **Build**는 인터랙티브 -- 발견한 것을 사용자가 확인합니다.
+두 가지 모드. **Build**는 인터랙티브 -- 발견한 것을 사용자가 확인합니다
+(헤드리스: 증명 실행 -- 개수 1, 가시 -- 이 곧 확인이며, 모호함은 Heal과
+똑같이 플래그하지 절대 고르지 않습니다).
 **Heal**은 자율 실행 -- 드리프트를 수리하고 수리할 수 없는 것은 플래그합니다.
 둘 다 POM 스타일, 인증, white-box 모드를 위해 `playwright/AUTOMATION.md`
 (`/qa-e2e-setup` 산출물)를 읽습니다. AUTOMATION.md 없음 → `/qa-e2e-setup` 먼저.
@@ -89,7 +91,8 @@ preamble-tier: 1
 2. 증명된 모든 요소에 번호 매긴 하이라이트를 얹어 화면 스크린샷.
 3. 화면당 스크린샷 하나를 사용자에게: "①–⑥을 목록대로 매핑했습니다 --
    확인해 주시겠어요?" 수정 사항 적용, 재증명, 재확인. 모호한 요소(예: "삭제
-   버튼" 후보 둘)는 옵션으로 제시하지, 조용히 고르지 않습니다.
+   버튼" 후보 둘)는 옵션으로 제시하지, 조용히 고르지 않습니다. 헤드리스:
+   하이라이트 스크린샷을 `playwright/pom/proof/{screen}.png`에 저장하고 계속합니다.
 
 ### Phase B4: 갭
 
@@ -126,8 +129,8 @@ playwright/
 
 ### Phase B6: 게이트
 
-`npx playwright test pom-verification` 실행. Green + 사용자 확인 수신 →
-DONE. 보고: 매핑된 요소 수, 갭(보고서 포함), fragile 개수.
+`npx playwright test pom-verification` 실행. Green + 사용자 확인 수신
+(헤드리스: 증명 로그) → DONE. 보고: 매핑된 요소 수, 갭(보고서 포함), fragile 개수.
 
 ---
 
@@ -168,7 +171,7 @@ DONE. 보고: 매핑된 요소 수, 갭(보고서 포함), fragile 개수.
 - [ ] 인벤토리가 테스트 케이스 수요를 정확히 커버 -- 그 이상은 없음
 - [ ] 갭 보고서가 범위 내 갭 요소와 정확히 일치
 - [ ] 검증 스펙이 green
-- [ ] Build: 모든 화면의 하이라이트를 사용자가 확인
+- [ ] Build: 모든 화면의 하이라이트를 사용자가 확인 (헤드리스: 증명 스크린샷 저장)
 
 **Status:** DONE | DONE_WITH_CONCERNS (fragile/플래그 항목 -- 나열할 것) | BLOCKED (앱 접속 불가, 증명 안 된 요소 -- 나열할 것)
 **Summary:** {모드}: 요소 {n}개 증명, 갭 {g}개, 플래그 {f}개

@@ -1,6 +1,6 @@
 ---
 name: start
-version: 0.3.5
+version: 0.3.6
 description: |
   Guided end-to-end QA workflow. Chains test planning, ticket reviews, and test
   case generation in sequence, pausing after each phase for SDT review. Resumes
@@ -31,7 +31,7 @@ each phase for SDT review and approval before continuing.
 
 ## Constraints
 
-1. **Pause after every phase.** Never proceed to the next phase without SDT approval.
+1. **Pause after every phase.** Never proceed to the next phase without SDT approval. Headless: the pause is a `## State` line in the scratchpad, not a question — continue.
 2. **Don't duplicate skill logic.** Reference playbook methodology files for detailed guidance. You coordinate, not reimplement.
 3. **Resume from interruptions.** Check `features-kb/index.json` for workflow state on start. If a prior run was interrupted, offer to resume.
 4. **Respect the config.** Read `.qabuddy.json` for context source and team mode. Adjust behavior accordingly.
@@ -48,12 +48,13 @@ each phase for SDT review and approval before continuing.
 1. **Read `.qabuddy.json`** — if missing, run the setup wizard:
    - Ask context source: (A) Jira, (B) Spec docs, (C) Chat/paste, (D) Custom
    - Ask team mode: (A) Solo, (B) Team
+   Headless: no wizard — a missing `.qabuddy.json` closes the run as `BLOCKED`.
    - Write config and continue
 
 2. **Check for resume** — read `features-kb/index.json` for this epic's workflow state.
    If a prior run exists:
    - Show what was completed (test plan, reviews, test cases)
-   - Ask: (A) Resume from where we left off, (B) Start fresh
+   - Ask: (A) Resume from where we left off, (B) Start fresh (headless: (A))
 
 3. **Load methodology references** from `{{REFERENCE_PATH}}/playbook/`:
    - `metrics-and-coverage.md` — coverage targets

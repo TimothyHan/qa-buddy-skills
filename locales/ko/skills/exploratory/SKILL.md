@@ -1,6 +1,6 @@
 ---
 name: exploratory
-version: 0.4.5
+version: 0.4.6
 description: |
   탐색적 테스트 세션을 생성하고 안내합니다. 세션 차터를 작성하고, 휴리스틱
   기법을 활용하여 시간 제한된 비정형 테스트를 실행하며, 발견 사항을 새로운
@@ -29,7 +29,7 @@ preamble-tier: 2
 ## 제약 사항
 
 1. **비정형을 유지.** 차터는 방향을 제시하지, 단계를 정하지 않습니다. 예상치 못한 것을 따라갑니다.
-2. **시간 제한을 엄격히 준수.** 시간이 끝나면 정리합니다. SDT 동의 없이 연장하지 않습니다.
+2. **시간 제한을 엄격히 준수.** 시간이 끝나면 정리합니다. SDT 동의 없이 연장하지 않습니다. 헤드리스: `--quick`으로 실행하고 모든 초점 영역에 결과가 생기면 정리합니다.
 3. **모든 발견 사항을 분류.** 컴파일된 슬라이스의 `REF-playbook/risk-and-priority#severity-scale`과
    `#priority-scale`에 따라 심각도와 우선순위를 부여합니다. 미분류 발견 사항은 없어야 합니다.
 4. **흥미로운 것은 모두 스크린샷.** 증거 없는 발견 사항은 발견 사항이 아닙니다.
@@ -55,7 +55,7 @@ preamble-tier: 2
    - `contextSource: "chat"` -> Jira를 건너뛰고 SDT에게 직접 컨텍스트를 요청합니다
    - `contextSource: "jira"` 또는 설정 없음 -> 기본 동작
 
-2. **요청 파싱:** 기능/티켓 키, URL (자동 감지 또는 요청), 시간 제한 (기본 45분, `--quick` 30분, `--deep` 60분), 초점 영역(지정된 경우).
+2. **요청 파싱:** 기능/티켓 키, URL (`--url`, `.qabuddy.json`의 `appUrl`, 자동 감지, 또는 요청; 헤드리스: URL 없음은 `BLOCKED`), 시간 제한 (기본 45분, `--quick` 30분, `--deep` 60분), 초점 영역(지정된 경우).
 
 3. **먼저 KB에서 컨텍스트 로드:** `features-kb/index.json`, `feature.md`, 기존 테스트 케이스, 이전 QA 보고서를 읽습니다. 오래되었거나 없으면 Jira에서 가져오거나 SDT에게 요청합니다.
 
@@ -96,7 +96,7 @@ preamble-tier: 2
 - {제외 영역}
 ```
 
-**SDT에게 제시합니다.** "이 차터가 맞나요? 시작 전에 초점 영역을 조정하시겠습니까?"
+**SDT에게 제시합니다.** "이 차터가 맞나요? 시작 전에 초점 영역을 조정하시겠습니까?" 헤드리스: 차터는 쓰인 그대로 승인됩니다.
 
 ---
 
@@ -153,9 +153,10 @@ preamble-tier: 2
 |------|------|
 | 새 시나리오 / 버그 / UX 우려 / 누락된 요구사항 / 질문 | {각각 N} |
 
-## 초점 영역 결과
-| 초점 영역 | 소요 시간 | 발견 건수 | 비고 |
-|----------|----------|---------|------|
+## Focus Area Results
+| Focus Area | ACs | Time | Findings | Result |
+|-----------|-----|------|----------|--------|
+{ACs = 이 영역이 다룬 feature.md의 AC id · Result = clean | finding | unexplored -- 표 헤더는 스캐너가 읽으므로 영어 유지}
 
 ## 상세 발견 사항
 {Phase 4의 모든 발견 사항}
@@ -173,7 +174,7 @@ preamble-tier: 2
 
 **소요 시간**을 채우기 전에, Phase 1 시작 시각부터 현재(`date +%H:%M`)까지 경과 시간을 계산합니다 -- 실제 분(分)을 기록하며, 절대 "미기록"으로 남기지 않습니다.
 
-`.qa-reports/exploratory-{EPIC-KEY}-{YYYY-MM-DD}.md`에 저장합니다. KB를 업데이트합니다: `feature.md`에 엣지 케이스를 추가하고, `/qa-test-cases --update`로 새 시나리오를 표시하고, `index.json`을 갱신합니다.
+`.qa-reports/exploratory-{EPIC-KEY}-{YYYY-MM-DD}.md`에 저장합니다 -- 헤드리스: `features-kb/features/{EPIC-KEY}/exploratory/{YYYY-MM-DD}.md`(KB 명세 §6.9; 스크린샷은 상대 경로)에도 저장합니다. KB를 업데이트합니다: `feature.md`에 엣지 케이스를 추가하고, `/qa-test-cases --update`로 새 시나리오를 표시하고, `index.json`을 갱신합니다.
 
 ---
 
@@ -182,3 +183,4 @@ preamble-tier: 2
 **SDT 주도:** SDT가 브라우저를 조작하고, Claude는 휴리스틱을 제안하고, 콘솔 에러를 포착하고, 발견 사항을 기록합니다.
 **Claude 주도:** Claude가 조작하고, SDT는 도메인 지식을 제공하고 심각도를 판단합니다.
 **하이브리드 (기본):** Claude가 체계적 기법을 담당하고, SDT가 직관 기반 탐색을 담당합니다. Claude가 모든 것을 기록합니다.
+**헤드리스:** SDT 없는 Claude 주도 -- 심각도와 우선순위는 슬라이스의 척도에서 가져오고, 모든 판단은 Auto-decision입니다.
