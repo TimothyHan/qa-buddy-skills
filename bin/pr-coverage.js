@@ -22,7 +22,8 @@
  *   merge    --base <kb tree> --ours <automate tree> --theirs <explore tree> --out <dir>
  *            Three-way union of phase trees so explore and automate can run in parallel.
  *
- *   preflight [--root .] [--touched touched.json] [--has-token true|false] [--can-create-prs true|false] [--md note.md] [--pr N]
+ *   preflight [--root .] [--touched touched.json] [--has-token true|false] [--can-create-prs true|false]
+ *            [--caller-on-branch true|false] [--md note.md] [--pr N]
  *            Everything a run needs, checked before any model spend; the note carries the sticky marker.
  *
  *   init     [--app-start CMD] [--app-url URL] [--qabuddy-ref REF] [--labels true] [--force]
@@ -49,7 +50,7 @@ const DEFAULT_TESTS = {
 
 function usage(msg) {
   if (msg) process.stderr.write(`pr-coverage: ${msg}\n`);
-  process.stderr.write(fs.readFileSync(__filename, 'utf8').split('\n').slice(2, 31).map(l => l.replace(/^ \* ?/, '')).join('\n') + '\n');
+  process.stderr.write(fs.readFileSync(__filename, 'utf8').split('\n').slice(2, 32).map(l => l.replace(/^ \* ?/, '')).join('\n') + '\n');
   process.exit(2);
 }
 function die(code, msg) { process.stderr.write(`pr-coverage: ${msg}\n`); process.exit(code); }
@@ -618,6 +619,7 @@ function cmdPreflight(o) {
   else if (withoutSources.length) warn('some-sources', `features without \`sources.json\`: ${withoutSources.join(', ')}`, 'add one per feature so changes to their code map to them');
 
   if (o.hasToken === 'false') problem('no-token', 'neither `CLAUDE_CODE_OAUTH_TOKEN` nor `ANTHROPIC_API_KEY` is set', 'add one as a repository secret (`claude setup-token` for the subscription route)');
+  if (o.callerOnBranch === 'false') warn('no-caller-on-branch', 'this PR\'s branch does not carry the QABuddy caller workflow', 'merge the base branch into it — until then a merged companion PR cannot trigger the next phase (GitHub reads pull_request workflows from the PR\'s own branch)');
   if (o.canCreatePrs === 'false') warn('no-pr-permission', 'this repository does not allow GitHub Actions to create pull requests', 'Settings → Actions → General → "Allow GitHub Actions to create and approve pull requests" — the companion branch is still pushed');
 
   const pkg = fs.existsSync(path.join(root, 'package.json')) ? readJson(path.join(root, 'package.json'), {}) : {};

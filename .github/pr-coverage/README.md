@@ -23,7 +23,9 @@ app), creates the `qa:*` labels, and lists what is still missing. The consumer r
 - the repository setting that lets Actions create pull requests (for the companion PR).
 
 The `preflight` job checks all of this before any model spend and explains what is missing in
-the PR comment.
+the PR comment. One GitHub mechanic to know: `pull_request` workflows run from the PR's own
+branch, so a branch cut *before* the caller was added does not chain on a merged companion
+until the base branch is merged into it — preflight warns when that is the case.
 
 ## What runs
 

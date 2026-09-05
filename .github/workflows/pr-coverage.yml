@@ -156,9 +156,12 @@ jobs:
         run: |
           set -euo pipefail
           CAN=$(gh api "repos/$GITHUB_REPOSITORY/actions/permissions/workflow" --jq '.can_approve_pull_request_reviews' 2>/dev/null || echo unknown)
+          # GitHub runs pull_request workflows from the PR's own merge ref: a branch cut before the
+          # caller existed will not chain on a merged companion until it carries the caller.
+          CALLER=false; grep -rqs 'workflows/pr-coverage.yml@' .github/workflows/ && CALLER=true
           set +e
           node "$QAB_BIN/pr-coverage.js" preflight --touched .qa-reports/pr-coverage/touched.json \
-            --has-token "$HAS_TOKEN" --can-create-prs "$CAN" --pr "${{ needs.resolve.outputs.pr }}" \
+            --has-token "$HAS_TOKEN" --can-create-prs "$CAN" --caller-on-branch "$CALLER" --pr "${{ needs.resolve.outputs.pr }}" \
             --md .qa-reports/pr-coverage/preflight.md | tee .qa-reports/pr-coverage/preflight.json
           RC=$?
           set -e

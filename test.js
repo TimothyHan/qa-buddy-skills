@@ -832,10 +832,10 @@ function testPrCoverage() {
 
     // preflight: prerequisites checked before any spend; the note carries the sticky marker
     const pf = (args) => { try { return { code: 0, out: JSON.parse(run(['preflight', ...args])) }; } catch (e) { return { code: e.status, out: JSON.parse(e.stdout || '{}') }; } };
-    const p1 = pf(['--has-token', 'false', '--can-create-prs', 'false', '--md', 'out/pf.md', '--pr', '7']);
+    const p1 = pf(['--has-token', 'false', '--can-create-prs', 'false', '--caller-on-branch', 'false', '--md', 'out/pf.md', '--pr', '7']);
     check(p1.code === 6 && p1.out.ok === false, 'preflight: missing token is a problem (exit 6)');
     check(p1.out.problems.some(x => x.code === 'no-config') && p1.out.problems.some(x => x.code === 'no-token'), 'preflight: names the missing .qabuddy.json and the missing secret');
-    check(p1.out.warnings.some(x => x.code === 'no-pr-permission') && p1.out.warnings.some(x => x.code === 'some-sources'), 'preflight: PR-permission and partial sources.json are warnings, not blockers');
+    check(p1.out.warnings.some(x => x.code === 'no-pr-permission') && p1.out.warnings.some(x => x.code === 'some-sources') && p1.out.warnings.some(x => x.code === 'no-caller-on-branch'), 'preflight: PR-permission, partial sources.json, and a branch without the caller are warnings, not blockers');
     const pfmd = fs.readFileSync(path.join(tmp, 'out', 'pf.md'), 'utf8');
     check(pfmd.startsWith('<!-- qabuddy:heatmap -->') && /could not start/.test(pfmd) && /PR #7/.test(pfmd), 'preflight: the note carries the sticky marker so it becomes the one PR comment');
     w('.qabuddy.json', '{"version":"1.0","contextSource":"spec","teamMode":"team"}');
