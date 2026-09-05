@@ -238,6 +238,27 @@ What the first passes changed:
 - **The ko build labels duration `소요 시간`.** The `duration-recorded` check failed on 3/3 real runs for that reason alone; it now accepts both labels. A check written from the English template against a Korean install is a locale bug in the rubric, not in the skill.
 - **Skill findings surfaced by the bench, for `/qa-improve`:** `test-cases` skipped the live probe on a reachable app in a headless run and marked details `(unverified)` instead; `thin-ticket` with no app got no "unreachable" note in the scratchpad; the cases document carried a fenced block once in three runs.
 
+### PR4 — discrimination check and ablations (2026-09-05)
+
+**§5 (d), discrimination.** `eval.js ab test-cases --a HEAD --b eval/degraded-test-cases-no-c7 --cases projects-happy --runs 3` (the variant drops constraint 7, Phase 1 step 8 and self-check 7 — the "observed beats assumed" rule in all three places). 6 runs, $4.67.
+
+| criterion | A (intact) | B (rule removed) | verdict |
+|---|---|---|---|
+| probed-app (process) | 3 / 3–3 | 0 / 0–0, floor breached in 3/3 runs | **regression** |
+| observed-or-unverified (judge) | 2 / 1–3 | 1 / 1–1 | inside A's spread |
+| total | 0.841, spread 0.238 | 0.722, spread 0.096 | not distinguishable at n=3 |
+
+The bench sees what the rule buys: the process criterion separates the variants cleanly and every B run breaches a floor, so B would FAIL any calibrated gate. The total is masked by A's own variance (one A run scored `coverage-honesty` 0). Two lessons for ablations: read the per-criterion table, not the total; and a criterion that the removed text feeds directly (here `probed-app`) is the one to watch.
+
+**Ablations** (variant branches `eval/ablation-*`, pinned A = `feat/rfc-0005-pr4-ab`): results are appended below as they land.
+
+| # | variant B | skill / cases | result |
+|---|---|---|---|
+| 1 | the observed-beats-assumed rule stated once (Phase 1 step 8 only; constraint 7 and self-check 7 dropped) | test-cases / all three, 3 runs | pending |
+| 2 | `exploratory-heuristics#techniques-per-heuristic` removed | exploratory / v3-planted, 3 runs | pending |
+| 3 | `shift-left#principles` removed | test-plan | deferred — no test-plan case (plan PR6) |
+| 4 | constraints, self-checks and two preamble sections restated verbatim (≈ 1.6× length) | test-cases / all three, 3 runs | pending |
+
 Thresholds stay `null` until the maintainer fills `human.json` for the twenty entries (blind, from the scoring sheets) and `eval.js calibrate` passes gates (b) and (c).
 
 ## 7. Non-goals
