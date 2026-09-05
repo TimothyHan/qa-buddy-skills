@@ -1428,7 +1428,7 @@ function testCompile() {
     fs.writeFileSync(path.join(tmp, 'playwright', 'pom', 'x.page.ts'), '');
     fs.writeFileSync(path.join(tmp, 'features-kb', 'LEARNINGS.md'), [
       '# Project Learnings', '',
-      '## LRN-20260801-01: applies to test-cases', '- **Status:** active', '- **Scope:** test-cases, qa', '- **Statement:** seed via API', '- **Overrides:** REF-playwright-patterns#must-rules (extends)', '- **Evidence:** run', '',
+      '## LRN-20260801-01: applies to test-cases', '- **Status:** active', '- **Scope:** test-cases, qa, e2e-write', '- **Statement:** seed via API', '- **Overrides:** REF-playwright-patterns#must-rules (extends)', '- **Evidence:** run', '',
       '## LRN-20260801-02: retired one', '- **Status:** retired', '- **Scope:** all', '- **Statement:** old', '- **Overrides:** none', '- **Evidence:** run', '',
       '## LRN-20260801-03: profile-narrowed (surface=api) — must be dropped for a web profile', '- **Status:** active', '- **Scope:** all', '- **Statement:** api only', '- **Overrides:** none', '- **Evidence:** run', '- **Profile:** surface=api', '',
       '## LRN-20260801-04: scope all, no profile', '- **Status:** active', '- **Scope:** all', '- **Statement:** everywhere', '- **Overrides:** none', '- **Evidence:** run', '',
@@ -1465,26 +1465,10 @@ function testCompile() {
     const lastMust = refTiers.lastIndexOf('must');
     const firstOther = refTiers.findIndex(t => t !== 'must');
     check(firstOther === -1 || lastMust < firstOther, `every must section packed before any non-must (${manifestIds[0]})`);
-    const iMust = manifestIds.indexOf('REF-playwright-patterns#must-rules');
-    check(manifestIds[iMust + 1] === 'LRN-20260801-01', 'learning packed right after the section it Overrides');
-    // verbatim body: compare against the SAME references dir the shipped helper reads (en or ko-only dist),
-    // locating headings via index.json (heading text is locale-specific; ids are not)
-    const refsDir = path.join(resolvePlatformDir('claude'), 'references');
-    const src = fs.readFileSync(path.join(refsDir, 'playwright-patterns.md'), 'utf8').replace(/\r\n/g, '\n').split('\n');
-    const neverHeading = index['REF-playwright-patterns#never'].heading;
-    const i0 = src.findIndex(l => l.replace(/^#+\s*/, '').trim() === neverHeading); let i1 = i0 + 1; while (i1 < src.length && !/^##? /.test(src[i1])) i1++;
-    const expectedBody = src.slice(i0 + 1, i1).filter(l => !/^<!--\s*qab:/.test(l)).join('\n').trim();
-    const afterNever = slice.split(`## REF-playwright-patterns#never — ${neverHeading}\n`)[1];
-    const gotNever = afterNever ? afterNever.split('\n## ')[0].trim() : null;
-    check(gotNever !== null && gotNever === expectedBody, 'slice body is verbatim source text (NEVER section)', gotNever !== null ? 'text differs' : 'section header not found');
     check(!/<!--\s*qab:/.test(slice.split('\n---\n').slice(1).join('')), 'qab metadata comments stripped from slice body');
-    // …and the LAST section of a file (runs to EOF — off-by-one territory): pitfalls
-    const pitfallsHeading = index['REF-playwright-patterns#pitfalls'].heading;
-    const j0 = src.findIndex(l => l.replace(/^#+\s*/, '').trim() === pitfallsHeading);
-    const expectedLast = src.slice(j0 + 1).filter(l => !/^<!--\s*qab:/.test(l)).join('\n').trim();
-    const afterHeader = slice.split(`## REF-playwright-patterns#pitfalls — ${pitfallsHeading}\n`)[1];
-    const gotLast = afterHeader ? afterHeader.split('\n## ')[0].trim() : null;
-    check(gotLast !== null && gotLast === expectedLast, 'slice body is verbatim for a file\'s LAST section (pitfalls, runs to EOF)', gotLast !== null ? `got ${gotLast.split('\n').length} lines, expected ${expectedLast.split('\n').length}` : 'header not found');
+    // Override adjacency + verbatim-body checks need playwright-patterns in the slice; they run
+    // against an e2e-write compile further down (after the marker-dependent checks), because
+    // test-cases stopped reading playwright-patterns when 0.4.0 dropped the code sketches.
     // profile + events + scratchpad
     const profile = JSON.parse(fs.readFileSync(path.join(runDir, 'profile.json'), 'utf8'));
     check(profile.schema === 'profile/1' && profile.surface === 'web' && profile.pom === 'exists' && /^[0-9a-f]{12}$/.test(profile.pfp), `profile v0 deterministic (${profile.surface}/${profile.pom}/${profile.ticket_kind}, pfp ${profile.pfp})`);
@@ -1518,6 +1502,32 @@ function testCompile() {
     const aliasFm = aliasSlice.split('\n---\n')[0];
     const aliasRefs = [...(aliasFm.split('\nsources:\n')[1] || '').split('\ndropped:')[0].matchAll(/^  - id: (\S+)/gm)].map(m => m[1]).filter(id => id.startsWith('REF-')).sort();
     check(JSON.stringify(aliasRefs) === JSON.stringify(expectedRefs), `qa-test-cases packs the same REF set as test-cases (${aliasRefs.length})`);
+
+    // Body checks on a skill whose slice packs playwright-patterns (e2e-write). Compiling a
+    // different skill starts a new run, so this sits after every check that relies on the
+    // test-cases run marker.
+    const outW = run(['compile', '--skill', 'e2e-write', '--ticket', 'PROJ-2']);
+    const sliceW = fs.readFileSync(path.join(tmp, outW.split('\n')[0].trim()), 'utf8');
+    const manifestIdsW = [...((sliceW.split('\n---\n')[0].split('\nsources:\n')[1] || '').split('\ndropped:')[0]).matchAll(/^  - id: (\S+)/gm)].map(m => m[1]);
+    const iMust = manifestIdsW.indexOf('REF-playwright-patterns#must-rules');
+    check(iMust >= 0 && manifestIdsW[iMust + 1] === 'LRN-20260801-01', 'learning packed right after the section it Overrides', iMust < 0 ? 'must-rules not in the e2e-write slice' : `next is ${manifestIdsW[iMust + 1]}`);
+    // verbatim body: compare against the SAME references dir the shipped helper reads (en or ko-only dist),
+    // locating headings via index.json (heading text is locale-specific; ids are not)
+    const refsDir = path.join(resolvePlatformDir('claude'), 'references');
+    const src = fs.readFileSync(path.join(refsDir, 'playwright-patterns.md'), 'utf8').replace(/\r\n/g, '\n').split('\n');
+    const neverHeading = index['REF-playwright-patterns#never'].heading;
+    const i0 = src.findIndex(l => l.replace(/^#+\s*/, '').trim() === neverHeading); let i1 = i0 + 1; while (i1 < src.length && !/^##? /.test(src[i1])) i1++;
+    const expectedBody = src.slice(i0 + 1, i1).filter(l => !/^<!--\s*qab:/.test(l)).join('\n').trim();
+    const afterNever = sliceW.split(`## REF-playwright-patterns#never — ${neverHeading}\n`)[1];
+    const gotNever = afterNever ? afterNever.split('\n## ')[0].trim() : null;
+    check(gotNever !== null && gotNever === expectedBody, 'slice body is verbatim source text (NEVER section)', gotNever !== null ? 'text differs' : 'section header not found');
+    // …and the LAST section of a file (runs to EOF — off-by-one territory): pitfalls
+    const pitfallsHeading = index['REF-playwright-patterns#pitfalls'].heading;
+    const j0 = src.findIndex(l => l.replace(/^#+\s*/, '').trim() === pitfallsHeading);
+    const expectedLast = src.slice(j0 + 1).filter(l => !/^<!--\s*qab:/.test(l)).join('\n').trim();
+    const afterHeader = sliceW.split(`## REF-playwright-patterns#pitfalls — ${pitfallsHeading}\n`)[1];
+    const gotLast = afterHeader ? afterHeader.split('\n## ')[0].trim() : null;
+    check(gotLast !== null && gotLast === expectedLast, 'slice body is verbatim for a file\'s LAST section (pitfalls, runs to EOF)', gotLast !== null ? `got ${gotLast.split('\n').length} lines, expected ${expectedLast.split('\n').length}` : 'header not found');
     // a 0-source compile must warn loudly on stderr, never succeed silently
     // (separate scratch dir: the main fixture has a scope=all learning, which packs for ANY skill)
     const { spawnSync } = require('child_process');
