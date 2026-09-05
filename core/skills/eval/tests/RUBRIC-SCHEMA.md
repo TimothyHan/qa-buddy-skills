@@ -22,7 +22,8 @@ tests/
 | `rubric_version` | integer ≥ 1 |
 | `judge.model` | an Opus id (`claude-opus-*`), never the runner's model — RFC 0005 decision 15 |
 | `judge.prompt` | path of the judge prompt (shipped by PR2) |
-| `judge.temperature` | 0 |
+| `judge.temperature` | 0 — the intent; the `claude` CLI exposes no temperature flag, so repeatability is measured instead (RFC 0005 §5 c) |
+| `artifacts` | globs (relative to the workspace) of the files the judge grades — `features-kb/**/test-cases/*.md` and the mapping for test-cases; the session report for exploratory |
 | `threshold` | `null` until `calibration` exists; then the number calibration derived |
 | `calibration` | `null`, or `{ date, artifacts, agreement: {criterion: 0..1}, floor_agreement }` written by `eval.js calibrate` (PR3) |
 | `criteria[]` | see below |

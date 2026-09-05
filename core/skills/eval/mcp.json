@@ -1,0 +1,8 @@
+{
+  "mcpServers": {
+    "playwright": {
+      "command": "npx",
+      "args": ["--yes", "@playwright/mcp@0.0.80", "--headless", "--isolated", "--output-dir", ".qa-reports/screenshots"]
+    }
+  }
+}
