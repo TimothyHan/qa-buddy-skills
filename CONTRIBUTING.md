@@ -404,6 +404,7 @@ Current / After / Within 300-line budget?
 - [ ] `node test.js` 통과
 - [ ] `/qa-eval {skill}` 모든 픽스처 통과
 - [ ] `tests/rubric.json`(있다면) 검증 통과: `cites` 해석, 바닥값 기준마다 컨트롤 존재, `skill_version` 일치
+- [ ] 변경한 스킬에 캘리브레이션된 루브릭이 있으면: `node bin/eval.js ab` 전후 결과를 PR에 첨부 — 바닥값 위반 없음, 편차를 넘는 회귀 없음
 - [ ] 실제 작업에 Sonnet으로 테스트 완료
 - [ ] AI가 모든 단계를 건너뛰지 않고 수행
 

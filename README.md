@@ -10,7 +10,7 @@
 [![Skills: 13](https://img.shields.io/badge/Skills-13-green.svg)](#skills)
 [![Platform: Claude Code](https://img.shields.io/badge/Platform-Claude_Code-purple.svg)](#how-it-works)
 [![Locales: en, ko](https://img.shields.io/badge/Locales-en_|_ko-orange.svg)](#locales)
-[![Structural checks: 1636](https://img.shields.io/badge/Structural_checks-1636-brightgreen.svg)](#how-it-works)
+[![Structural checks: 1646](https://img.shields.io/badge/Structural_checks-1646-brightgreen.svg)](#how-it-works)
 
 An AI partner for anyone who tests software —<br>
 from epic test planning through sprint execution to release verification.<br>
@@ -76,6 +76,8 @@ Three knowledge layers, one contract: `REF-` (shipped references) · `PRJ-` (you
 The engine that runs this loop is **[Akela](https://github.com/TimothyHan/akela)** — extracted from QABuddy, generalized, and maintained upstream. QABuddy contributes the qa domain pack and consumes the engine pinned ([RFC 0003](docs/rfc/0003-akela-adoption.md)).
 
 [Full architecture →](docs/self-learning-guide-en.md)
+
+The skills themselves are graded, not just their knowledge: a headless run on the target model, a separate Opus judge scoring the artifact against the skill's own constraints, floors per must-criterion and a threshold derived from human-scored artifacts ([RFC 0005](docs/rfc/0005-rubric-scored-evals.md)).
 
 ---
 
@@ -341,7 +343,7 @@ Skills are authored once in `core/skills/`. The build script generates platform-
 ```bash
 node build.js all                  # Build for all platforms
 node build.js all --locale ko      # Build Korean version
-node test.js                       # Run 1636 structural checks
+node test.js                       # Run 1646 structural checks
 ```
 
 > **Structural checks are not behavioural verification.** `node test.js` inspects
@@ -357,7 +359,7 @@ node test.js                       # Run 1636 structural checks
 ```
 QABuddy/
 ├── build.js                     # Build script (node; vendors the pinned engine)
-├── test.js                      # Structural check suite (1636 checks)
+├── test.js                      # Structural check suite (1646 checks)
 ├── package.json                 # One pinned dependency: akela (the engine)
 ├── bin/akela.js                 # Engine launcher (env map · first-run akela.json · delegation)
 ├── bin/qab.js                   # Deprecation shim (one release)
