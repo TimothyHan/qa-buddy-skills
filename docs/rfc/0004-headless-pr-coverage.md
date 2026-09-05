@@ -94,8 +94,10 @@ that does everything the model should not.
     everything produced has been delivered.
 13. **The review gate is a merge.** A companion PR merged by a reviewer into the source
     branch is the signal to continue: the workflow (trigger `pull_request: closed`, head
-    `qabuddy/pr-<n>`, merged) runs the next phase on PR `<n>` — `after-companion-merge`
-    input, default `automate`, skipped when the merged companion already carried it. This
+    `qabuddy/pr-<n>`, merged) runs the rest on PR `<n>` — `after-companion-merge`
+    input, default `full` (explore runs in parallel with automate, so it adds about a
+    dollar and no wall time — Timothy's call), skipped when the merged companion already
+    carried automation. This
     is the reviewed, phase-by-phase chain Timothy asked about, without extra workflows:
     open → kb companion → review + merge → automate companion → review + merge.
     Companion PRs themselves never trigger a run of their own.

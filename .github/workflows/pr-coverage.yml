@@ -20,7 +20,7 @@ on:
       extra-prompt:   { type: string, default: ".github/qabuddy/extra.md", description: "Optional file in the consumer repo appended to every phase prompt" }
       fallback:       { type: string, default: "none",  description: "`none`: unmapped diffs run nothing; `all`: run every feature" }
       default-phases: { type: string, default: "kb",    description: "Phases on PR open / ready-for-review: `kb`, `kb,explore`, `kb,automate`, or `kb,explore,automate`; labels and `/qabuddy` comments override per PR" }
-      after-companion-merge: { type: string, default: "automate", description: "When a reviewed companion PR (`qabuddy/pr-<n>`) merges into the source branch, run this on the source PR: `automate` (kb + automate), `full`, or `none`. Skipped when the merged companion already carried automation." }
+      after-companion-merge: { type: string, default: "full", description: "When a reviewed companion PR (`qabuddy/pr-<n>`) merges into the source branch, run this on the source PR: `full` (kb + explore ∥ automate — explore adds no wall time), `automate` (kb + automate), or `none`. Skipped when the merged companion already carried automation." }
       test-user:      { type: string, default: "",      description: "Login for the app under test when it is a public demo account; otherwise use the TEST_USER secret" }
       test-pass:      { type: string, default: "",      description: "Password for that account; otherwise use the TEST_PASS secret" }
       kb-turns:       { type: string, default: "80" }
