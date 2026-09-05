@@ -21,18 +21,6 @@ Select relevant categories based on the feature type:
 | **Accessibility** | Keyboard navigation, screen reader compatibility, focus management, color contrast |
 | **Performance feel** | Perceived speed, loading indicators, responsiveness under interaction |
 
-## Techniques Per Heuristic
-<!-- qab: id=techniques-per-heuristic -->
-
-**Input variation:** Empty submission, single character, max length + 1, special characters (`< > " ' & ; -- {} [] () / \`), unicode (emoji, CJK, RTL, zero-width), numbers (0, -1, 99999999, 0.001, NaN), paste vs type, browser autofill.
-
-**State transitions:** Half-complete flow + browser back/refresh, two tabs (complete in one, try the other), start flow → wait 10+ min → try to complete, navigate away via link → come back.
-
-**Error recovery:** Validation error → fix → resubmit, multi-step flow fail at step 3 → go back to step 2?, force network error (dev tools) → does UI recover?, invalid data → error → clear field → does error clear?
-
-**Cross-feature:** After using new feature check related features, new feature's data correct in related views?, existing features still work? Check feature-map.json.
-
-**User personas:** New user (no data, first-time), power user (lots of data), restricted permissions, empty → populated state transition.
 
 ## Finding Categories
 <!-- qab: id=finding-categories -->
