@@ -124,8 +124,15 @@ listed — the fixture app's `v3` behaviour arriving as a plausible refactor):
 | Demo PR #2 (`server.js` soft-delete) | `touched` → `projects` deterministically (a); seeded heatmap posted: AC1–AC4 `partial` in E2E + Manual, AC5/AC6 `gap`, Exploratory `not run` (b, pre-run half); QABuddy installed on the runner from `poc/cloud-service` and `dist/claude/setup --status` clean |
 | Model step on #2 | failed before any spend: `ANTHROPIC_API_KEY` secret not set, and the action attempted a GitHub App token exchange (fixed: `github_token` passed) |
 
-Remaining for step D once the secret exists: (b) post-run, (c), (d), (e), (f).
-Per-phase cost and wall time: *to be filled in during step D.*
+### Local headless runs (step D, Timothy's Claude Code, `claude -p`, ko skills via the local symlink)
+
+| Run | Result |
+|---|---|
+| `/qa-test-cases projects --update --headless` | DONE in 33 turns, 231 s, **$1.24**; zero questions, zero permission denials (f); three Auto-decisions in `.qa-reports/headless/qa-test-cases.json`; §6.5 mapping written; TC-05–TC-07 added so AC5/AC6 move from `gap` to `partial` (b, post-run half for the kb phase); captured LRN-20260904-02 (zero-match search and the true empty state render the same DOM) |
+
+Remaining once the `ANTHROPIC_API_KEY` secret exists on `qabuddy-poc-acme`: the CI
+runs for `kb`, `qa:explore`, `qa:full` on PR #2 — (b) at-risk after exploration, (c),
+(d), (e) per-phase cost in CI.
 
 ## 5 · Open questions
 
