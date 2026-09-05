@@ -859,7 +859,7 @@ function testPrCoverage() {
     check(again === 3, 'init: refuses to overwrite an existing caller without --force');
 
     // summary: the run as a work list — findings from the session, bugs, close files, heatmap, results
-    w('features-kb/features/alpha/exploratory/2026-09-06.md', '# Report\n## Focus Area Results\n| Focus Area | ACs | Time | Findings | Result |\n|---|---|---|---|---|\n| Delete | AC3 | 5m | Finding 1 | finding |\n\n## Detailed Findings\n### Finding 1: Deleted thing stays listed\n**Category:** Bug | **Severity:** Critical | **Priority:** High\n**Action:** file bug\n\n### Finding 2: Should deleted names be reusable?\n**Category:** Missing requirement | **Severity:** Minor | **Priority:** Low\n**What I did:** reuse a name | **Expected:** unclear | **Actual:** 409\n**Action:** discuss with product\n');
+    w('features-kb/features/alpha/exploratory/2026-09-06.md', '# Report\n## Focus Area Results\n| Focus Area | ACs | Time | Findings | Result |\n|---|---|---|---|---|\n| Delete | AC3 | 5m | Finding 1 | finding |\n\n## Detailed Findings\n### Finding 1: Deleted thing stays listed\n**Category:** Bug | **Severity:** Critical (as BUG-001) | **Priority:** High\n**Action:** file bug\n\n### Finding 2: Should deleted names be reusable?\n**Category:** Missing requirement | **Severity:** Minor | **Priority:** Low\n**What I did:** reuse a name | **Expected:** unclear | **Actual:** 409\n**Action:** discuss with product | keep the 409 or free the name\n');
     w('features-kb/features/alpha/bugs/BUG-001.md', '# BUG-001: Deleted things remain listed\n**Feature:** alpha | **Severity:** P1\n**Status:** Open\n');
     w('.qa-reports/headless/qa-exploratory.json', JSON.stringify({ skill: 'qa-exploratory', status: 'DONE_WITH_CONCERNS', artifacts: [], autoDecisions: ['x'], concerns: ['TC-03 needs the global-state project'] }));
     w('.qa-reports/pr-coverage/claude-explore.json', JSON.stringify([{ type: 'result', num_turns: 61, total_cost_usd: 1.04, duration_ms: 420000, is_error: false }]));
@@ -867,7 +867,8 @@ function testPrCoverage() {
     const sm_sum = JSON.parse(run(['summary', '--touched', 'touched.json', '--heatmap', 'out/h.json', '--results', 'results.json', '--changed', 'changed.txt', '--pr', '7', '--source-ref', 'feat/x', '--phases', 'kb,explore', '--json', 'out/findings.json']));
     const sm_fj = JSON.parse(fs.readFileSync(path.join(tmp, 'out', 'findings.json'), 'utf8'));
     check(sm_sum.findings === 2 && sm_sum.bugs === 1 && sm_sum.decisions === 1 && sm_sum.failed === 1, 'summary: counts findings, bug files, decisions, failing specs', JSON.stringify(sm_sum));
-    check(sm_fj.findings[0].kind === 'bug' && sm_fj.findings[1].kind === 'decision' && /^[0-9a-f]{12}$/.test(sm_fj.findings[1].hash) && sm_fj.findings[1].fields.action === 'discuss with product', 'summary: classifies findings from the session block and hashes them');
+    check(sm_fj.findings[0].kind === 'bug' && sm_fj.findings[1].kind === 'decision' && /^[0-9a-f]{12}$/.test(sm_fj.findings[1].hash) && sm_fj.findings[1].fields.action === 'discuss with product | keep the 409 or free the name', 'summary: classifies findings from the session block, hashes them, keeps the whole action sentence');
+    check(sm_fj.findings[0].bug === 'BUG-001', 'summary: a finding that names a bug file is linked to it');
     check(sm_fj.stats.phases.explore.cost === 1.04 && sm_fj.stats.skills['qa-exploratory'].concerns.length === 1 && sm_fj.adds.specs === 1 && sm_fj.adds.bugs === 1, 'summary: reads execution logs, close files, and the changed-file categories');
     const ghIssues = path.join(tmp, 'gh-issues'); fs.mkdirSync(ghIssues);
     const issueLog = path.join(tmp, 'issues.log');
@@ -890,6 +891,7 @@ function testPrCoverage() {
     const sm_body = fs.readFileSync(path.join(tmp, 'out', 'body.md'), 'utf8'), sm_ann = fs.readFileSync(path.join(tmp, 'out', 'announce.md'), 'utf8');
     check(/## What this PR adds/.test(sm_body) && /1 Playwright spec/.test(sm_body) && /## Findings \(3\)/.test(sm_body) && /🐞 \*\*BUG-001\*\* \(P1\)/.test(sm_body), 'summary sm_body: what it adds, findings with bug files');
     check(/### Fix on `feat\/x` \(author\)/.test(sm_body) && /- \[ \] failing spec: TC-02/.test(sm_body) && /\/qabuddy heatmap/.test(sm_body) && /### Decide \(reviewer\)/.test(sm_body) && /issues\/42 — Should deleted names/.test(sm_body), 'summary sm_body: to-do list — fix on the source branch, decisions link to their issues');
+    check(/also seen as Finding 1/.test(sm_body) && !/- \[ \] Finding 1/.test(sm_body), 'summary body: a finding linked to a bug file is listed under the bug, not as a second to-do');
     check(/### Not automated yet/.test(sm_body) && /TC-03 \(AC3\)/.test(sm_body) && /Concerns raised by the phases/.test(sm_body), 'summary sm_body: unautomated test cases and phase concerns');
     check(sm_ann.startsWith('QABuddy opened https://github.com/o/r/pull/9 with tests for this PR (phases: kb, explore)') && /\*\*To fix on this branch\*\*/.test(sm_ann) && /\*\*Needs a decision:\*\*/.test(sm_ann) && /issues\/42/.test(sm_ann), 'summary announcement: starts with the phrase the merge-marker looks for, lists fixes and decisions');
 
