@@ -858,8 +858,8 @@ function testPrCoverage() {
     // The reusable workflow and its support files ship in this repository
     const wf = readFile(path.join(ROOT, '.github', 'workflows', 'pr-coverage.yml')) || '';
     check(/^on:\n\s+workflow_call:/m.test(wf), '.github/workflows/pr-coverage.yml is a reusable workflow (workflow_call)');
-    for (const inp of ['app-start', 'app-url', 'qabuddy-ref', 'kb-budget', 'automate-turns', 'default-phases', 'test-user', 'after-companion-merge']) check(new RegExp(`^\\s+${inp}:`, 'm').test(wf), `pr-coverage.yml declares input ${inp}`);
-    for (const job of ['resolve', 'preflight', 'kb', 'explore', 'automate', 'deliver']) check(new RegExp(`^  ${job}:`, 'm').test(wf), `pr-coverage.yml has job ${job}`);
+    for (const inp of ['app-start', 'app-url', 'qabuddy-ref', 'kb-budget', 'automate-turns', 'default-phases', 'test-user', 'after-companion-merge', 'gate-on']) check(new RegExp(`^\\s+${inp}:`, 'm').test(wf), `pr-coverage.yml declares input ${inp}`);
+    for (const job of ['resolve', 'preflight', 'kb', 'explore', 'automate', 'deliver', 'gate']) check(new RegExp(`^  ${job}:`, 'm').test(wf), `pr-coverage.yml has job ${job}`);
     check(!/&[a-z-]+\n/.test(wf) && !/\*[a-z-]+\n/.test(wf), 'pr-coverage.yml uses no YAML anchors (GitHub Actions does not support them)');
     check(/pr-coverage\.js"? merge/.test(wf) && /pr-coverage\.js"? preflight/.test(wf) && /include-hidden-files: true/.test(wf), 'pr-coverage.yml merges phase trees, runs preflight, and uploads dot-directories');
     check((wf.match(/continue-on-error: true/g) || []).length === 3, 'pr-coverage.yml: each of the three phase sessions is continue-on-error');

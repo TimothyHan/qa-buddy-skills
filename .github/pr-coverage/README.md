@@ -52,6 +52,20 @@ first time, posts the heatmap, and fails the run honestly if any phase failed �
 everything produced has been delivered. When a reviewer merges the companion, the
 announcement comment gets a 🚀 reaction and a "Merged into `branch`" line.
 
+## Blocking merges
+
+Every job reports a check, but "the run finished" is the wrong thing to gate a QA bot on: a
+run that found a failing spec still finishes green, because that failure is what it delivers.
+The `gate` job turns a policy into a check you can require in branch protection
+(`qabuddy / gate` when the caller job is named `qabuddy`):
+
+| `gate-on` | fails when |
+|---|---|
+| `none` (default) | never — advisory |
+| `at-risk` | any AC has a failing spec or an exploratory finding |
+| `suite` | the executed Playwright suite has failures |
+| `gaps` | any AC has no test case in any layer |
+
 ## Files here
 
 | File | Role |
