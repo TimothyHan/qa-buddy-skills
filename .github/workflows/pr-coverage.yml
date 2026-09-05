@@ -19,6 +19,8 @@ on:
       qabuddy-ref:    { type: string, default: "poc/cloud-service", description: "QABuddy git ref to install on the runner" }
       extra-prompt:   { type: string, default: ".github/qabuddy/extra.md", description: "Optional file in the consumer repo appended to every phase prompt" }
       fallback:       { type: string, default: "none",  description: "`none`: unmapped diffs run nothing; `all`: run every feature" }
+      test-user:      { type: string, default: "",      description: "Login for the app under test when it is a public demo account; otherwise use the TEST_USER secret" }
+      test-pass:      { type: string, default: "",      description: "Password for that account; otherwise use the TEST_PASS secret" }
       kb-turns:       { type: string, default: "80" }
       kb-budget:      { type: string, default: "5" }
       explore-turns:  { type: string, default: "120" }
@@ -158,8 +160,8 @@ jobs:
       FEATURES: ${{ needs.preflight.outputs.features }}
       BASE_URL: ${{ inputs.app-url }}
       QABUDDY_HEADLESS: "1"
-      TEST_USER: ${{ secrets.TEST_USER }}
-      TEST_PASS: ${{ secrets.TEST_PASS }}
+      TEST_USER: ${{ secrets.TEST_USER || inputs.test-user }}
+      TEST_PASS: ${{ secrets.TEST_PASS || inputs.test-pass }}
     steps:
       - uses: actions/checkout@v4
         with: { ref: "${{ needs.resolve.outputs.head }}", fetch-depth: 0 }
@@ -224,8 +226,8 @@ jobs:
       FEATURES: ${{ needs.preflight.outputs.features }}
       BASE_URL: ${{ inputs.app-url }}
       QABUDDY_HEADLESS: "1"
-      TEST_USER: ${{ secrets.TEST_USER }}
-      TEST_PASS: ${{ secrets.TEST_PASS }}
+      TEST_USER: ${{ secrets.TEST_USER || inputs.test-user }}
+      TEST_PASS: ${{ secrets.TEST_PASS || inputs.test-pass }}
     steps:
       - uses: actions/checkout@v4
         with: { ref: "${{ needs.resolve.outputs.head }}", fetch-depth: 0 }
@@ -292,8 +294,8 @@ jobs:
       FEATURES: ${{ needs.preflight.outputs.features }}
       BASE_URL: ${{ inputs.app-url }}
       QABUDDY_HEADLESS: "1"
-      TEST_USER: ${{ secrets.TEST_USER }}
-      TEST_PASS: ${{ secrets.TEST_PASS }}
+      TEST_USER: ${{ secrets.TEST_USER || inputs.test-user }}
+      TEST_PASS: ${{ secrets.TEST_PASS || inputs.test-pass }}
     steps:
       - uses: actions/checkout@v4
         with: { ref: "${{ needs.resolve.outputs.head }}", fetch-depth: 0 }
@@ -342,7 +344,7 @@ jobs:
         run: |
           if [ -f playwright.config.ts ] || [ -f playwright.config.js ]; then
             npx playwright test --reporter=json > .qa-reports/pr-coverage/playwright-results.json || true
-            node -e 'const r=require("./.qa-reports/pr-coverage/playwright-results.json");const s=r.stats||{};console.log("playwright:",JSON.stringify({expected:s.expected,unexpected:s.unexpected,flaky:s.flaky,skipped:s.skipped}))' || true
+            node -e 'const r=require("./.qa-reports/pr-coverage/playwright-results.json");const s=r.stats||{};console.log("playwright:",JSON.stringify({expected:s.expected,unexpected:s.unexpected,flaky:s.flaky,skipped:s.skipped}));if(!(s.expected+s.unexpected+s.flaky+s.skipped)){for(const e of r.errors||[])console.log("::warning::playwright ran no tests:",(e.message||"").split("\n")[0].slice(0,300))}' || true
           else
             echo "no playwright config — nothing to execute"
           fi
@@ -379,7 +381,7 @@ jobs:
       - name: Union the phase trees (kb as base; automate ∥ explore)
         run: |
           set -euo pipefail
-          P="$RUNNER_TEMP/phases"; T="$RUNNER_TEMP/trees"; mkdir -p "$T"
+          P="$RUNNER_TEMP/phases"; T="$RUNNER_TEMP/trees"; mkdir -p "$T" .qa-reports/pr-coverage
           for ph in kb explore automate; do
             if [ -f "$P/qabuddy-$GITHUB_RUN_ID-$ph/phase.tgz" ]; then mkdir -p "$T/$ph"; tar xzf "$P/qabuddy-$GITHUB_RUN_ID-$ph/phase.tgz" -C "$T/$ph"; echo "phase tree: $ph"; fi
           done

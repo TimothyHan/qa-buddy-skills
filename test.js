@@ -815,6 +815,7 @@ function testPrCoverage() {
     mw('ours', 'playwright/tests/a.spec.ts', "test('TC-01: x', () => {});\n"); mw('theirs', 'features-kb/features/p/exploratory/2026-09-05.md', '| Focus Area | ACs |\n');
     mw('base', 'features-kb/LEARNINGS.md', 'base\n'); mw('ours', 'features-kb/LEARNINGS.md', 'ours\n'); mw('theirs', 'features-kb/LEARNINGS.md', 'theirs\n');
     mw('base', 'features-kb/old.md', 'gone\n'); mw('theirs', 'features-kb/old.md', 'gone\n');
+    mw('base', '.qa-reports/run', 'run-a\n'); mw('ours', '.qa-reports/run', 'run-b\n'); mw('theirs', '.qa-reports/run', 'run-c\n');
     const mergeCode = (() => { try { run(['merge', '--base', `${M}/base`, '--ours', `${M}/ours`, '--theirs', `${M}/theirs`, '--out', `${M}/out`]); return 0; } catch (e) { return e.status; } })();
     check(mergeCode === 5, 'merge: exits 5 when a file conflicted (everything else still written)', `exit ${mergeCode}`);
     const mo = rel => { const p = path.join(M, 'out', rel); return fs.existsSync(p) ? fs.readFileSync(p, 'utf8') : null; };
@@ -824,6 +825,8 @@ function testPrCoverage() {
     check(mo('playwright/tests/a.spec.ts') !== null && mo('features-kb/features/p/exploratory/2026-09-05.md') !== null, 'merge: files unique to one side are copied');
     check(mo('features-kb/old.md') === null, 'merge: a file one side deleted and the other left untouched stays deleted');
     check(mo('features-kb/index.json') === '{"same":true}\n', 'merge: identical files copied once');
+    const mergeReport = JSON.parse((() => { try { return run(['merge', '--base', `${M}/base`, '--ours', `${M}/ours`, '--theirs', `${M}/theirs`, '--out', `${M}/out3`]); } catch (e) { return e.stdout; } })());
+    check(mergeReport.ephemeral.includes('.qa-reports/run') && !mergeReport.conflicts.includes('.qa-reports/run') && mo('.qa-reports/run') === 'run-b\n', 'merge: a conflict under .qa-reports/ (run markers, logs) is ephemeral — ours wins, not reported as a conflict');
     const sameCode = (() => { try { run(['merge', '--base', `${M}/base`, '--ours', `${M}/base`, '--theirs', `${M}/base`, '--out', `${M}/out2`]); return 0; } catch (e) { return e.status; } })();
     check(sameCode === 0, 'merge: a skipped phase passed as the kb tree merges cleanly (exit 0)');
 

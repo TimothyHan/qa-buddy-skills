@@ -570,7 +570,7 @@ function cmdMerge(o) {
   const roots = (o.paths || DEFAULT_MERGE_PATHS.join(',')).split(',').map(s => s.trim()).filter(Boolean);
   const files = new Set();
   for (const root of [o.base, o.ours, o.theirs]) for (const p of roots) walkAll(root, p, files);
-  const report = { schema: 'pr-merge/1', copied: 0, merged: [], unioned: [], conflicts: [], deleted: [] };
+  const report = { schema: 'pr-merge/1', copied: 0, merged: [], unioned: [], conflicts: [], ephemeral: [], deleted: [] };
   const tmp = fs.mkdtempSync(path.join(require('os').tmpdir(), 'qab-merge-'));
   try {
     for (const rel of [...files].sort()) {
@@ -586,6 +586,7 @@ function cmdMerge(o) {
         else {
           const m = mergeFile(rel, b, a, t, tmp);
           if (m.ok) { result = m.content; report.merged.push(rel); }
+          else if (rel.startsWith('.qa-reports/')) { result = a; report.ephemeral.push(rel); }   // run markers, logs: ours, no conflict
           else { result = a; report.conflicts.push(rel + (m.error ? ` (${m.error})` : '')); }
         }
       }
@@ -687,6 +688,8 @@ jobs:
       # node-version: "20"
       # model: claude-sonnet-5
       # extra-prompt: .github/qabuddy/extra.md   # optional project instructions for every phase
+      # test-user: qa@example.test  # only for a public demo account — real logins go in the
+      # test-pass: demo123          # TEST_USER / TEST_PASS secrets (secrets: inherit passes them)
     secrets: inherit
 `;
 }
