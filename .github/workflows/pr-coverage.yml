@@ -1,0 +1,442 @@
+# QABuddy on pull requests — the reusable workflow (RFC 0004).
+#
+# Called from a consumer repository's workflow with `uses:`; the consumer only says how to
+# run its app. Jobs: resolve → preflight → kb → (explore ∥ automate) → deliver. Each phase
+# is its own Claude session with its own caps; phases hand their trees to each other as
+# artifacts and `deliver` unions them with a three-way merge (kb tree as the base).
+# Nothing writes to the base branch: one sticky comment on the PR and one companion PR.
+name: QABuddy PR coverage
+
+on:
+  workflow_call:
+    inputs:
+      app-start:      { type: string, required: true,  description: "Command that starts the app under test in the background, e.g. `node server.js`" }
+      app-url:        { type: string, required: true,  description: "Base URL the app answers on, e.g. http://localhost:4173" }
+      health-path:    { type: string, default: "/",     description: "Path that returns 200 once the app is up" }
+      install:        { type: string, default: "npm ci", description: "Command that installs the app's dependencies" }
+      node-version:   { type: string, default: "20" }
+      model:          { type: string, default: "claude-sonnet-5" }
+      qabuddy-ref:    { type: string, default: "poc/cloud-service", description: "QABuddy git ref to install on the runner" }
+      extra-prompt:   { type: string, default: ".github/qabuddy/extra.md", description: "Optional file in the consumer repo appended to every phase prompt" }
+      fallback:       { type: string, default: "none",  description: "`none`: unmapped diffs run nothing; `all`: run every feature" }
+      kb-turns:       { type: string, default: "80" }
+      kb-budget:      { type: string, default: "5" }
+      explore-turns:  { type: string, default: "120" }
+      explore-budget: { type: string, default: "10" }
+      automate-turns: { type: string, default: "300" }
+      automate-budget: { type: string, default: "25" }
+    secrets:
+      CLAUDE_CODE_OAUTH_TOKEN: { required: false, description: "Subscription token from `claude setup-token` (preferred)" }
+      ANTHROPIC_API_KEY:       { required: false, description: "API key (needs API credit) — fallback" }
+      TEST_USER:               { required: false }
+      TEST_PASS:               { required: false }
+
+env:
+  QABUDDY_REPO: https://github.com/TimothyHan/qa-buddy-skills.git
+  QABUDDY_TOOLS: Bash,Read,Write,Edit,Glob,Grep,Agent,Skill,mcp__playwright__browser_navigate,mcp__playwright__browser_navigate_back,mcp__playwright__browser_snapshot,mcp__playwright__browser_take_screenshot,mcp__playwright__browser_click,mcp__playwright__browser_type,mcp__playwright__browser_fill_form,mcp__playwright__browser_select_option,mcp__playwright__browser_hover,mcp__playwright__browser_press_key,mcp__playwright__browser_evaluate,mcp__playwright__browser_console_messages,mcp__playwright__browser_network_requests,mcp__playwright__browser_tabs,mcp__playwright__browser_resize,mcp__playwright__browser_handle_dialog,mcp__playwright__browser_wait_for
+
+jobs:
+  # ── 1 · which PR, which phases ──────────────────────────────────────────────
+  resolve:
+    if: >-
+      (github.event_name == 'pull_request'
+        && github.event.pull_request.draft == false
+        && github.event.pull_request.head.repo.full_name == github.repository)
+      || (github.event_name == 'issue_comment'
+        && github.event.issue.pull_request
+        && contains(github.event.comment.body, '/qabuddy'))
+    runs-on: ubuntu-latest
+    outputs:
+      pr: ${{ steps.p.outputs.pr }}
+      phases: ${{ steps.p.outputs.phases }}
+      head: ${{ steps.p.outputs.head }}
+      base: ${{ steps.p.outputs.base }}
+      base_ref: ${{ steps.p.outputs.base_ref }}
+    steps:
+      - id: p
+        env:
+          GH_TOKEN: ${{ github.token }}
+          EVENT: ${{ github.event_name }}
+          ACTION: ${{ github.event.action }}
+          LABEL: ${{ github.event.label.name }}
+          LABELS: ${{ join(github.event.pull_request.labels.*.name, ',') }}
+          COMMENT: ${{ github.event.comment.body }}
+          PR_NUMBER: ${{ github.event.pull_request.number || github.event.issue.number }}
+        run: |
+          set -euo pipefail
+          PH=kb
+          if [ "$EVENT" = "issue_comment" ]; then
+            case "$COMMENT" in
+              *"/qabuddy full"*)     PH=kb,explore,automate ;;
+              *"/qabuddy automate"*) PH=kb,automate ;;
+              *"/qabuddy explore"*)  PH=kb,explore ;;
+            esac
+          else
+            if [ "$ACTION" = "labeled" ] && ! printf '%s' "$LABEL" | grep -q '^qa:'; then
+              echo "label '$LABEL' is not a qa:* label — skipping"; exit 0
+            fi
+            case ",$LABELS," in
+              *,qa:full,*)     PH=kb,explore,automate ;;
+              *,qa:automate,*) PH=kb,automate ;;
+              *,qa:explore,*)  PH=kb,explore ;;
+            esac
+          fi
+          gh pr view "$PR_NUMBER" --repo "$GITHUB_REPOSITORY" \
+            --json headRefOid,baseRefOid,baseRefName \
+            --jq '"head=\(.headRefOid)\nbase=\(.baseRefOid)\nbase_ref=\(.baseRefName)"' >> "$GITHUB_OUTPUT"
+          echo "pr=$PR_NUMBER" >> "$GITHUB_OUTPUT"
+          echo "phases=$PH" >> "$GITHUB_OUTPUT"
+
+  # ── 2 · preflight: map the diff, check prerequisites, spend nothing ────────
+  preflight:
+    needs: resolve
+    if: needs.resolve.outputs.pr != ''
+    runs-on: ubuntu-latest
+    outputs:
+      features: ${{ steps.touched.outputs.features }}
+    steps:
+      - uses: actions/checkout@v4
+        with: { ref: "${{ needs.resolve.outputs.head }}", fetch-depth: 0 }
+      - uses: actions/setup-node@v4
+        with: { node-version: "${{ inputs.node-version }}" }
+      - name: Install QABuddy
+        run: |
+          git clone -q --depth 1 --branch "${{ inputs.qabuddy-ref }}" "$QABUDDY_REPO" "$RUNNER_TEMP/qabuddy"
+          bash "$RUNNER_TEMP/qabuddy/.github/pr-coverage/install.sh" "$RUNNER_TEMP/qabuddy"
+      - name: Map the diff to knowledge-base features
+        id: touched
+        run: |
+          set -euo pipefail
+          mkdir -p .qa-reports/pr-coverage
+          node "$QAB_BIN/pr-coverage.js" touched --base "${{ needs.resolve.outputs.base }}" --head "${{ needs.resolve.outputs.head }}" \
+            --fallback "${{ inputs.fallback }}" > .qa-reports/pr-coverage/touched.json
+          FEATURES=$(node -e 'console.log(require("./.qa-reports/pr-coverage/touched.json").features.map(f=>f.key).join(","))')
+          echo "features=$FEATURES" >> "$GITHUB_OUTPUT"
+          echo "touched features: ${FEATURES:-<none>}"
+      - name: Preflight
+        id: preflight
+        env:
+          GH_TOKEN: ${{ github.token }}
+          HAS_TOKEN: ${{ secrets.CLAUDE_CODE_OAUTH_TOKEN != '' || secrets.ANTHROPIC_API_KEY != '' }}
+        run: |
+          set -euo pipefail
+          CAN=$(gh api "repos/$GITHUB_REPOSITORY/actions/permissions/workflow" --jq '.can_approve_pull_request_reviews' 2>/dev/null || echo unknown)
+          set +e
+          node "$QAB_BIN/pr-coverage.js" preflight --touched .qa-reports/pr-coverage/touched.json \
+            --has-token "$HAS_TOKEN" --can-create-prs "$CAN" --pr "${{ needs.resolve.outputs.pr }}" \
+            --md .qa-reports/pr-coverage/preflight.md | tee .qa-reports/pr-coverage/preflight.json
+          RC=$?
+          set -e
+          if [ "$RC" != "0" ]; then
+            node "$QAB_BIN/pr-coverage.js" comment --repo "$GITHUB_REPOSITORY" --pr "${{ needs.resolve.outputs.pr }}" --body-file .qa-reports/pr-coverage/preflight.md
+            echo "::error::preflight found problems — see the PR comment"; exit 1
+          fi
+      - name: Nothing to run — say so on the PR
+        if: steps.touched.outputs.features == ''
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          node "$QAB_BIN/pr-coverage.js" heatmap --touched .qa-reports/pr-coverage/touched.json --phases "${{ needs.resolve.outputs.phases }}" \
+            --pr "${{ needs.resolve.outputs.pr }}" --run-url "$GITHUB_SERVER_URL/$GITHUB_REPOSITORY/actions/runs/$GITHUB_RUN_ID" \
+            --out .qa-reports/pr-coverage/heatmap.json --md .qa-reports/pr-coverage/heatmap.md
+          node "$QAB_BIN/pr-coverage.js" comment --repo "$GITHUB_REPOSITORY" --pr "${{ needs.resolve.outputs.pr }}" --body-file .qa-reports/pr-coverage/heatmap.md
+      - uses: actions/upload-artifact@v4
+        if: steps.touched.outputs.features != ''
+        with: { name: "qabuddy-${{ github.run_id }}-touched", path: .qa-reports/pr-coverage/touched.json, include-hidden-files: true }
+
+  # ── 3 · kb: test cases, §6.5 mapping, gaps ──────────────────────────────────
+  kb:
+    needs: [resolve, preflight]
+    if: needs.preflight.outputs.features != ''
+    runs-on: ubuntu-latest
+    timeout-minutes: 30
+    outputs:
+      outcome: ${{ steps.claude.outcome }}
+    env:
+      PR: ${{ needs.resolve.outputs.pr }}
+      BASE_SHA: ${{ needs.resolve.outputs.base }}
+      FEATURES: ${{ needs.preflight.outputs.features }}
+      BASE_URL: ${{ inputs.app-url }}
+      QABUDDY_HEADLESS: "1"
+      TEST_USER: ${{ secrets.TEST_USER }}
+      TEST_PASS: ${{ secrets.TEST_PASS }}
+    steps:
+      - uses: actions/checkout@v4
+        with: { ref: "${{ needs.resolve.outputs.head }}", fetch-depth: 0 }
+      - uses: actions/setup-node@v4
+        with: { node-version: "${{ inputs.node-version }}" }
+      - name: Install app dependencies
+        run: ${{ inputs.install }}
+      - name: Install QABuddy
+        run: |
+          git clone -q --depth 1 --branch "${{ inputs.qabuddy-ref }}" "$QABUDDY_REPO" "$RUNNER_TEMP/qabuddy"
+          bash "$RUNNER_TEMP/qabuddy/.github/pr-coverage/install.sh" "$RUNNER_TEMP/qabuddy"
+      - uses: actions/download-artifact@v4
+        with: { name: "qabuddy-${{ github.run_id }}-touched", path: .qa-reports/pr-coverage }
+      - name: Start the app
+        run: |
+          set -euo pipefail
+          mkdir -p .qa-reports
+          (${{ inputs.app-start }} > .qa-reports/app.log 2>&1 &)
+          for i in $(seq 1 30); do curl -sf "${BASE_URL}${{ inputs.health-path }}" > /dev/null && break; sleep 1; done
+          curl -sf "${BASE_URL}${{ inputs.health-path }}" > /dev/null
+      - name: Render the prompt
+        id: render
+        run: |
+          set -euo pipefail
+          { echo 'prompt<<QABUDDY_PROMPT_EOF'; node "$QAB_SRC/.github/pr-coverage/render.js" kb "${{ inputs.extra-prompt }}"; echo; echo 'QABUDDY_PROMPT_EOF'; } >> "$GITHUB_OUTPUT"
+      - name: Phase kb — test cases and mapping
+        id: claude
+        continue-on-error: true
+        uses: anthropics/claude-code-action@v1
+        with:
+          claude_code_oauth_token: ${{ secrets.CLAUDE_CODE_OAUTH_TOKEN }}
+          anthropic_api_key: ${{ secrets.CLAUDE_CODE_OAUTH_TOKEN == '' && secrets.ANTHROPIC_API_KEY || '' }}
+          github_token: ${{ secrets.GITHUB_TOKEN }}
+          prompt: ${{ steps.render.outputs.prompt }}
+          claude_args: >-
+            --model ${{ inputs.model }}
+            --max-turns ${{ inputs.kb-turns }}
+            --max-budget-usd ${{ inputs.kb-budget }}
+            --disallowedTools AskUserQuestion
+            --allowedTools "${{ env.QABUDDY_TOOLS }}"
+            --mcp-config ${{ env.QAB_SRC }}/.github/pr-coverage/mcp.json
+      - name: Pack the phase tree
+        if: always()
+        run: |
+          cp "$RUNNER_TEMP/claude-execution-output.json" .qa-reports/pr-coverage/claude-kb.json 2>/dev/null || true
+          tar czf "$RUNNER_TEMP/phase.tgz" --ignore-failed-read features-kb playwright playwright.config.ts playwright.config.js .qa-reports 2>/dev/null || tar czf "$RUNNER_TEMP/phase.tgz" features-kb .qa-reports
+      - uses: actions/upload-artifact@v4
+        if: always()
+        with: { name: "qabuddy-${{ github.run_id }}-kb", path: "${{ runner.temp }}/phase.tgz" }
+
+  # ── 4 · explore: headless exploratory session (parallel with automate) ─────
+  explore:
+    needs: [resolve, preflight, kb]
+    if: always() && needs.kb.result != 'skipped' && contains(needs.resolve.outputs.phases, 'explore')
+    runs-on: ubuntu-latest
+    timeout-minutes: 40
+    outputs:
+      outcome: ${{ steps.claude.outcome }}
+    env:
+      PR: ${{ needs.resolve.outputs.pr }}
+      BASE_SHA: ${{ needs.resolve.outputs.base }}
+      FEATURES: ${{ needs.preflight.outputs.features }}
+      BASE_URL: ${{ inputs.app-url }}
+      QABUDDY_HEADLESS: "1"
+      TEST_USER: ${{ secrets.TEST_USER }}
+      TEST_PASS: ${{ secrets.TEST_PASS }}
+    steps:
+      - uses: actions/checkout@v4
+        with: { ref: "${{ needs.resolve.outputs.head }}", fetch-depth: 0 }
+      - uses: actions/setup-node@v4
+        with: { node-version: "${{ inputs.node-version }}" }
+      - name: Install app dependencies
+        run: ${{ inputs.install }}
+      - name: Install QABuddy
+        run: |
+          git clone -q --depth 1 --branch "${{ inputs.qabuddy-ref }}" "$QABUDDY_REPO" "$RUNNER_TEMP/qabuddy"
+          bash "$RUNNER_TEMP/qabuddy/.github/pr-coverage/install.sh" "$RUNNER_TEMP/qabuddy"
+      - uses: actions/download-artifact@v4
+        with: { name: "qabuddy-${{ github.run_id }}-kb", path: "${{ runner.temp }}/in" }
+      - name: Overlay the kb tree
+        run: tar xzf "$RUNNER_TEMP/in/phase.tgz"
+      - name: Start the app and install browsers
+        run: |
+          set -euo pipefail
+          (${{ inputs.app-start }} > .qa-reports/app.log 2>&1 &)
+          for i in $(seq 1 30); do curl -sf "${BASE_URL}${{ inputs.health-path }}" > /dev/null && break; sleep 1; done
+          curl -sf "${BASE_URL}${{ inputs.health-path }}" > /dev/null
+          npx playwright install --with-deps chromium
+      - name: Render the prompt
+        id: render
+        run: |
+          set -euo pipefail
+          { echo 'prompt<<QABUDDY_PROMPT_EOF'; node "$QAB_SRC/.github/pr-coverage/render.js" explore "${{ inputs.extra-prompt }}"; echo; echo 'QABUDDY_PROMPT_EOF'; } >> "$GITHUB_OUTPUT"
+      - name: Phase explore — exploratory session
+        id: claude
+        continue-on-error: true
+        uses: anthropics/claude-code-action@v1
+        with:
+          claude_code_oauth_token: ${{ secrets.CLAUDE_CODE_OAUTH_TOKEN }}
+          anthropic_api_key: ${{ secrets.CLAUDE_CODE_OAUTH_TOKEN == '' && secrets.ANTHROPIC_API_KEY || '' }}
+          github_token: ${{ secrets.GITHUB_TOKEN }}
+          prompt: ${{ steps.render.outputs.prompt }}
+          claude_args: >-
+            --model ${{ inputs.model }}
+            --max-turns ${{ inputs.explore-turns }}
+            --max-budget-usd ${{ inputs.explore-budget }}
+            --disallowedTools AskUserQuestion
+            --allowedTools "${{ env.QABUDDY_TOOLS }}"
+            --mcp-config ${{ env.QAB_SRC }}/.github/pr-coverage/mcp.json
+      - name: Pack the phase tree
+        if: always()
+        run: |
+          cp "$RUNNER_TEMP/claude-execution-output.json" .qa-reports/pr-coverage/claude-explore.json 2>/dev/null || true
+          tar czf "$RUNNER_TEMP/phase.tgz" --ignore-failed-read features-kb playwright playwright.config.ts playwright.config.js .qa-reports 2>/dev/null || tar czf "$RUNNER_TEMP/phase.tgz" features-kb .qa-reports
+      - uses: actions/upload-artifact@v4
+        if: always()
+        with: { name: "qabuddy-${{ github.run_id }}-explore", path: "${{ runner.temp }}/phase.tgz" }
+
+  # ── 5 · automate: page objects and specs for the gaps (parallel with explore)
+  automate:
+    needs: [resolve, preflight, kb]
+    if: always() && needs.kb.result != 'skipped' && contains(needs.resolve.outputs.phases, 'automate')
+    runs-on: ubuntu-latest
+    timeout-minutes: 60
+    outputs:
+      outcome: ${{ steps.claude.outcome }}
+    env:
+      PR: ${{ needs.resolve.outputs.pr }}
+      BASE_SHA: ${{ needs.resolve.outputs.base }}
+      FEATURES: ${{ needs.preflight.outputs.features }}
+      BASE_URL: ${{ inputs.app-url }}
+      QABUDDY_HEADLESS: "1"
+      TEST_USER: ${{ secrets.TEST_USER }}
+      TEST_PASS: ${{ secrets.TEST_PASS }}
+    steps:
+      - uses: actions/checkout@v4
+        with: { ref: "${{ needs.resolve.outputs.head }}", fetch-depth: 0 }
+      - uses: actions/setup-node@v4
+        with: { node-version: "${{ inputs.node-version }}" }
+      - name: Install app dependencies
+        run: ${{ inputs.install }}
+      - name: Install QABuddy
+        run: |
+          git clone -q --depth 1 --branch "${{ inputs.qabuddy-ref }}" "$QABUDDY_REPO" "$RUNNER_TEMP/qabuddy"
+          bash "$RUNNER_TEMP/qabuddy/.github/pr-coverage/install.sh" "$RUNNER_TEMP/qabuddy"
+      - uses: actions/download-artifact@v4
+        with: { name: "qabuddy-${{ github.run_id }}-kb", path: "${{ runner.temp }}/in" }
+      - name: Overlay the kb tree
+        run: tar xzf "$RUNNER_TEMP/in/phase.tgz"
+      - name: Start the app and install browsers
+        run: |
+          set -euo pipefail
+          (${{ inputs.app-start }} > .qa-reports/app.log 2>&1 &)
+          for i in $(seq 1 30); do curl -sf "${BASE_URL}${{ inputs.health-path }}" > /dev/null && break; sleep 1; done
+          curl -sf "${BASE_URL}${{ inputs.health-path }}" > /dev/null
+          npx playwright install --with-deps chromium
+      - name: Render the prompt
+        id: render
+        run: |
+          set -euo pipefail
+          { echo 'prompt<<QABUDDY_PROMPT_EOF'; node "$QAB_SRC/.github/pr-coverage/render.js" automate "${{ inputs.extra-prompt }}"; echo; echo 'QABUDDY_PROMPT_EOF'; } >> "$GITHUB_OUTPUT"
+      - name: Phase automate — page objects and specs
+        id: claude
+        continue-on-error: true
+        uses: anthropics/claude-code-action@v1
+        with:
+          claude_code_oauth_token: ${{ secrets.CLAUDE_CODE_OAUTH_TOKEN }}
+          anthropic_api_key: ${{ secrets.CLAUDE_CODE_OAUTH_TOKEN == '' && secrets.ANTHROPIC_API_KEY || '' }}
+          github_token: ${{ secrets.GITHUB_TOKEN }}
+          prompt: ${{ steps.render.outputs.prompt }}
+          claude_args: >-
+            --model ${{ inputs.model }}
+            --max-turns ${{ inputs.automate-turns }}
+            --max-budget-usd ${{ inputs.automate-budget }}
+            --disallowedTools AskUserQuestion
+            --allowedTools "${{ env.QABUDDY_TOOLS }}"
+            --mcp-config ${{ env.QAB_SRC }}/.github/pr-coverage/mcp.json
+      - name: Execute the suite for results
+        if: always()
+        run: |
+          if [ -f playwright.config.ts ] || [ -f playwright.config.js ]; then
+            npx playwright test --reporter=json > .qa-reports/pr-coverage/playwright-results.json || true
+            node -e 'const r=require("./.qa-reports/pr-coverage/playwright-results.json");const s=r.stats||{};console.log("playwright:",JSON.stringify({expected:s.expected,unexpected:s.unexpected,flaky:s.flaky,skipped:s.skipped}))' || true
+          else
+            echo "no playwright config — nothing to execute"
+          fi
+      - name: Pack the phase tree
+        if: always()
+        run: |
+          cp "$RUNNER_TEMP/claude-execution-output.json" .qa-reports/pr-coverage/claude-automate.json 2>/dev/null || true
+          tar czf "$RUNNER_TEMP/phase.tgz" --ignore-failed-read features-kb playwright playwright.config.ts playwright.config.js .qa-reports package.json package-lock.json 2>/dev/null || tar czf "$RUNNER_TEMP/phase.tgz" features-kb .qa-reports
+      - uses: actions/upload-artifact@v4
+        if: always()
+        with: { name: "qabuddy-${{ github.run_id }}-automate", path: "${{ runner.temp }}/phase.tgz" }
+
+  # ── 6 · deliver: union the phase trees, companion PR, heatmap, artifact ────
+  deliver:
+    needs: [resolve, preflight, kb, explore, automate]
+    if: always() && needs.preflight.outputs.features != '' && needs.kb.result != 'skipped'
+    runs-on: ubuntu-latest
+    env:
+      PR: ${{ needs.resolve.outputs.pr }}
+      PHASES: ${{ needs.resolve.outputs.phases }}
+      HEAD_SHA: ${{ needs.resolve.outputs.head }}
+      BASE_REF: ${{ needs.resolve.outputs.base_ref }}
+    steps:
+      - uses: actions/checkout@v4
+        with: { ref: "${{ needs.resolve.outputs.head }}", fetch-depth: 0 }
+      - uses: actions/setup-node@v4
+        with: { node-version: "${{ inputs.node-version }}" }
+      - name: Install QABuddy
+        run: |
+          git clone -q --depth 1 --branch "${{ inputs.qabuddy-ref }}" "$QABUDDY_REPO" "$RUNNER_TEMP/qabuddy"
+          bash "$RUNNER_TEMP/qabuddy/.github/pr-coverage/install.sh" "$RUNNER_TEMP/qabuddy"
+      - uses: actions/download-artifact@v4
+        with: { pattern: "qabuddy-${{ github.run_id }}-*", path: "${{ runner.temp }}/phases" }
+      - name: Union the phase trees (kb as base; automate ∥ explore)
+        run: |
+          set -euo pipefail
+          P="$RUNNER_TEMP/phases"; T="$RUNNER_TEMP/trees"; mkdir -p "$T"
+          for ph in kb explore automate; do
+            if [ -f "$P/qabuddy-$GITHUB_RUN_ID-$ph/phase.tgz" ]; then mkdir -p "$T/$ph"; tar xzf "$P/qabuddy-$GITHUB_RUN_ID-$ph/phase.tgz" -C "$T/$ph"; echo "phase tree: $ph"; fi
+          done
+          OURS="$T/automate"; [ -d "$OURS" ] || OURS="$T/kb"
+          THEIRS="$T/explore"; [ -d "$THEIRS" ] || THEIRS="$T/kb"
+          node "$QAB_BIN/pr-coverage.js" merge --base "$T/kb" --ours "$OURS" --theirs "$THEIRS" --out . | tee .qa-reports/pr-coverage/merge.json || echo "::warning::merge reported conflicts — automate's version kept for those files"
+      - name: Companion PR with the knowledge-base and Playwright changes
+        id: companion
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          set -euo pipefail
+          git add -A features-kb playwright playwright.config.* package.json package-lock.json 2>/dev/null || true
+          if git diff --cached --quiet; then
+            echo "no KB or Playwright changes to deliver"; echo "url=" >> "$GITHUB_OUTPUT"; exit 0
+          fi
+          git config user.name "qabuddy[bot]"
+          git config user.email "qabuddy@users.noreply.github.com"
+          git checkout -B "qabuddy/pr-$PR"
+          git commit -q -m "qabuddy: coverage updates for #$PR ($PHASES)"
+          git push -f origin "qabuddy/pr-$PR"
+          URL=$(gh pr list --head "qabuddy/pr-$PR" --state open --json url --jq '.[0].url // empty')
+          if [ -z "$URL" ]; then
+            URL=$(gh pr create --base "$BASE_REF" --head "qabuddy/pr-$PR" \
+              --title "QABuddy: coverage updates for #$PR" \
+              --body "Companion to #$PR — phases: $PHASES. Knowledge-base and Playwright changes generated headlessly (QABuddy RFC 0004). Artifacts were produced against the head of #$PR; specs for behaviour that only exists there may be red on $BASE_REF until #$PR merges. Review before merging." \
+              2>&1) || { echo "::warning::could not open the companion PR ($URL) — branch qabuddy/pr-$PR is pushed"; URL=""; }
+          fi
+          echo "url=$URL" >> "$GITHUB_OUTPUT"
+      - name: Heatmap and sticky comment
+        if: always()
+        env:
+          GH_TOKEN: ${{ github.token }}
+          COMPANION: ${{ steps.companion.outputs.url }}
+        run: |
+          set -euo pipefail
+          RESULTS=""
+          [ -f .qa-reports/pr-coverage/playwright-results.json ] && RESULTS="--results .qa-reports/pr-coverage/playwright-results.json"
+          node "$QAB_BIN/pr-coverage.js" heatmap --touched .qa-reports/pr-coverage/touched.json --phases "$PHASES" --pr "$PR" \
+            $RESULTS ${COMPANION:+--companion-url "$COMPANION"} \
+            --run-url "$GITHUB_SERVER_URL/$GITHUB_REPOSITORY/actions/runs/$GITHUB_RUN_ID" \
+            --out .qa-reports/pr-coverage/heatmap.json --md .qa-reports/pr-coverage/heatmap.md
+          node "$QAB_BIN/pr-coverage.js" comment --repo "$GITHUB_REPOSITORY" --pr "$PR" --body-file .qa-reports/pr-coverage/heatmap.md
+      - uses: actions/upload-artifact@v4
+        if: always()
+        with: { name: "qabuddy-pr-${{ needs.resolve.outputs.pr }}-${{ github.run_id }}", path: .qa-reports, include-hidden-files: true, if-no-files-found: ignore }
+      - name: Phase outcomes
+        if: always()
+        env:
+          KB: ${{ needs.kb.outputs.outcome }}
+          EXPLORE: ${{ needs.explore.outputs.outcome }}
+          AUTOMATE: ${{ needs.automate.outputs.outcome }}
+        run: |
+          summary() { node -e 'const f=process.argv[1];const fs=require("fs");if(!fs.existsSync(f)){console.log("no log");process.exit(0)}const a=JSON.parse(fs.readFileSync(f,"utf8"));const r=(Array.isArray(a)?a:[a]).find(x=>x.type==="result")||{};console.log(`${r.num_turns} turns, $${(r.total_cost_usd||0).toFixed(2)}, ${Math.round((r.duration_ms||0)/60000)} min, is_error=${r.is_error}`)' "$1"; }
+          echo "kb: ${KB:-skipped} — $(summary .qa-reports/pr-coverage/claude-kb.json)"
+          echo "explore: ${EXPLORE:-skipped} — $(summary .qa-reports/pr-coverage/claude-explore.json)"
+          echo "automate: ${AUTOMATE:-skipped} — $(summary .qa-reports/pr-coverage/claude-automate.json)"
+          for o in "$KB" "$EXPLORE" "$AUTOMATE"; do
+            if [ "$o" = "failure" ]; then echo "::error::a phase failed — everything it produced was still delivered"; exit 1; fi
+          done

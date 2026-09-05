@@ -23,6 +23,12 @@ Not proposed for `main`.
   coverage heatmap over Unit / API / E2E / Manual / Exploratory where *covered*
   needs evidence on disk (`heatmap`), and a sticky PR comment (`comment`).
   48 structural checks.
+- **Reusable workflow** `.github/workflows/pr-coverage.yml` (`workflow_call`): jobs
+  `resolve → preflight → kb → (explore ∥ automate) → deliver`, one Claude session per
+  phase with its own caps; consumers call it with a ~15-line workflow that
+  `pr-coverage.js init` writes. `pr-coverage.js merge` (three-way union of phase trees),
+  `preflight` (prerequisites before any spend), `init` (scaffolder). Prompts, `render.js`,
+  `install.sh`, MCP config under `.github/pr-coverage/`.
 - KB spec §6.8 `sources.json` (code and test globs per feature) and §6.9
   `exploratory/{date}.md` (persisted session with an AC-keyed results table).
 

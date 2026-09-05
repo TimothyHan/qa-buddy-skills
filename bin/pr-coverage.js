@@ -19,7 +19,16 @@
  *   comment  --repo owner/name --pr N --body-file heatmap.md [--marker "<!-- qabuddy:heatmap -->"] [--dry-run]
  *            Finds the comment carrying the marker and patches it; creates it otherwise.
  *
- * Exit codes: 0 ok · 2 usage · 3 knowledge base unreadable · 4 gh failure.
+ *   merge    --base <kb tree> --ours <automate tree> --theirs <explore tree> --out <dir>
+ *            Three-way union of phase trees so explore and automate can run in parallel.
+ *
+ *   preflight [--root .] [--touched touched.json] [--has-token true|false] [--can-create-prs true|false] [--md note.md] [--pr N]
+ *            Everything a run needs, checked before any model spend; the note carries the sticky marker.
+ *
+ *   init     [--app-start CMD] [--app-url URL] [--qabuddy-ref REF] [--labels true] [--force]
+ *            Writes the caller workflow for the reusable workflow and lists what is still missing.
+ *
+ * Exit codes: 0 ok · 2 usage · 3 knowledge base unreadable · 4 gh failure · 5 merge conflicts · 6 preflight problems.
  * The model never runs this to decide anything — the workflow does, before and after the skills.
  */
 const fs = require('fs');
@@ -40,7 +49,7 @@ const DEFAULT_TESTS = {
 
 function usage(msg) {
   if (msg) process.stderr.write(`pr-coverage: ${msg}\n`);
-  process.stderr.write(fs.readFileSync(__filename, 'utf8').split('\n').slice(2, 22).map(l => l.replace(/^ \* ?/, '')).join('\n') + '\n');
+  process.stderr.write(fs.readFileSync(__filename, 'utf8').split('\n').slice(2, 31).map(l => l.replace(/^ \* ?/, '')).join('\n') + '\n');
   process.exit(2);
 }
 function die(code, msg) { process.stderr.write(`pr-coverage: ${msg}\n`); process.exit(code); }
@@ -509,6 +518,205 @@ function cmdComment(o) {
   process.stdout.write(JSON.stringify({ action: existing ? 'patched' : 'created', id, url }) + '\n');
 }
 
+// ─── merge — three-way union of phase trees (RFC 0004 decision 11, parallel phases) ───
+//
+//   merge --base <kb tree> --ours <automate tree> --theirs <explore tree> --out <dir>
+//         [--paths features-kb,playwright,playwright.config.ts,playwright.config.js,.qa-reports]
+//
+// explore and automate both start from the kb phase's tree and run in parallel; deliver
+// unions them. Per file: one side only → copied; identical → copied; both changed →
+// `.jsonl` gets a line union (append-only logs), anything else gets `git merge-file`
+// with the kb tree as the base; a conflict keeps ours (automate) and is reported.
+
+const DEFAULT_MERGE_PATHS = ['features-kb', 'playwright', 'playwright.config.ts', 'playwright.config.js', '.qa-reports'];
+
+function walkAll(root, rel, out) {
+  const abs = path.join(root, rel);
+  let st; try { st = fs.statSync(abs); } catch { return; }
+  if (st.isDirectory()) {
+    for (const name of listDir(abs)) {
+      if (name === 'node_modules' || name === '.git' || name === '.auth') continue;
+      walkAll(root, rel ? `${rel}/${name}` : name, out);
+    }
+  } else out.add(rel);
+}
+
+function readBuf(root, rel) { const p = path.join(root, rel); return fs.existsSync(p) ? fs.readFileSync(p) : null; }
+function writeBuf(root, rel, buf) { const p = path.join(root, rel); fs.mkdirSync(path.dirname(p), { recursive: true }); fs.writeFileSync(p, buf); }
+function eq(a, b) { return !!a && !!b && a.equals(b); }
+
+function unionJsonl(base, ours, theirs) {
+  const lines = s => (s ? s.toString('utf8').split('\n').filter(Boolean) : []);
+  const seen = new Set(); const out = [];
+  for (const l of [...lines(base), ...lines(ours), ...lines(theirs)]) if (!seen.has(l)) { seen.add(l); out.push(l); }
+  return Buffer.from(out.join('\n') + (out.length ? '\n' : ''));
+}
+
+function mergeFile(rel, base, ours, theirs, tmp) {
+  // git merge-file -p <ours> <base> <theirs>; exit code = number of conflicts (0 = clean)
+  const dir = fs.mkdtempSync(path.join(tmp, 'm-'));
+  const w = (n, b) => { const p = path.join(dir, n); fs.writeFileSync(p, b || Buffer.alloc(0)); return p; };
+  try {
+    const out = execFileSync('git', ['merge-file', '-p', '-L', 'automate', '-L', 'kb', '-L', 'explore', w('ours', ours), w('base', base), w('theirs', theirs)], { stdio: ['ignore', 'pipe', 'pipe'] });
+    return { ok: true, content: out };
+  } catch (e) {
+    if (typeof e.status === 'number' && e.status > 0 && e.stdout) return { ok: false, content: null };  // conflicts
+    return { ok: false, content: null, error: (e.stderr || e.message || '').toString().trim() };
+  } finally { fs.rmSync(dir, { recursive: true, force: true }); }
+}
+
+function cmdMerge(o) {
+  if (!o.base || !o.ours || !o.theirs || !o.out) usage('merge needs --base, --ours, --theirs, --out');
+  const roots = (o.paths || DEFAULT_MERGE_PATHS.join(',')).split(',').map(s => s.trim()).filter(Boolean);
+  const files = new Set();
+  for (const root of [o.base, o.ours, o.theirs]) for (const p of roots) walkAll(root, p, files);
+  const report = { schema: 'pr-merge/1', copied: 0, merged: [], unioned: [], conflicts: [], deleted: [] };
+  const tmp = fs.mkdtempSync(path.join(require('os').tmpdir(), 'qab-merge-'));
+  try {
+    for (const rel of [...files].sort()) {
+      const b = readBuf(o.base, rel), a = readBuf(o.ours, rel), t = readBuf(o.theirs, rel);
+      let result = null;
+      if (a && !t) { if (b && eq(a, b)) { report.deleted.push(rel); continue; } result = a; }        // theirs deleted an unchanged file
+      else if (t && !a) { if (b && eq(t, b)) { report.deleted.push(rel); continue; } result = t; }   // ours deleted an unchanged file
+      else if (a && t && eq(a, t)) result = a;
+      else if (a && t) {
+        if (b && eq(a, b)) result = t;            // only theirs changed
+        else if (b && eq(t, b)) result = a;       // only ours changed
+        else if (rel.endsWith('.jsonl')) { result = unionJsonl(b, a, t); report.unioned.push(rel); }
+        else {
+          const m = mergeFile(rel, b, a, t, tmp);
+          if (m.ok) { result = m.content; report.merged.push(rel); }
+          else { result = a; report.conflicts.push(rel + (m.error ? ` (${m.error})` : '')); }
+        }
+      }
+      if (result !== null) { writeBuf(o.out, rel, result); report.copied++; }
+    }
+  } finally { fs.rmSync(tmp, { recursive: true, force: true }); }
+  process.stdout.write(JSON.stringify(report, null, 2) + '\n');
+  if (report.conflicts.length) process.exitCode = 5;
+}
+
+// ─── preflight — everything a run needs, reported before any model spend ──────
+
+function cmdPreflight(o) {
+  const root = path.resolve(o.root || '.');
+  const kb = path.resolve(root, o.kb || 'features-kb');
+  const problems = [], warnings = [];
+  const problem = (code, message, fix) => problems.push({ code, message, fix });
+  const warn = (code, message, fix) => warnings.push({ code, message, fix });
+
+  const cfgPath = path.join(root, '.qabuddy.json');
+  if (!fs.existsSync(cfgPath)) problem('no-config', '`.qabuddy.json` not found', 'run `/qa-setup` in the repository and commit the file');
+  else { try { JSON.parse(fs.readFileSync(cfgPath, 'utf8')); } catch (e) { problem('bad-config', `\`.qabuddy.json\` is not valid JSON: ${e.message}`, 'fix the JSON'); } }
+
+  const featuresDir = path.join(kb, 'features');
+  const keys = fs.existsSync(featuresDir) ? listDir(featuresDir).filter(k => fs.statSync(path.join(featuresDir, k)).isDirectory()) : [];
+  if (!keys.length) problem('no-features', `no features under \`${path.relative(root, featuresDir) || 'features-kb/features'}\``, 'run `/qa-test-plan` for at least one feature');
+  const withoutSources = keys.filter(k => !fs.existsSync(path.join(featuresDir, k, 'sources.json')));
+  if (keys.length && withoutSources.length === keys.length) problem('no-sources', 'no feature has a `sources.json`, so no diff can be mapped', 'add `features-kb/features/<key>/sources.json` (KB spec §6.8) — `/qa-test-plan` writes it');
+  else if (withoutSources.length) warn('some-sources', `features without \`sources.json\`: ${withoutSources.join(', ')}`, 'add one per feature so changes to their code map to them');
+
+  if (o.hasToken === 'false') problem('no-token', 'neither `CLAUDE_CODE_OAUTH_TOKEN` nor `ANTHROPIC_API_KEY` is set', 'add one as a repository secret (`claude setup-token` for the subscription route)');
+  if (o.canCreatePrs === 'false') warn('no-pr-permission', 'this repository does not allow GitHub Actions to create pull requests', 'Settings → Actions → General → "Allow GitHub Actions to create and approve pull requests" — the companion branch is still pushed');
+
+  const pkg = fs.existsSync(path.join(root, 'package.json')) ? readJson(path.join(root, 'package.json'), {}) : {};
+  const deps = Object.assign({}, pkg.dependencies || {}, pkg.devDependencies || {});
+  if (!deps['@playwright/test']) warn('no-playwright', '`@playwright/test` is not a dependency', 'the automate phase will run `/qa-e2e-setup`, which adds it — or add it yourself to pin a version');
+  if (!deps['@playwright/mcp']) warn('no-playwright-mcp', '`@playwright/mcp` is not a dependency', 'the explore phase uses it through `npx`; a pinned devDependency avoids a download per run');
+
+  const touched = o.touched && fs.existsSync(o.touched) ? readJson(o.touched, null) : null;
+  const out = {
+    schema: 'pr-preflight/1', ok: problems.length === 0, problems, warnings,
+    features: keys, featuresWithoutSources: withoutSources,
+    touched: touched ? touched.features.map(f => f.key) : null,
+  };
+  if (o.md) {
+    const L = [MARKER, '', `## QABuddy coverage${o.pr ? ` — PR #${o.pr}` : ''}`, ''];
+    if (problems.length) {
+      L.push('**This run could not start.** Fix the following and comment `/qabuddy` to retry:', '');
+      for (const p of problems) L.push(`- ❌ ${p.message} — ${p.fix}`);
+    } else L.push('Preflight passed.');
+    if (warnings.length) { L.push('', '**Warnings**', ''); for (const w of warnings) L.push(`- ⚠️ ${w.message} — ${w.fix}`); }
+    L.push('', `<sub>QABuddy pr-coverage ${VERSION} preflight</sub>`);
+    fs.mkdirSync(path.dirname(o.md), { recursive: true }); fs.writeFileSync(o.md, L.join('\n') + '\n');
+  }
+  process.stdout.write(JSON.stringify(out, null, 2) + '\n');
+  if (!out.ok) process.exitCode = 6;
+}
+
+// ─── init — scaffold a caller workflow for the reusable QABuddy workflow ──────
+
+const REUSABLE_WORKFLOW = 'TimothyHan/qa-buddy-skills/.github/workflows/pr-coverage.yml';
+const LABELS = [
+  ['qa:explore', 'QABuddy: kb + headless exploratory session'],
+  ['qa:automate', 'QABuddy: kb + Playwright automation of gaps'],
+  ['qa:full', 'QABuddy: kb + explore + automate'],
+];
+
+function callerWorkflow(o) {
+  const ref = o.qabuddyRef || 'poc/cloud-service';
+  return `# QABuddy on pull requests — generated by \`pr-coverage.js init\` (RFC 0004).
+# The heavy lifting lives in the reusable workflow; this file only says how to run YOUR app.
+name: QABuddy
+
+on:
+  pull_request:
+    types: [opened, ready_for_review, labeled]
+  issue_comment:
+    types: [created]
+
+concurrency:
+  group: qabuddy-pr-\${{ github.event.pull_request.number || github.event.issue.number }}
+  cancel-in-progress: true
+
+permissions:
+  contents: write
+  pull-requests: write
+  issues: write
+  id-token: write
+  actions: read
+
+jobs:
+  qabuddy:
+    uses: ${REUSABLE_WORKFLOW}@${ref}
+    with:
+      app-start: ${JSON.stringify(o.appStart || 'npm start')}
+      app-url: ${JSON.stringify(o.appUrl || 'http://localhost:3000')}
+      # health-path: /login          # a path that returns 200 once the app is up
+      # install: npm ci              # how to install the app's dependencies
+      # node-version: "20"
+      # model: claude-sonnet-5
+      # extra-prompt: .github/qabuddy/extra.md   # optional project instructions for every phase
+    secrets: inherit
+`;
+}
+
+function cmdInit(o) {
+  const root = path.resolve(o.root || '.');
+  const wf = path.resolve(root, o.workflow || '.github/workflows/qabuddy.yml');
+  if (fs.existsSync(wf) && !o.force) die(3, `${path.relative(root, wf)} exists — pass --force to overwrite`);
+  fs.mkdirSync(path.dirname(wf), { recursive: true });
+  fs.writeFileSync(wf, callerWorkflow(o));
+  const next = [];
+  next.push('set one secret: `claude setup-token` then `gh secret set CLAUDE_CODE_OAUTH_TOKEN` (subscription), or `gh secret set ANTHROPIC_API_KEY` (API credit)');
+  next.push('if the app needs a login, set secrets `TEST_USER` and `TEST_PASS`');
+  next.push('Settings → Actions → General → allow GitHub Actions to create and approve pull requests (for the companion PR)');
+  let labels = 'skipped';
+  if (o.labels === 'true' || o.labels === true) {
+    labels = [];
+    for (const [name, desc] of LABELS) {
+      try { execFileSync('gh', ['label', 'create', name, '--description', desc, '--color', '5319e7', '--force'], { cwd: root, stdio: ['ignore', 'pipe', 'pipe'] }); labels.push(name); }
+      catch (e) { labels.push(`${name}: ${(e.stderr || e.message || '').toString().trim().split('\n')[0]}`); }
+    }
+  } else next.push(`create the phase labels: ${LABELS.map(l => '`' + l[0] + '`').join(', ')} (or rerun with --labels true)`);
+  const kbDir = path.join(root, 'features-kb', 'features');
+  const keys = fs.existsSync(kbDir) ? listDir(kbDir).filter(k => fs.statSync(path.join(kbDir, k)).isDirectory()) : [];
+  const withoutSources = keys.filter(k => !fs.existsSync(path.join(kbDir, k, 'sources.json')));
+  if (!keys.length) next.push('no features in `features-kb/features` yet — run `/qa-test-plan` first');
+  if (withoutSources.length) next.push(`add \`sources.json\` to: ${withoutSources.join(', ')}`);
+  process.stdout.write(JSON.stringify({ schema: 'pr-init/1', workflow: path.relative(root, wf), reusable: REUSABLE_WORKFLOW, ref: o.qabuddyRef || 'poc/cloud-service', labels, next }, null, 2) + '\n');
+}
+
 // ─── main ──────────────────────────────────────────────────────────────────
 
 if (require.main === module) {
@@ -516,6 +724,9 @@ if (require.main === module) {
   if (cmd === 'touched') cmdTouched(opts);
   else if (cmd === 'heatmap') cmdHeatmap(opts);
   else if (cmd === 'comment') cmdComment(opts);
+  else if (cmd === 'merge') cmdMerge(opts);
+  else if (cmd === 'preflight') cmdPreflight(opts);
+  else if (cmd === 'init') cmdInit(opts);
   else if (cmd === '--version' || cmd === 'version') process.stdout.write(`pr-coverage ${VERSION}\n`);
   else usage(cmd ? `unknown subcommand: ${cmd}` : undefined);
 }

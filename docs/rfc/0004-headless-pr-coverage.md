@@ -90,6 +90,17 @@ that does everything the model should not.
     and `continue-on-error: true`. Later phases build on the files earlier phases wrote.
     Delivery steps run `always()`; a final step fails the job if any phase failed, after
     everything produced has been delivered.
+12. **One reusable workflow, many repositories.** `.github/workflows/pr-coverage.yml`
+    (`workflow_call`) owns the jobs `resolve → preflight → kb → (explore ∥ automate) →
+    deliver`; a consumer repo carries a ~15-line caller written by `pr-coverage.js init`
+    that only says how to run its app (`app-start`, `app-url`, …) and inherits secrets.
+    Prompts, `render.js`, `install.sh`, and the MCP config ship with QABuddy under
+    `.github/pr-coverage/`, so the workflow and the skills are always the same version.
+    Phases hand their trees to each other as artifacts; `deliver` unions explore and
+    automate with `pr-coverage.js merge` (three-way, kb tree as base, `.jsonl` line
+    union, conflicts keep automate and are reported). `preflight` checks config, features,
+    `sources.json`, the token secret, and the PR-creation setting before any spend and
+    explains what is missing in the sticky comment.
 10. **Fork PRs are skipped.** GitHub withholds secrets from forks and the run needs an
     API key and a write token; the workflow's `if:` checks the head repository. This
     is documented, not solved — a hosted service would run forks read-only.

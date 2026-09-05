@@ -806,6 +806,66 @@ function testPrCoverage() {
     const brokenEnv = { PATH: `${brokenBin}${path.delimiter}${process.env.PATH}` };
     const failCode = (() => { try { run(['comment', '--repo', 'o/r', '--pr', '7', '--body-file', 'out/h.md'], brokenEnv); return 0; } catch (e) { return e.status; } })();
     check(failCode === 4, 'comment: gh failure exits 4', `exit ${failCode}`);
+
+    // merge: three-way union of phase trees (kb = base, automate = ours, explore = theirs)
+    const M = path.join(tmp, 'merge'); const mw = (side, rel, content) => w(`merge/${side}/${rel}`, content);
+    mw('base', 'features-kb/features/p/feature.md', 'a\nb\nc\n'); mw('ours', 'features-kb/features/p/feature.md', 'a\nb\nc\nours-line\n'); mw('theirs', 'features-kb/features/p/feature.md', 'theirs-top\na\nb\nc\n');
+    mw('base', 'features-kb/learnings-log.jsonl', '{"x":1}\n'); mw('ours', 'features-kb/learnings-log.jsonl', '{"x":1}\n{"o":2}\n'); mw('theirs', 'features-kb/learnings-log.jsonl', '{"x":1}\n{"t":3}\n');
+    for (const side of ['base', 'ours', 'theirs']) mw(side, 'features-kb/index.json', '{"same":true}\n');
+    mw('ours', 'playwright/tests/a.spec.ts', "test('TC-01: x', () => {});\n"); mw('theirs', 'features-kb/features/p/exploratory/2026-09-05.md', '| Focus Area | ACs |\n');
+    mw('base', 'features-kb/LEARNINGS.md', 'base\n'); mw('ours', 'features-kb/LEARNINGS.md', 'ours\n'); mw('theirs', 'features-kb/LEARNINGS.md', 'theirs\n');
+    mw('base', 'features-kb/old.md', 'gone\n'); mw('theirs', 'features-kb/old.md', 'gone\n');
+    const mergeCode = (() => { try { run(['merge', '--base', `${M}/base`, '--ours', `${M}/ours`, '--theirs', `${M}/theirs`, '--out', `${M}/out`]); return 0; } catch (e) { return e.status; } })();
+    check(mergeCode === 5, 'merge: exits 5 when a file conflicted (everything else still written)', `exit ${mergeCode}`);
+    const mo = rel => { const p = path.join(M, 'out', rel); return fs.existsSync(p) ? fs.readFileSync(p, 'utf8') : null; };
+    check(mo('features-kb/features/p/feature.md') === 'theirs-top\na\nb\nc\nours-line\n', 'merge: both sides changed a markdown file → git merge-file with the kb tree as base');
+    check(mo('features-kb/learnings-log.jsonl') === '{"x":1}\n{"o":2}\n{"t":3}\n', 'merge: append-only .jsonl gets a line union');
+    check(mo('features-kb/LEARNINGS.md') === 'ours\n', 'merge: a true conflict keeps automate (ours) and is reported');
+    check(mo('playwright/tests/a.spec.ts') !== null && mo('features-kb/features/p/exploratory/2026-09-05.md') !== null, 'merge: files unique to one side are copied');
+    check(mo('features-kb/old.md') === null, 'merge: a file one side deleted and the other left untouched stays deleted');
+    check(mo('features-kb/index.json') === '{"same":true}\n', 'merge: identical files copied once');
+    const sameCode = (() => { try { run(['merge', '--base', `${M}/base`, '--ours', `${M}/base`, '--theirs', `${M}/base`, '--out', `${M}/out2`]); return 0; } catch (e) { return e.status; } })();
+    check(sameCode === 0, 'merge: a skipped phase passed as the kb tree merges cleanly (exit 0)');
+
+    // preflight: prerequisites checked before any spend; the note carries the sticky marker
+    const pf = (args) => { try { return { code: 0, out: JSON.parse(run(['preflight', ...args])) }; } catch (e) { return { code: e.status, out: JSON.parse(e.stdout || '{}') }; } };
+    const p1 = pf(['--has-token', 'false', '--can-create-prs', 'false', '--md', 'out/pf.md', '--pr', '7']);
+    check(p1.code === 6 && p1.out.ok === false, 'preflight: missing token is a problem (exit 6)');
+    check(p1.out.problems.some(x => x.code === 'no-config') && p1.out.problems.some(x => x.code === 'no-token'), 'preflight: names the missing .qabuddy.json and the missing secret');
+    check(p1.out.warnings.some(x => x.code === 'no-pr-permission') && p1.out.warnings.some(x => x.code === 'some-sources'), 'preflight: PR-permission and partial sources.json are warnings, not blockers');
+    const pfmd = fs.readFileSync(path.join(tmp, 'out', 'pf.md'), 'utf8');
+    check(pfmd.startsWith('<!-- qabuddy:heatmap -->') && /could not start/.test(pfmd) && /PR #7/.test(pfmd), 'preflight: the note carries the sticky marker so it becomes the one PR comment');
+    w('.qabuddy.json', '{"version":"1.0","contextSource":"spec","teamMode":"team"}');
+    const p2 = pf(['--has-token', 'true', '--can-create-prs', 'true']);
+    check(p2.code === 0 && p2.out.ok === true && p2.out.features.join() === 'alpha,beta,gamma', 'preflight: passes with config + token, lists features');
+    w('bad/.qabuddy.json', '{not json'); const p3 = pf(['--root', 'bad', '--has-token', 'true']);
+    check(p3.code === 6 && p3.out.problems.some(x => x.code === 'bad-config') && p3.out.problems.some(x => x.code === 'no-features'), 'preflight: invalid JSON and an empty KB are problems');
+
+    // init: scaffolds the caller workflow, refuses to overwrite, lists what is missing
+    const I = path.join(tmp, 'init'); fs.mkdirSync(I, { recursive: true });
+    const init = JSON.parse(execFileSync(process.execPath, [src, 'init', '--app-start', 'node server.js', '--app-url', 'http://localhost:4173', '--qabuddy-ref', 'v9.9.9'], { cwd: I, encoding: 'utf8' }));
+    const caller = fs.readFileSync(path.join(I, '.github', 'workflows', 'qabuddy.yml'), 'utf8');
+    check(init.workflow === '.github/workflows/qabuddy.yml' && /uses: TimothyHan\/qa-buddy-skills\/\.github\/workflows\/pr-coverage\.yml@v9\.9\.9/.test(caller), 'init: writes a caller that uses the reusable workflow at the requested ref');
+    check(/app-start: "node server\.js"/.test(caller) && /app-url: "http:\/\/localhost:4173"/.test(caller) && /secrets: inherit/.test(caller), 'init: caller carries app-start, app-url, secrets: inherit');
+    check(/pull_request:/.test(caller) && /issue_comment:/.test(caller) && /concurrency:/.test(caller) && /pull-requests: write/.test(caller), 'init: caller has the triggers, concurrency group, and permissions');
+    check(init.next.some(s => /setup-token/.test(s)) && init.next.some(s => /qa-test-plan/.test(s)) && init.labels === 'skipped', 'init: next steps name the secret, the KB, and the labels');
+    const again = (() => { try { execFileSync(process.execPath, [src, 'init'], { cwd: I, stdio: 'ignore' }); return 0; } catch (e) { return e.status; } })();
+    check(again === 3, 'init: refuses to overwrite an existing caller without --force');
+
+    // The reusable workflow and its support files ship in this repository
+    const wf = readFile(path.join(ROOT, '.github', 'workflows', 'pr-coverage.yml')) || '';
+    check(/^on:\n\s+workflow_call:/m.test(wf), '.github/workflows/pr-coverage.yml is a reusable workflow (workflow_call)');
+    for (const inp of ['app-start', 'app-url', 'qabuddy-ref', 'kb-budget', 'automate-turns']) check(new RegExp(`^\\s+${inp}:`, 'm').test(wf), `pr-coverage.yml declares input ${inp}`);
+    for (const job of ['resolve', 'preflight', 'kb', 'explore', 'automate', 'deliver']) check(new RegExp(`^  ${job}:`, 'm').test(wf), `pr-coverage.yml has job ${job}`);
+    check(!/&[a-z-]+\n/.test(wf) && !/\*[a-z-]+\n/.test(wf), 'pr-coverage.yml uses no YAML anchors (GitHub Actions does not support them)');
+    check(/pr-coverage\.js"? merge/.test(wf) && /pr-coverage\.js"? preflight/.test(wf) && /include-hidden-files: true/.test(wf), 'pr-coverage.yml merges phase trees, runs preflight, and uploads dot-directories');
+    check((wf.match(/continue-on-error: true/g) || []).length === 3, 'pr-coverage.yml: each of the three phase sessions is continue-on-error');
+    for (const f of ['prompts/header.md', 'prompts/kb.md', 'prompts/explore.md', 'prompts/automate.md', 'render.js', 'install.sh', 'mcp.json', 'README.md']) check(fs.existsSync(path.join(ROOT, '.github', 'pr-coverage', f)), `.github/pr-coverage/${f} ships`);
+    const rendered = execFileSync(process.execPath, [path.join(ROOT, '.github', 'pr-coverage', 'render.js'), 'explore', path.join(tmp, 'extra.md')], { env: { ...process.env, PR: '7', FEATURES: 'alpha', BASE_URL: 'http://x', BASE_SHA: 'abc' }, encoding: 'utf8' });
+    check(/pull request #7/.test(rendered) && /\*\*explore\*\* phase/.test(rendered) && /qa-exploratory alpha/.test(rendered) && !/\{\{/.test(rendered), 'render.js fills every placeholder for a phase');
+    w('extra.md', 'EXTRA-PROJECT-RULE\n');
+    const rendered2 = execFileSync(process.execPath, [path.join(ROOT, '.github', 'pr-coverage', 'render.js'), 'kb', path.join(tmp, 'extra.md')], { env: { ...process.env, PR: '7', FEATURES: 'alpha' }, encoding: 'utf8' });
+    check(/EXTRA-PROJECT-RULE/.test(rendered2) && rendered2.indexOf('EXTRA-PROJECT-RULE') < rendered2.indexOf('qa-test-cases'), 'render.js appends the consumer extra-prompt between header and phase body');
   } finally {
     fs.rmSync(tmp, { recursive: true, force: true });
   }
