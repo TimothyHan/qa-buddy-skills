@@ -54,6 +54,18 @@ first time, posts the heatmap, and fails the run honestly if any phase failed �
 everything produced has been delivered. When a reviewer merges the companion, the
 announcement comment gets a 🚀 reaction and a "Merged into `branch`" line.
 
+## What the companion PR says
+
+Its description is a work list rendered by `pr-coverage.js summary` from what the phases wrote —
+the exploratory session's findings, the bug files, each phase's close file, the heatmap, and the
+suite results: what the PR adds, the findings, and three to-do lists — **fix on the source
+branch** (author; then `/qabuddy heatmap` re-verifies), **decide** (reviewer), **not automated
+yet**. Findings that need a human become GitHub issues (`issues-for`: `decisions` by default,
+`all` to include bugs, `none`), labelled `qabuddy`, de-duplicated by a hidden marker so a rerun
+updates rather than duplicates, and linked from both the PR body and the announcement comment.
+The fix belongs on the source branch, not the companion: the companion carries the tests, and
+the failing spec that documents the bug should turn green there once the fix lands.
+
 ## Blocking merges
 
 Every job reports a check, but "the run finished" is the wrong thing to gate a QA bot on: a

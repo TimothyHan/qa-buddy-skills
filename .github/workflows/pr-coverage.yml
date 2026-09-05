@@ -20,6 +20,7 @@ on:
       extra-prompt:   { type: string, default: ".github/qabuddy/extra.md", description: "Optional file in the consumer repo appended to every phase prompt" }
       fallback:       { type: string, default: "none",  description: "`none`: unmapped diffs run nothing; `all`: run every feature" }
       default-phases: { type: string, default: "kb",    description: "Phases on PR open / ready-for-review: `kb`, `kb,explore`, `kb,automate`, or `kb,explore,automate`; labels and `/qabuddy` comments override per PR" }
+      issues-for:     { type: string, default: "decisions", description: "Open GitHub issues for findings: `decisions` (findings that need a human), `all` (bugs too), or `none`. De-duplicated by a hidden marker; labelled `qabuddy`" }
       gate-on:        { type: string, default: "none",  description: "Verdict of the `gate` check (require it in branch protection to block merges): `none` (advisory), `at-risk` (a failing spec or an exploratory finding on any AC), `suite` (executed Playwright suite has failures), `gaps` (an AC with no test case)" }
       after-companion-merge: { type: string, default: "full", description: "When a reviewed companion PR (`qabuddy/pr-<n>`) merges into the source branch, run this on the source PR: `full` (kb + explore ∥ automate — explore adds no wall time), `automate` (kb + automate), or `none`. Skipped when the merged companion already carried automation." }
       test-user:      { type: string, default: "",      description: "Login for the app under test when it is a public demo account; otherwise use the TEST_USER secret" }
@@ -464,6 +465,7 @@ jobs:
         if: needs.resolve.outputs.phases != 'heatmap'
         env:
           GH_TOKEN: ${{ github.token }}
+          ISSUES_FOR: ${{ inputs.issues-for }}
         run: |
           set -euo pipefail
           # Stage only paths that exist: an unmatched glob would make git reject the whole add.
@@ -473,6 +475,17 @@ jobs:
           if git diff --cached --quiet; then
             echo "no KB or Playwright changes to deliver"; echo "url=" >> "$GITHUB_OUTPUT"; exit 0
           fi
+          git diff --cached --name-only > "$RUNNER_TEMP/changed.txt"
+          RESULTS=""; [ -f .qa-reports/pr-coverage/playwright-results.json ] && RESULTS="--results .qa-reports/pr-coverage/playwright-results.json"
+          # Heatmap first (its counts feed the summary); the comment is posted later with the companion link.
+          node "$QAB_BIN/pr-coverage.js" heatmap --touched .qa-reports/pr-coverage/touched.json --phases "$PHASES" --pr "$PR" $RESULTS \
+            --out .qa-reports/pr-coverage/heatmap.json --md .qa-reports/pr-coverage/heatmap-pre.md > /dev/null
+          SUM="node $QAB_BIN/pr-coverage.js summary --touched .qa-reports/pr-coverage/touched.json --heatmap .qa-reports/pr-coverage/heatmap.json $RESULTS --changed $RUNNER_TEMP/changed.txt --pr $PR --source-ref $HEAD_REF --phases $PHASES"
+          $SUM --json .qa-reports/pr-coverage/findings.json > /dev/null
+          # Issues for findings that need a human (de-duplicated by marker), then the summary knows their numbers.
+          node "$QAB_BIN/pr-coverage.js" issues --repo "$GITHUB_REPOSITORY" --pr "$PR" --findings .qa-reports/pr-coverage/findings.json \
+            --for "$ISSUES_FOR" --out .qa-reports/pr-coverage/issues.json | tee -a "$GITHUB_STEP_SUMMARY" > /dev/null || echo "::warning::could not open issues"
+          $SUM --issues .qa-reports/pr-coverage/issues.json --body .qa-reports/pr-coverage/companion-body.md > /dev/null
           git config user.name "qabuddy[bot]"
           git config user.email "qabuddy@users.noreply.github.com"
           git checkout -B "qabuddy/pr-$PR"
@@ -484,16 +497,19 @@ jobs:
           if [ -n "$EXISTING" ]; then
             URL=$(printf '%s' "$EXISTING" | jq -r .url); NUM=$(printf '%s' "$EXISTING" | jq -r .number); CUR_BASE=$(printf '%s' "$EXISTING" | jq -r .baseRefName)
             [ "$CUR_BASE" = "$HEAD_REF" ] || gh pr edit "$NUM" --base "$HEAD_REF" >/dev/null
+            gh pr edit "$NUM" --body-file .qa-reports/pr-coverage/companion-body.md >/dev/null
             echo "companion PR #$NUM updated (base $HEAD_REF)"
           else
-            URL=$(gh pr create --base "$HEAD_REF" --head "qabuddy/pr-$PR" \
-              --title "Tests for #$PR: QABuddy coverage updates" \
-              --body "Adds the knowledge-base and Playwright changes QABuddy generated for #$PR (phases: $PHASES) — into \`$HEAD_REF\`, so they merge to \`$BASE_REF\` together with #$PR. Generated headlessly (QABuddy RFC 0004); review before merging. Specs written as expected failures document behaviour the exploratory session or the suite found broken on this branch." \
-              2>&1) || { echo "::warning::could not open the companion PR ($URL) — branch qabuddy/pr-$PR is pushed"; URL=""; }
-            if [ -n "$URL" ]; then
-              gh pr comment "$PR" --body "QABuddy opened $URL with tests for this PR (phases: $PHASES). It targets \`$HEAD_REF\`: merge it into this branch to bring the tests along. The coverage heatmap comment above links to it and to the evidence." >/dev/null || true
-              echo "companion PR created: $URL"
-            fi
+            URL=$(gh pr create --base "$HEAD_REF" --head "qabuddy/pr-$PR" --title "Tests for #$PR: QABuddy coverage updates" \
+              --body-file .qa-reports/pr-coverage/companion-body.md 2>&1) || { echo "::warning::could not open the companion PR ($URL) — branch qabuddy/pr-$PR is pushed"; URL=""; }
+            [ -n "$URL" ] && echo "companion PR created: $URL"
+          fi
+          if [ -n "$URL" ]; then
+            NUM=${URL##*/}
+            # One announcement per companion, patched in place while it is open (marker per companion).
+            $SUM --issues .qa-reports/pr-coverage/issues.json --companion-url "$URL" --announce .qa-reports/pr-coverage/announce.md > /dev/null
+            { echo "<!-- qabuddy:companion $NUM -->"; cat .qa-reports/pr-coverage/announce.md; } > .qa-reports/pr-coverage/announce-marked.md
+            node "$QAB_BIN/pr-coverage.js" comment --repo "$GITHUB_REPOSITORY" --pr "$PR" --marker "<!-- qabuddy:companion $NUM -->" --body-file .qa-reports/pr-coverage/announce-marked.md > /dev/null || true
           fi
           echo "url=$URL" >> "$GITHUB_OUTPUT"
       - name: Heatmap and sticky comment

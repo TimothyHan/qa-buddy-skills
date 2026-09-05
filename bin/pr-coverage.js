@@ -29,6 +29,13 @@
  *   init     [--app-start CMD] [--app-url URL] [--qabuddy-ref REF] [--labels true] [--force]
  *            Writes the caller workflow for the reusable workflow and lists what is still missing.
  *
+ *   summary  --touched touched.json [--heatmap h.json] [--results pw.json] [--changed files] [--issues issues.json]
+ *            [--pr N] [--source-ref BR] [--companion-url URL] [--phases P] [--json out] [--body out.md] [--announce out.md]
+ *            The run as a work list: what the companion adds, findings, to-dos — PR body and announcement.
+ *
+ *   issues   --repo owner/name --pr N --findings findings.json [--for decisions|all|none] [--out issues.json] [--dry-run]
+ *            One issue per finding that needs a human, de-duplicated by a hidden marker.
+ *
  * Exit codes: 0 ok · 2 usage · 3 knowledge base unreadable · 4 gh failure · 5 merge conflicts · 6 preflight problems.
  * The model never runs this to decide anything — the workflow does, before and after the skills.
  */
@@ -50,7 +57,7 @@ const DEFAULT_TESTS = {
 
 function usage(msg) {
   if (msg) process.stderr.write(`pr-coverage: ${msg}\n`);
-  process.stderr.write(fs.readFileSync(__filename, 'utf8').split('\n').slice(2, 32).map(l => l.replace(/^ \* ?/, '')).join('\n') + '\n');
+  process.stderr.write(fs.readFileSync(__filename, 'utf8').split('\n').slice(2, 39).map(l => l.replace(/^ \* ?/, '')).join('\n') + '\n');
   process.exit(2);
 }
 function die(code, msg) { process.stderr.write(`pr-coverage: ${msg}\n`); process.exit(code); }
@@ -737,6 +744,221 @@ function cmdInit(o) {
   process.stdout.write(JSON.stringify({ schema: 'pr-init/1', workflow: path.relative(root, wf), reusable: REUSABLE_WORKFLOW, ref: o.qabuddyRef || 'poc/cloud-service', labels, next }, null, 2) + '\n');
 }
 
+// ─── summary — what a run produced, as a work list (companion PR body + announcement) ──
+//
+//   summary --touched touched.json [--root .] [--kb features-kb] [--heatmap heatmap.json]
+//           [--results playwright.json] [--changed files.txt] [--issues issues.json]
+//           [--pr N] [--source-ref branch] [--companion-url URL] [--phases kb,explore]
+//           [--json findings.json] [--body body.md] [--announce announce.md]
+//
+// Reads what the phases wrote — exploratory sessions (one block per finding), bug files,
+// the headless close files, the execution logs, the heatmap — and renders the companion
+// PR body (what it adds, findings, a to-do list) and the short announcement for the
+// source PR. Deterministic; no model involved.
+
+function parseFindings(feature, root) {
+  const dir = path.join(feature.dir, 'exploratory');
+  const files = listDir(dir).filter(f => f.endsWith('.md'));
+  if (!files.length) return [];
+  const file = files[files.length - 1];
+  const rel = toPosix(path.relative(root, path.join(dir, file)));
+  const lines = (readText(path.join(dir, file)) || '').split('\n');
+  const out = [];
+  let cur = null;
+  for (const line of lines) {
+    const h = line.match(/^###\s+Finding\s+(\d+)\s*:\s*(.+)$/i);
+    if (h) { cur = { feature: feature.key, n: Number(h[1]), title: h[2].trim(), fields: {}, file: rel, anchor: `${rel}#Finding ${h[1]}` }; out.push(cur); continue; }
+    if (!cur) continue;
+    if (/^#{1,3}\s/.test(line)) { cur = null; continue; }
+    for (const m of line.matchAll(/\*\*([^*]+?):\*\*\s*([^|]+?)(?=\s*\||$)/g)) cur.fields[m[1].trim().toLowerCase()] = m[2].trim();
+  }
+  for (const f of out) {
+    const cat = (f.fields.category || '').toLowerCase(), act = (f.fields.action || '').toLowerCase();
+    f.severity = f.fields.severity || null; f.priority = f.fields.priority || null; f.action = f.fields.action || null; f.category = f.fields.category || null;
+    if (/bug|defect|regression/.test(cat) || /file bug|bug/.test(act)) f.kind = 'bug';
+    else if (/discuss|decision|question|clarif|product/.test(act) || /ux|requirement|question|usability/.test(cat) || /ux/.test(act)) f.kind = 'decision';
+    else if (/add test|scenario|automate/.test(act) || /scenario|coverage/.test(cat)) f.kind = 'scenario';
+    else f.kind = 'note';
+    f.hash = require('crypto').createHash('sha1').update(`${f.feature}|${f.title}`).digest('hex').slice(0, 12);
+  }
+  return out;
+}
+
+function parseBugs(feature, root) {
+  const dir = path.join(feature.dir, 'bugs');
+  return listDir(dir).filter(f => /^BUG-.*\.md$/i.test(f)).map(f => {
+    const text = readText(path.join(dir, f)) || '';
+    const h1 = text.match(/^#\s+(.+)$/m);
+    const g = k => { const m = text.match(new RegExp(`\\*\\*${k}:\\*\\*\\s*([^|\\n]+)`)); return m ? m[1].trim() : null; };
+    return { id: f.replace(/\.md$/i, ''), title: h1 ? h1[1].replace(/^BUG-\w+:\s*/, '').trim() : f, severity: g('Severity'), status: g('Status'), file: toPosix(path.relative(root, path.join(dir, f))) };
+  });
+}
+
+function phaseStats(root) {
+  const out = {};
+  const closeDir = path.join(root, '.qa-reports', 'headless');
+  for (const f of listDir(closeDir).filter(f => f.endsWith('.json'))) {
+    const c = readJson(path.join(closeDir, f), null); if (!c) continue;
+    out[c.skill || f.replace(/\.json$/, '')] = { status: c.status, concerns: c.concerns || [], autoDecisions: (c.autoDecisions || []).length, artifacts: c.artifacts || [] };
+  }
+  const logs = {};
+  for (const ph of ['kb', 'explore', 'automate']) {
+    const p = path.join(root, '.qa-reports', 'pr-coverage', `claude-${ph}.json`);
+    if (!fs.existsSync(p)) continue;
+    const a = readJson(p, null); const arr = Array.isArray(a) ? a : [a];
+    const r = arr.find(x => x && x.type === 'result'); if (!r) continue;
+    logs[ph] = { turns: r.num_turns, cost: r.total_cost_usd || 0, minutes: Math.round((r.duration_ms || 0) / 60000), error: !!r.is_error };
+  }
+  return { skills: out, phases: logs };
+}
+
+function failedSpecs(resultsPath) {
+  const out = [];
+  if (!resultsPath || !fs.existsSync(resultsPath)) return out;
+  const data = readJson(resultsPath, null); if (!data) return out;
+  const walk = s => { for (const sp of s.specs || []) { const st = (sp.tests || []).flatMap(t => (t.results || []).map(r => r.status)); if (st.includes('failed') || st.includes('timedOut')) out.push(sp.title); } for (const c of s.suites || []) walk(c); };
+  for (const s of data.suites || []) walk(s);
+  return out;
+}
+
+function buildSummary(o) {
+  const root = path.resolve(o.root || '.');
+  const kb = path.resolve(root, o.kb || 'features-kb');
+  const touched = readJson(o.touched);
+  const titles = featureTitles(kb);
+  const features = (touched.features || []).map(t => loadFeature(kb, t.key, titles));
+  const findings = features.flatMap(f => parseFindings(f, root));
+  const bugs = features.flatMap(f => parseBugs(f, root));
+  const stats = phaseStats(root);
+  const heat = o.heatmap && fs.existsSync(o.heatmap) ? readJson(o.heatmap, null) : null;
+  const failed = failedSpecs(o.results);
+  const issues = o.issues && fs.existsSync(o.issues) ? readJson(o.issues, []) : [];
+  const issueFor = h => issues.find(i => i.hash === h);
+  const changed = o.changed && fs.existsSync(o.changed) ? fs.readFileSync(o.changed, 'utf8').split('\n').map(s => s.trim()).filter(Boolean) : [];
+  const adds = {
+    testCases: changed.filter(f => /features-kb\/.*\/test-cases\/[^/]+\.md$/.test(f)).length,
+    mappings: changed.filter(f => /-mapping\.json$/.test(f)).length,
+    specs: changed.filter(f => /\.spec\.[jt]s$/.test(f)).length,
+    pageObjects: changed.filter(f => /\.page\.[jt]s$/.test(f)).length,
+    sessions: changed.filter(f => /\/exploratory\/[^/]+\.md$/.test(f)).length,
+    bugs: changed.filter(f => /\/bugs\/BUG-[^/]+\.md$/i.test(f)).length,
+    other: 0,
+  };
+  adds.other = changed.length - (adds.testCases + adds.mappings + adds.specs + adds.pageObjects + adds.sessions + adds.bugs);
+  const atRisk = heat ? heat.features.flatMap(f => f.rows.filter(r => r.atRisk).map(r => `${r.ac}${r.text ? ` — ${r.text}` : ''}`)) : [];
+  const unautomated = heat ? heat.features.flatMap(f => f.rows.filter(r => r.cells.e2e && r.cells.e2e.state === 'partial' && r.cells.e2e.tcs).flatMap(r => r.cells.e2e.tcs.map(tc => `${tc} (${r.ac})`))) : [];
+  return { schema: 'pr-summary/1', pr: o.pr ? Number(o.pr) : null, sourceRef: o.sourceRef || null, companionUrl: o.companionUrl || null, phases: (o.phases || '').split(',').filter(Boolean), features: features.map(f => ({ key: f.key, title: f.title })), findings, bugs, stats, failed, atRisk, unautomated, adds, changed: changed.length, heatmapSummary: heat ? heat.summary : null };
+}
+
+function renderBody(S) {
+  const L = [];
+  const sev = x => x ? ` (${x})` : '';
+  const issueFor = h => (S._issues || []).find(i => i.hash === h);
+  L.push(`Companion to #${S.pr} — phases: ${S.phases.join(', ') || '?'}. Generated headlessly by QABuddy (RFC 0004); review before merging.`, '');
+  L.push('## What this PR adds', '');
+  const a = S.adds; const items = [];
+  if (a.testCases) items.push(`${a.testCases} test-case file${a.testCases > 1 ? 's' : ''}`); if (a.mappings) items.push(`${a.mappings} traceability mapping${a.mappings > 1 ? 's' : ''}`);
+  if (a.specs) items.push(`${a.specs} Playwright spec${a.specs > 1 ? 's' : ''}`); if (a.pageObjects) items.push(`${a.pageObjects} page object${a.pageObjects > 1 ? 's' : ''}`);
+  if (a.sessions) items.push(`${a.sessions} exploratory session`); if (a.bugs) items.push(`${a.bugs} bug report${a.bugs > 1 ? 's' : ''}`); if (a.other) items.push(`${a.other} other file${a.other > 1 ? 's' : ''}`);
+  L.push(items.length ? `- ${items.join(' · ')} (${S.changed} files, all under \`features-kb/\` and \`playwright/\`)` : '- no file changes', '');
+  const ph = Object.entries(S.stats.phases);
+  if (ph.length) { L.push('| Phase | Status | Turns | Cost | Time |', '|---|---|---|---|---|'); for (const [k, v] of ph) L.push(`| ${k} | ${v.error ? 'error' : 'done'} | ${v.turns} | $${v.cost.toFixed(2)} | ${v.minutes} min |`); L.push(''); }
+  const bugsAll = [...S.bugs.map(b => ({ kind: 'bug', label: `**${b.id}**${sev(b.severity)} — ${b.title}`, link: b.file })), ...S.findings.filter(f => f.kind === 'bug').map(f => ({ kind: 'bug', label: `Finding ${f.n}${sev(f.severity)} — ${f.title}`, link: f.anchor }))];
+  const decisions = S.findings.filter(f => f.kind === 'decision'); const scenarios = S.findings.filter(f => f.kind === 'scenario'); const notes = S.findings.filter(f => f.kind === 'note');
+  L.push(`## Findings (${bugsAll.length + decisions.length + scenarios.length + notes.length})`, '');
+  if (!bugsAll.length && !S.findings.length) L.push('- none recorded by this run', '');
+  for (const b of bugsAll) L.push(`- 🐞 ${b.label} → \`${b.link}\``);
+  for (const f of decisions) { const i = issueFor(f.hash); L.push(`- 🤔 Finding ${f.n} — ${f.title}${f.action ? ` — *${f.action}*` : ''}${i ? ` → ${i.url}` : ''} (\`${f.anchor}\`)`); }
+  for (const f of scenarios) L.push(`- 🧪 Finding ${f.n} — ${f.title} — new scenario (\`${f.anchor}\`)`);
+  for (const f of notes) L.push(`- 📝 Finding ${f.n} — ${f.title} (\`${f.anchor}\`)`);
+  if (bugsAll.length || S.findings.length) L.push('');
+  L.push('## To do', '');
+  const fixes = [...bugsAll.map(b => b.label), ...S.failed.map(t => `failing spec: ${t}`)];
+  L.push(`### Fix on \`${S.sourceRef || 'the source branch'}\` (author)`, '');
+  if (fixes.length) { for (const x of fixes) L.push(`- [ ] ${x}`); L.push('', `Then comment \`/qabuddy heatmap\` on #${S.pr} to re-verify. Keep the fix on the source branch — this PR carries the tests, and the failing spec should turn green there.`); }
+  else L.push('- nothing — no bug or failing spec');
+  L.push('', '### Decide (reviewer)', '');
+  if (decisions.length) for (const f of decisions) { const i = issueFor(f.hash); L.push(`- [ ] ${i ? `${i.url} — ` : ''}${f.title}`); } else L.push('- nothing needs a decision');
+  L.push('', '### Not automated yet', '');
+  if (S.unautomated.length) for (const u of S.unautomated) L.push(`- [ ] ${u}`); else L.push('- every test case has a spec');
+  const concerns = Object.entries(S.stats.skills).flatMap(([k, v]) => v.concerns.map(c => `${k}: ${c}`));
+  if (concerns.length) { L.push('', '### Concerns raised by the phases', ''); for (const c of concerns) L.push(`- ${c}`); }
+  if (S.heatmapSummary) { const h = S.heatmapSummary; L.push('', '## Coverage', '', `${h.covered} covered · ${h.partial} partial · ${h.gap} gap · ${h.atRisk} AC${h.atRisk === 1 ? '' : 's'} at risk — the heatmap comment on #${S.pr} has the table and the evidence.`); }
+  L.push('', `<sub>QABuddy pr-coverage ${VERSION}</sub>`);
+  return L.join('\n') + '\n';
+}
+
+function renderAnnounce(S) {
+  const sev = x => x ? ` (${x})` : '';
+  const bugsAll = [...S.bugs.map(b => `${b.id}${sev(b.severity)} ${b.title}`), ...S.findings.filter(f => f.kind === 'bug').map(f => `Finding ${f.n}${sev(f.severity)} ${f.title}`)];
+  const decisions = S.findings.filter(f => f.kind === 'decision');
+  const L = [];
+  L.push(`QABuddy opened ${S.companionUrl || 'a companion PR'} with tests for this PR (phases: ${S.phases.join(', ')}). It targets \`${S.sourceRef}\`: merge it into this branch to bring the tests along. Its description carries the full work list.`);
+  if (bugsAll.length) { L.push('', `**To fix on this branch** (then comment \`/qabuddy heatmap\`):`); for (const b of bugsAll) L.push(`- ${b}`); }
+  if (S.failed.length && !bugsAll.length) { L.push('', '**Failing specs on this branch:**'); for (const t of S.failed) L.push(`- ${t}`); }
+  if (decisions.length) { L.push('', '**Needs a decision:**'); for (const f of decisions) { const i = (S._issues || []).find(x => x.hash === f.hash); L.push(`- ${i ? `${i.url} — ` : ''}${f.title}`); } }
+  if (S.unautomated.length) L.push('', `Not automated yet: ${S.unautomated.join(', ')}.`);
+  return L.join('\n') + '\n';
+}
+
+function cmdSummary(o) {
+  if (!o.touched) usage('summary needs --touched');
+  const S = buildSummary(o);
+  S._issues = o.issues && fs.existsSync(o.issues) ? readJson(o.issues, []) : [];
+  if (o.json) { fs.mkdirSync(path.dirname(o.json), { recursive: true }); const { _issues, ...pub } = S; fs.writeFileSync(o.json, JSON.stringify(pub, null, 2) + '\n'); }
+  if (o.body) { fs.mkdirSync(path.dirname(o.body), { recursive: true }); fs.writeFileSync(o.body, renderBody(S)); }
+  if (o.announce) { fs.mkdirSync(path.dirname(o.announce), { recursive: true }); fs.writeFileSync(o.announce, renderAnnounce(S)); }
+  process.stdout.write(JSON.stringify({ findings: S.findings.length, bugs: S.bugs.length, decisions: S.findings.filter(f => f.kind === 'decision').length, failed: S.failed.length, unautomated: S.unautomated.length, wrote: [o.json, o.body, o.announce].filter(Boolean) }) + '\n');
+}
+
+// ─── issues — one GitHub issue per finding that needs a human, de-duplicated by marker ──
+//
+//   issues --repo owner/name --pr N --findings findings.json [--for decisions|all|none]
+//          [--label qabuddy] [--out issues.json] [--dry-run]
+
+function cmdIssues(o) {
+  if (!o.repo || !o.pr || !o.findings) usage('issues needs --repo, --pr, --findings');
+  const mode = o.for || 'decisions';
+  const label = o.label || 'qabuddy';
+  const S = readJson(o.findings);
+  const wanted = mode === 'none' ? [] : S.findings.filter(f => f.kind === 'decision' || (mode === 'all' && f.kind === 'bug'));
+  const out = [];
+  if (o.dryRun) {
+    for (const f of wanted) out.push({ hash: f.hash, title: f.title, kind: f.kind, action: 'would-create-or-update' });
+    process.stdout.write(JSON.stringify({ dryRun: true, mode, issues: out }, null, 2) + '\n');
+    if (o.out) fs.writeFileSync(o.out, JSON.stringify(out, null, 2) + '\n');
+    return;
+  }
+  if (!wanted.length) { if (o.out) fs.writeFileSync(o.out, '[]\n'); process.stdout.write(JSON.stringify({ mode, issues: [] }) + '\n'); return; }
+  gh(['label', 'create', label, '--repo', o.repo, '--description', 'Opened by QABuddy from a headless run', '--color', '5319e7', '--force']);
+  let existing = [];
+  try { existing = JSON.parse(gh(['issue', 'list', '--repo', o.repo, '--label', label, '--state', 'open', '--limit', '200', '--json', 'number,body,url,title'])); } catch { existing = []; }
+  for (const f of wanted) {
+    const marker = `<!-- qabuddy:finding ${f.hash} -->`;
+    const body = [
+      marker,
+      `Found by QABuddy's ${f.kind === 'bug' ? 'exploratory session' : 'exploratory session'} on pull request #${o.pr}${S.sourceRef ? ` (branch \`${S.sourceRef}\`)` : ''} — feature \`${f.feature}\`.`,
+      '',
+      ...['category', 'severity', 'priority', 'focus area', 'what i did', 'expected', 'actual', 'evidence', 'action'].filter(k => f.fields[k]).map(k => `**${k[0].toUpperCase() + k.slice(1)}:** ${f.fields[k]}`),
+      '',
+      `Session: \`${f.anchor}\` (on the companion branch of #${o.pr}).`,
+      f.kind === 'decision' ? '\nThis needs a human decision — QABuddy will not act on it. Close the issue once decided; a rerun that finds the same thing updates this issue instead of opening another.' : '',
+    ].join('\n');
+    const title = `[QABuddy] ${f.title}`;
+    const hit = existing.find(e => (e.body || '').includes(marker));
+    if (hit) {
+      gh(['issue', 'edit', String(hit.number), '--repo', o.repo, '--title', title, '--body', body]);
+      out.push({ hash: f.hash, title: f.title, kind: f.kind, number: hit.number, url: hit.url, action: 'updated' });
+    } else {
+      const url = gh(['issue', 'create', '--repo', o.repo, '--title', title, '--body', body, '--label', label]).trim().split('\n').pop();
+      const num = Number((url.match(/\/(\d+)\s*$/) || [])[1]) || null;
+      out.push({ hash: f.hash, title: f.title, kind: f.kind, number: num, url, action: 'created' });
+    }
+  }
+  if (o.out) { fs.mkdirSync(path.dirname(o.out), { recursive: true }); fs.writeFileSync(o.out, JSON.stringify(out, null, 2) + '\n'); }
+  process.stdout.write(JSON.stringify({ mode, issues: out }, null, 2) + '\n');
+}
+
 // ─── main ──────────────────────────────────────────────────────────────────
 
 if (require.main === module) {
@@ -747,6 +969,8 @@ if (require.main === module) {
   else if (cmd === 'merge') cmdMerge(opts);
   else if (cmd === 'preflight') cmdPreflight(opts);
   else if (cmd === 'init') cmdInit(opts);
+  else if (cmd === 'summary') cmdSummary(opts);
+  else if (cmd === 'issues') cmdIssues(opts);
   else if (cmd === '--version' || cmd === 'version') process.stdout.write(`pr-coverage ${VERSION}\n`);
   else usage(cmd ? `unknown subcommand: ${cmd}` : undefined);
 }
