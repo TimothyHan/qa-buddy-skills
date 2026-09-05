@@ -86,6 +86,36 @@ Known product behaviours that are NOT bugs: the list re-renders ~350 ms after a 
 Out of scope: the status filter dropdown — a test case for it is a traceability error (no AC).
 The single smoke test covers no AC on its own (it asserts only that the New project button is visible); crediting it against AC1 is a dedup error.
 
+## Artifact — what you score (the same files the judge grades)
+
+### features-kb/test-cases/control.md
+
+````
+# Test Cases: Projects management
+
+### TC-04: Delete a project
+**Requirement:** AC4 from projects
+**Priority:** P0
+**Type:** happy-path
+**Preconditions:**
+- Signed in; target exists (Observed: row "Delete", dialog "Delete"/"Keep")
+**Steps:**
+1. Click Delete on the row
+2. Confirm in the dialog
+**Expected Result:**
+- Row gone
+
+Sketch:
+```typescript
+await projectsPage.deleteByName(page, name);
+await expect(projectsPage.locators.rowByName(page, name)).toHaveCount(0);
+```
+
+**Status:** DONE
+**Summary:** 1 test case
+**Next steps:** none
+````
+
 ## Criteria
 
 ## traceability (weight 3, floor 2)

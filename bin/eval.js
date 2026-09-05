@@ -430,6 +430,13 @@ function scoringSheet(rubric, entry) {
     const notes = readIf(path.join(cdir, 'judge-notes.md'));
     if (notes) L.push('## Context — ground truth (judge notes; the skill never saw this)', '', notes.replace(/^<!--[^\n]*-->\n?/, '').trim(), '');
   } else L.push('## Context', '', 'External artifact — no case input or judge notes; score what the document itself supports.', '');
+  const ws = path.join(calibDir(skill), entry.id, 'artifact');
+  if (fs.existsSync(ws)) {
+    const files = [].concat(...(rubric.artifacts || []).map(g => globFiles(ws, g)));
+    L.push('## Artifact — what you score (the same files the judge grades)', '');
+    if (!files.length) L.push('(no file under artifact/ matches the rubric artifact globs)', '');
+    for (const f of files) L.push(`### ${path.relative(ws, f)}`, '', '````', fs.readFileSync(f, 'utf8').slice(0, 40000).trim(), '````', '');
+  }
   L.push('## Criteria', '');
   for (const c of rubric.criteria.filter(c => c.kind === 'judge')) {
     L.push(`## ${c.id} (weight ${c.weight}, floor ${c.floor})`, '', c.statement, '');
