@@ -155,6 +155,25 @@ Tally after the first full run: (a) ✓ · (b) ✓ · (c) 2/2 (local + CI) · (d
 pass/fail pending a run whose results step executes · (e) $8.18 for `full`, under the $25 cap ·
 (f) `AskUserQuestion` was disallowed at the CLI; the run finished without a question.
 
+### Split-phase full CI run (2026-09-05, PR #2, `/qabuddy full`, decision 11 in place)
+
+| Phase | Turns | Cost | Wall | Questions | Outcome |
+|---|---|---|---|---|---|
+| kb | 44 | $1.15 | 5 min | 0 | DONE_WITH_CONCERNS — TC-01..TC-07, all six ACs mapped; flagged the soft-delete regression from the diff alone |
+| explore | 62 | $1.07 | 4 min | 0 | DONE_WITH_CONCERNS — live-confirmed the bug: deleted projects never leave the list (AC4) |
+| automate | 103 | $3.53 | 15 min | 0 | DONE — page objects, API client, 9 specs, 4 gates green; TC-04 / TC-07 written as expected failures against the soft-delete build |
+| **run** | **209** | **$5.75** | **25 min** | **0** | job green; suite executed: 9 tests, TC-04 and TC-07 fail (the regression), rest pass; companion PR #3 reused; artifact uploaded |
+
+The heatmap posted by that run was stale — the companion step had checked the PR head
+back out before the heatmap step ran (fixed: the job stays on the companion branch).
+The corrected heatmap for the same tree and results was posted from the artifact.
+
+**Tally against §4:** (a) ✓ · (b) ✓ AC5/AC6 gap before, AC4 ⚠️ after · (c) **3/3** (one
+local, two CI runs) · (d) ✓ specs carry TC ids, TC-04 red on the demo branch · (e) ✓ $5.75
+for `full` against a $25 cap ($8.18 single-session), 25 min ≤ 60 · (f) ✓ 0 `AskUserQuestion`
+calls in 209 turns. **No kill criterion tripped. Verdict: the loop works unattended;
+promotion to `main` and productisation are Timothy's call.**
+
 **Design change from this run (decision 11):** one action session per phase — `kb`,
 `explore`, `automate` — each with its own turn and budget cap and `continue-on-error`,
 so a cap or failure in automation never discards the documentation phases, and the
