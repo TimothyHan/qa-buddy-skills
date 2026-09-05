@@ -48,8 +48,10 @@ that does everything the model should not.
    `playwright.config.*`, and `.qa-reports/`. It never commits, pushes, or opens a PR.
    Delivery is the workflow's job: one sticky comment on the source PR (found by the
    marker `<!-- qabuddy:heatmap -->`, patched in place) and one companion PR on branch
-   `qabuddy/pr-<n>` into the base branch, opened by a workflow step. Nothing writes to
-   the base branch directly.
+   `qabuddy/pr-<n>` **into the source PR's head branch** (Timothy's call, 2026-09-05:
+   the diff is then only the tests, and they reach the base branch together with the
+   feature), opened by a workflow step and announced once with a comment on the source
+   PR. Nothing writes to the base branch directly.
 4. **`features-kb/features/<key>/sources.json`** (KB spec §6.8) is the canonical
    diff→feature mapping: `sources` globs the feature owns, `tests.{unit,api,e2e}` globs
    where its tests live, `exclude` winning over both. `/qa-test-plan` writes it (step
@@ -213,10 +215,8 @@ reports per-phase outcomes and fails the run honestly if any phase did.
 - **Exploratory persistence (decision 7).** Writing sessions into the KB makes them
   evidence but also makes the KB grow per PR. A retention rule (keep the latest N per
   feature) or a reference to the workflow artifact may be the better long-term home.
-- **Companion PR targets base, artifacts were generated against head.** Test cases and
-  specs written for behaviour that only exists on the source branch may be red on base
-  until the source PR merges. The companion PR body says so; a hosted service would
-  stack the companion on the source branch instead.
+- ~~Companion PR targets base while artifacts were generated against head.~~ Resolved:
+  the companion PR targets the source PR's head branch (decision 3, revised).
 - **Skill discovery inside the action.** Claude Code discovers personal skills under
   `~/.claude/skills`; the workflow keeps a project-scope fallback (copy into
   `.claude/skills/`) behind a repository variable in case the action's runner scope

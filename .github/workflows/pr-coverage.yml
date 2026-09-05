@@ -55,6 +55,7 @@ jobs:
       head: ${{ steps.p.outputs.head }}
       base: ${{ steps.p.outputs.base }}
       base_ref: ${{ steps.p.outputs.base_ref }}
+      head_ref: ${{ steps.p.outputs.head_ref }}
     steps:
       - id: p
         env:
@@ -88,8 +89,8 @@ jobs:
             esac
           fi
           gh pr view "$PR_NUMBER" --repo "$GITHUB_REPOSITORY" \
-            --json headRefOid,baseRefOid,baseRefName \
-            --jq '"head=\(.headRefOid)\nbase=\(.baseRefOid)\nbase_ref=\(.baseRefName)"' >> "$GITHUB_OUTPUT"
+            --json headRefOid,baseRefOid,baseRefName,headRefName \
+            --jq '"head=\(.headRefOid)\nbase=\(.baseRefOid)\nbase_ref=\(.baseRefName)\nhead_ref=\(.headRefName)"' >> "$GITHUB_OUTPUT"
           echo "pr=$PR_NUMBER" >> "$GITHUB_OUTPUT"
           echo "phases=$PH" >> "$GITHUB_OUTPUT"
 
@@ -371,6 +372,7 @@ jobs:
       PHASES: ${{ needs.resolve.outputs.phases }}
       HEAD_SHA: ${{ needs.resolve.outputs.head }}
       BASE_REF: ${{ needs.resolve.outputs.base_ref }}
+      HEAD_REF: ${{ needs.resolve.outputs.head_ref }}
     steps:
       - uses: actions/checkout@v4
         with: { ref: "${{ needs.resolve.outputs.head }}", fetch-depth: 0 }
@@ -407,12 +409,22 @@ jobs:
           git checkout -B "qabuddy/pr-$PR"
           git commit -q -m "qabuddy: coverage updates for #$PR ($PHASES)"
           git push -f origin "qabuddy/pr-$PR"
-          URL=$(gh pr list --head "qabuddy/pr-$PR" --state open --json url --jq '.[0].url // empty')
-          if [ -z "$URL" ]; then
-            URL=$(gh pr create --base "$BASE_REF" --head "qabuddy/pr-$PR" \
-              --title "QABuddy: coverage updates for #$PR" \
-              --body "Companion to #$PR — phases: $PHASES. Knowledge-base and Playwright changes generated headlessly (QABuddy RFC 0004). Artifacts were produced against the head of #$PR; specs for behaviour that only exists there may be red on $BASE_REF until #$PR merges. Review before merging." \
+          # The companion PR targets the source PR's own branch: its diff is only the tests, and they
+          # travel to the base branch together with the feature when the source PR merges.
+          EXISTING=$(gh pr list --head "qabuddy/pr-$PR" --state open --json url,number,baseRefName --jq '.[0] // empty')
+          if [ -n "$EXISTING" ]; then
+            URL=$(printf '%s' "$EXISTING" | jq -r .url); NUM=$(printf '%s' "$EXISTING" | jq -r .number); CUR_BASE=$(printf '%s' "$EXISTING" | jq -r .baseRefName)
+            [ "$CUR_BASE" = "$HEAD_REF" ] || gh pr edit "$NUM" --base "$HEAD_REF" >/dev/null
+            echo "companion PR #$NUM updated (base $HEAD_REF)"
+          else
+            URL=$(gh pr create --base "$HEAD_REF" --head "qabuddy/pr-$PR" \
+              --title "Tests for #$PR: QABuddy coverage updates" \
+              --body "Adds the knowledge-base and Playwright changes QABuddy generated for #$PR (phases: $PHASES) — into \`$HEAD_REF\`, so they merge to \`$BASE_REF\` together with #$PR. Generated headlessly (QABuddy RFC 0004); review before merging. Specs written as expected failures document behaviour the exploratory session or the suite found broken on this branch." \
               2>&1) || { echo "::warning::could not open the companion PR ($URL) — branch qabuddy/pr-$PR is pushed"; URL=""; }
+            if [ -n "$URL" ]; then
+              gh pr comment "$PR" --body "QABuddy opened $URL with tests for this PR (phases: $PHASES). It targets \`$HEAD_REF\`: merge it into this branch to bring the tests along. The coverage heatmap comment above links to it and to the evidence." >/dev/null || true
+              echo "companion PR created: $URL"
+            fi
           fi
           echo "url=$URL" >> "$GITHUB_OUTPUT"
       - name: Heatmap and sticky comment

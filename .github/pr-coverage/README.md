@@ -43,7 +43,9 @@ Jobs: `resolve → preflight → kb → (explore ∥ automate) → deliver`. Eac
 Claude session with its own `--max-turns` / `--max-budget-usd` (inputs). Phases hand their
 trees to each other as artifacts; `deliver` unions explore and automate with a three-way
 merge (`pr-coverage.js merge`, kb tree as the base), opens or updates the companion PR
-`qabuddy/pr-<n>`, posts the heatmap, and fails the run honestly if any phase failed — after
+`qabuddy/pr-<n>` **into the source PR's own branch** (so its diff is only the tests and they
+merge to the base branch together with the feature), posts one comment announcing it the
+first time, posts the heatmap, and fails the run honestly if any phase failed — after
 everything produced has been delivered.
 
 ## Files here
