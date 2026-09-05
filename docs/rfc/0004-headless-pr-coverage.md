@@ -190,6 +190,13 @@ for `full` against a $25 cap ($8.18 single-session), 25 min ≤ 60 · (f) ✓ 0 
 calls in 209 turns. **No kill criterion tripped. Verdict: the loop works unattended;
 promotion to `main` and productisation are Timothy's call.**
 
+### Through the reusable workflow (2026-09-05, `qabuddy-poc-acme` as a 15-line caller)
+
+| Run | Jobs | Result |
+|---|---|---|
+| `/qabuddy full` (33947054333) | resolve 5 s · preflight 14 s · kb 6.5 min · explore 5 min ∥ automate 15 min · deliver 16 s | **22.5 min** wall (26.5 sequential), kb $1.14 / explore $1.31 / automate $3.34 = **$5.79**, 0 questions; explore and automate started within one second of each other; three-way merge of their trees: 83 files, one `.jsonl` union, no content conflicts. Suite reported 0 tests — the demo login was not reaching global setup (secrets only; fixed with `test-user`/`test-pass` inputs) |
+| `/qabuddy automate` (33948169266) | kb 3 min · automate 17 min | kb $0.73 / automate $3.90; **14 tests executed**, TC-04 / TC-07 / TC-08 red on the soft-delete build, results in the posted heatmap; merge report clean |
+
 **Design change from this run (decision 11):** one action session per phase — `kb`,
 `explore`, `automate` — each with its own turn and budget cap and `continue-on-error`,
 so a cap or failure in automation never discards the documentation phases, and the
