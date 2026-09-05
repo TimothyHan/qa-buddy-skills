@@ -49,7 +49,8 @@ merge (`pr-coverage.js merge`, kb tree as the base), opens or updates the compan
 `qabuddy/pr-<n>` **into the source PR's own branch** (so its diff is only the tests and they
 merge to the base branch together with the feature), posts one comment announcing it the
 first time, posts the heatmap, and fails the run honestly if any phase failed — after
-everything produced has been delivered.
+everything produced has been delivered. When a reviewer merges the companion, the
+announcement comment gets a 🚀 reaction and a "Merged into `branch`" line.
 
 ## Files here
 

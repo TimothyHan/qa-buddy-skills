@@ -82,6 +82,8 @@ jobs:
           HEAD_BRANCH: ${{ github.event.pull_request.head.ref }}
           MERGED: ${{ github.event.pull_request.merged }}
           PR_BODY: ${{ github.event.pull_request.body }}
+          COMPANION_NUMBER: ${{ github.event.pull_request.number }}
+          COMPANION_BASE: ${{ github.event.pull_request.base.ref }}
         run: |
           set -euo pipefail
           PH="${DEFAULT_PHASES:-kb}"
@@ -90,6 +92,15 @@ jobs:
             # A companion PR was merged by a reviewer: continue on the source PR it belongs to.
             [ "$MERGED" = "true" ] || { echo "companion closed without merging — nothing to do"; exit 0; }
             PR_NUMBER="${HEAD_BRANCH#qabuddy/pr-}"
+            # Mark the announcement comment on the source PR: a rocket reaction + a "merged" line.
+            CID=$(gh api "repos/$GITHUB_REPOSITORY/issues/$PR_NUMBER/comments" --paginate --jq ".[] | select(.body | test(\"QABuddy opened .*/pull/$COMPANION_NUMBER\\\\b\")) | .id" | head -1 || true)
+            if [ -n "$CID" ]; then
+              gh api -X POST "repos/$GITHUB_REPOSITORY/issues/comments/$CID/reactions" -f content=rocket >/dev/null 2>&1 || true
+              BODY=$(gh api "repos/$GITHUB_REPOSITORY/issues/comments/$CID" --jq .body)
+              NEW="$BODY"$'\n\n'"🚀 Merged into \`$COMPANION_BASE\` — the tests are on this branch now."
+              case "$BODY" in *"🚀 Merged"*) ;; *) gh api -X PATCH "repos/$GITHUB_REPOSITORY/issues/comments/$CID" -f body="$NEW" >/dev/null || true ;; esac
+              echo "marked announcement comment $CID as merged"
+            fi
             DONE=$(printf '%s' "$PR_BODY" | grep -oE 'phases: [a-z,]+' | head -1 | sed 's/phases: //')
             case "$AFTER_MERGE" in
               automate) PH=kb,automate ;;
