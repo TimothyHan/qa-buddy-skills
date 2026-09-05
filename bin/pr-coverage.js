@@ -232,8 +232,12 @@ function cmdTouched(o) {
     testHit.forEach(h => matched.add(h));
     if (hit.length) { features.push({ key, title: f.title, matchedFiles: hit, matchedTests: testHit }); hit.forEach(h => matched.add(h)); }
   }
-  // Knowledge-base files are QABuddy's own output, never an unclaimed change.
-  files.forEach(file => { if (file.startsWith(kbPrefix)) matched.add(file); });
+  // QABuddy's own outputs are never unclaimed changes: the knowledge base, and the automation
+  // folder (the directory holding AUTOMATION.md, written by /qa-e2e-setup) with its config.
+  const autoRoots = ['playwright'].filter(d => fs.existsSync(path.join(d, 'AUTOMATION.md')));
+  files.forEach(file => {
+    if (file.startsWith(kbPrefix) || /^playwright\.config\.[cm]?[jt]s$/.test(file) || autoRoots.some(d => file.startsWith(d + '/'))) matched.add(file);
+  });
   let fallback = false;
   if (!features.length && (o.fallback || 'none') === 'all') {
     fallback = true;
