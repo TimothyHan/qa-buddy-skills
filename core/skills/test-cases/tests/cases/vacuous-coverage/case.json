@@ -1,0 +1,7 @@
+{
+  "id": "vacuous-coverage",
+  "description": "Existing specs claim TC-03 and TC-04; only TC-04's assertion can fail for its AC — credit must follow the assertion, not the title",
+  "app": "v1", "port": 4173,
+  "runner_args": "projects --update --headless",
+  "tags": ["dedup", "vacuous-assertion"]
+}

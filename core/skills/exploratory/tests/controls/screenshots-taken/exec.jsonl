@@ -1,0 +1,7 @@
+{"type":"tool_use","name":"Bash","input":{"command":"node $QAB compile --skill exploratory --ticket projects"}}
+{"type":"tool_use","name":"mcp__playwright__browser_navigate","input":{"url":"http://localhost:4173/login"}}
+{"type":"tool_use","name":"mcp__playwright__browser_fill_form","input":{"fields":[{"name":"email","value":"qa@acme.test"}]}}
+{"type":"tool_use","name":"mcp__playwright__browser_click","input":{"element":"Sign in"}}
+{"type":"tool_use","name":"mcp__playwright__browser_snapshot","input":{}}
+{"type":"tool_use","name":"mcp__playwright__browser_console_messages","input":{}}
+{"type":"tool_use","name":"Write","input":{"file_path":".qa-reports/exploratory-projects-2026-09-05.md"}}
