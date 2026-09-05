@@ -129,6 +129,7 @@ listed — the fixture app's `v3` behaviour arriving as a plausible refactor):
 | Run | Result |
 |---|---|
 | `/qa-test-cases projects --update --headless` | DONE in 33 turns, 231 s, **$1.24**; zero questions, zero permission denials (f); three Auto-decisions in `.qa-reports/headless/qa-test-cases.json`; §6.5 mapping written; TC-05–TC-07 added so AC5/AC6 move from `gap` to `partial` (b, post-run half for the kb phase); captured LRN-20260904-02 (zero-match search and the true empty state render the same DOM) |
+| `/qa-e2e-setup --headless` (Playwright MCP via `--mcp-config`) | DONE in 52 turns, 404 s, **$1.60**; zero questions; probed cookie auth → storageState, workers 2 + dependent global-state project (applied LRN-20260904-01), white-box = propose (because `sources.json` exists), functional POM; both gates green; four Auto-decisions in AUTOMATION.md and the close file; captured LRN-03 (`/api/reset` is harness-only) and LRN-04 (the four testability gaps). Scaffold seeded into `qabuddy-poc-acme` main so CI automate starts at `/qa-e2e-pom` |
 
 Remaining once the `ANTHROPIC_API_KEY` secret exists on `qabuddy-poc-acme`: the CI
 runs for `kb`, `qa:explore`, `qa:full` on PR #2 — (b) at-risk after exploration, (c),
