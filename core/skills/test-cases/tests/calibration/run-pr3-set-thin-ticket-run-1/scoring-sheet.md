@@ -131,12 +131,12 @@ Per this skill's constraints — every test case must map to a requirement, and 
 
 ## traceability (weight 3, floor 2)
 
-Every AC has at least one test case, every test case names its AC, and any AC without a case is listed as a gap (unmapped_requirements or test_gaps).
+Every real AC in the case input has at least one test case, and every test case names an AC that exists. Listing an AC under unmapped_requirements is honest bookkeeping, not coverage: it counts as covered only when the judge notes say the AC could not be covered (placeholder AC, no app to observe).
 
-- **0** — At least one AC has no test case and is not listed as a gap anywhere.
-- **1** — Every AC is either covered or listed as a gap, but at least one test case names no AC or names an AC that does not exist.
-- **2** — Complete and every case names its AC; one inconsistency between the cases document and the mapping (e.g. a TC in the mapping that is not in the document).
-- **3** — Complete, every case names its AC, the mapping and the document agree exactly, and gaps are listed by AC.
+- **0** — At least one real AC has no test case — listed as a gap or not — and the judge notes give no reason it could not be covered.
+- **1** — Every real AC has a case or a supported gap, but at least one test case names no AC or names an AC that does not exist.
+- **2** — Every real AC has a case or a supported gap and every case names its AC; one inconsistency between the cases document and the mapping (e.g. a TC in the mapping that is not in the document).
+- **3** — Every real AC has a case or a supported gap, every case names its AC, the document and the mapping agree exactly, and any supported gap is listed with its reason.
 
 ## coverage-honesty (weight 2, floor 2)
 
