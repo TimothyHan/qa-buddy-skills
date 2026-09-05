@@ -36,6 +36,8 @@ until the base branch is merged into it — preflight warns when that is the cas
 | label `qa:automate` · comment `/qabuddy automate` | + page objects and specs for unautomated test cases |
 | label `qa:full` · comment `/qabuddy full` | everything |
 | comment `/qabuddy kb` | back to the kb phase only |
+| comment `/qabuddy heatmap` | no model: re-map the diff, run the suite on the branch as it is, re-post the heatmap |
+| a reviewer merges the companion that carried automation | the chain is complete: the same model-free refresh, so the heatmap reflects the merged branch |
 | a reviewer merges the companion PR `qabuddy/pr-<n>` into the source branch | the rest on PR `<n>` — `after-companion-merge` input: `full` (default; explore runs beside automate, so it adds cost of about a dollar and no wall time), `automate`, or `none`; skipped when that companion already carried automation |
 
 The caller's `default-phases` input sets what runs on open (`kb` by default; `kb,explore,automate`

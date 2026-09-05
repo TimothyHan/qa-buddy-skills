@@ -109,14 +109,15 @@ jobs:
               none|"")  echo "after-companion-merge is none — nothing to do"; exit 0 ;;
               *) echo "::error::after-companion-merge must be automate, full, or none"; exit 1 ;;
             esac
-            case ",$DONE," in *,automate,*) echo "companion for #$PR_NUMBER already carried automation ($DONE) — chain complete"; exit 0 ;; esac
-            echo "companion for #$PR_NUMBER merged (had: ${DONE:-?}) → running $PH on #$PR_NUMBER"
+            case ",$DONE," in *,automate,*) PH=heatmap; echo "companion for #$PR_NUMBER already carried automation ($DONE) — chain complete; refreshing the heatmap on the merged branch (no model)";; esac
+            [ "$PH" = heatmap ] || echo "companion for #$PR_NUMBER merged (had: ${DONE:-?}) → running $PH on #$PR_NUMBER"
           elif [ "$EVENT" = "issue_comment" ]; then
             case "$COMMENT" in
               *"/qabuddy full"*)     PH=kb,explore,automate ;;
               *"/qabuddy automate"*) PH=kb,automate ;;
               *"/qabuddy explore"*)  PH=kb,explore ;;
               *"/qabuddy kb"*)       PH=kb ;;
+              *"/qabuddy heatmap"*)  PH=heatmap ;;   # re-map, re-run the suite, re-post — no model
             esac
           else
             if [ "$ACTION" = "labeled" ] && ! printf '%s' "$LABEL" | grep -q '^qa:'; then
@@ -197,7 +198,7 @@ jobs:
   # ── 3 · kb: test cases, §6.5 mapping, gaps ──────────────────────────────────
   kb:
     needs: [resolve, preflight]
-    if: needs.preflight.outputs.features != ''
+    if: needs.preflight.outputs.features != '' && contains(needs.resolve.outputs.phases, 'kb')
     runs-on: ubuntu-latest
     timeout-minutes: 30
     outputs:
@@ -408,7 +409,7 @@ jobs:
   # ── 6 · deliver: union the phase trees, companion PR, heatmap, artifact ────
   deliver:
     needs: [resolve, preflight, kb, explore, automate]
-    if: always() && needs.preflight.outputs.features != '' && needs.kb.result != 'skipped'
+    if: always() && needs.preflight.outputs.features != '' && (needs.kb.result != 'skipped' || needs.resolve.outputs.phases == 'heatmap')
     runs-on: ubuntu-latest
     env:
       PR: ${{ needs.resolve.outputs.pr }}
@@ -427,7 +428,28 @@ jobs:
           bash "$RUNNER_TEMP/qabuddy/.github/pr-coverage/install.sh" "$RUNNER_TEMP/qabuddy"
       - uses: actions/download-artifact@v4
         with: { pattern: "qabuddy-${{ github.run_id }}-*", path: "${{ runner.temp }}/phases" }
+      - name: Heatmap refresh — run the merged suite on this branch (no model)
+        if: needs.resolve.outputs.phases == 'heatmap'
+        env:
+          BASE_URL: ${{ inputs.app-url }}
+          TEST_USER: ${{ secrets.TEST_USER || inputs.test-user }}
+          TEST_PASS: ${{ secrets.TEST_PASS || inputs.test-pass }}
+        run: |
+          set -euo pipefail
+          mkdir -p .qa-reports/pr-coverage
+          cp "$RUNNER_TEMP/phases/qabuddy-$GITHUB_RUN_ID-touched/touched.json" .qa-reports/pr-coverage/touched.json
+          ${{ inputs.install }}
+          (${{ inputs.app-start }} > .qa-reports/app.log 2>&1 &)
+          for i in $(seq 1 30); do curl -sf "${BASE_URL}${{ inputs.health-path }}" > /dev/null && break; sleep 1; done
+          if [ -f playwright.config.ts ] || [ -f playwright.config.js ]; then
+            npx playwright install --with-deps chromium > /dev/null
+            npx playwright test --reporter=json > .qa-reports/pr-coverage/playwright-results.json || true
+            node -e 'const r=require("./.qa-reports/pr-coverage/playwright-results.json");const s=r.stats||{};console.log("playwright:",JSON.stringify({expected:s.expected,unexpected:s.unexpected,flaky:s.flaky,skipped:s.skipped}))' || true
+          else
+            echo "no playwright config on this branch — heatmap without suite results"
+          fi
       - name: Union the phase trees (kb as base; automate ∥ explore)
+        if: needs.resolve.outputs.phases != 'heatmap'
         run: |
           set -euo pipefail
           P="$RUNNER_TEMP/phases"; T="$RUNNER_TEMP/trees"; mkdir -p "$T" .qa-reports/pr-coverage
@@ -439,6 +461,7 @@ jobs:
           node "$QAB_BIN/pr-coverage.js" merge --base "$T/kb" --ours "$OURS" --theirs "$THEIRS" --out . | tee .qa-reports/pr-coverage/merge.json || echo "::warning::merge reported conflicts — automate's version kept for those files"
       - name: Companion PR with the knowledge-base and Playwright changes
         id: companion
+        if: needs.resolve.outputs.phases != 'heatmap'
         env:
           GH_TOKEN: ${{ github.token }}
         run: |
