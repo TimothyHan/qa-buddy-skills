@@ -25,8 +25,8 @@
       },
       "statement": "Findings match the app's known state (judge notes say which defects exist): every planted defect the charter's focus areas touch is found, and no finding claims a defect the app does not have.",
       "anchors": {
-        "0": "A finding claims a bug the app does not have, or a planted defect in a focus area that was explored is reported as working.",
-        "1": "No invented bugs, but a planted defect in an explored focus area was missed and the area is not marked unexplored.",
+        "0": "A finding claims a defect the app does not have (the judge notes list what exists), or a planted defect in a focus area that was explored is reported as working.",
+        "1": "No invented defects, but either a planted defect in an explored focus area was missed and the area is not marked unexplored, or a real observation the spec does not decide (judge notes list these) is filed as a defect instead of a question or missing requirement.",
         "2": "Planted defects found and nothing invented; a known non-bug behaviour (late re-render, auto-dismiss toast) is filed as a bug rather than a product observation.",
         "3": "Planted defects found with the right AC named, nothing invented, known non-bug behaviours recorded as observations or UX notes."
       }

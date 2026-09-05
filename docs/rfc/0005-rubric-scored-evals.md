@@ -228,11 +228,12 @@ Detail per PR, with files, checks and acceptance, is in the [plan](0005-rubric-s
 | skill | entries | sources | judge-only result |
 |---|---|---|---|
 | test-cases | 10 | 6 controls, 3 eval runs (projects-happy, thin-ticket, vacuous-coverage), 1 external (acme `projects.md`) | 3 passes, $2.20; real artifacts: 22/24 (artifact, criterion) pairs identical, **0 floor flips**; eval-run totals 0.881 / 0.857 / 0.762 with spread ≤ 0.024 |
-| exploratory | 10 | 5 controls, 4 eval runs (quick-timebox, v1-clean, v3-planted ×2), 1 external (acme PR #2 session) | see PR3's PR body |
+| exploratory | 10 | 5 controls, 4 eval runs (quick-timebox, v1-clean, v3-planted ×2), 1 external (acme PR #2 session) | 3 passes, $2.86; real artifacts: pair agreement 0.83, **0 floor flips**; eval-run totals 0.77 / 0.76 / 0.67 / 0.85 (spread up to 0.128 on v3-planted, driven by `finding-correctness` and `classification` flips) |
 
 What the first passes changed:
 
 - **§5 (c) rewritten.** A one-anchor flip on a weight-3 criterion moves a 0–1 total by 0.143, so "total within 0.1" failed on granularity. The rule is now measured on real artifacts as pair agreement ≥ 0.8 and zero floor flips; controls report variance but gate detection power only.
+- **Anchors and notes must not disagree.** The exploratory notes said an unspecified behaviour filed as a bug scores 1; anchor 0 still called it "invented", and the judge followed the anchor (0/1/0 on one real run). The rule now lives in anchor 1 and the notes only state facts.
 - **Judge notes must be complete about unspecified behaviour.** The v1-clean session filed the case-sensitive duplicate check as a defect; the spec never decides it, and the notes had not said so, so the judge scored the finding as invented. The notes now list the unspecified behaviours and score such a finding 1 (right observation, wrong category), not 0.
 - **The ko build labels duration `소요 시간`.** The `duration-recorded` check failed on 3/3 real runs for that reason alone; it now accepts both labels. A check written from the English template against a Korean install is a locale bug in the rubric, not in the skill.
 - **Skill findings surfaced by the bench, for `/qa-improve`:** `test-cases` skipped the live probe on a reachable app in a headless run and marked details `(unverified)` instead; `thin-ticket` with no app got no "unreachable" note in the scratchpad; the cases document carried a fenced block once in three runs.

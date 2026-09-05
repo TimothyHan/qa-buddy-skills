@@ -298,6 +298,8 @@ edit or skill edit) citing the eval run.
 
 ## PR6 — Remaining prose skills (optional, per skill)
 
+**Status 2026-09-05:** not started — no other skill reaches the ≥ 8 logged runs the calibration set needs (qa 5, test-plan 2, review-ticket 1 across the three logged projects). Revisit when a project's logs cross the line.
+
 Only when a skill has ≥ 8 logged runs to calibrate against. Order by log volume: `qa`,
 `e2e-pom`/`e2e-write` (execute criteria as floors), `test-plan`, `review-ticket`, `verify-fix`.
 Each is its own PR: rubric + 3 cases + controls + calibration.
