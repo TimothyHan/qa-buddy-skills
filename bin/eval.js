@@ -420,8 +420,17 @@ function cmdReport(target) {
 // artifacts — never typed in (RFC 0005 §2.6, decisions 7 and 8).
 function calibDir(skill) { return path.join(ROOT, 'core', 'skills', skill, 'tests', 'calibration'); }
 function scoringSheet(rubric, entry) {
+  const skill = rubric.skill;
   const L = [`# Scoring sheet — ${rubric.skill} · ${entry.id}`, '', `Source: ${entry.source}${entry.case ? ` · case ${entry.case}` : ''}${entry.origin ? ` · from ${entry.origin}` : ''}`, '',
-    'Read the artifact under `artifact/`, then fill `human.json`: one score 0–3 per judge criterion (pick the anchor), and `acceptable`: would you accept this artifact from a colleague as-is? Do not look at any judge output first.', ''];
+    'Read the context below (what the skill was given, and the ground truth only the judge and you see), then the artifact under `artifact/`, then fill `human.json`: one score 0–3 per judge criterion (pick the anchor), and `acceptable`: would you accept this artifact from a colleague as-is? Do not look at any judge output first.', '',
+    entry.source === 'control' ? 'This entry is a **control**: an artifact with one criterion deliberately broken. Score every criterion on what you see; the other criteria are incidental and may be fine or not.' : '', ''];
+  if (entry.case) {
+    const cdir = caseDir(skill, entry.case);
+    L.push('## Context — what the skill was given (case input)', '', '```', caseInputText(cdir, 6000), '```', '');
+    const notes = readIf(path.join(cdir, 'judge-notes.md'));
+    if (notes) L.push('## Context — ground truth (judge notes; the skill never saw this)', '', notes.replace(/^<!--[^\n]*-->\n?/, '').trim(), '');
+  } else L.push('## Context', '', 'External artifact — no case input or judge notes; score what the document itself supports.', '');
+  L.push('## Criteria', '');
   for (const c of rubric.criteria.filter(c => c.kind === 'judge')) {
     L.push(`## ${c.id} (weight ${c.weight}, floor ${c.floor})`, '', c.statement, '');
     for (const k of ['0', '1', '2', '3']) L.push(`- **${k}** — ${c.anchors[k]}`);
@@ -444,6 +453,11 @@ function addCalibEntry(skill, rubric, id, { source, caseId, origin, files }) {
 function cmdCalibrateInit(skill, opts) {
   const rubric = loadRubric(skill);
   let added = 0;
+  if (opts['refresh-sheets']) {
+    const dir = calibDir(skill); let n = 0;
+    for (const id of fs.readdirSync(dir)) { const m = path.join(dir, id, 'meta.json'); if (!fs.existsSync(m)) continue; fs.writeFileSync(path.join(dir, id, 'scoring-sheet.md'), scoringSheet(rubric, JSON.parse(fs.readFileSync(m, 'utf8')))); n++; }
+    console.log(`scoring sheets regenerated for ${n} entries (artifacts and human.json untouched)`); return;
+  }
   // 1. controls — every markdown control is a scored-by-construction artifact
   const controlsDir = path.join(ROOT, 'core', 'skills', skill, 'tests', 'controls');
   for (const f of fs.readdirSync(controlsDir).filter(f => f.endsWith('.md'))) {
@@ -664,6 +678,7 @@ function help() {
   judge <workspace> --skill s --case id [--passes 1]   grade an existing workspace (calibration / re-grading)
   report <eval-dir | scores.json>         re-render report.md
   calibrate <skill> --init [--extra f,g]  assemble tests/calibration/ from controls, eval runs and external files
+  calibrate <skill> --init --refresh-sheets   regenerate scoring-sheet.md (context + anchors) for every entry
   calibrate <skill> [--passes 3] [--dry-run|--judge-only]   judge the set, compare with human.json, derive the threshold
   ab <skill> --a <ref> --b <ref> [--cases] [--runs 3] [--locale ko]   install each ref globally in turn, run both, compare per criterion; restores the install
 `);

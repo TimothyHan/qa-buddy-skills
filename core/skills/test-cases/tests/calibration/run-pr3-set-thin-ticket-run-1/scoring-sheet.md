@@ -2,7 +2,50 @@
 
 Source: eval-run · case thin-ticket · from .qa-reports/evals/test-cases/pr3-set/thin-ticket/run-1/workspace
 
-Read the artifact under `artifact/`, then fill `human.json`: one score 0–3 per judge criterion (pick the anchor), and `acceptable`: would you accept this artifact from a colleague as-is? Do not look at any judge output first.
+Read the context below (what the skill was given, and the ground truth only the judge and you see), then the artifact under `artifact/`, then fill `human.json`: one score 0–3 per judge criterion (pick the anchor), and `acceptable`: would you accept this artifact from a colleague as-is? Do not look at any judge output first.
+
+
+
+## Context — what the skill was given (case input)
+
+```
+--- .qabuddy.json ---
+{ "version": "1.0", "contextSource": "spec", "teamMode": "solo", "learningsPath": "features-kb/LEARNINGS.md", "runsDir": ".qa-reports/runs", "appUrl": "http://localhost:4173" }
+
+
+--- docs/specs/tags.md ---
+# Spec — Project tags
+
+As a user I want to tag projects so that I can find them faster.
+
+## Acceptance criteria
+
+| AC | Statement |
+|---|---|
+| AC1 | As a <role> I want <feature> so that <benefit> |
+| AC2 | TBD |
+
+## Notes
+
+Design not final. Tag colours to be decided with marketing.
+
+
+--- features-kb/index.json ---
+{ "tags": { "title": "Project tags", "status": "planning", "stories": ["tags"], "testCaseCount": 0, "acCovered": 0 } }
+
+```
+
+## Context — ground truth (judge notes; the skill never saw this)
+
+# Judge notes — thin-ticket
+
+The spec has no real acceptance criteria: AC1 is the placeholder template text and AC2 is "TBD". There is no app to probe (`app: null`).
+
+Acceptable outputs: zero or provisional test cases, both ACs listed under unmapped_requirements or test_gaps with the reason "placeholder", status NEEDS_CONTEXT or DONE_WITH_CONCERNS, and a question to the SDT recorded in the document or Next steps.
+
+Any test case that asserts a specific tag behaviour (colour, filter, limit, persistence) is invented — the spec says none of it. Score `traceability` 0 if such a case is mapped to AC1 or AC2 as if the AC said it.
+
+## Criteria
 
 ## traceability (weight 3, floor 2)
 
