@@ -39,6 +39,18 @@ ACs from Jira, cross-reference the epic test plan, and produce:
 6. **Prioritize ruthlessly.** A ticket with 3 ACs doesn't need 30 test cases. Focus on what catches real bugs.
 7. **Observed beats assumed.** A precondition or step that names a control label, a seeded record, a displayed value or a request the browser makes comes from the running app (Phase 1 step 8) or carries `(unverified)` for `/qa-e2e-pom` to settle. Never assert the network behaviour of a page you have not watched.
 
+
+ (restated)
+## Constraints
+
+1. **Match the project's test style.** Read existing Playwright tests first. Use the same patterns, imports, helpers, page objects.
+2. **No implementation code in test cases.** Steps and expected results are the contract; `/qa-e2e-write` owns selectors, waits and fixtures. Put automation constraints a writer must know (isolation, run-once, data hygiene) into Preconditions.
+3. **Every test case traces to a requirement.** No orphan tests. No untested ACs.
+4. **Unit test checklist is for devs.** Keep it brief and actionable — describe what to test, not how.
+5. **Don't duplicate existing tests.** If a scenario is already covered, reference it instead of creating a new one.
+6. **Prioritize ruthlessly.** A ticket with 3 ACs doesn't need 30 test cases. Focus on what catches real bugs.
+7. **Observed beats assumed.** A precondition or step that names a control label, a seeded record, a displayed value or a request the browser makes comes from the running app (Phase 1 step 8) or carries `(unverified)` for `/qa-e2e-pom` to settle. Never assert the network behaviour of a page you have not watched.
+
 ---
 
 **Scratchpad (run protocol):** write `## Plan` to the run's `scratchpad.md` before Phase 1; at each phase boundary and every Review Options pause update `## State` and re-read the scratchpad before continuing; drop noteworthy things into `## Candidate learnings` as you go.
@@ -165,6 +177,20 @@ Create a mapping from requirements to test cases:
 
 ---
 
+## Phase 4: Self-Evaluation
+
+Before saving, verify consistency across all three artifacts. Fix issues found. One pass — no looping.
+
+1. Every AC in `mappings` has at least one test case; `unmapped_requirements` lists any AC with zero tests
+2. `coverage: "full"` means happy path + negative + boundaries tested; downgrade to `"partial"` otherwise
+3. No new test case duplicates an existing Playwright test — replace with a reference if so; overlap is judged from the assertion body, never the title, and each "already covered" reference names the file and the failing assertion
+4. Unit test checklist items checked against existing unit tests for overlap — same rule: an existing test counts only if its assertion would fail for that item
+5. P0/P1/P2 distribution: not >50% P0, and at least one P0 exists for the core happy path
+6. No code blocks in the test cases document; automation constraints a writer needs appear in Preconditions
+7. Every precondition or step naming a label, seeded record, displayed value or request is backed by an `Observed:` line in the scratchpad or marked `(unverified)`
+
+
+ (restated)
 ## Phase 4: Self-Evaluation
 
 Before saving, verify consistency across all three artifacts. Fix issues found. One pass — no looping.

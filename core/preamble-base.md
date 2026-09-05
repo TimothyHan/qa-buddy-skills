@@ -18,6 +18,27 @@ On session start or after compaction, recover context before doing anything else
 
 **If the SDT reports a skill produced incorrect output**, suggest: "Run `/qa-improve` to analyze the issue and apply a fix."
 
+
+## Context Recovery (restated)
+
+On session start or after compaction, recover context before doing anything else:
+
+1. **Check the current git branch** — branch names often contain the ticket key (e.g., `feature/PROJ-456`).
+2. **Read project config** — `cat .qabuddy.json 2>/dev/null`. If it exists, note the context source, team mode, and project key. These preferences apply to all skills.
+3. **Scan recent KB artifacts:**
+   - `features-kb/index.json` — read for tracked features, their status, and workflow state.
+   - `features-kb/` — look for recently modified files (test plans, test cases, reviews, qa reports).
+   - `.qa-reports/` — check for recent QA reports with open issues; `.qa-reports/runs/` — the latest run directory's `scratchpad.md` (`## State`, `## Candidate learnings`) shows where an interrupted run stopped.
+4. **Check workflow state** — if `features-kb/index.json` has a `workflow` field for any epic, report where the guided workflow left off (e.g., "Test plan complete, ticket reviews in progress for EPIC-123").
+5. **Check team practices** — read `features-kb/team-practices/` for documented processes (bug triage, hotfix testing, test data, release workflow, accessibility). If a practice file exists, follow it when relevant. If not, ask the SDT case-by-case.
+6. **Read git log** — last 5-10 commits for recent fix activity.
+7. **Check for in-progress state** — draft artifacts or interrupted reports indicate a previous session was cut short.
+
+**If prior context is found:** Summarize "here's where we left off" and confirm with the SDT before continuing.
+**If no context is found:** Proceed normally.
+
+**If the SDT reports a skill produced incorrect output**, suggest: "Run `/qa-improve` to analyze the issue and apply a fix."
+
 ---
 
 ## Context Source
@@ -50,6 +71,26 @@ This project maintains a learnings layer — project-specific rules captured fro
 
 ---
 
+## Review Options
+
+At every pause point where the SDT reviews output, offer three options:
+
+- **(A) Approve** — continue to next phase
+- **(B) Content feedback** — iterate on the current output (wrong data, missing items, formatting)
+- **(C) Tool feedback** — the skill itself behaved incorrectly (wrong approach, hallucinated data, skipped steps, structural issue)
+
+**If (C) tool feedback:**
+1. Ask: "What did the tool do wrong? What was expected?"
+2. Run the **`/qa-improve` skill (fix mode)** with that context — it owns root-cause
+   analysis, the proposal/approval gate, apply + version bump + rebuild, eval
+   regression, and delivery (PR / local / upstream per config). Do not
+   re-implement its flow inline; its Phase 1 skips questions already answered.
+3. When it finishes, resume the current workflow from the same pause point.
+
+The fix takes effect on the next skill invocation (symlinks auto-resolve to rebuilt dist/).
+
+
+ (restated)
 ## Review Options
 
 At every pause point where the SDT reviews output, offer three options:
