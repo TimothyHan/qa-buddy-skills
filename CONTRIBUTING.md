@@ -263,7 +263,7 @@ Cursor와 Copilot은 `tool-groups`를 무시합니다 — 해당 에이전트가
 | `metrics-and-coverage.md` | 코드 커버리지, 요구사항 커버리지, 결함 + 테스트 건강 지표 |
 | `shift-left.md` | 요구사항 조기 검증, 정합성 확인 |
 | `test-distribution.md` | 테스트 피라미드/다이아몬드, 중복 제거 |
-| `test-types.md` | 수동 vs 자동, UAT vs 기능 테스트 |
+| `test-types.md` | 자동화 가이드라인, 수동 테스트 케이스 작성 시점 |
 | `execution-sequence.md` | 스프린트 전반의 테스트 실행 순서 |
 | `defect-lifecycle.md` | 결함 유형, 상태, SLA, 회귀 테스트 |
 | `maintenance-and-ci.md` | 불안정(flaky) 테스트, 시간 예산, CI 게이트 |

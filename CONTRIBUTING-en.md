@@ -263,7 +263,7 @@ The playbook lives in `core/references/playbook/` as focused files (~35-70 lines
 | `metrics-and-coverage.md` | Code coverage, requirements coverage, defect + test health metrics |
 | `shift-left.md` | Challenge requirements early, verify alignment |
 | `test-distribution.md` | Test pyramid/diamond, deduplication |
-| `test-types.md` | Manual vs automation, UAT vs functional |
+| `test-types.md` | Automation guidelines, when to write manual test cases |
 | `execution-sequence.md` | Testing order through the sprint |
 | `defect-lifecycle.md` | Bug types, states, SLA, regression tests |
 | `maintenance-and-ci.md` | Flaky tests, time budget, CI gates |

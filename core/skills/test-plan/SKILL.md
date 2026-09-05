@@ -1,6 +1,6 @@
 ---
 name: test-plan
-version: 0.5.5
+version: 0.5.6
 description: |
   Build a test plan when a new Epic is created. Pulls epic details and linked
   stories from Jira, analyzes scope, and produces a test plan covering strategy,
@@ -69,7 +69,7 @@ If Jira MCP is available, verify connectivity with a simple query. If not availa
    - `metrics-and-coverage.md` — coverage targets
    - `shift-left.md` — client requirements alignment
    - `test-distribution.md` — pyramid/diamond targets, deduplication
-   - `test-types.md` — automation vs manual, UAT vs functional
+   - `test-types.md` — automation guidelines, when to write manual cases
    - `defect-lifecycle.md` — SLA expectations for risk assessment
    - `test-suite-verification.md` — the automation strategy must state how the suite's detection power gets proven (mutation smoke, no vacuous assertions)
 

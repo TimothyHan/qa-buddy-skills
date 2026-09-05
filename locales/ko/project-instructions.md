@@ -102,11 +102,11 @@ features-kb/
 | 파일 | 내용 |
 |------|--------|
 | `terminology.md` | 모든 결과물에서 사용하는 표준 용어 정의 |
-| `risk-and-priority.md` | 심각도/우선순위 기준, 공수 배분, 의사결정 매트릭스 |
+| `risk-and-priority.md` | 심각도/우선순위 기준, 노출 표, 공수 배분 |
 | `metrics-and-coverage.md` | 코드 커버리지 목표, 요구사항 커버리지 |
 | `shift-left.md` | 요구사항을 조기에 검토하고 정합성을 확인합니다 |
 | `test-distribution.md` | 테스트 피라미드/다이아몬드, 중복 제거 규칙 |
-| `test-types.md` | 수동 vs 자동화, UAT vs 기능 테스트, 탐색적 테스트 |
+| `test-types.md` | 자동화 가이드라인, 수동 테스트 케이스를 작성하는 경우 |
 | `execution-sequence.md` | 스프린트 내 테스트 실행 순서 |
 | `defect-lifecycle.md` | 결함 상태, SLA 기대치, 회귀 테스트 요구사항 |
 | `maintenance-and-ci.md` | 불안정 테스트, 시간 예산, CI 게이트, 브라우저 매트릭스 |

@@ -273,27 +273,6 @@ error/empty/edge/role states belong to `page.route`-mocked tests.)
 
 ---
 
-## Anti-pattern → correction
-<!-- qab: id=anti-pattern-correction -->
-
-| ❌ | ✅ |
-| --- | --- |
-| `await page.waitForTimeout(3000)` | wait on state: `await expect(locator).toBeVisible()` |
-| `await button.click(); await page.waitForResponse(...)` | arm the promise before the click |
-| `const rows = await locator.all()` (no wait) | `first().waitFor()` then `.all()` |
-| `rows.nth(table.findIndex(...))` | guard `-1`, then throw |
-| `expect(count).toBe(before + 1)` | `toContainEqual(objectContaining({ id }))` |
-| `name: 'test-item'` / `` `x-${Date.now()}` `` | add worker+repeat entropy |
-| `filter({ hasText: name })` for by-name lookup | `filter({ has: getByText(name, { exact: true }) })` |
-| cleanup on the last line of the test body | disposal context or `afterEach` |
-| table parse: `.all()` then per-cell `await textContent()` | atomic read via `evaluateAll` — a re-render mid-loop detaches rows and the await hangs until timeout |
-| act on a parsed row via `nth(index)` | content-anchored locator (`filter({ has: getByText(value, { exact: true }) })`) — concurrent row churn silently shifts indexes |
-| one-shot `expect(parsed).toContainEqual(...)` on shared-table data | `expect.poll(() => parse())` — parses don't auto-retry; concurrent renders make single snapshots flaky |
-| `expect(arr).toContainEqual(wholeArray)` | `toEqual`, or pass one element |
-| `baseURL: 'https://host/api'` + `get('/items')` | trailing slash `…/api/` + relative `get('items')` |
-| `beforeAll(async ({ request }) => …)` | build your own context: `await request.newContext(...)` |
-| per-test `newContext({ storageState })` | override the `storageState` option fixture |
-
 ## Pitfalls (debugging accelerators)
 <!-- qab: id=pitfalls scope=e2e-setup,e2e-pom,e2e-write,qa -->
 
@@ -320,3 +299,11 @@ error/empty/edge/role states belong to `page.route`-mocked tests.)
   changes with timing. Scope alert locators by content
   (`getByRole('alert').filter({ has: page.getByRole('listitem') })`) or by a text
   anchor; never `.nth()`.
+- Table parsing: `.all()` then per-cell `await textContent()` hangs until timeout
+  when a re-render mid-loop detaches rows — read atomically via `evaluateAll`.
+- Acting on a parsed row via `nth(index)` silently shifts under concurrent row
+  churn — use a content-anchored locator
+  (`filter({ has: getByText(value, { exact: true }) })`).
+- A one-shot `expect(parsed).toContainEqual(...)` on shared-table data is flaky:
+  parses don't auto-retry and concurrent renders change the snapshot — use
+  `expect.poll(() => parse())`.

@@ -1,6 +1,6 @@
 ---
 name: test-cases
-version: 0.5.1
+version: 0.5.2
 description: |
   Jira 티켓의 인수 조건(AC)에서 테스트 케이스를 생성합니다. E2E 테스트 시나리오
   (단계와 기대 결과, 코드 없음)와 개발자용 단위 테스트 체크리스트를 작성합니다.
@@ -54,7 +54,7 @@ SDT 파트너로서 티켓의 테스트 케이스를 생성합니다. Jira에서
 
 2. **방법론 참조 문서를 읽습니다** (`{{REFERENCE_PATH}}/playbook/`):
    - `test-distribution.md` — 가장 낮은 적절한 계층에 테스트 배치, 중복 제거 규칙
-   - `test-types.md` — 수동 vs 자동화, UAT vs 기능 테스트 구분
+   - `test-types.md` — 자동화 가이드라인, 케이스를 수동으로 남기는 경우
    - `maintenance-and-ci.md` — 브라우저 매트릭스 (Playwright는 Chrome, Firefox, Safari, Edge에서 실행)
    - `test-suite-verification.md` — 기대 결과의 공허 단언 체크리스트 (기능이 망가져도 성립하는 결과는 기대 결과가 아닙니다)
    - 그 다음 프로젝트 학습 파일(프리앰블 참조) — 이 스킬에 스코프된 active
