@@ -228,6 +228,16 @@ Lesson recorded as a preflight warning: `pull_request` workflows run from the PR
 branch, so a branch cut before the caller was added (PR #2) cannot chain until the base
 branch is merged into it.
 
+### The companion as a work list (2026-09-05, PR #6, `/qabuddy explore`)
+
+kb 29 turns / $0.59 · explore 102 turns / $2.13 · deliver rendered companion #11's body from
+the session, the bug files, the close files and the heatmap: 2 bug files + 3 bug findings in
+the author's fix list, one UX finding turned into issue #10 (labelled `qabuddy`, de-duplicated
+by marker) under "Decide", phase table with cost, concerns raised by the session; the
+announcement on #6 carries the same fixes and the decision link. Decision 15: findings that
+need a human become issues (`issues-for`); the fix belongs on the source branch, the
+companion carries the tests.
+
 **Design change from this run (decision 11):** one action session per phase — `kb`,
 `explore`, `automate` — each with its own turn and budget cap and `continue-on-error`,
 so a cap or failure in automation never discards the documentation phases, and the

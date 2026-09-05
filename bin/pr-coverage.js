@@ -770,6 +770,8 @@ function parseFindings(feature, root) {
     if (h) { cur = { feature: feature.key, n: Number(h[1]), title: h[2].trim(), fields: {}, file: rel, anchor: `${rel}#Finding ${h[1]}` }; out.push(cur); continue; }
     if (!cur) continue;
     if (/^#{1,3}\s/.test(line)) { cur = null; continue; }
+    const act = line.match(/^\*\*Action:\*\*\s*(.+)$/i);   // the action is the last field: keep the whole sentence
+    if (act) { cur.fields.action = act[1].trim(); continue; }
     for (const m of line.matchAll(/\*\*([^*]+?):\*\*\s*([^|]+?)(?=\s*\||$)/g)) cur.fields[m[1].trim().toLowerCase()] = m[2].trim();
   }
   for (const f of out) {
@@ -780,6 +782,8 @@ function parseFindings(feature, root) {
     else if (/add test|scenario|automate/.test(act) || /scenario|coverage/.test(cat)) f.kind = 'scenario';
     else f.kind = 'note';
     f.hash = require('crypto').createHash('sha1').update(`${f.feature}|${f.title}`).digest('hex').slice(0, 12);
+    const ref = `${f.title} ${Object.values(f.fields).join(' ')}`.match(/\bBUG-\d+\b/);   // "same root cause as BUG-001"
+    f.bug = ref ? ref[0] : null;
   }
   return out;
 }
@@ -863,11 +867,13 @@ function renderBody(S) {
   L.push(items.length ? `- ${items.join(' · ')} (${S.changed} files, all under \`features-kb/\` and \`playwright/\`)` : '- no file changes', '');
   const ph = Object.entries(S.stats.phases);
   if (ph.length) { L.push('| Phase | Status | Turns | Cost | Time |', '|---|---|---|---|---|'); for (const [k, v] of ph) L.push(`| ${k} | ${v.error ? 'error' : 'done'} | ${v.turns} | $${v.cost.toFixed(2)} | ${v.minutes} min |`); L.push(''); }
-  const bugsAll = [...S.bugs.map(b => ({ kind: 'bug', label: `**${b.id}**${sev(b.severity)} — ${b.title}`, link: b.file })), ...S.findings.filter(f => f.kind === 'bug').map(f => ({ kind: 'bug', label: `Finding ${f.n}${sev(f.severity)} — ${f.title}`, link: f.anchor }))];
+  const bugIds = new Set(S.bugs.map(b => b.id));
+  const linked = f => f.bug && bugIds.has(f.bug);
+  const bugsAll = [...S.bugs.map(b => ({ kind: 'bug', label: `**${b.id}**${sev(b.severity)} — ${b.title}`, link: b.file, also: S.findings.filter(f => f.kind === 'bug' && f.bug === b.id).map(f => `Finding ${f.n} — ${f.title} (\`${f.anchor}\`)`) })), ...S.findings.filter(f => f.kind === 'bug' && !linked(f)).map(f => ({ kind: 'bug', label: `Finding ${f.n}${sev(f.severity)} — ${f.title}`, link: f.anchor, also: [] }))];
   const decisions = S.findings.filter(f => f.kind === 'decision'); const scenarios = S.findings.filter(f => f.kind === 'scenario'); const notes = S.findings.filter(f => f.kind === 'note');
   L.push(`## Findings (${bugsAll.length + decisions.length + scenarios.length + notes.length})`, '');
   if (!bugsAll.length && !S.findings.length) L.push('- none recorded by this run', '');
-  for (const b of bugsAll) L.push(`- 🐞 ${b.label} → \`${b.link}\``);
+  for (const b of bugsAll) { L.push(`- 🐞 ${b.label} → \`${b.link}\``); for (const a of b.also) L.push(`  - also seen as ${a}`); }
   for (const f of decisions) { const i = issueFor(f.hash); L.push(`- 🤔 Finding ${f.n} — ${f.title}${f.action ? ` — *${f.action}*` : ''}${i ? ` → ${i.url}` : ''} (\`${f.anchor}\`)`); }
   for (const f of scenarios) L.push(`- 🧪 Finding ${f.n} — ${f.title} — new scenario (\`${f.anchor}\`)`);
   for (const f of notes) L.push(`- 📝 Finding ${f.n} — ${f.title} (\`${f.anchor}\`)`);
@@ -890,7 +896,8 @@ function renderBody(S) {
 
 function renderAnnounce(S) {
   const sev = x => x ? ` (${x})` : '';
-  const bugsAll = [...S.bugs.map(b => `${b.id}${sev(b.severity)} ${b.title}`), ...S.findings.filter(f => f.kind === 'bug').map(f => `Finding ${f.n}${sev(f.severity)} ${f.title}`)];
+  const bugIds = new Set(S.bugs.map(b => b.id));
+  const bugsAll = [...S.bugs.map(b => `${b.id}${sev(b.severity)} ${b.title}`), ...S.findings.filter(f => f.kind === 'bug' && !(f.bug && bugIds.has(f.bug))).map(f => `Finding ${f.n}${sev(f.severity)} ${f.title}`)];
   const decisions = S.findings.filter(f => f.kind === 'decision');
   const L = [];
   L.push(`QABuddy opened ${S.companionUrl || 'a companion PR'} with tests for this PR (phases: ${S.phases.join(', ')}). It targets \`${S.sourceRef}\`: merge it into this branch to bring the tests along. Its description carries the full work list.`);
