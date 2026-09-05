@@ -1,13 +1,22 @@
 {
-  "scored_by": null,
-  "date": null,
-  "acceptable": null,
+  "scored_by": "proposed:claude",
+  "date": "2026-09-05",
+  "acceptable": true,
   "scores": {
-    "finding-correctness": null,
-    "classification": null,
-    "evidence": null,
-    "charter-quality": null,
-    "no-duplicate-scenarios": null,
-    "unexplored-noted": null
-  }
+    "finding-correctness": 3,
+    "classification": 3,
+    "evidence": 3,
+    "charter-quality": 1,
+    "no-duplicate-scenarios": 3,
+    "unexplored-noted": 3
+  },
+  "rationale": {
+    "finding-correctness": "the soft-delete regression (same defect as v3-planted) found with the raw API payload as proof; F2 filed as a question — 3",
+    "classification": "Blocker/High with the scale cited, Trivial/Low for the question — 3",
+    "evidence": "numbered steps, before/after screenshots, network lines — 3",
+    "charter-quality": "no charter section; a mission paragraph and an AC-keyed focus table stand in — anchor 1",
+    "no-duplicate-scenarios": "no new-scenario findings — 3",
+    "unexplored-noted": "AC6 blocked by F1, concurrency/a11y/mobile listed — 3"
+  },
+  "how_to_approve": "Replace scored_by with your name, change any score or acceptable you disagree with, delete this field if you like. Until scored_by is a person, calibrate ignores this entry."
 }

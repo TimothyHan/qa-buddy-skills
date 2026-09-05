@@ -1,12 +1,21 @@
 {
-  "scored_by": null,
-  "date": null,
-  "acceptable": null,
+  "scored_by": "proposed:claude",
+  "date": "2026-09-05",
+  "acceptable": true,
   "scores": {
-    "traceability": null,
-    "coverage-honesty": null,
-    "dedup-by-assertion": null,
-    "prioritization": null,
-    "observed-or-unverified": null
-  }
+    "traceability": 3,
+    "coverage-honesty": 3,
+    "dedup-by-assertion": 3,
+    "prioritization": 3,
+    "observed-or-unverified": 3
+  },
+  "rationale": {
+    "traceability": "both ACs are placeholders (notes confirm); listed as unmapped with the reason — supported gaps — 3",
+    "coverage-honesty": "no coverage claimed, mappings empty — 3",
+    "dedup-by-assertion": "nothing credited — 3",
+    "prioritization": "zero cases is the right count for zero real ACs; no padding — 3",
+    "observed-or-unverified": "names no control, seed or value — nothing to verify — 3",
+    "acceptable": "NEEDS_CONTEXT with a concrete list of what the spec must state — exactly the wanted behaviour"
+  },
+  "how_to_approve": "Replace scored_by with your name, change any score or acceptable you disagree with, delete this field if you like. Until scored_by is a person, calibrate ignores this entry."
 }

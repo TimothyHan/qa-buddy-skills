@@ -1,12 +1,20 @@
 {
-  "scored_by": null,
-  "date": null,
-  "acceptable": null,
+  "scored_by": "proposed:claude",
+  "date": "2026-09-05",
+  "acceptable": false,
   "scores": {
-    "traceability": null,
-    "coverage-honesty": null,
-    "dedup-by-assertion": null,
-    "prioritization": null,
-    "observed-or-unverified": null
-  }
+    "traceability": 0,
+    "coverage-honesty": 3,
+    "dedup-by-assertion": 3,
+    "prioritization": 0,
+    "observed-or-unverified": 3
+  },
+  "rationale": {
+    "traceability": "AC2–AC6 listed as unmapped but they are real and no reason is given — 0",
+    "coverage-honesty": "AC1 'partial' on a single happy path — justified — 3",
+    "dedup-by-assertion": "nothing credited — 3",
+    "prioritization": "one P0 case — 0 by the letter",
+    "observed-or-unverified": "names only /login and the spec's credentials, no control label — nothing to verify — 3"
+  },
+  "how_to_approve": "Replace scored_by with your name, change any score or acceptable you disagree with, delete this field if you like. Until scored_by is a person, calibrate ignores this entry."
 }

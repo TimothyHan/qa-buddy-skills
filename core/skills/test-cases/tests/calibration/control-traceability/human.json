@@ -1,12 +1,20 @@
 {
-  "scored_by": null,
-  "date": null,
-  "acceptable": null,
+  "scored_by": "proposed:claude",
+  "date": "2026-09-05",
+  "acceptable": false,
   "scores": {
-    "traceability": null,
-    "coverage-honesty": null,
-    "dedup-by-assertion": null,
-    "prioritization": null,
-    "observed-or-unverified": null
-  }
+    "traceability": 0,
+    "coverage-honesty": 3,
+    "dedup-by-assertion": 3,
+    "prioritization": 0,
+    "observed-or-unverified": 3
+  },
+  "rationale": {
+    "traceability": "AC3, AC5, AC6 have no case and are NOT listed as gaps — the broken thing — 0",
+    "coverage-honesty": "all three mappings 'partial' on single cases — honest — 3",
+    "dedup-by-assertion": "nothing credited — 3",
+    "prioritization": "3 cases all P0 → 100 % — 0 by the letter",
+    "observed-or-unverified": "'New project', 'Create', dialog 'Delete' marked Observed and real — 3"
+  },
+  "how_to_approve": "Replace scored_by with your name, change any score or acceptable you disagree with, delete this field if you like. Until scored_by is a person, calibrate ignores this entry."
 }

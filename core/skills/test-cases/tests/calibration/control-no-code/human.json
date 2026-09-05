@@ -1,12 +1,20 @@
 {
-  "scored_by": null,
-  "date": null,
-  "acceptable": null,
+  "scored_by": "proposed:claude",
+  "date": "2026-09-05",
+  "acceptable": false,
   "scores": {
-    "traceability": null,
-    "coverage-honesty": null,
-    "dedup-by-assertion": null,
-    "prioritization": null,
-    "observed-or-unverified": null
-  }
+    "traceability": 0,
+    "coverage-honesty": 3,
+    "dedup-by-assertion": 3,
+    "prioritization": 0,
+    "observed-or-unverified": 3
+  },
+  "rationale": {
+    "traceability": "AC1, AC2, AC3, AC5, AC6 have no case and are not listed — anchor 0",
+    "coverage-honesty": "no coverage value is claimed anywhere, so nothing is dishonest (the missing mapping is a traceability fault) — anchor 3, judgment call",
+    "dedup-by-assertion": "nothing credited; only a smoke test exists and it covers no AC — anchor 3",
+    "prioritization": "one case, P0 → 100 % P0 — anchor 0 by the letter",
+    "observed-or-unverified": "'Delete', dialog 'Delete'/'Keep' are real and marked Observed — anchor 3"
+  },
+  "how_to_approve": "Replace scored_by with your name, change any score or acceptable you disagree with, delete this field if you like. Until scored_by is a person, calibrate ignores this entry."
 }

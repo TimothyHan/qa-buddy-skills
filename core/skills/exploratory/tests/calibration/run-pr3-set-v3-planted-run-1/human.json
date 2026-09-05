@@ -1,13 +1,23 @@
 {
-  "scored_by": null,
-  "date": null,
-  "acceptable": null,
+  "scored_by": "proposed:claude",
+  "date": "2026-09-05",
+  "acceptable": false,
   "scores": {
-    "finding-correctness": null,
-    "classification": null,
-    "evidence": null,
-    "charter-quality": null,
-    "no-duplicate-scenarios": null,
-    "unexplored-noted": null
-  }
+    "finding-correctness": 0,
+    "classification": 3,
+    "evidence": 3,
+    "charter-quality": 0,
+    "no-duplicate-scenarios": 3,
+    "unexplored-noted": 3
+  },
+  "rationale": {
+    "finding-correctness": "planted delete defect found (Blocker) — but Findings 3 and 4 claim the UI shows no error on a 409/400; the app shows a toast that auto-dismisses in 1.5 s (notes: not a bug) and the quick-timebox run saw 'Name is required' work — two defects the app does not have, one rated Major — anchor 0",
+    "classification": "all findings carry scale values consistent with the described impact — 3",
+    "evidence": "screenshots, network lines, steps on every finding — 3",
+    "charter-quality": "charter not persisted in the artifact — 0",
+    "no-duplicate-scenarios": "search trimming, empty-copy reuse are new — 3",
+    "unexplored-noted": "explicit list, AC6 blocked by F1 with the reason — 3",
+    "acceptable": "a Major false defect is what you would send back"
+  },
+  "how_to_approve": "Replace scored_by with your name, change any score or acceptable you disagree with, delete this field if you like. Until scored_by is a person, calibrate ignores this entry."
 }

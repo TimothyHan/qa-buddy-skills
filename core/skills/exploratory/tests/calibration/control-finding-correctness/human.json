@@ -1,13 +1,22 @@
 {
-  "scored_by": null,
-  "date": null,
-  "acceptable": null,
+  "scored_by": "proposed:claude",
+  "date": "2026-09-05",
+  "acceptable": false,
   "scores": {
-    "finding-correctness": null,
-    "classification": null,
-    "evidence": null,
-    "charter-quality": null,
-    "no-duplicate-scenarios": null,
-    "unexplored-noted": null
-  }
+    "finding-correctness": 0,
+    "classification": 3,
+    "evidence": 3,
+    "charter-quality": 0,
+    "no-duplicate-scenarios": 3,
+    "unexplored-noted": 1
+  },
+  "rationale": {
+    "finding-correctness": "'deleted project stays in the list' on v1 — the app has no such defect — 0",
+    "classification": "both findings carry severity and priority from the scale, consistent — 3",
+    "evidence": "steps, expected/actual, screenshot path, action on both — 3",
+    "charter-quality": "no charter in the artifact — 0",
+    "no-duplicate-scenarios": "no new-scenario findings — 3",
+    "unexplored-noted": "no focus-area accounting and no next-session list — 1"
+  },
+  "how_to_approve": "Replace scored_by with your name, change any score or acceptable you disagree with, delete this field if you like. Until scored_by is a person, calibrate ignores this entry."
 }

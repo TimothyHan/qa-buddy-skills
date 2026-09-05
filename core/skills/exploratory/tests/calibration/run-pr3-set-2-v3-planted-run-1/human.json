@@ -1,13 +1,23 @@
 {
-  "scored_by": null,
-  "date": null,
-  "acceptable": null,
+  "scored_by": "proposed:claude",
+  "date": "2026-09-05",
+  "acceptable": true,
   "scores": {
-    "finding-correctness": null,
-    "classification": null,
-    "evidence": null,
-    "charter-quality": null,
-    "no-duplicate-scenarios": null,
-    "unexplored-noted": null
-  }
+    "finding-correctness": 3,
+    "classification": 1,
+    "evidence": 3,
+    "charter-quality": 0,
+    "no-duplicate-scenarios": 3,
+    "unexplored-noted": 3
+  },
+  "rationale": {
+    "finding-correctness": "planted defect found and classified Blocker; case-sensitivity filed as 누락된 요구사항 (correct); empty-name round trip filed as UX with the message shown — nothing invented — 3",
+    "classification": "Findings 6 and 7 use 'N/A' for severity and priority — anchor 1 by the letter (they are positive confirmations; the rubric may want an explicit rule for those)",
+    "evidence": "screenshots and network on every finding — 3",
+    "charter-quality": "charter not persisted — 0",
+    "no-duplicate-scenarios": "XSS regression, max length, status dropdown are new — 3",
+    "unexplored-noted": "explicit list with reasons — 3",
+    "acceptable": "the best of the four sessions"
+  },
+  "how_to_approve": "Replace scored_by with your name, change any score or acceptable you disagree with, delete this field if you like. Until scored_by is a person, calibrate ignores this entry."
 }

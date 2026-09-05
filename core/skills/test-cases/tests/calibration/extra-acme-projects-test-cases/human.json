@@ -1,12 +1,20 @@
 {
-  "scored_by": null,
-  "date": null,
-  "acceptable": null,
+  "scored_by": "proposed:claude",
+  "date": "2026-09-05",
+  "acceptable": false,
   "scores": {
-    "traceability": null,
-    "coverage-honesty": null,
-    "dedup-by-assertion": null,
-    "prioritization": null,
-    "observed-or-unverified": null
-  }
+    "traceability": 0,
+    "coverage-honesty": 3,
+    "dedup-by-assertion": 3,
+    "prioritization": 0,
+    "observed-or-unverified": 1
+  },
+  "rationale": {
+    "traceability": "AC5 and AC6 real, uncovered, no reason ('have no test cases yet') — 0",
+    "coverage-honesty": "the document carries no coverage values (mapping file not included) — nothing dishonest — 3",
+    "dedup-by-assertion": "no existing test credited — 3",
+    "prioritization": "TC-01/02/04 P0 = 3 of 4 (75 %) — 0 by the letter",
+    "observed-or-unverified": "'New project', 'Delete', 'Name already exists' are real per the notes but nothing is Observed or marked (unverified) — anchor 1"
+  },
+  "how_to_approve": "Replace scored_by with your name, change any score or acceptable you disagree with, delete this field if you like. Until scored_by is a person, calibrate ignores this entry."
 }
