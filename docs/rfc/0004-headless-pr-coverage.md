@@ -164,7 +164,12 @@ pass/fail pending a run whose results step executes · (e) $8.18 for `full`, und
 | automate | 103 | $3.53 | 15 min | 0 | DONE — page objects, API client, 9 specs, 4 gates green; TC-04 / TC-07 written as expected failures against the soft-delete build |
 | **run** | **209** | **$5.75** | **25 min** | **0** | job green; suite executed: 9 tests, TC-04 and TC-07 fail (the regression), rest pass; companion PR #3 reused; artifact uploaded |
 
-The heatmap posted by that run was stale — the companion step had checked the PR head
+Repeat with the ordering fix (run 33945106786): kb 50 turns / $1.26 / 6 min · explore 61 /
+$1.04 / 7 min · automate 123 / $3.04 / 12 min — **$5.34, 26.5 min, 0 questions**; the run
+itself posted the correct heatmap (TC-04 and TC-07 red, four ACs at risk, 11 covered) and
+reused companion PR #3. Two full runs, same verdict.
+
+The heatmap posted by the first split-phase run was stale — the companion step had checked the PR head
 back out before the heatmap step ran (fixed: the job stays on the companion branch).
 The corrected heatmap for the same tree and results was posted from the artifact.
 
