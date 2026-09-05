@@ -2,16 +2,186 @@
 
 Source: control · case vacuous-coverage · from tests/controls/dedup-by-assertion.md
 
-Read the artifact under `artifact/`, then fill `human.json`: one score 0–3 per judge criterion (pick the anchor), and `acceptable`: would you accept this artifact from a colleague as-is? Do not look at any judge output first.
+Read the context below (what the skill was given, and the ground truth only the judge and you see), then the artifact under `artifact/`, then fill `human.json`: one score 0–3 per judge criterion (pick the anchor), and `acceptable`: would you accept this artifact from a colleague as-is? Do not look at any judge output first.
+
+This entry is a **control**: an artifact with one criterion deliberately broken. Score every criterion on what you see; the other criteria are incidental and may be fine or not.
+
+## Context — what the skill was given (case input)
+
+```
+--- .qabuddy.json ---
+{ "version": "1.0", "contextSource": "spec", "teamMode": "solo", "learningsPath": "features-kb/LEARNINGS.md", "runsDir": ".qa-reports/runs", "appUrl": "http://localhost:4173" }
+
+
+--- docs/specs/projects.md ---
+# Spec — Projects management
+
+Acme Projects lets a signed-in user keep a list of projects.
+
+Base URL: http://localhost:4173 · Test account: qa@acme.test / demo123
+
+## Acceptance criteria
+
+| AC | Statement |
+|---|---|
+| AC1 | A user can sign in with valid credentials and lands on the Projects page with the list visible. Invalid credentials show an error and stay on /login. |
+| AC2 | A signed-in user can create a project with a unique name; a success toast appears and the project shows in the list. |
+| AC3 | Creating a project whose name already exists is rejected with an error toast ("Name already exists"); the list is unchanged. |
+| AC4 | A user can delete a project from its row after confirming in a dialog; the project no longer appears in the list. |
+| AC5 | Typing into the search box filters the list so only rows whose name contains the fragment remain visible. |
+| AC6 | With zero projects, the page shows a "No projects yet" message and renders no table. |
+
+## Out of scope
+
+- The status filter dropdown is a visual affordance only in this release. No acceptance criterion covers it.
+
+
+--- features-kb/features/projects/feature.md ---
+# Feature: Projects management (projects)
+
+**Key:** `projects` (contextSource: spec) · **Spec:** docs/specs/projects.md
+
+## Capabilities
+
+### C1. Authentication
+- AC1: sign in with valid credentials → Projects page with the list; invalid → error on /login.
+
+### C2. Project list management
+- AC2: create a project with a unique name → success toast, project in list.
+- AC3: duplicate name → error toast, list unchanged.
+- AC4: delete from the row after confirming → project gone from list.
+
+### C3. Finding projects
+- AC5: search box filters rows by name fragment.
+- AC6: zero projects → "No projects yet", no table.
+
+## Out of scope
+- Status filter dropdown — no AC.
+
+
+--- features-kb/features/projects/test-cases/projects.md ---
+# Test Cases: Projects management
+
+**Ticket:** projects | **Epic:** projects | **Created:** 2026-09-04
+Seeded for AC1–AC2 only. AC3–AC6 have no test cases yet.
+
+---
+
+### TC-01: Sign in with valid credentials
+
+**Requirement:** AC1 from projects
+**Priority:** P0
+**Type:** happy-path
+
+**Preconditions:**
+- Signed out
+
+**Steps:**
+1. Open /login
+2. Enter qa@acme.test / demo123
+3. Submit
+
+**Expected Result:**
+- Lands on the Projects page; the project list is visible
+
+### TC-02: Create a project
+
+**Requirement:** AC2 from projects
+**Priority:** P0
+**Type:** happy-path
+
+**Preconditions:**
+- Signed in; the project name is unused
+
+**Steps:**
+1. Projects page → New project
+2. Enter a unique name
+3. Create
+
+**Expected Result:**
+- Success toast shown; the new project appears in the list
+
+**Status:** DONE_WITH_CONCERNS
+**Summary:** 2 test cases for AC1–AC2; AC3–AC6 unmapped
+**Next steps:** run /qa-test-cases projects --update
+
+
+--- features-kb/index.json ---
+{ "projects": { "title": "Projects management", "status": "active", "stories": ["projects"], "testCaseCount": 0, "acCovered": 0 } }
+
+
+--- playwright/tests/projects.spec.ts ---
+import { test, expect } from '@playwright/test';
+import { projectsPage } from '../pom/projects.page';
+import { createProject } from '../api/projects';
+
+test.describe('Projects', () => {
+  test('TC-03: duplicate project name rejected', async ({ page, request, disposalContext }) => {
+    const name = `dup-${Date.now()}-w${test.info().parallelIndex}`;
+    await createProject(request, name, disposalContext);
+    await projectsPage.goto(page);
+    await projectsPage.openNewProject(page);
+    await projectsPage.locators.nameInput(page).fill(name);
+    await projectsPage.locators.createSubmit(page).click();
+    await expect(page).toHaveURL(/\/projects/);
+  });
+
+  test('TC-04: delete a project', async ({ page, request, disposalContext }) => {
+    const name = `del-${Date.now()}-w${test.info().parallelIndex}`;
+    await createProject(request, name, disposalContext);
+    await projectsPage.goto(page);
+    await projectsPage.deleteByName(page, name);
+    await expect(projectsPage.locators.rowByName(page, name)).toHaveCount(0);
+  });
+});
+
+```
+
+## Context — ground truth (judge notes; the skill never saw this)
+
+# Judge notes — vacuous-coverage (fixture app v1)
+
+`playwright/tests/projects.spec.ts` contains two tests:
+
+- **TC-03 (AC3) is vacuous.** Its only assertion is `expect(page).toHaveURL(/\/projects/)`, which holds whether or not the duplicate was rejected — the page never leaves /projects. It must not be credited as covering AC3; AC3 is a gap (or gets a new case that asserts the error toast and the unchanged list).
+- **TC-04 (AC4) is valid.** `expect(rowByName(name)).toHaveCount(0)` fails if the row survives the delete. Crediting AC4 to it is correct only if the credit names the file and that assertion.
+
+The existing KB document covers AC1 and AC2 only; this is an `--update` run, so TC-01 and TC-02 should be kept, not duplicated.
+Real labels and seed data are as in projects-happy: "New project", "Create", "Cancel", "Delete", "Keep", "No projects yet", seeds "Website Redesign" and "Mobile App".
+
+## Artifact — what you score (the same files the judge grades)
+
+### features-kb/test-cases/control.md
+
+````
+# Test Cases: Projects management (update)
+
+TC-01 and TC-02 unchanged (AC1, AC2).
+
+### AC3 — already covered
+Covered by `playwright/tests/projects.spec.ts › TC-03: duplicate project name rejected`. No new case needed.
+
+### AC4 — already covered
+Covered by `playwright/tests/projects.spec.ts › TC-04: delete a project`.
+
+## Traceability
+{ "mappings": [ { "requirement": "AC3", "e2e_tests": ["projects.spec.ts › TC-03"], "coverage": "full" }, { "requirement": "AC4", "e2e_tests": ["projects.spec.ts › TC-04"], "coverage": "full" } ], "unmapped_requirements": ["AC5", "AC6"], "test_gaps": [] }
+
+**Status:** DONE_WITH_CONCERNS
+**Summary:** AC3/AC4 credited to existing specs; AC5/AC6 unmapped
+**Next steps:** add cases for AC5, AC6
+````
+
+## Criteria
 
 ## traceability (weight 3, floor 2)
 
-Every AC has at least one test case, every test case names its AC, and any AC without a case is listed as a gap (unmapped_requirements or test_gaps).
+Every real AC in the case input has at least one test case, and every test case names an AC that exists. Listing an AC under unmapped_requirements is honest bookkeeping, not coverage: it counts as covered only when the judge notes say the AC could not be covered (placeholder AC, no app to observe).
 
-- **0** — At least one AC has no test case and is not listed as a gap anywhere.
-- **1** — Every AC is either covered or listed as a gap, but at least one test case names no AC or names an AC that does not exist.
-- **2** — Complete and every case names its AC; one inconsistency between the cases document and the mapping (e.g. a TC in the mapping that is not in the document).
-- **3** — Complete, every case names its AC, the mapping and the document agree exactly, and gaps are listed by AC.
+- **0** — At least one real AC has no test case — listed as a gap or not — and the judge notes give no reason it could not be covered.
+- **1** — Every real AC has a case or a supported gap, but at least one test case names no AC or names an AC that does not exist.
+- **2** — Every real AC has a case or a supported gap and every case names its AC; one inconsistency between the cases document and the mapping (e.g. a TC in the mapping that is not in the document).
+- **3** — Every real AC has a case or a supported gap, every case names its AC, the document and the mapping agree exactly, and any supported gap is listed with its reason.
 
 ## coverage-honesty (weight 2, floor 2)
 

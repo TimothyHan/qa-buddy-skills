@@ -405,6 +405,7 @@ All skills use `features-kb/features/{EPIC-KEY}/` as the base path. Never `featu
 - [ ] `node test.js` passes
 - [ ] `/qa-eval {skill}` passes all fixtures
 - [ ] `tests/rubric.json` (if present) validates: `cites` resolve, every floored criterion has a control, `skill_version` matches
+- [ ] If the changed skill has a calibrated rubric: `node bin/eval.js ab` before/after attached to the PR — no floor breach, no regression outside the spread
 - [ ] Tested with Sonnet on a real task
 - [ ] AI follows all phases without skipping
 

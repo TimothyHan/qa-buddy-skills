@@ -228,14 +228,39 @@ Detail per PR, with files, checks and acceptance, is in the [plan](0005-rubric-s
 | skill | entries | sources | judge-only result |
 |---|---|---|---|
 | test-cases | 10 | 6 controls, 3 eval runs (projects-happy, thin-ticket, vacuous-coverage), 1 external (acme `projects.md`) | 3 passes, $2.20; real artifacts: 22/24 (artifact, criterion) pairs identical, **0 floor flips**; eval-run totals 0.881 / 0.857 / 0.762 with spread ≤ 0.024 |
-| exploratory | 10 | 5 controls, 4 eval runs (quick-timebox, v1-clean, v3-planted ×2), 1 external (acme PR #2 session) | see PR3's PR body |
+| exploratory | 10 | 5 controls, 4 eval runs (quick-timebox, v1-clean, v3-planted ×2), 1 external (acme PR #2 session) | 3 passes, $2.86; real artifacts: pair agreement 0.83, **0 floor flips**; eval-run totals 0.77 / 0.76 / 0.67 / 0.85 (spread up to 0.128 on v3-planted, driven by `finding-correctness` and `classification` flips) |
 
 What the first passes changed:
 
 - **§5 (c) rewritten.** A one-anchor flip on a weight-3 criterion moves a 0–1 total by 0.143, so "total within 0.1" failed on granularity. The rule is now measured on real artifacts as pair agreement ≥ 0.8 and zero floor flips; controls report variance but gate detection power only.
+- **The human read `traceability` as the skill's constraint 3 reads it — "no untested ACs" — while the anchors accepted a listed gap as bookkeeping.** First calibration disagreement, caught on the coverage-honesty control before any judge comparison. Rewritten per decision 14: a real AC without a test case scores 0 whether or not it is listed, unless the judge notes say it could not be covered (placeholder ACs, no app).
+- **Anchors and notes must not disagree.** The exploratory notes said an unspecified behaviour filed as a bug scores 1; anchor 0 still called it "invented", and the judge followed the anchor (0/1/0 on one real run). The rule now lives in anchor 1 and the notes only state facts.
 - **Judge notes must be complete about unspecified behaviour.** The v1-clean session filed the case-sensitive duplicate check as a defect; the spec never decides it, and the notes had not said so, so the judge scored the finding as invented. The notes now list the unspecified behaviours and score such a finding 1 (right observation, wrong category), not 0.
 - **The ko build labels duration `소요 시간`.** The `duration-recorded` check failed on 3/3 real runs for that reason alone; it now accepts both labels. A check written from the English template against a Korean install is a locale bug in the rubric, not in the skill.
 - **Skill findings surfaced by the bench, for `/qa-improve`:** `test-cases` skipped the live probe on a reachable app in a headless run and marked details `(unverified)` instead; `thin-ticket` with no app got no "unreachable" note in the scratchpad; the cases document carried a fenced block once in three runs.
+
+### PR4 — discrimination check and ablations (2026-09-05)
+
+**§5 (d), discrimination.** `eval.js ab test-cases --a HEAD --b eval/degraded-test-cases-no-c7 --cases projects-happy --runs 3` (the variant drops constraint 7, Phase 1 step 8 and self-check 7 — the "observed beats assumed" rule in all three places). 6 runs, $4.67.
+
+| criterion | A (intact) | B (rule removed) | verdict |
+|---|---|---|---|
+| probed-app (process) | 3 / 3–3 | 0 / 0–0, floor breached in 3/3 runs | **regression** |
+| observed-or-unverified (judge) | 2 / 1–3 | 1 / 1–1 | inside A's spread |
+| total | 0.841, spread 0.238 | 0.722, spread 0.096 | not distinguishable at n=3 |
+
+The bench sees what the rule buys: the process criterion separates the variants cleanly and every B run breaches a floor, so B would FAIL any calibrated gate. The total is masked by A's own variance (one A run scored `coverage-honesty` 0). Two lessons for ablations: read the per-criterion table, not the total; and a criterion that the removed text feeds directly (here `probed-app`) is the one to watch.
+
+**Ablations** (variant branches `eval/ablation-*`, pinned A = `feat/rfc-0005-pr4-ab`): results are appended below as they land.
+
+| # | variant B | skill / cases | result |
+|---|---|---|---|
+| 1 | the observed-beats-assumed rule stated once (Phase 1 step 8 only; constraint 7 and self-check 7 dropped) | test-cases / all three, 3 runs | 18 runs, $14.78. Total A 0.815 (spread 0.333) → B 0.714 (spread 0.19): **not distinguishable at n=3, but every moved criterion moved the same way** — `probed-app` 1.33 → 0 (A probed in 4/9 runs, B in 0/9), `observed-or-unverified` 2.0 → 1.44, `coverage-honesty` 2.11 → 1.44, floor breaches 7 → 14. Reading: on Sonnet 5 the repeated statement is not inert; the single procedural statement is weaker. **Do not collapse.** The stronger finding is about A itself: even with the rule in three places the skill probes a reachable app less than half the time — a `/qa-improve` item, not an ablation result. |
+| 2 | `exploratory-heuristics#techniques-per-heuristic` removed | exploratory / v3-planted, 3 runs | 6 runs, $19.31. Total A 0.786 (spread 0.179) → B 0.744 (spread 0.103): not distinguishable. Direction against B on `charter-quality` 1.0 → 0.33, `finding-correctness` 1.67 → 1.33, `classification` 2.67 → 2.33; `evidence` up 2.67 → 3.0. Reading: the technique lists shape the charter more than the findings; the planted bug was found on both sides. **Keep the section** — the cost is 13 lines in one skill's slice and the direction is against removal. |
+| 3 | `shift-left#principles` removed | test-plan | deferred — no test-plan case (plan PR6) |
+| 4 | constraints, self-checks and two preamble sections restated verbatim (≈ 1.6× length) | test-cases / all three, 3 runs | 18 runs, $15.13. Total A 0.77 (spread 0.286) → B 0.833 (spread 0.239): not distinguishable, **direction favours the longer variant** on every criterion that moved (`traceability` +0.22, `coverage-honesty` +0.56, `prioritization` +0.45, `observed-or-unverified` +0.56; none moved against). Reading: on Sonnet 5, 1.6× redundant instruction text did not degrade the output; the CONTRIBUTING fatigue premise (2026-04-11, Sonnet 4 era) is **not supported at this n**. The 300-line budget stays as a discipline, not as a measured cliff. |
+
+**Ablation tally (2026-09-05, $53.89 for the four A/Bs including the discrimination check):** no ablation cleared the spread rule at n=3, which is the honest outcome of a small-n bench on a noisy skill — and every one of them has a consistent direction. Two decisions follow: do not collapse the triple statement (1) and keep the technique lists (2); one premise is weakened: length itself did not hurt Sonnet 5 (4). Ablation 3 waits for a test-plan case. §5 (f) is met.
 
 Thresholds stay `null` until the maintainer fills `human.json` for the twenty entries (blind, from the scoring sheets) and `eval.js calibrate` passes gates (b) and (c).
 

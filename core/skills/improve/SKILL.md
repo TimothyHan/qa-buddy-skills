@@ -1,6 +1,6 @@
 ---
 name: improve
-version: 0.7.2
+version: 0.8.0
 description: |
   Meta-skill that improves other skills based on real usage failures. When an SDT
   reports a skill produced incorrect or unexpected output, this skill analyzes the
@@ -141,6 +141,7 @@ Once the SDT approves:
    - Read `core/skills/<skill>/tests/fixtures.json`
    - For each fixture: simulate the skill with the fixture input, check all assertions
    - Report pass/fail. If any fixture fails, the fix may have introduced a regression — review before continuing.
+   - **Rubric gate (RFC 0005).** If the skill has `tests/rubric.json` with a non-null `threshold` (calibrated), commit the fix on its branch and run `node bin/eval.js ab <skill> --a <base ref> --b <branch>`; a floor breach or a regression outside the spread on any criterion blocks delivery — revise the fix first. A report-only rubric (`threshold: null`) gets `node bin/eval.js run <skill>` and the report is attached without gating.
 
 4. **If the skill has a Korean locale**, note that `locales/ko/skills/<skill>/SKILL.md` also needs updating. Flag this to the SDT rather than auto-translating.
 
@@ -154,7 +155,7 @@ Before delivering, verify:
 2. **Budget check** — skill is under 300 lines, total context under 530 lines
 3. **CONTRIBUTING.md compliance** — constraints at top, self-eval has format check, completion status at end
 4. **Build passes** — all 3 platforms built successfully
-5. **Eval fixtures pass** — all fixtures for the changed skill pass after the fix. If any regressed, fix before delivering.
+5. **Eval fixtures pass** — all fixtures for the changed skill pass after the fix. If any regressed, fix before delivering. With a calibrated rubric: no floor breach and no regression outside the spread in the `eval.js ab` delta table.
 6. **No collateral damage** — other skills that read this skill's output (e.g., `/qa-verify-fix` reading qa reports) still work with the new format
 
 ---
@@ -199,6 +200,7 @@ If `.qabuddy.json` has `contributeUpstream: true`, automatically contribute afte
 
    ## Eval Results
    {pass rate from Phase 4 eval run}
+   {eval.js ab per-criterion delta table, when the skill has a rubric}
    EOF
    )"
    ```
@@ -269,6 +271,9 @@ Rules:
    edit, leave the LRN `active`, and append to `features-kb/LEARNINGS.rejected.md`:
    `date · LRN-id · target reference/section · failing fixture ids · one-line why`.
    A promotion that regresses a fixture is rejected by name, never merged quietly.
+   Skills in that scope that carry a calibrated rubric are also A/B'd (`node bin/eval.js ab`)
+   before and after the reference edit; a regression outside the spread rejects the promotion
+   exactly like a fixture regression does.
 5. **Deltas-only check while sweeping:** an entry that merely restates reference
    content is a copy, not a learning — propose retiring it.
 6. **`--dry-run` = the critic.** Do the full sweep with computed columns and
