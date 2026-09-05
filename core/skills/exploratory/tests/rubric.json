@@ -2,13 +2,27 @@
   "skill": "exploratory",
   "skill_version": "0.4.6",
   "rubric_version": 1,
-  "judge": { "model": "claude-opus-5", "prompt": "core/skills/eval/judge.md", "temperature": 0 },
+  "judge": {
+    "model": "claude-opus-5",
+    "prompt": "core/skills/eval/judge.md",
+    "temperature": 0
+  },
+  "artifacts": [
+    ".qa-reports/exploratory-*.md",
+    "features-kb/**/exploratory/*.md"
+  ],
   "threshold": null,
   "calibration": null,
   "criteria": [
     {
-      "id": "finding-correctness", "kind": "judge", "weight": 3, "floor": 2,
-      "cites": { "constraint": 4, "self_check": 3 },
+      "id": "finding-correctness",
+      "kind": "judge",
+      "weight": 3,
+      "floor": 2,
+      "cites": {
+        "constraint": 4,
+        "self_check": 3
+      },
       "statement": "Findings match the app's known state (judge notes say which defects exist): every planted defect the charter's focus areas touch is found, and no finding claims a defect the app does not have.",
       "anchors": {
         "0": "A finding claims a bug the app does not have, or a planted defect in a focus area that was explored is reported as working.",
@@ -18,8 +32,14 @@
       }
     },
     {
-      "id": "classification", "kind": "judge", "weight": 2, "floor": 1,
-      "cites": { "constraint": 3, "self_check": 3 },
+      "id": "classification",
+      "kind": "judge",
+      "weight": 2,
+      "floor": 1,
+      "cites": {
+        "constraint": 3,
+        "self_check": 3
+      },
       "statement": "Every finding carries a severity and a priority from the playbook scales, and the values are consistent with the finding's impact.",
       "anchors": {
         "0": "At least one finding has no severity or no priority.",
@@ -29,8 +49,14 @@
       }
     },
     {
-      "id": "evidence", "kind": "judge", "weight": 2, "floor": 1,
-      "cites": { "constraint": 4, "self_check": 4 },
+      "id": "evidence",
+      "kind": "judge",
+      "weight": 2,
+      "floor": 1,
+      "cites": {
+        "constraint": 4,
+        "self_check": 4
+      },
       "statement": "Every finding has concrete steps, a distinct expected and actual, evidence (screenshot path or described observation), and an action.",
       "anchors": {
         "0": "A finding lacks steps, or expected and actual are the same sentence, or there is no evidence field.",
@@ -40,8 +66,13 @@
       }
     },
     {
-      "id": "charter-quality", "kind": "judge", "weight": 1, "floor": 0,
-      "cites": { "constraint": 1 },
+      "id": "charter-quality",
+      "kind": "judge",
+      "weight": 1,
+      "floor": 0,
+      "cites": {
+        "constraint": 1
+      },
       "statement": "The charter names a mission, lists what is already tested, and ranks focus areas by risk with a heuristic and a time estimate each — direction, not scripted steps.",
       "anchors": {
         "0": "No charter, or focus areas are scripted step lists rather than areas.",
@@ -51,8 +82,13 @@
       }
     },
     {
-      "id": "no-duplicate-scenarios", "kind": "judge", "weight": 1, "floor": 1,
-      "cites": { "self_check": 2 },
+      "id": "no-duplicate-scenarios",
+      "kind": "judge",
+      "weight": 1,
+      "floor": 1,
+      "cites": {
+        "self_check": 2
+      },
       "statement": "No finding categorized as a new test scenario duplicates a test case already in the KB or a test in the repo (judge notes list them).",
       "anchors": {
         "0": "A \"new test scenario\" restates an existing KB test case.",
@@ -62,8 +98,14 @@
       }
     },
     {
-      "id": "unexplored-noted", "kind": "judge", "weight": 1, "floor": 0,
-      "cites": { "constraint": 7, "self_check": 1 },
+      "id": "unexplored-noted",
+      "kind": "judge",
+      "weight": 1,
+      "floor": 0,
+      "cites": {
+        "constraint": 7,
+        "self_check": 1
+      },
       "statement": "Every charter focus area either has findings or an explicit unexplored note, and the report lists what the next session should cover.",
       "anchors": {
         "0": "A focus area has neither findings nor an unexplored note.",
@@ -73,22 +115,49 @@
       }
     },
     {
-      "id": "duration-recorded", "kind": "check", "weight": 1, "floor": 1,
-      "cites": { "self_check": 5 },
+      "id": "duration-recorded",
+      "kind": "check",
+      "weight": 1,
+      "floor": 1,
+      "cites": {
+        "self_check": 5
+      },
       "statement": "The report's Duration is a number of minutes derived from the recorded start time, never \"not tracked\".",
-      "check": { "field": "files:.qa-reports/exploratory-*.md", "op": "matches", "value": "\\*\\*Duration:\\*\\* *[0-9]+ ?(min|minutes)?" }
+      "check": {
+        "field": "files:.qa-reports/exploratory-*.md",
+        "op": "matches",
+        "value": "\\*\\*Duration:\\*\\* *[0-9]+ ?(min|minutes)?"
+      }
     },
     {
-      "id": "console-checked", "kind": "process", "weight": 1, "floor": 0,
-      "cites": { "constraint": 5 },
+      "id": "console-checked",
+      "kind": "process",
+      "weight": 1,
+      "floor": 0,
+      "cites": {
+        "constraint": 5
+      },
       "statement": "The run read console messages or network requests at least once after interacting.",
-      "check": { "field": "exec:", "op": "matches", "value": "browser_console_messages|browser_network_requests|read_console_messages|read_network_requests" }
+      "check": {
+        "field": "exec:",
+        "op": "matches",
+        "value": "browser_console_messages|browser_network_requests|read_console_messages|read_network_requests"
+      }
     },
     {
-      "id": "screenshots-taken", "kind": "process", "weight": 1, "floor": 1,
-      "cites": { "constraint": 4 },
+      "id": "screenshots-taken",
+      "kind": "process",
+      "weight": 1,
+      "floor": 1,
+      "cites": {
+        "constraint": 4
+      },
       "statement": "The run took at least one screenshot; a session with findings and no screenshot call has no evidence.",
-      "check": { "field": "exec:", "op": "contains", "value": "screenshot" }
+      "check": {
+        "field": "exec:",
+        "op": "contains",
+        "value": "screenshot"
+      }
     }
   ]
 }

@@ -1,0 +1,21 @@
+{
+  "schema": "eval-scores/1",
+  "skill": "sample",
+  "skill_version": "0.0.0",
+  "rubric_version": 1,
+  "ref": { "name": "sample", "sha": "0000000" },
+  "models": { "runner": "claude-sonnet-5", "judge": "claude-opus-5" },
+  "generated": "2026-09-05T00:00:00Z",
+  "controls": { "alpha": { "floor": 2, "scores": [0, 1, 0], "ok": true } },
+  "criteria": [
+    { "id": "alpha", "kind": "judge", "weight": 3, "floor": 2 },
+    { "id": "beta", "kind": "check", "weight": 1, "floor": 1 }
+  ],
+  "cases": [
+    { "id": "c1", "runs": [
+      { "n": 1, "cost_usd": 1.1, "turns": 30, "wall_s": 200, "criteria": { "alpha": { "score": 3, "evidence": "line" }, "beta": { "score": 3, "evidence": "holds" } }, "total": 1, "floor_breaches": [] },
+      { "n": 2, "cost_usd": 1.2, "turns": 31, "wall_s": 210, "criteria": { "alpha": { "score": 1, "evidence": "line" }, "beta": { "score": 3, "evidence": "holds" } }, "total": 0.5, "floor_breaches": ["alpha"] }
+    ] }
+  ],
+  "summary": { "mean": 0.75, "min": 0.5, "max": 1, "spread": 0.5, "floor_breaches": 1, "verdict": "REPORT-ONLY (uncalibrated)", "runs": 2, "cost_usd": 2.3 }
+}
