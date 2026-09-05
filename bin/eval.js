@@ -7,6 +7,7 @@
 //   node bin/eval.js controls <skill> [--passes 3]
 //   node bin/eval.js judge <workspace-dir> --skill <skill> --case <id> [--passes 1]
 //   node bin/eval.js report <eval-dir | scores.json>
+//   node bin/eval.js ab <skill> --a <ref> --b <ref> [--cases a,b] [--runs 3]
 //
 // Three roles in three contexts (RFC 0005 §2.1): the RUNNER is the installed skill executed by
 // `claude -p` on the target model inside a scratch workspace; the JUDGE is a separate `claude -p`
@@ -545,6 +546,116 @@ function cmdCalibrate(skill, opts) {
   console.log(`rubric calibrated: threshold ${threshold} written to ${path.relative(ROOT, rp2)}`);
 }
 
+// ─── variants + A/B (PR4) ───────────────────────────────────────────────────
+// The skills' preamble resolves the engine and references through ~/.claude/skills/qa-references,
+// so a variant has to be installed globally for the runner to see its playbook. `ab` snapshots the
+// qa-* symlinks, installs each ref from a git worktree, runs, and restores the exact targets in a
+// finally — the same install the RFC 0004 runner does on a fresh machine, made reversible.
+function globalSkillsDir() { return path.join(os.homedir(), '.claude', 'skills'); }
+function snapshotInstall() {
+  const d = globalSkillsDir(); const m = {};
+  if (!fs.existsSync(d)) return m;
+  for (const e of fs.readdirSync(d)) if (/^qa-/.test(e)) { try { m[e] = fs.readlinkSync(path.join(d, e)); } catch { /* not a symlink — leave alone */ } }
+  return m;
+}
+function relink(name, target) { const p = path.join(globalSkillsDir(), name); try { fs.unlinkSync(p); } catch { /* absent */ } fs.symlinkSync(target, p); }
+function restoreInstall(snap) { for (const [name, target] of Object.entries(snap)) relink(name, target); }
+function detectLocale(snap) { return /\/dist\/ko\//.test(snap['qa-references'] || '') ? 'ko' : 'en'; }
+function sh(cmd, args, cwd, log) {
+  const r = spawnSync(cmd, args, { cwd, encoding: 'utf8', stdio: ['ignore', 'pipe', 'pipe'] });
+  if (r.status !== 0) throw new Error(`${cmd} ${args.join(' ')} failed in ${cwd}: ${(r.stderr || r.stdout || '').slice(-400)}`);
+  if (log) log(`  $ ${cmd} ${args.join(' ')} — ok`);
+  return r.stdout;
+}
+function buildVariant(ref, locale, log) {
+  if (ref === 'HEAD' || ref === 'working') {
+    sh(process.execPath, ['build.js', 'all'], ROOT, log);
+    sh(process.execPath, ['build.js', 'all', '--locale', 'ko'], ROOT, log);
+    return { dir: ROOT, worktree: null, sha: gitSha(), name: ref };
+  }
+  const wt = fs.mkdtempSync(path.join(os.tmpdir(), 'qab-variant-'));
+  sh('git', ['worktree', 'add', '--detach', wt, ref], ROOT, log);
+  sh('npm', ['ci', '--silent', '--ignore-scripts'], wt, log);
+  sh(process.execPath, ['build.js', 'all'], wt, log);
+  sh(process.execPath, ['build.js', 'all', '--locale', 'ko'], wt, log);
+  const sha = sh('git', ['rev-parse', 'HEAD'], wt).trim();
+  return { dir: wt, worktree: wt, sha, name: ref };
+}
+function installVariant(variant, locale, log) {
+  const base = path.join(variant.dir, 'dist', ...(locale === 'ko' ? ['ko', 'claude'] : ['claude']));
+  const skills = path.join(base, 'skills');
+  if (!fs.existsSync(skills)) throw new Error(`variant has no ${locale} build at ${base}`);
+  for (const s of fs.readdirSync(skills)) if (fs.statSync(path.join(skills, s)).isDirectory()) relink(`qa-${s}`, path.join(skills, s));
+  relink('qa-references', path.join(base, 'references'));
+  const check = fs.readlinkSync(path.join(globalSkillsDir(), 'qa-references'));
+  if (!check.startsWith(variant.dir)) throw new Error(`install verification failed: qa-references → ${check}`);
+  log(`  installed ${variant.name} (${variant.sha.slice(0, 7)}, ${locale}) → ${base}`);
+}
+function removeVariant(variant, log) {
+  if (!variant.worktree) return;
+  try { sh('git', ['worktree', 'remove', '--force', variant.worktree], ROOT); } catch (e) { log(`  worktree cleanup: ${e.message}`); }
+}
+function criterionStats(scores, id) {
+  const v = scores.cases.flatMap(k => k.runs.map(r => (r.criteria[id] || { score: 0 }).score));
+  if (!v.length) return { mean: null, min: null, max: null };
+  return { mean: +(v.reduce((a, b) => a + b, 0) / v.length).toFixed(2), min: Math.min(...v), max: Math.max(...v) };
+}
+function abVerdict(a, b) {
+  if (a.mean === null || b.mean === null) return 'no data';
+  const spread = Math.max(a.max - a.min, b.max - b.min);
+  const d = +(b.mean - a.mean).toFixed(3);
+  if (d < -spread && d < 0) return 'regression';
+  if (d > spread && d > 0) return 'improvement';
+  return 'not distinguishable at this n';
+}
+function renderAb(ab) {
+  const L = [`# A/B — ${ab.skill} · A = ${ab.a.ref.name} (${ab.a.ref.sha.slice(0, 7)}) · B = ${ab.b.ref.name} (${ab.b.ref.sha.slice(0, 7)})`, '',
+    `runner \`${ab.a.models.runner}\` · judge \`${ab.a.models.judge}\` · ${ab.a.summary.runs} + ${ab.b.summary.runs} runs · $${(ab.a.summary.cost_usd + ab.b.summary.cost_usd).toFixed(2)}`, '',
+    `**Total: A ${ab.a.summary.mean} (spread ${ab.a.summary.spread}) → B ${ab.b.summary.mean} (spread ${ab.b.summary.spread}) — ${ab.total_verdict}**`,
+    `Floor breaches: A ${ab.a.summary.floor_breaches}, B ${ab.b.summary.floor_breaches}.`, '',
+    'A delta larger than the larger spread is a regression or improvement; anything inside the spread is reported as not distinguishable — n=3 detects large effects only.', '',
+    '| criterion | A mean | A min–max | B mean | B min–max | delta | verdict |', '|---|---|---|---|---|---|---|'];
+  for (const row of ab.criteria) L.push(`| ${row.id} | ${row.a.mean ?? '—'} | ${row.a.min ?? '—'}–${row.a.max ?? '—'} | ${row.b.mean ?? '—'} | ${row.b.min ?? '—'}–${row.b.max ?? '—'} | ${row.delta ?? '—'} | ${row.verdict} |`);
+  L.push('', `Reports: A → ${ab.a_report} · B → ${ab.b_report}`);
+  return L.join('\n');
+}
+async function cmdAb(skill, opts) {
+  const refA = opts.a || 'HEAD', refB = opts.b || die('--b <ref> required');
+  const stamp = new Date().toISOString().replace(/[:.]/g, '-');
+  const outDir = path.resolve(opts.out || path.join(ROOT, '.qa-reports', 'evals', skill, `ab-${stamp}`));
+  fs.mkdirSync(outDir, { recursive: true });
+  const log = (m) => { console.log(m); fs.appendFileSync(path.join(outDir, 'ab.log'), m + '\n'); };
+  const snap = snapshotInstall();
+  if (!snap['qa-references']) die('no global QABuddy install (~/.claude/skills/qa-references) to snapshot');
+  const locale = opts.locale || detectLocale(snap);
+  log(`ab ${skill}: A=${refA} B=${refB} · locale ${locale} · restoring ${Object.keys(snap).length} symlinks afterwards`);
+  const lock = path.join(globalSkillsDir(), '.qab-eval-ab.lock');
+  if (fs.existsSync(lock)) die(`another ab is installing variants (${lock}); remove the lock if it is stale`);
+  fs.writeFileSync(lock, JSON.stringify({ pid: process.pid, started: new Date().toISOString(), snapshot: snap }, null, 2));
+  const results = {}; const variants = [];
+  try {
+    for (const [label, ref] of [['a', refA], ['b', refB]]) {
+      const v = buildVariant(ref, locale, log); variants.push(v);
+      installVariant(v, locale, log);
+      const sub = { ...opts, out: path.join(outDir, label), 'skip-controls': label === 'b' ? true : opts['skip-controls'] };
+      results[label] = await cmdRun(skill, sub);
+      results[label].ref = { name: ref, sha: v.sha };
+    }
+  } finally {
+    restoreInstall(snap); try { fs.unlinkSync(lock); } catch { /* gone */ }
+    for (const v of variants) removeVariant(v, log);
+    log('  global install restored');
+  }
+  const rubric = loadRubric(skill);
+  const criteria = rubric.criteria.map(c => { const a = criterionStats(results.a, c.id), b = criterionStats(results.b, c.id); return { id: c.id, a, b, delta: a.mean !== null && b.mean !== null ? +(b.mean - a.mean).toFixed(2) : null, verdict: abVerdict(a, b) }; });
+  const tot = (s) => ({ mean: s.summary.mean, min: s.summary.min, max: s.summary.max });
+  const ab = { schema: 'eval-ab/1', skill, a: results.a, b: results.b, criteria, total_verdict: abVerdict(tot(results.a), tot(results.b)), a_report: path.join(outDir, 'a', 'report.md'), b_report: path.join(outDir, 'b', 'report.md'), generated: new Date().toISOString() };
+  fs.writeFileSync(path.join(outDir, 'ab.json'), JSON.stringify(ab, null, 2));
+  fs.writeFileSync(path.join(outDir, 'ab-report.md'), renderAb(ab));
+  log(`A/B: ${ab.total_verdict} — ${path.join(outDir, 'ab-report.md')}`);
+  return ab;
+}
+
 function help() {
   console.log(`eval.js — rubric-scored skill evals (RFC 0005)
 
@@ -554,6 +665,7 @@ function help() {
   report <eval-dir | scores.json>         re-render report.md
   calibrate <skill> --init [--extra f,g]  assemble tests/calibration/ from controls, eval runs and external files
   calibrate <skill> [--passes 3] [--dry-run|--judge-only]   judge the set, compare with human.json, derive the threshold
+  ab <skill> --a <ref> --b <ref> [--cases] [--runs 3] [--locale ko]   install each ref globally in turn, run both, compare per criterion; restores the install
 `);
 }
 
@@ -566,6 +678,7 @@ function help() {
     if (cmd === 'run') { await cmdRun(a._[1] || die('skill required'), a); process.exit(0); }
     if (cmd === 'judge') { cmdJudge(a._[1] || die('workspace dir required'), a); process.exit(0); }
     if (cmd === 'report') { cmdReport(a._[1] || die('eval dir required')); process.exit(0); }
+    if (cmd === 'ab') { await cmdAb(a._[1] || die('skill required'), a); process.exit(0); }
     if (cmd === 'calibrate') { const sk = a._[1] || die('skill required'); if (a.init) cmdCalibrateInit(sk, a); else cmdCalibrate(sk, a); process.exit(0); }
     die(`unknown command ${cmd}`);
   } catch (e) { console.error(`eval.js: ${e.message}`); process.exit(1); }
