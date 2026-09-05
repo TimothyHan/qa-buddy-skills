@@ -219,13 +219,21 @@ function cmdTouched(o) {
 
   const titles = featureTitles(kb);
   const features = [], featuresWithoutSources = [], matched = new Set();
+  const kbPrefix = toPosix(path.relative(process.cwd(), path.resolve(kb))).replace(/\/?$/, '/');
   for (const key of listDir(path.join(kb, 'features'))) {
     if (!fs.statSync(path.join(kb, 'features', key)).isDirectory()) continue;
     const f = loadFeature(kb, key, titles);
     if (!f.sources) { featuresWithoutSources.push(key); continue; }
-    const hit = files.filter(file => matchesAny(file, f.sources.sources || []) && !matchesAny(file, f.sources.exclude || []));
-    if (hit.length) { features.push({ key, title: f.title, matchedFiles: hit }); hit.forEach(h => matched.add(h)); }
+    const excluded = file => matchesAny(file, f.sources.exclude || []);
+    const hit = files.filter(file => matchesAny(file, f.sources.sources || []) && !excluded(file));
+    // A feature's own tests changing is not a "source" change, but they are not unclaimed either.
+    const testGlobs = Object.values((f.sources.tests) || {}).flat();
+    const testHit = files.filter(file => !hit.includes(file) && matchesAny(file, testGlobs) && !excluded(file));
+    testHit.forEach(h => matched.add(h));
+    if (hit.length) { features.push({ key, title: f.title, matchedFiles: hit, matchedTests: testHit }); hit.forEach(h => matched.add(h)); }
   }
+  // Knowledge-base files are QABuddy's own output, never an unclaimed change.
+  files.forEach(file => { if (file.startsWith(kbPrefix)) matched.add(file); });
   let fallback = false;
   if (!features.length && (o.fallback || 'none') === 'all') {
     fallback = true;
@@ -463,7 +471,7 @@ function renderMarkdown(h) {
   const evidence = [];
   for (const f of h.features) for (const r of f.rows) for (const c of COLUMNS) {
     const cell = r.cells[c];
-    if (cell.evidence && cell.evidence.length) evidence.push(`- ${r.ac} / ${COLUMN_LABEL[c]}: ${cell.evidence.map(e => `\`${e}\``).join(', ')}${cell.note ? ` — ${cell.note}` : ''}`);
+    if (cell.evidence && cell.evidence.length) evidence.push(`- ${r.ac} / ${COLUMN_LABEL[c]}: ${[...new Set(cell.evidence)].map(e => `\`${e}\``).join(', ')}${cell.note ? ` — ${cell.note}` : ''}`);
     else if (cell.note) evidence.push(`- ${r.ac} / ${COLUMN_LABEL[c]}: ${cell.note}`);
   }
   if (evidence.length) L.push('<details><summary>Evidence</summary>', '', ...evidence, '', '</details>', '');

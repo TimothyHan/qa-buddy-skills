@@ -720,7 +720,7 @@ function testPrCoverage() {
     { title: 'TC-02: create a thing', ok: false, tests: [{ results: [{ status: 'failed' }] }] },
     { title: 'TC-01: sign in', tests: [{ results: [{ status: 'passed' }] }] },
   ] }] }));
-  w('files.txt', 'src/alpha/x.js\nsrc/alpha/notes.md\nREADME.md\n');
+  w('files.txt', 'src/alpha/x.js\nsrc/alpha/notes.md\nREADME.md\nplaywright/tests/alpha.spec.ts\nfeatures-kb/features/alpha/test-cases/alpha.md\n');
   w('none.txt', 'docs/x.md\n');
 
   const run = (args, extraEnv) => execFileSync(process.execPath, [src, ...args], { cwd: tmp, env: { ...process.env, ...(extraEnv || {}) }, encoding: 'utf8', stdio: ['ignore', 'pipe', 'pipe'] });
@@ -733,7 +733,8 @@ function testPrCoverage() {
     check(touched.features.map(f => f.key).join() === 'alpha', 'touched: src/alpha/x.js maps to alpha only', JSON.stringify(touched.features));
     check(touched.features[0].matchedFiles.join() === 'src/alpha/x.js', 'touched: exclude glob drops src/alpha/notes.md', JSON.stringify(touched.features[0]));
     check(touched.features[0].title === 'Alpha feature', 'touched: title read from index.json');
-    check(touched.unmapped.files.join() === 'README.md,src/alpha/notes.md', 'touched: unmapped files listed', touched.unmapped.files.join());
+    check(touched.unmapped.files.join() === 'README.md,src/alpha/notes.md', 'touched: unmapped files listed — a feature\'s own spec and KB files are never unclaimed', touched.unmapped.files.join());
+    check(touched.features[0].matchedTests.join() === 'playwright/tests/alpha.spec.ts', 'touched: a changed spec under the feature\'s test globs is reported as matchedTests');
     check(touched.unmapped.featuresWithoutSources.join() === 'beta,gamma', 'touched: features without sources.json listed');
     check(touched.fallback === false, 'touched: no fallback when a feature matched');
     const none = JSON.parse(run(['touched', '--files', 'none.txt']));
@@ -769,6 +770,7 @@ function testPrCoverage() {
     check(/\| AC \| Unit \| API \| E2E \| Manual \| Exploratory \|/.test(md), 'heatmap: markdown table has the five layer columns');
     check(/⚠️ \*\*AC2\*\*/.test(md) && /TC-02 · FAIL/.test(md), 'heatmap: at-risk rows and failing specs are visible in the table');
     check(/<details><summary>Evidence<\/summary>/.test(md) && /`playwright\/tests\/alpha\.spec\.ts`/.test(md), 'heatmap: evidence paths listed under <details>');
+    check(!/`playwright\/tests\/alpha\.spec\.ts`, `playwright\/tests\/alpha\.spec\.ts`/.test(md), 'heatmap: evidence paths are de-duplicated per cell');
     check(/README\.md/.test(md) && /`beta`, `gamma`/.test(md), 'heatmap: unmapped files and source-less features reported in the comment');
 
     // Legacy mapping shapes + META rows, via --fallback all; not-run when explore did not run
