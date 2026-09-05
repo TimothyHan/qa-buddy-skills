@@ -128,7 +128,9 @@ Rationale for these gates: `{{REFERENCE_PATH}}/playbook/test-suite-verification.
    brute-force lockout, repeating them risks tripping it and cascading
    failures into every other test on that account. Give them their own
    project, run once (caught live 2026-08-07 — see playwright-patterns.md).
-   On red, read only the failing tests' `error-context.md` and trace under `test-results/`, never the full run output — the summary line is the gate's verdict.
+
+When any run gate is red, read only the failing tests' `error-context.md` and trace under `test-results/`, never the full run output — the summary line is the gate's verdict.
+
 4. **Mechanical lint** — grep the generated files; any hit is a failure:
 
 | Pattern | Where banned |
