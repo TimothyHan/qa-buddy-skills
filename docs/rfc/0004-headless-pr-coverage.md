@@ -130,6 +130,11 @@ listed — the fixture app's `v3` behaviour arriving as a plausible refactor):
 |---|---|
 | `/qa-test-cases projects --update --headless` | DONE in 33 turns, 231 s, **$1.24**; zero questions, zero permission denials (f); three Auto-decisions in `.qa-reports/headless/qa-test-cases.json`; §6.5 mapping written; TC-05–TC-07 added so AC5/AC6 move from `gap` to `partial` (b, post-run half for the kb phase); captured LRN-20260904-02 (zero-match search and the true empty state render the same DOM) |
 | `/qa-e2e-setup --headless` (Playwright MCP via `--mcp-config`) | DONE in 52 turns, 404 s, **$1.60**; zero questions; probed cookie auth → storageState, workers 2 + dependent global-state project (applied LRN-20260904-01), white-box = propose (because `sources.json` exists), functional POM; both gates green; four Auto-decisions in AUTOMATION.md and the close file; captured LRN-03 (`/api/reset` is harness-only) and LRN-04 (the four testability gaps). Scaffold seeded into `qabuddy-poc-acme` main so CI automate starts at `/qa-e2e-pom` |
+| `/qa-exploratory projects --quick --headless --url …` against the soft-delete build (Playwright MCP) | DONE in 47 turns, 260 s, **$1.31**; zero questions; charter derived from the diff; **found the planted bug** — BUG-001, deleted rows stay listed (AC4, Blocker) — plus BUG-002, the duplicate-name check counts soft-deleted rows (AC2/AC3); session persisted to `features-kb/features/projects/exploratory/2026-09-04.md` with the AC-keyed table; screenshot evidence saved; the heatmap then shows AC2/AC3/AC4 ⚠️ with `#Finding` links — (c) 1 of 3 runs, (b) post-run half |
+
+Local tally against §4: (a) ✓ · (b) ✓ · (c) 1/1 so far · (d) pending CI automate · (e) every
+local phase far under its cap (kb $1.24 / $5, explore $1.31 / $10, setup $1.60) · (f) 0
+questions across three headless runs, 132 turns.
 
 Remaining once the `ANTHROPIC_API_KEY` secret exists on `qabuddy-poc-acme`: the CI
 runs for `kb`, `qa:explore`, `qa:full` on PR #2 — (b) at-risk after exploration, (c),
