@@ -37,7 +37,6 @@ ACs from Jira, cross-reference the epic test plan, and produce:
 4. **Unit test checklist is for devs.** Keep it brief and actionable — describe what to test, not how.
 5. **Don't duplicate existing tests.** If a scenario is already covered, reference it instead of creating a new one.
 6. **Prioritize ruthlessly.** A ticket with 3 ACs doesn't need 30 test cases. Focus on what catches real bugs.
-7. **Observed beats assumed.** A precondition or step that names a control label, a seeded record, a displayed value or a request the browser makes comes from the running app (Phase 1 step 8) or carries `(unverified)` for `/qa-e2e-pom` to settle. Never assert the network behaviour of a page you have not watched.
 
 ---
 
@@ -175,7 +174,6 @@ Before saving, verify consistency across all three artifacts. Fix issues found. 
 4. Unit test checklist items checked against existing unit tests for overlap — same rule: an existing test counts only if its assertion would fail for that item
 5. P0/P1/P2 distribution: not >50% P0, and at least one P0 exists for the core happy path
 6. No code blocks in the test cases document; automation constraints a writer needs appear in Preconditions
-7. Every precondition or step naming a label, seeded record, displayed value or request is backed by an `Observed:` line in the scratchpad or marked `(unverified)`
 
 ---
 
