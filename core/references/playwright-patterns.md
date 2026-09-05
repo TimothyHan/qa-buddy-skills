@@ -1,14 +1,15 @@
 # Playwright Patterns — code standards for generated suites
-<!-- qab: scope=e2e-setup,e2e-pom,e2e-write,test-cases -->
+<!-- qab: scope=e2e-setup,e2e-pom,e2e-write -->
 
 Distilled field rules layered on top of the [official Playwright best
 practices](https://playwright.dev/docs/best-practices). The official docs are
 the baseline; this file adds the rules that come from running suites in anger.
 Where the two conflict deliberately (selector priority), this file wins.
 
-Consumed by: `/qa-e2e-setup`, `/qa-e2e-pom`, `/qa-e2e-write`, `/qa-test-cases` (Playwright
-sketches). The e2e SKILL.md files carry the workflow; this file carries the
-code-level knowledge that is too large to inline there.
+Consumed by: `/qa-e2e-setup`, `/qa-e2e-pom`, `/qa-e2e-write`. The e2e SKILL.md
+files carry the workflow; this file carries the code-level knowledge that is
+too large to inline there. (`/qa-test-cases` stopped emitting Playwright
+sketches in 0.4.0 and no longer reads this file.)
 
 > Provenance: distilled from the author's `playwright-test-patterns` skill
 > (slowhama/playwright-best-practices) plus lessons proven live in QABuddy's
@@ -294,7 +295,7 @@ error/empty/edge/role states belong to `page.route`-mocked tests.)
 | per-test `newContext({ storageState })` | override the `storageState` option fixture |
 
 ## Pitfalls (debugging accelerators)
-<!-- qab: id=pitfalls scope=e2e-setup,e2e-pom,e2e-write,test-cases,qa -->
+<!-- qab: id=pitfalls scope=e2e-setup,e2e-pom,e2e-write,qa -->
 
 - `request.newContext()` does **not** inherit `use.baseURL` — pass it explicitly.
 - Base URLs with a path need a trailing slash + relative paths; `/items`

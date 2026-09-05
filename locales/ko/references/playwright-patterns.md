@@ -1,13 +1,14 @@
 # Playwright 패턴 — 생성되는 스위트의 코드 표준
-<!-- qab: scope=e2e-setup,e2e-pom,e2e-write,test-cases -->
+<!-- qab: scope=e2e-setup,e2e-pom,e2e-write -->
 
 [Playwright 공식 베스트 프랙티스](https://playwright.dev/docs/best-practices)를
 기본 전제로 두고, 실전 프로젝트에서 얻은 추가 규칙을 얹습니다. 두 문서가
 충돌하면: 이 문서가 명시적으로 다른 선택을 한 경우(예: 셀렉터 우선순위)는 이
 문서를, 그 외에는 공식 문서를 따릅니다.
 
-사용처: `/qa-e2e-setup`, `/qa-e2e-pom`, `/qa-e2e-write`, `/qa-test-cases`(Playwright 스케치).
-워크플로는 각 스킬의 SKILL.md가, 코드 수준 지식은 이 문서가 담당합니다.
+사용처: `/qa-e2e-setup`, `/qa-e2e-pom`, `/qa-e2e-write`. 워크플로는 각 스킬의
+SKILL.md가, 코드 수준 지식은 이 문서가 담당합니다. (`/qa-test-cases`는 0.4.0부터
+Playwright 스케치를 내지 않으며 이 문서를 더 이상 읽지 않습니다.)
 
 > 출처: 저자의 `playwright-test-patterns` 스킬(slowhama/playwright-best-practices)
 > + QABuddy execute-mode 평가와 Toolshop 실전 검증(2026-08-07)에서 확인된 교훈.
@@ -273,7 +274,7 @@ await expect(row.getByTestId('delete-button')).toHaveCount(0);
 | 테스트마다 `newContext({ storageState })` | `storageState` 옵션 fixture 오버라이드 |
 
 ## 함정 (알아두면 디버깅이 빨라지는 것들)
-<!-- qab: id=pitfalls scope=e2e-setup,e2e-pom,e2e-write,test-cases,qa -->
+<!-- qab: id=pitfalls scope=e2e-setup,e2e-pom,e2e-write,qa -->
 
 - `request.newContext()`는 `use.baseURL`을 상속하지 않는다 — 명시적으로 지정.
 - 경로 포함 base URL은 트레일링 슬래시 + 상대 경로. `/items`는 base의 `/api`를
