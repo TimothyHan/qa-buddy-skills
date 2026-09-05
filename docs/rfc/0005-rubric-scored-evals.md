@@ -254,7 +254,7 @@ The bench sees what the rule buys: the process criterion separates the variants 
 
 | # | variant B | skill / cases | result |
 |---|---|---|---|
-| 1 | the observed-beats-assumed rule stated once (Phase 1 step 8 only; constraint 7 and self-check 7 dropped) | test-cases / all three, 3 runs | pending |
+| 1 | the observed-beats-assumed rule stated once (Phase 1 step 8 only; constraint 7 and self-check 7 dropped) | test-cases / all three, 3 runs | 18 runs, $14.78. Total A 0.815 (spread 0.333) → B 0.714 (spread 0.19): **not distinguishable at n=3, but every moved criterion moved the same way** — `probed-app` 1.33 → 0 (A probed in 4/9 runs, B in 0/9), `observed-or-unverified` 2.0 → 1.44, `coverage-honesty` 2.11 → 1.44, floor breaches 7 → 14. Reading: on Sonnet 5 the repeated statement is not inert; the single procedural statement is weaker. **Do not collapse.** The stronger finding is about A itself: even with the rule in three places the skill probes a reachable app less than half the time — a `/qa-improve` item, not an ablation result. |
 | 2 | `exploratory-heuristics#techniques-per-heuristic` removed | exploratory / v3-planted, 3 runs | pending |
 | 3 | `shift-left#principles` removed | test-plan | deferred — no test-plan case (plan PR6) |
 | 4 | constraints, self-checks and two preamble sections restated verbatim (≈ 1.6× length) | test-cases / all three, 3 runs | pending |
