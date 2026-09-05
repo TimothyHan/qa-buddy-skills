@@ -768,6 +768,31 @@ function testRubrics() {
       const id = name.replace(/\.md$/, '');
       check(ids.has(id), `${skill}: control "${name}" belongs to a criterion`, 'stale control');
     }
+    // calibration set (PR3): entries are well-formed; a calibrated rubric carries the evidence it gated on
+    const calDir = path.join(tests, 'calibration');
+    const judgeIds = (r.criteria || []).filter(c => c.kind === 'judge').map(c => c.id);
+    if (fs.existsSync(calDir)) {
+      const entries = fs.readdirSync(calDir).filter(d => fs.statSync(path.join(calDir, d)).isDirectory());
+      for (const id of entries) {
+        const ed = path.join(calDir, id);
+        let meta = null, human = null;
+        try { meta = JSON.parse(fs.readFileSync(path.join(ed, 'meta.json'), 'utf8')); human = JSON.parse(fs.readFileSync(path.join(ed, 'human.json'), 'utf8')); } catch (e) { fail(`${skill}/calibration/${id}: meta.json and human.json parse`, e.message); continue; }
+        check(meta.id === id && ['control', 'eval-run', 'external'].includes(meta.source) && (meta.case === null || caseIds.includes(meta.case)), `${skill}/calibration/${id}: meta names a source and an existing case`);
+        check(walkAll(path.join(ed, 'artifact')).length + listMarkdown(path.join(ed, 'artifact')).length > 0, `${skill}/calibration/${id}: artifact/ is non-empty`);
+        const hs = human.scores || {};
+        check(judgeIds.every(k => k in hs) && Object.keys(hs).every(k => judgeIds.includes(k)), `${skill}/calibration/${id}: human.json scores keyed by the judge criteria`);
+        check(Object.values(hs).every(v => v === null || (Number.isInteger(v) && v >= 0 && v <= 3)) && [null, true, false].includes(human.acceptable), `${skill}/calibration/${id}: human scores are null or 0–3, acceptable is null or boolean`);
+        check(fs.existsSync(path.join(ed, 'scoring-sheet.md')), `${skill}/calibration/${id}: scoring-sheet.md present`);
+      }
+    }
+    if (r.calibration) {
+      const c = r.calibration;
+      check(typeof r.threshold === 'number' && r.threshold > 0 && r.threshold <= 1, `${skill}: calibrated threshold is a number in (0, 1]`);
+      check(Number.isInteger(c.human_scored) && c.human_scored >= 10, `${skill}: calibration has ≥ 10 human-scored artifacts (${c.human_scored})`);
+      check(judgeIds.every(id => typeof c.agreement[id] === 'number' && c.agreement[id] >= 0.8), `${skill}: calibration agreement ≥ 0.8 on every judge criterion`);
+      check(judgeIds.filter(id => (r.criteria.find(x => x.id === id) || {}).floor > 0).every(id => c.floor_agreement[id] === 1), `${skill}: calibration floor agreement is 1.0 on every floored judge criterion`);
+      check(c.judge === r.judge.model, `${skill}: calibration was done with the rubric's pinned judge`);
+    }
   }
   // eval.js (PR2): help exits 0; report renders the per-criterion table and the spread line from a sample scores.json. No model calls.
   {

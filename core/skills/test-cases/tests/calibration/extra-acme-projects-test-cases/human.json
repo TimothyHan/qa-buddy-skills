@@ -1,0 +1,12 @@
+{
+  "scored_by": null,
+  "date": null,
+  "acceptable": null,
+  "scores": {
+    "traceability": null,
+    "coverage-honesty": null,
+    "dedup-by-assertion": null,
+    "prioritization": null,
+    "observed-or-unverified": null
+  }
+}

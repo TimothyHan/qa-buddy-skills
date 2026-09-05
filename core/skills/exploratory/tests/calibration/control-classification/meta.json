@@ -1,0 +1,7 @@
+{
+  "id": "control-classification",
+  "source": "control",
+  "case": "v1-clean",
+  "origin": "tests/controls/classification.md",
+  "added": "2026-09-05"
+}

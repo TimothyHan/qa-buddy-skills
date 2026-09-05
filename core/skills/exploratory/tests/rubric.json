@@ -122,11 +122,11 @@
       "cites": {
         "self_check": 5
       },
-      "statement": "The report's Duration is a number of minutes derived from the recorded start time, never \"not tracked\".",
+      "statement": "The report's Duration (소요 시간 in the ko build) is a number of minutes derived from the recorded start time, never \"not tracked\".",
       "check": {
         "field": "files:.qa-reports/exploratory-*.md",
         "op": "matches",
-        "value": "\\*\\*Duration:\\*\\* *[0-9]+ ?(min|minutes)?"
+        "value": "\\*\\*(Duration|소요 시간|소요시간):\\*\\* *~?[0-9]+ ?(min|minutes|분)?"
       }
     },
     {
