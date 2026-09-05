@@ -92,6 +92,13 @@ that does everything the model should not.
     and `continue-on-error: true`. Later phases build on the files earlier phases wrote.
     Delivery steps run `always()`; a final step fails the job if any phase failed, after
     everything produced has been delivered.
+13. **The review gate is a merge.** A companion PR merged by a reviewer into the source
+    branch is the signal to continue: the workflow (trigger `pull_request: closed`, head
+    `qabuddy/pr-<n>`, merged) runs the next phase on PR `<n>` — `after-companion-merge`
+    input, default `automate`, skipped when the merged companion already carried it. This
+    is the reviewed, phase-by-phase chain Timothy asked about, without extra workflows:
+    open → kb companion → review + merge → automate companion → review + merge.
+    Companion PRs themselves never trigger a run of their own.
 12. **One reusable workflow, many repositories.** `.github/workflows/pr-coverage.yml`
     (`workflow_call`) owns the jobs `resolve → preflight → kb → (explore ∥ automate) →
     deliver`; a consumer repo carries a ~15-line caller written by `pr-coverage.js init`

@@ -850,7 +850,7 @@ function testPrCoverage() {
     const caller = fs.readFileSync(path.join(I, '.github', 'workflows', 'qabuddy.yml'), 'utf8');
     check(init.workflow === '.github/workflows/qabuddy.yml' && /uses: TimothyHan\/qa-buddy-skills\/\.github\/workflows\/pr-coverage\.yml@v9\.9\.9/.test(caller), 'init: writes a caller that uses the reusable workflow at the requested ref');
     check(/app-start: "node server\.js"/.test(caller) && /app-url: "http:\/\/localhost:4173"/.test(caller) && /secrets: inherit/.test(caller), 'init: caller carries app-start, app-url, secrets: inherit');
-    check(/pull_request:/.test(caller) && /issue_comment:/.test(caller) && /concurrency:/.test(caller) && /pull-requests: write/.test(caller), 'init: caller has the triggers, concurrency group, and permissions');
+    check(/pull_request:/.test(caller) && /closed\]/.test(caller) && /issue_comment:/.test(caller) && /concurrency:/.test(caller) && /pull-requests: write/.test(caller), 'init: caller has the triggers (incl. closed for the companion chain), concurrency group, and permissions');
     check(init.next.some(s => /setup-token/.test(s)) && init.next.some(s => /qa-test-plan/.test(s)) && init.labels === 'skipped', 'init: next steps name the secret, the KB, and the labels');
     const again = (() => { try { execFileSync(process.execPath, [src, 'init'], { cwd: I, stdio: 'ignore' }); return 0; } catch (e) { return e.status; } })();
     check(again === 3, 'init: refuses to overwrite an existing caller without --force');
@@ -858,7 +858,7 @@ function testPrCoverage() {
     // The reusable workflow and its support files ship in this repository
     const wf = readFile(path.join(ROOT, '.github', 'workflows', 'pr-coverage.yml')) || '';
     check(/^on:\n\s+workflow_call:/m.test(wf), '.github/workflows/pr-coverage.yml is a reusable workflow (workflow_call)');
-    for (const inp of ['app-start', 'app-url', 'qabuddy-ref', 'kb-budget', 'automate-turns', 'default-phases', 'test-user']) check(new RegExp(`^\\s+${inp}:`, 'm').test(wf), `pr-coverage.yml declares input ${inp}`);
+    for (const inp of ['app-start', 'app-url', 'qabuddy-ref', 'kb-budget', 'automate-turns', 'default-phases', 'test-user', 'after-companion-merge']) check(new RegExp(`^\\s+${inp}:`, 'm').test(wf), `pr-coverage.yml declares input ${inp}`);
     for (const job of ['resolve', 'preflight', 'kb', 'explore', 'automate', 'deliver']) check(new RegExp(`^  ${job}:`, 'm').test(wf), `pr-coverage.yml has job ${job}`);
     check(!/&[a-z-]+\n/.test(wf) && !/\*[a-z-]+\n/.test(wf), 'pr-coverage.yml uses no YAML anchors (GitHub Actions does not support them)');
     check(/pr-coverage\.js"? merge/.test(wf) && /pr-coverage\.js"? preflight/.test(wf) && /include-hidden-files: true/.test(wf), 'pr-coverage.yml merges phase trees, runs preflight, and uploads dot-directories');

@@ -34,6 +34,7 @@ the PR comment.
 | label `qa:automate` · comment `/qabuddy automate` | + page objects and specs for unautomated test cases |
 | label `qa:full` · comment `/qabuddy full` | everything |
 | comment `/qabuddy kb` | back to the kb phase only |
+| a reviewer merges the companion PR `qabuddy/pr-<n>` into the source branch | the next phase on PR `<n>` — `after-companion-merge` input: `automate` (default), `full`, or `none`; skipped when that companion already carried automation |
 
 The caller's `default-phases` input sets what runs on open (`kb` by default; `kb,explore,automate`
 for everything on every PR). Labels and comments override per PR. `kb` is always included —

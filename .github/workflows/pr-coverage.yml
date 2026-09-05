@@ -20,6 +20,7 @@ on:
       extra-prompt:   { type: string, default: ".github/qabuddy/extra.md", description: "Optional file in the consumer repo appended to every phase prompt" }
       fallback:       { type: string, default: "none",  description: "`none`: unmapped diffs run nothing; `all`: run every feature" }
       default-phases: { type: string, default: "kb",    description: "Phases on PR open / ready-for-review: `kb`, `kb,explore`, `kb,automate`, or `kb,explore,automate`; labels and `/qabuddy` comments override per PR" }
+      after-companion-merge: { type: string, default: "automate", description: "When a reviewed companion PR (`qabuddy/pr-<n>`) merges into the source branch, run this on the source PR: `automate` (kb + automate), `full`, or `none`. Skipped when the merged companion already carried automation." }
       test-user:      { type: string, default: "",      description: "Login for the app under test when it is a public demo account; otherwise use the TEST_USER secret" }
       test-pass:      { type: string, default: "",      description: "Password for that account; otherwise use the TEST_PASS secret" }
       kb-turns:       { type: string, default: "80" }
@@ -41,13 +42,23 @@ env:
 jobs:
   # ── 1 · which PR, which phases ──────────────────────────────────────────────
   resolve:
+    # Three ways in: a same-repo, non-draft PR event (never on a companion PR itself); a
+    # `/qabuddy` comment on a PR; or a companion PR `qabuddy/pr-<n>` merged by a reviewer,
+    # which continues the chain on PR <n> (input `after-companion-merge`).
     if: >-
       (github.event_name == 'pull_request'
+        && github.event.action != 'closed'
         && github.event.pull_request.draft == false
-        && github.event.pull_request.head.repo.full_name == github.repository)
+        && github.event.pull_request.head.repo.full_name == github.repository
+        && !startsWith(github.event.pull_request.head.ref, 'qabuddy/pr-'))
+      || (github.event_name == 'pull_request'
+        && github.event.action == 'closed'
+        && github.event.pull_request.merged == true
+        && startsWith(github.event.pull_request.head.ref, 'qabuddy/pr-'))
       || (github.event_name == 'issue_comment'
         && github.event.issue.pull_request
-        && contains(github.event.comment.body, '/qabuddy'))
+        && contains(github.event.comment.body, '/qabuddy')
+        && !startsWith(github.event.issue.title, 'Tests for #'))
     runs-on: ubuntu-latest
     outputs:
       pr: ${{ steps.p.outputs.pr }}
@@ -67,11 +78,28 @@ jobs:
           COMMENT: ${{ github.event.comment.body }}
           PR_NUMBER: ${{ github.event.pull_request.number || github.event.issue.number }}
           DEFAULT_PHASES: ${{ inputs.default-phases }}
+          AFTER_MERGE: ${{ inputs.after-companion-merge }}
+          HEAD_BRANCH: ${{ github.event.pull_request.head.ref }}
+          MERGED: ${{ github.event.pull_request.merged }}
+          PR_BODY: ${{ github.event.pull_request.body }}
         run: |
           set -euo pipefail
           PH="${DEFAULT_PHASES:-kb}"
           case "$PH" in kb|kb,explore|kb,automate|kb,explore,automate) ;; *) echo "::error::default-phases must be kb, kb,explore, kb,automate, or kb,explore,automate (got '$PH')"; exit 1;; esac
-          if [ "$EVENT" = "issue_comment" ]; then
+          if [ "$EVENT" = "pull_request" ] && [ "$ACTION" = "closed" ]; then
+            # A companion PR was merged by a reviewer: continue on the source PR it belongs to.
+            [ "$MERGED" = "true" ] || { echo "companion closed without merging — nothing to do"; exit 0; }
+            PR_NUMBER="${HEAD_BRANCH#qabuddy/pr-}"
+            DONE=$(printf '%s' "$PR_BODY" | grep -oE 'phases: [a-z,]+' | head -1 | sed 's/phases: //')
+            case "$AFTER_MERGE" in
+              automate) PH=kb,automate ;;
+              full)     PH=kb,explore,automate ;;
+              none|"")  echo "after-companion-merge is none — nothing to do"; exit 0 ;;
+              *) echo "::error::after-companion-merge must be automate, full, or none"; exit 1 ;;
+            esac
+            case ",$DONE," in *,automate,*) echo "companion for #$PR_NUMBER already carried automation ($DONE) — chain complete"; exit 0 ;; esac
+            echo "companion for #$PR_NUMBER merged (had: ${DONE:-?}) → running $PH on #$PR_NUMBER"
+          elif [ "$EVENT" = "issue_comment" ]; then
             case "$COMMENT" in
               *"/qabuddy full"*)     PH=kb,explore,automate ;;
               *"/qabuddy automate"*) PH=kb,automate ;;
