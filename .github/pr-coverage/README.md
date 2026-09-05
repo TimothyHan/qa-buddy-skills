@@ -33,6 +33,11 @@ the PR comment.
 | label `qa:explore` · comment `/qabuddy explore` | + headless exploratory session |
 | label `qa:automate` · comment `/qabuddy automate` | + page objects and specs for unautomated test cases |
 | label `qa:full` · comment `/qabuddy full` | everything |
+| comment `/qabuddy kb` | back to the kb phase only |
+
+The caller's `default-phases` input sets what runs on open (`kb` by default; `kb,explore,automate`
+for everything on every PR). Labels and comments override per PR. `kb` is always included —
+explore and automate build on the test cases and mapping it writes, and it costs about a dollar.
 
 Jobs: `resolve → preflight → kb → (explore ∥ automate) → deliver`. Each phase is its own
 Claude session with its own `--max-turns` / `--max-budget-usd` (inputs). Phases hand their

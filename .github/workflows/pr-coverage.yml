@@ -19,6 +19,7 @@ on:
       qabuddy-ref:    { type: string, default: "poc/cloud-service", description: "QABuddy git ref to install on the runner" }
       extra-prompt:   { type: string, default: ".github/qabuddy/extra.md", description: "Optional file in the consumer repo appended to every phase prompt" }
       fallback:       { type: string, default: "none",  description: "`none`: unmapped diffs run nothing; `all`: run every feature" }
+      default-phases: { type: string, default: "kb",    description: "Phases on PR open / ready-for-review: `kb`, `kb,explore`, `kb,automate`, or `kb,explore,automate`; labels and `/qabuddy` comments override per PR" }
       test-user:      { type: string, default: "",      description: "Login for the app under test when it is a public demo account; otherwise use the TEST_USER secret" }
       test-pass:      { type: string, default: "",      description: "Password for that account; otherwise use the TEST_PASS secret" }
       kb-turns:       { type: string, default: "80" }
@@ -64,14 +65,17 @@ jobs:
           LABELS: ${{ join(github.event.pull_request.labels.*.name, ',') }}
           COMMENT: ${{ github.event.comment.body }}
           PR_NUMBER: ${{ github.event.pull_request.number || github.event.issue.number }}
+          DEFAULT_PHASES: ${{ inputs.default-phases }}
         run: |
           set -euo pipefail
-          PH=kb
+          PH="${DEFAULT_PHASES:-kb}"
+          case "$PH" in kb|kb,explore|kb,automate|kb,explore,automate) ;; *) echo "::error::default-phases must be kb, kb,explore, kb,automate, or kb,explore,automate (got '$PH')"; exit 1;; esac
           if [ "$EVENT" = "issue_comment" ]; then
             case "$COMMENT" in
               *"/qabuddy full"*)     PH=kb,explore,automate ;;
               *"/qabuddy automate"*) PH=kb,automate ;;
               *"/qabuddy explore"*)  PH=kb,explore ;;
+              *"/qabuddy kb"*)       PH=kb ;;
             esac
           else
             if [ "$ACTION" = "labeled" ] && ! printf '%s' "$LABEL" | grep -q '^qa:'; then
