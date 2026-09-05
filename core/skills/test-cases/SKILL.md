@@ -169,7 +169,6 @@ Before saving, verify consistency across all three artifacts. Fix issues found. 
 4. Unit test checklist items checked against existing unit tests for overlap — same rule: an existing test counts only if its assertion would fail for that item
 5. P0/P1/P2 distribution: not >50% P0, and at least one P0 exists for the core happy path
 6. No code blocks in the test cases document; automation constraints a writer needs appear in Preconditions
-7. Every precondition or step naming a label, seeded record, displayed value or request is backed by an `Observed:` line in the scratchpad or marked `(unverified)`
 
 ---
 
