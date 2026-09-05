@@ -1,6 +1,6 @@
 {
   "skill": "test-cases",
-  "version": "0.4.0",
+  "version": "0.5.0",
   "fixtures": [
     {
       "id": "fx-001",
@@ -281,6 +281,49 @@
         "suite-verification",
         "vacuous-assertion",
         "negative-case"
+      ]
+    },
+    {
+      "id": "fx-011",
+      "description": "Live probe: a reachable app corrects an AC assumption (field shows the email, not the name)",
+      "input": {
+        "ticket": "story with 2 ACs; AC #2 says the list shows the author's name",
+        "precondition": "playwright/AUTOMATION.md names a base URL and the dev server answers; on the running app the author column displays the user's email address"
+      },
+      "assertions": [
+        {
+          "field": "output",
+          "op": "contains",
+          "value": "Observed"
+        },
+        {
+          "field": "output",
+          "op": "contains",
+          "value": "email"
+        }
+      ],
+      "tags": [
+        "live-probe",
+        "observed"
+      ]
+    },
+    {
+      "id": "fx-012",
+      "description": "Live probe unavailable: dependent preconditions are marked (unverified)",
+      "input": {
+        "ticket": "story with 2 ACs naming two control labels and one seeded record",
+        "precondition": "no base URL is configured and no dev server answers"
+      },
+      "assertions": [
+        {
+          "field": "output",
+          "op": "contains",
+          "value": "(unverified)"
+        }
+      ],
+      "tags": [
+        "live-probe",
+        "unverified"
       ]
     }
   ]

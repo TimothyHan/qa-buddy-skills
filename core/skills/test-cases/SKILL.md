@@ -1,6 +1,6 @@
 ---
 name: test-cases
-version: 0.4.0
+version: 0.5.0
 description: |
   Generate test cases from a Jira ticket's acceptance criteria. Produces e2e test
   scenarios (steps and expected results, no code) and a unit test checklist for
@@ -37,6 +37,7 @@ ACs from Jira, cross-reference the epic test plan, and produce:
 4. **Unit test checklist is for devs.** Keep it brief and actionable — describe what to test, not how.
 5. **Don't duplicate existing tests.** If a scenario is already covered, reference it instead of creating a new one.
 6. **Prioritize ruthlessly.** A ticket with 3 ACs doesn't need 30 test cases. Focus on what catches real bugs.
+7. **Observed beats assumed.** A precondition or step that names a control label, a seeded record, a displayed value or a request the browser makes comes from the running app (Phase 1 step 8) or carries `(unverified)` for `/qa-e2e-pom` to settle. Never assert the network behaviour of a page you have not watched.
 
 ---
 
@@ -80,6 +81,12 @@ ACs from Jira, cross-reference the epic test plan, and produce:
 7. **Check existing test cases for this ticket:**
    - `features-kb/features/{EPIC-KEY}/test-cases/{TICKET-KEY}.md`
    - If they exist, this is an update, not a fresh creation
+
+8. **Probe the running app** (when reachable; ~10 min; read-only — no saves, no uploads):
+   - Base URL from `playwright/AUTOMATION.md`, `.claude/launch.json` or `.qabuddy.json`; otherwise ask the SDT (headless: skip)
+   - For each screen the ACs touch, as the persona the AC names: the real labels of the controls the steps will name; whether the data is server-rendered or which request loads it; which seeded records exist and whether they are shared/read-only
+   - Write each fact as an `Observed:` line under `## Findings` in the scratchpad
+   - Unreachable: record that under `## Findings` and mark every dependent precondition/step `(unverified)`
 
 ---
 
@@ -167,6 +174,7 @@ Before saving, verify consistency across all three artifacts. Fix issues found. 
 4. Unit test checklist items checked against existing unit tests for overlap
 5. P0/P1/P2 distribution: not >50% P0, and at least one P0 exists for the core happy path
 6. No code blocks in the test cases document; automation constraints a writer needs appear in Preconditions
+7. Every precondition or step naming a label, seeded record, displayed value or request is backed by an `Observed:` line in the scratchpad or marked `(unverified)`
 
 ---
 
