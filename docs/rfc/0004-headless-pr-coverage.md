@@ -101,6 +101,12 @@ that does everything the model should not.
     is the reviewed, phase-by-phase chain Timothy asked about, without extra workflows:
     open → kb companion → review + merge → automate companion → review + merge.
     Companion PRs themselves never trigger a run of their own.
+14. **Gating is the owner's, not the bot's.** Every job reports a check, but a run that
+    found a failing spec still finishes green — that failure is what it delivers. The
+    `gate` job turns a caller-chosen policy (`gate-on`: `none` default, `at-risk`,
+    `suite`, `gaps`) into one check named `qabuddy / gate`; whether it blocks a merge is
+    a branch rule only the repository owner sets (Timothy's point, 2026-09-05). QABuddy
+    never touches that setting.
 12. **One reusable workflow, many repositories.** `.github/workflows/pr-coverage.yml`
     (`workflow_call`) owns the jobs `resolve → preflight → kb → (explore ∥ automate) →
     deliver`; a consumer repo carries a ~15-line caller written by `pr-coverage.js init`
@@ -207,6 +213,18 @@ promotion to `main` and productisation are Timothy's call.**
 |---|---|---|
 | `/qabuddy full` (33947054333) | resolve 5 s · preflight 14 s · kb 6.5 min · explore 5 min ∥ automate 15 min · deliver 16 s | **22.5 min** wall (26.5 sequential), kb $1.14 / explore $1.31 / automate $3.34 = **$5.79**, 0 questions; explore and automate started within one second of each other; three-way merge of their trees: 83 files, one `.jsonl` union, no content conflicts. Suite reported 0 tests — the demo login was not reaching global setup (secrets only; fixed with `test-user`/`test-pass` inputs) |
 | `/qabuddy automate` (33948169266) | kb 3 min · automate 17 min | kb $0.73 / automate $3.90; **14 tests executed**, TC-04 / TC-07 / TC-08 red on the soft-delete build, results in the posted heatmap; merge report clean |
+
+### The reviewed chain on a fresh PR (2026-09-05, PR #6, branch cut from `main`)
+
+| Step | What happened |
+|---|---|
+| open #6 | kb ran by default (`default-phases: kb`); deliver opened companion #8 → `demo/soft-delete-2` (KB files only) and announced it on #6 |
+| reviewer merges #8 | the `closed` event woke the workflow; resolve read the companion's phases (`kb`) and ran kb + automate (explore skipped — `after-companion-merge` was still `automate`, now `full`); deliver opened companion #9 (page objects, API client, specs, gap report) and announced it; heatmap: 6 covered, 1 AC at risk |
+| reviewer merges #9 | resolve saw the companion already carried automation → chain complete, every other job skipped, $0; the #9 announcement got a 🚀 reaction and a "Merged into `demo/soft-delete-2`" line |
+
+Lesson recorded as a preflight warning: `pull_request` workflows run from the PR's own
+branch, so a branch cut before the caller was added (PR #2) cannot chain until the base
+branch is merged into it.
 
 **Design change from this run (decision 11):** one action session per phase — `kb`,
 `explore`, `automate` — each with its own turn and budget cap and `continue-on-error`,
