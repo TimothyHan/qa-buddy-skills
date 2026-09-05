@@ -85,6 +85,11 @@ that does everything the model should not.
    heatmap). Labels `qa:explore`, `qa:automate`, `qa:full` add the expensive phases;
    `/qabuddy [explore|automate|full]` in a comment reruns. One concurrency group per
    PR, cancel-in-progress. Drafts are skipped.
+11. **One session per phase.** `kb`, `explore`, and `automate` each run in their own
+    `claude-code-action` invocation with their own `--max-turns` / `--max-budget-usd`
+    and `continue-on-error: true`. Later phases build on the files earlier phases wrote.
+    Delivery steps run `always()`; a final step fails the job if any phase failed, after
+    everything produced has been delivered.
 10. **Fork PRs are skipped.** GitHub withholds secrets from forks and the run needs an
     API key and a write token; the workflow's `if:` checks the head repository. This
     is documented, not solved — a hosted service would run forks read-only.
@@ -136,9 +141,25 @@ Local tally against §4: (a) ✓ · (b) ✓ · (c) 1/1 so far · (d) pending CI 
 local phase far under its cap (kb $1.24 / $5, explore $1.31 / $10, setup $1.60) · (f) 0
 questions across three headless runs, 132 turns.
 
-Remaining once the `ANTHROPIC_API_KEY` secret exists on `qabuddy-poc-acme`: the CI
-runs for `kb`, `qa:explore`, `qa:full` on PR #2 — (b) at-risk after exploration, (c),
-(d), (e) per-phase cost in CI.
+### First full CI run (2026-09-05, PR #2, `/qabuddy full`, subscription OAuth token)
+
+| | |
+|---|---|
+| Session | one `claude-code-action` session for all three phases: **222 turns, $8.18, 27.5 min**, final result `success` — then failed by the action because 222 > the 220-turn cap, which skipped the suite-execution step |
+| Heatmap posted | every AC has a spec whose title carries its TC id (E2E ✅ ×6, "not run" because the results step was skipped); exploratory row for every AC, **AC4 ⚠️ finding**; 12 covered · 9 partial · 9 gap · 1 AC at risk |
+| Companion branch `qabuddy/pr-2` | 30 files: TC-05/TC-06 added, §6.5 mapping, persisted exploratory session, BUG-001, page objects for login and projects with proof screenshots, POM inventory, API client, fixtures, seven specs, updated AUTOMATION.md. `gh pr create` was refused — the repository did not allow Actions to open PRs (setting enabled afterwards; PR #3 opened by hand) |
+| Not uploaded | the `.qa-reports` artifact — `upload-artifact@v4` skips dot-directories unless `include-hidden-files: true` |
+| Auth detours before this run | API key: valid but its organization had no credit (`billing_error`); first OAuth token: pasted value rejected (401); second OAuth token: worked. Each failed attempt cost $0 |
+
+Tally after the first full run: (a) ✓ · (b) ✓ · (c) 2/2 (local + CI) · (d) specs with TC ids ✓,
+pass/fail pending a run whose results step executes · (e) $8.18 for `full`, under the $25 cap ·
+(f) `AskUserQuestion` was disallowed at the CLI; the run finished without a question.
+
+**Design change from this run (decision 11):** one action session per phase — `kb`,
+`explore`, `automate` — each with its own turn and budget cap and `continue-on-error`,
+so a cap or failure in automation never discards the documentation phases, and the
+results, companion PR, heatmap, and artifact steps always run. The job's final step
+reports per-phase outcomes and fails the run honestly if any phase did.
 
 ## 5 · Open questions
 
