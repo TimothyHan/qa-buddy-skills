@@ -54,7 +54,10 @@ that does everything the model should not.
    diff→feature mapping: `sources` globs the feature owns, `tests.{unit,api,e2e}` globs
    where its tests live, `exclude` winning over both. `/qa-test-plan` writes it (step
    4b; proposed and confirmed interactively, mandatory headless). When no feature
-   matches a diff the workflow passes `--fallback all` and the comment says so.
+   matches a diff the workflow's default is `--fallback none`: nothing runs, nothing is
+   spent, and the comment names the unmapped files. `--fallback all` (every feature,
+   flagged in the comment) is opt-in for repositories that have not written
+   `sources.json` yet.
 5. **The mapping shape is KB spec §6.5** — `testCases[{id, layer, type, status}]`,
    `unitTests[]`, `coverage` — written by `/qa-test-cases` in both modes. The scanner
    stays read-compatible with the two legacy shapes (`e2e_tests[]`/`unit_tests[]`, flat
@@ -74,7 +77,9 @@ that does everything the model should not.
    `--max-budget-usd`, an explicit `--allowedTools` list, `--disallowedTools
    AskUserQuestion` as a belt-and-braces guard, and Playwright MCP (`@playwright/mcp
    --headless`) via `--mcp-config` for the browser. Skills are installed on the runner
-   with `dist/claude/setup` (global symlinks, as CI already proves on ubuntu).
+   with `dist/claude/setup` (global symlinks, as CI already proves on ubuntu). The action
+   receives the workflow's own `github_token`, so no Claude GitHub App install is needed —
+   the sticky comment and the companion PR are posted by workflow steps, not by the action.
 9. **Phases are selected by label or comment, never by every push.** `pull_request`
    `opened` / `ready_for_review` runs the cheap `kb` phase (test cases, mapping, gaps,
    heatmap). Labels `qa:explore`, `qa:automate`, `qa:full` add the expensive phases;
@@ -110,7 +115,17 @@ listed — the fixture app's `v3` behaviour arriving as a plausible refactor):
 | (e) | Cost within caps — kb ≤ $5, explore ≤ $10, automate ≤ $20, full ≤ $30 — and wall time ≤ 60 min | cost > 2× cap |
 | (f) | Zero `AskUserQuestion` calls in the action's execution file | any call — headless leaked a question |
 
-Results, per phase, with cost and wall time: *to be filled in during step D.*
+### Results so far (step C, 2026-09-05, `TimothyHan/qabuddy-poc-acme`)
+
+| Check | Result |
+|---|---|
+| Control PR #1 (README only) | `resolve` + `run` green in ~1 min; `touched` mapped nothing; model step skipped; comment posted naming `README.md` as unmapped; **$0** |
+| `/qabuddy` comment on #1 | second run patched the same comment (id unchanged, `updated_at` moved) — one comment per PR holds |
+| Demo PR #2 (`server.js` soft-delete) | `touched` → `projects` deterministically (a); seeded heatmap posted: AC1–AC4 `partial` in E2E + Manual, AC5/AC6 `gap`, Exploratory `not run` (b, pre-run half); QABuddy installed on the runner from `poc/cloud-service` and `dist/claude/setup --status` clean |
+| Model step on #2 | failed before any spend: `ANTHROPIC_API_KEY` secret not set, and the action attempted a GitHub App token exchange (fixed: `github_token` passed) |
+
+Remaining for step D once the secret exists: (b) post-run, (c), (d), (e), (f).
+Per-phase cost and wall time: *to be filled in during step D.*
 
 ## 5 · Open questions
 
