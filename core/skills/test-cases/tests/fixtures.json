@@ -1,6 +1,6 @@
 {
   "skill": "test-cases",
-  "version": "0.5.0",
+  "version": "0.5.1",
   "fixtures": [
     {
       "id": "fx-001",
@@ -324,6 +324,30 @@
       "tags": [
         "live-probe",
         "unverified"
+      ]
+    },
+    {
+      "id": "fx-013",
+      "description": "Existing test credited only by its assertion: a misleadingly titled test does not count as coverage",
+      "input": {
+        "ticket": "story with 2 ACs; AC #1: the board lists posts newest first",
+        "precondition": "the repo has an existing Playwright test titled 'sorts newest first' whose only assertion is toHaveCount(3)"
+      },
+      "assertions": [
+        {
+          "field": "output",
+          "op": "not_contains",
+          "value": "already covered by 'sorts newest first'"
+        },
+        {
+          "field": "output",
+          "op": "matches",
+          "value": "gap|not coverage|vacuous"
+        }
+      ],
+      "tags": [
+        "dedup",
+        "vacuous"
       ]
     }
   ]
