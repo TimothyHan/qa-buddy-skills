@@ -1,6 +1,6 @@
 ---
 name: exploratory
-version: 0.4.5
+version: 0.4.6
 description: |
   Generate and guide exploratory testing sessions. Produces a session charter,
   executes time-boxed unscripted testing using heuristic techniques, captures
@@ -45,7 +45,7 @@ discovers what scripted tests miss.
 ## Phase 1: Setup
 
 **Methodology reference:** Read from `{{REFERENCE_PATH}}/playbook/`:
-- `test-types.md` — exploratory testing definition, purpose, timing
+- `test-types.md` — where exploratory sits among the manual test types (after functional, before UAT)
 - `metrics-and-coverage.md` — exploratory fills coverage gaps
 - `test-distribution.md` — assign discoveries to the right test layer
 - `exploratory-heuristics.md` — heuristic categories, techniques, finding categories

@@ -1,6 +1,6 @@
 ---
 name: test-cases
-version: 0.5.1
+version: 0.5.2
 description: |
   Generate test cases from a Jira ticket's acceptance criteria. Produces e2e test
   scenarios (steps and expected results, no code) and a unit test checklist for
@@ -54,7 +54,7 @@ ACs from Jira, cross-reference the epic test plan, and produce:
 
 2. **Read methodology references** from `{{REFERENCE_PATH}}/playbook/`:
    - `test-distribution.md` — assign tests to lowest appropriate layer, deduplication rules
-   - `test-types.md` — manual vs automation, UAT vs functional distinction
+   - `test-types.md` — automation guidelines, when a case stays manual
    - `maintenance-and-ci.md` — browser matrix (Playwright runs Chrome, Firefox, Safari, Edge)
    - `test-suite-verification.md` — vacuous-assertion checklist for expected results (an outcome that would also hold when the feature is broken is not an expected result)
    - Then the project learnings file (per the preamble) — active `LRN-` entries
