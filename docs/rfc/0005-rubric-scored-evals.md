@@ -16,8 +16,8 @@ execute 모드는 강하지만 코드 산출 스킬 3개에만 있다. 이 도�
 3. 모델이 바뀌면 스킬이 필요로 하는 컨텍스트가 바뀌는가 (CONTRIBUTING의 Sonnet 피로 전제는 2026-04-11에 쓰였고 Sonnet 5에서 검증된 적이 없다).
 
 이 RFC는 **루브릭 기반 채점**을 더한다. 세 역할을 분리한다: **러너**(대상 모델에서 헤드리스로
-스킬 실행, 루브릭을 모름), **판정자**(별도 모델 호출, 입력·산출물·루브릭만 받고 SKILL.md는 절대
-보지 않음), **결정적 검사**(exit code, grep, 로그 — 공짜이고 정확함). 기준은 스킬 자신의
+스킬 실행, 루브릭을 모름), **판정자**(러너와 **다른 모델** — Opus가 Sonnet 실행을 채점, 결정 15 — 입력·산출물·루브릭만 받고
+SKILL.md는 절대 보지 않음), **결정적 검사**(exit code, grep, 로그 — 공짜이고 정확함). 기준은 스킬 자신의
 제약·자체 평가 항목에서 나오고 그 줄을 인용해야 한다. 가중 합계 하나로 게이트하지 않는다 —
 **must 기준마다 바닥값**이 있고 하나라도 깨지면 FAIL이다. 모든 must 기준은 **네거티브 컨트롤**
 (일부러 망가뜨린 산출물)이 바닥 아래로 떨어지는 것을 증명해야 하며, 판정자는 사람이 채점한
@@ -55,7 +55,7 @@ quality, which requires a way to score quality that is not the runner grading it
 | Role | What it is | Sees | Never sees |
 |---|---|---|---|
 | **Runner** | the skill, executed headless on the target model against a case (RFC 0004 `claude -p` path; the reusable workflow in CI) | the installed skill, the case input, the app | the rubric, the judge notes |
-| **Judge** | one separate model call per artifact, pinned model, temperature 0 | the case input, the artifact(s), judge-only notes, the rubric's `judge` criteria with anchors | `SKILL.md`, the runner's transcript, other runs' scores |
+| **Judge** | one separate call per artifact to a **different model than the runner** — Opus judging Sonnet runs (decision 15) — pinned, temperature 0 | the case input, the artifact(s), judge-only notes, the rubric's `judge` criteria with anchors | `SKILL.md`, the runner's transcript, other runs' scores |
 | **Checks** | deterministic assertions: the existing execute-mode operators, greps, exit codes, and process checks over the run directory (`events.jsonl`, `scratchpad.md`, the execution file) | run artifacts | — |
 
 Simulate mode's circularity comes from one context playing all three roles. Separating them is the
@@ -66,7 +66,7 @@ whole design; everything else is bookkeeping.
 ```jsonc
 {
   "skill": "test-cases", "skill_version": "0.5.2", "rubric_version": 1,
-  "judge": { "model": "claude-sonnet-5", "prompt": "core/skills/eval/judge.md" },
+  "judge": { "model": "claude-opus-5", "prompt": "core/skills/eval/judge.md" },   // never the runner's model (decision 15)
   "threshold": null,                       // set by calibration (§2.6); null = report only, never PASS/FAIL
   "criteria": [
     { "id": "traceability", "kind": "judge", "weight": 3, "floor": 2,
@@ -189,6 +189,7 @@ calibrated rubric, `eval.js` before/after shows no floor breach and no regressio
 | 12 | Judge-only facts | `judge-notes.md`, never in the runner's input; `test.js` checks | `/qa-eval` constraint 7 (`ANSWER-KEY.md`) generalized |
 | 13 | Model attribution | runner and judge models recorded in every score file | evidence that cannot say which model produced it cannot answer the model-upgrade question |
 | 14 | Who writes rubrics? | a human; the tool validates | RFC 0002 §6: no LLM-written config; a rubric is the eval's config |
+| 15 | Judge model | **a different model than the runner: Opus 5 judges Sonnet 5 runs**; `test.js` refuses a rubric whose judge is the runner's model (2026-09-05, after #69) | a separate context removes self-grading, not shared blind spots; a judge from the same model tends to accept the same mistakes. Calibration (§2.6) still applies to Opus |
 
 ## 4. Implementation sequence
 
@@ -232,8 +233,7 @@ Detail per PR, with files, checks and acceptance, is in the [plan](0005-rubric-s
 
 1. Should projects add their own criteria (`PRJ-` style) so a team's expectations grade the same
    output? Deferred until two pilots show the judge is stable.
-2. Judge model: same family as the runner (Sonnet 5 grading Sonnet 5, different context) or a
-   different one? Calibration (b) decides empirically; the risk of shared blind spots is noted.
+2. *(resolved as decision 15: the judge is Opus, never the runner's model)*
 3. Case inputs for Jira-dependent skills (`review-ticket`, `test-plan`) — spec-mode files are the
    plan; whether they exercise the skills realistically is unknown until PR6.
 4. Should `stats` learn to read `scores.json` so a section's citation count can sit beside the
