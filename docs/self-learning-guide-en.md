@@ -398,6 +398,10 @@ logs justify E, and they will also have answered its open design questions
 
 ---
 
+### 6.6 Grading the skills themselves — RFC 0005
+
+Everything above measures *knowledge*: which sections were compiled, cited, contradicted. It cannot say whether a skill's output got better or worse. RFC 0005 adds that instrument: `node bin/eval.js run <skill>` executes a skill headless on the target model against cases under `tests/cases/`, a separate Opus judge scores the artifact against the skill's own numbered constraints (`tests/rubric.json`), deterministic checks cover the rest, and controls that must fail are judged first. `eval.js ab --a <ref> --b <ref>` compares two QABuddy refs per criterion — the bench that decides playbook ablations, `/qa-improve` regressions and model upgrades. A rubric only gates after calibration against artifacts a human scored. Details: [RFC 0005](rfc/0005-rubric-scored-evals.md).
+
 ## 7. Recipes
 
 **"A section keeps riding in slices but never applies"**

@@ -1,6 +1,6 @@
 ---
 name: eval
-version: 0.4.1
+version: 0.5.0
 description: |
   Run eval fixtures against a skill to verify it produces correct output.
   Two modes per fixture: simulate (read SKILL.md, simulate the scenario, check
@@ -33,6 +33,14 @@ Each fixture declares its mode:
   greps, file checks). For skills whose output is code (`/qa-e2e-setup`,
   `/qa-e2e-pom`, `/qa-e2e-write`). A generated artifact passes only by running, never
   by looking right.
+- **`--rubric`** (RFC 0005) — `/qa-eval <skill> --rubric` delegates to
+  `node bin/eval.js run <skill>`: the skill runs headless on the target model,
+  a separate Opus judge scores each artifact against `tests/rubric.json`, and
+  controls are judged first. The summary is the generated `report.md`
+  (per-criterion means, spread, floor breaches, verdict) — never re-grade its
+  scores by hand. For a skill whose rubric is calibrated, simulate-mode
+  fixtures are deprecated as a quality signal; they stay as the free
+  structural gate.
 
 ## Constraints
 
@@ -183,4 +191,6 @@ After all fixtures:
 **Status:** DONE | DONE_WITH_CONCERNS
 **Summary:** {skill} eval: {pass_rate}% ({passed}/{total} fixtures)
 **Next steps:** {fix the failed assertions via /qa-improve, or "all passing"}
+
+With `--rubric`, replace this summary with `eval.js`'s `report.md` verbatim and quote its verdict line as **Summary**.
 ```

@@ -10,7 +10,7 @@
 [![Skills: 13](https://img.shields.io/badge/Skills-13-green.svg)](#스킬)
 [![Platform: Claude Code](https://img.shields.io/badge/Platform-Claude_Code-purple.svg)](#작동-방식)
 [![Locales: en, ko](https://img.shields.io/badge/Locales-en_|_ko-orange.svg)](#로케일)
-[![Structural checks: 1636](https://img.shields.io/badge/Structural_checks-1636-brightgreen.svg)](#작동-방식)
+[![Structural checks: 1646](https://img.shields.io/badge/Structural_checks-1646-brightgreen.svg)](#작동-방식)
 
 소프트웨어를 테스트하는 사람이라면 누구나를 위한 AI 파트너 —<br>
 에픽 테스트 계획 수립부터 스프린트 실행, 릴리스 검증까지.<br>
@@ -24,6 +24,8 @@ QABuddy는 AI가 자동으로 인식하고 실행하는 `SKILL.md` 파일 모음
 별도의 앱과 데몬이 없고, 고정 의존성은 하나 — [Akela](https://github.com/TimothyHan/akela) 엔진(그 자체는 의존성 0)이며 빌드 시점에 dist로 벤더링됩니다.
 
 [빠른 시작](#빠른-시작) · [스킬](#스킬) · [안내 워크플로우](#안내-워크플로우) · [셀프러닝 가이드](docs/self-learning-guide.md) · [변경 이력](CHANGELOG-ko.md) · [기여하기](CONTRIBUTING.md)
+
+스킬 자체도 채점됩니다 — 지식만이 아니라: 대상 모델에서의 헤드리스 실행, 스킬 자신의 제약 조건에 대해 산출물을 채점하는 별도의 Opus 판정자, must 기준마다의 바닥값, 사람이 채점한 산출물에서 도출한 임계값 ([RFC 0005](docs/rfc/0005-rubric-scored-evals.md)).
 
 </div>
 
@@ -339,7 +341,7 @@ flowchart LR
 ```bash
 node build.js all                  # 모든 플랫폼용 빌드
 node build.js all --locale ko      # 한국어 버전 빌드
-node test.js                       # 1636개 구조 검사 실행
+node test.js                       # 1646개 구조 검사 실행
 ```
 
 > **구조 검사와 동작 검증은 다릅니다.** `node test.js`는 빌드 산출물의 형태를
@@ -354,7 +356,7 @@ node test.js                       # 1636개 구조 검사 실행
 ```
 QABuddy/
 ├── build.js                     # 빌드 스크립트 (node; 고정 버전 엔진을 벤더링)
-├── test.js                      # 구조 검사 스위트 (1636개 검사)
+├── test.js                      # 구조 검사 스위트 (1646개 검사)
 ├── package.json                 # 고정 의존성 1개: akela (엔진)
 ├── bin/akela.js                 # 엔진 런처 (환경변수 매핑 · 첫 실행 akela.json · 위임)
 ├── bin/qab.js                   # 지원 중단 심 (한 릴리스)

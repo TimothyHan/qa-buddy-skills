@@ -1,6 +1,6 @@
 {
   "skill": "eval",
-  "version": "0.4.1",
+  "version": "0.5.0",
   "fixtures": [
     {
       "id": "fx-001",
@@ -71,6 +71,34 @@
       ],
       "tags": [
         "failure-evidence"
+      ]
+    },
+    {
+      "id": "fx-004",
+      "description": "--rubric delegates to eval.js run and reports its report.md verbatim",
+      "input": {
+        "context": "/qa-eval test-cases --rubric; tests/rubric.json exists"
+      },
+      "assertions": [
+        {
+          "field": "output",
+          "op": "contains",
+          "value": "eval.js run"
+        },
+        {
+          "field": "output",
+          "op": "contains",
+          "value": "report.md"
+        },
+        {
+          "field": "output",
+          "op": "not_contains",
+          "value": "simulate the scenario"
+        }
+      ],
+      "tags": [
+        "rfc-0005",
+        "rubric"
       ]
     }
   ]

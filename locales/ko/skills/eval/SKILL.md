@@ -1,6 +1,6 @@
 ---
 name: eval
-version: 0.4.1
+version: 0.5.0
 description: |
   스킬에 대해 eval fixture를 실행하여 올바른 출력을 생성하는지 검증합니다.
   fixture별 두 가지 모드: simulate(SKILL.md를 읽고 시나리오를 시뮬레이션하여
@@ -32,6 +32,12 @@ preamble-tier: 1
   아티팩트를 실행하여 채점합니다 (`npx playwright test`, grep, 파일 검사).
   산출물이 코드인 스킬용 (`/qa-e2e-setup`, `/qa-e2e-pom`, `/qa-e2e-write`). 생성된
   아티팩트는 실행되어야만 통과 -- 그럴듯해 보이는 것으로는 통과하지 못합니다.
+- **`--rubric`** (RFC 0005) -- `/qa-eval <skill> --rubric`은 `node bin/eval.js run <skill>`에
+  위임합니다: 스킬이 대상 모델에서 헤드리스로 실행되고, 별도의 Opus 판정자가 각
+  산출물을 `tests/rubric.json`에 대해 채점하며, 컨트롤을 먼저 판정합니다. 요약은
+  생성된 `report.md`(기준별 평균, 편차, 바닥값 위반, 판정)입니다 -- 그 점수를 손으로
+  다시 매기지 마세요. 루브릭이 캘리브레이션된 스킬에서는 simulate 모드 픽스처가 품질
+  신호로는 폐기되며, 공짜 구조 게이트로만 남습니다.
 
 ## 제약 사항
 
@@ -179,4 +185,6 @@ Fixture: {id} -- {description}
 **Status:** DONE | DONE_WITH_CONCERNS
 **Summary:** {skill} eval: {pass_rate}% ({passed}/{total} fixtures)
 **Next steps:** {실패한 assertion을 /qa-improve로 수정, 또는 "전부 통과"}
+
+`--rubric`일 때는 이 요약 대신 `eval.js`의 `report.md`를 그대로 쓰고, 그 판정 줄을 **Summary**로 인용합니다.
 ```
