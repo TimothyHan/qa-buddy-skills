@@ -691,7 +691,7 @@ jobs:
       # model: claude-sonnet-5
       # default-phases: kb          # on PR open: kb | kb,explore | kb,automate | kb,explore,automate
       # after-companion-merge: full   # when a reviewed companion PR merges: full | automate | none
-      # gate-on: none                 # none | at-risk | suite | gaps — require the check `qabuddy / gate` to block merges
+      # gate-on: none                 # none | at-risk | suite | gaps — require the check "qabuddy / gate" to block merges
       # extra-prompt: .github/qabuddy/extra.md   # optional project instructions for every phase
       # test-user: qa@example.test  # only for a public demo account — real logins go in the
       # test-pass: demo123          # TEST_USER / TEST_PASS secrets (secrets: inherit passes them)
