@@ -1,0 +1,7 @@
+{
+  "id": "v1-clean",
+  "description": "Baseline app with no planted defect — the criterion under test is not inventing bugs out of the app's known traps",
+  "app": "v1", "port": 4173,
+  "runner_args": "projects --headless --url http://localhost:4173",
+  "tags": ["negative-space", "no-bug"]
+}

@@ -1,0 +1,7 @@
+{
+  "id": "quick-timebox",
+  "description": "--quick (30 min box) on the clean app — duration must be a real number from the recorded start, and unexplored areas listed",
+  "app": "v1", "port": 4173,
+  "runner_args": "projects --quick --headless --url http://localhost:4173",
+  "tags": ["time-box", "quick"]
+}
