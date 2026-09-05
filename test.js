@@ -672,6 +672,146 @@ function testBadgeCount() {
 }
 
 
+// ─── PR coverage helper (RFC 0004) ───────────────────────────────────────
+// bin/pr-coverage.js is the deterministic half of a PR-triggered run: diff→feature
+// mapping, the coverage heatmap, and the sticky comment. Everything below runs
+// against a scratch knowledge base in a temp dir, so it is ko-only-dist safe — the
+// only dist-dependent checks are the "shipped byte-identical" ones, which resolve
+// through resolvePlatformDir like the runtime-helper suite.
+function testPrCoverage() {
+  console.log('\n🗺  PR coverage helper (bin/pr-coverage.js — RFC 0004)');
+  const { execFileSync } = require('child_process');
+  const os = require('os');
+
+  const src = path.join(ROOT, 'bin', 'pr-coverage.js');
+  check(fs.existsSync(src), 'bin/pr-coverage.js exists in repo');
+  for (const platform of PLATFORMS) {
+    const dir = resolvePlatformDir(platform);
+    if (!fs.existsSync(dir)) continue;
+    const shipped = path.join(dir, 'references', 'bin', 'pr-coverage.js');
+    check(fs.existsSync(shipped), `dist/${platform}/references/bin/pr-coverage.js shipped`, 'build.js copies bin/ into references/bin/');
+    if (fs.existsSync(shipped) && fs.existsSync(src)) {
+      check(fs.readFileSync(shipped, 'utf8') === fs.readFileSync(src, 'utf8'), `dist/${platform}/references/bin/pr-coverage.js matches source`);
+    }
+  }
+  if (!fs.existsSync(src)) return;
+
+  // A scratch project: three features covering the three mapping shapes the scanner
+  // must tolerate, plus the evidence files each heatmap column is proven from.
+  const tmp = fs.mkdtempSync(path.join(os.tmpdir(), 'qab-prcov-'));
+  const w = (rel, content) => { const p = path.join(tmp, rel); fs.mkdirSync(path.dirname(p), { recursive: true }); fs.writeFileSync(p, content); };
+  w('features-kb/index.json', JSON.stringify({ alpha: { title: 'Alpha feature' }, beta: { title: 'Beta' } }));
+  w('features-kb/features/alpha/feature.md', '# Feature: Alpha feature\n\n## Acceptance Criteria\n- AC1: Sign in works\n- AC2: Create thing\n- AC3: Delete thing\n');
+  w('features-kb/features/alpha/sources.json', JSON.stringify({ feature: 'alpha', sources: ['src/alpha/**'], exclude: ['**/*.md'], tests: { e2e: ['playwright/tests/**/*.spec.ts'], api: ['playwright/tests/api/**'], unit: ['test/**'] } }));
+  w('features-kb/features/alpha/test-cases/alpha.md', '### TC-01: sign in\n### TC-02: create\n### TC-03: delete\n');
+  w('features-kb/features/alpha/test-cases/alpha-mapping.json', JSON.stringify({ mappings: [
+    { ac: 'AC #1: Sign in works', testCases: [{ id: 'TC-01', layer: 'e2e' }], unitTests: ['auth-validate'], coverage: 'full' },
+    { ac: 'AC #2: Create thing', testCases: [{ id: 'TC-02', layer: 'e2e' }], unitTests: [], coverage: 'full' },
+    { ac: 'AC #3: Delete thing', testCases: [{ id: 'TC-03', layer: 'e2e' }], unitTests: [], coverage: 'partial' },
+  ], unmappedACs: ['AC4'] }));
+  w('features-kb/features/alpha/exploratory/2026-09-04.md', '## Focus Area Results\n| Focus Area | ACs | Time | Findings | Result |\n|---|---|---|---|---|\n| Login | AC1 | 5m | 0 | clean |\n| Delete | AC3 | 10m | Finding 1 | finding |\n| Search | AC4 | 0 | - | unexplored |\n');
+  w('features-kb/features/beta/feature.md', '# Beta\n| AC1 | Beta works |\n');
+  w('features-kb/features/beta/test-cases/b-mapping.json', JSON.stringify({ mappings: [{ requirement: 'AC #1: Beta works', e2e_tests: ['TC-B1'], unit_tests: ['beta-unit'], coverage: 'full' }] }));
+  w('features-kb/features/gamma/feature.md', '# Gamma\n- AC1.1 gamma infra\n');
+  w('features-kb/features/gamma/test-cases/g-mapping.json', JSON.stringify({ mappings: [{ requirement: 'AC1.1 gamma infra', tests: ['META — test.js self-checks'], coverage: 'full' }] }));
+  w('playwright/tests/alpha.spec.ts', "test('TC-02: create a thing', async () => {});\ntest(\"TC-01: sign in\", async () => {});\n");
+  w('playwright/pom/inventory/projects.json', JSON.stringify([{ element: 'delete', sourceTCs: ['TC-03'] }]));
+  w('results.json', JSON.stringify({ suites: [{ specs: [
+    { title: 'TC-02: create a thing', ok: false, tests: [{ results: [{ status: 'failed' }] }] },
+    { title: 'TC-01: sign in', tests: [{ results: [{ status: 'passed' }] }] },
+  ] }] }));
+  w('files.txt', 'src/alpha/x.js\nsrc/alpha/notes.md\nREADME.md\n');
+  w('none.txt', 'docs/x.md\n');
+
+  const run = (args, extraEnv) => execFileSync(process.execPath, [src, ...args], { cwd: tmp, env: { ...process.env, ...(extraEnv || {}) }, encoding: 'utf8', stdio: ['ignore', 'pipe', 'pipe'] });
+  const exitCode = (args) => { try { run(args); return 0; } catch (e) { return e.status; } };
+
+  try {
+    // touched: sources.json globs decide; exclude wins; unmapped files and source-less features reported
+    const touched = JSON.parse(run(['touched', '--files', 'files.txt']));
+    check(touched.schema === 'pr-touched/1', 'touched: schema pr-touched/1');
+    check(touched.features.map(f => f.key).join() === 'alpha', 'touched: src/alpha/x.js maps to alpha only', JSON.stringify(touched.features));
+    check(touched.features[0].matchedFiles.join() === 'src/alpha/x.js', 'touched: exclude glob drops src/alpha/notes.md', JSON.stringify(touched.features[0]));
+    check(touched.features[0].title === 'Alpha feature', 'touched: title read from index.json');
+    check(touched.unmapped.files.join() === 'README.md,src/alpha/notes.md', 'touched: unmapped files listed', touched.unmapped.files.join());
+    check(touched.unmapped.featuresWithoutSources.join() === 'beta,gamma', 'touched: features without sources.json listed');
+    check(touched.fallback === false, 'touched: no fallback when a feature matched');
+    const none = JSON.parse(run(['touched', '--files', 'none.txt']));
+    check(none.features.length === 0 && none.fallback === false, 'touched: nothing matched, --fallback none → empty');
+    const all = JSON.parse(run(['touched', '--files', 'none.txt', '--fallback', 'all']));
+    check(all.fallback === true && all.features.map(f => f.key).join() === 'alpha,beta,gamma', 'touched: --fallback all lists every feature and flags it');
+    check(exitCode(['touched']) === 2, 'touched: usage error exits 2');
+    check(exitCode(['touched', '--files', 'files.txt', '--kb', 'nope']) === 3, 'touched: unreadable KB exits 3');
+
+    // heatmap: one cell per column, proven from files — the mapping alone never earns "covered"
+    fs.writeFileSync(path.join(tmp, 'touched.json'), JSON.stringify(touched));
+    const out = JSON.parse(run(['heatmap', '--touched', 'touched.json', '--results', 'results.json', '--phases', 'kb,explore', '--now', '2026-09-04T00:00:00Z', '--pr', '7', '--out', 'out/h.json', '--md', 'out/h.md']));
+    check(out.summary && typeof out.summary.covered === 'number', 'heatmap: prints a summary when writing files');
+    const h = JSON.parse(fs.readFileSync(path.join(tmp, 'out', 'h.json'), 'utf8'));
+    check(h.schema === 'pr-coverage/1' && h.pr === 7 && h.generatedAt === '2026-09-04T00:00:00Z', 'heatmap: schema, pr, --now honoured');
+    const rows = Object.fromEntries(h.features[0].rows.map(r => [r.ac, r]));
+    check(Object.keys(rows).join() === 'AC1,AC2,AC3,AC4', 'heatmap: rows = feature.md ACs ∪ mapping ACs ∪ unmapped, sorted', Object.keys(rows).join());
+    const st = (ac, col) => rows[ac] && rows[ac].cells[col] && rows[ac].cells[col].state;
+    check(st('AC1', 'e2e') === 'covered' && rows.AC1.cells.e2e.result === 'passed' && rows.AC1.cells.e2e.evidence[0] === 'playwright/tests/alpha.spec.ts', 'heatmap: E2E covered needs a spec whose title carries the TC id; result from --results');
+    check(st('AC2', 'e2e') === 'covered' && rows.AC2.cells.e2e.result === 'failed' && rows.AC2.atRisk === true, 'heatmap: a failed spec marks the AC at risk');
+    check(st('AC3', 'e2e') === 'partial' && rows.AC3.cells.e2e.evidence[0] === 'playwright/pom/inventory/projects.json', 'heatmap: TC in POM inventory without a spec is partial');
+    check(st('AC4', 'e2e') === 'gap' && st('AC4', 'manual') === 'gap', 'heatmap: an AC with no test case is a gap');
+    check(st('AC1', 'unit') === 'partial' && st('AC2', 'unit') === 'gap', 'heatmap: declared unit test without a file is partial; none declared is gap');
+    check(st('AC1', 'manual') === 'partial', 'heatmap: a designed, never-executed TC is partial in Manual');
+    check(st('AC1', 'exploratory') === 'covered' && rows.AC1.cells.exploratory.result === 'clean', 'heatmap: exploratory row with clean result is covered');
+    check(st('AC3', 'exploratory') === 'covered' && rows.AC3.cells.exploratory.result === 'finding' && rows.AC3.atRisk === true && /#Finding 1$/.test(rows.AC3.cells.exploratory.evidence[0]), 'heatmap: exploratory finding is covered + at risk, evidence points at the finding');
+    check(st('AC4', 'exploratory') === 'partial', 'heatmap: AC listed as unexplored is partial');
+    check(st('AC2', 'exploratory') === 'gap', 'heatmap: explore phase ran and the AC was never listed → gap');
+    check(h.summary.atRisk === 2, 'heatmap: summary counts ACs at risk', JSON.stringify(h.summary));
+    check(h.unmapped.files.includes('README.md'), 'heatmap: carries unmapped files through from touched.json');
+    const md = fs.readFileSync(path.join(tmp, 'out', 'h.md'), 'utf8');
+    check(md.startsWith('<!-- qabuddy:heatmap -->\n'), 'heatmap: markdown starts with the sticky-comment marker');
+    check(/\| AC \| Unit \| API \| E2E \| Manual \| Exploratory \|/.test(md), 'heatmap: markdown table has the five layer columns');
+    check(/⚠️ \*\*AC2\*\*/.test(md) && /TC-02 · FAIL/.test(md), 'heatmap: at-risk rows and failing specs are visible in the table');
+    check(/<details><summary>Evidence<\/summary>/.test(md) && /`playwright\/tests\/alpha\.spec\.ts`/.test(md), 'heatmap: evidence paths listed under <details>');
+    check(/README\.md/.test(md) && /`beta`, `gamma`/.test(md), 'heatmap: unmapped files and source-less features reported in the comment');
+
+    // Legacy mapping shapes + META rows, via --fallback all; not-run when explore did not run
+    fs.writeFileSync(path.join(tmp, 'all.json'), JSON.stringify(all));
+    run(['heatmap', '--touched', 'all.json', '--phases', 'kb', '--now', '2026-09-04T00:00:00Z', '--out', 'out/all.json', '--md', 'out/all.md']);
+    const ha = JSON.parse(fs.readFileSync(path.join(tmp, 'out', 'all.json'), 'utf8'));
+    const beta = ha.features.find(f => f.key === 'beta').rows[0];
+    const gamma = ha.features.find(f => f.key === 'gamma').rows[0];
+    check(beta.ac === 'AC1' && beta.cells.e2e.state === 'partial' && beta.cells.e2e.tcs.join() === 'TC-B1' && beta.cells.unit.state === 'partial', 'heatmap: legacy e2e_tests/unit_tests shape parsed');
+    check(gamma.ac === 'AC1.1' && gamma.cells.unit.state === 'covered' && gamma.cells.unit.evidence[0] === 'META', 'heatmap: legacy tests[] shape parsed; META rows count as unit evidence, never as TC ids');
+    check(gamma.cells.exploratory.state === 'not-run' && beta.cells.exploratory.state === 'not-run', 'heatmap: exploratory is not-run when the phase did not run and no session exists');
+    check(/showing every feature/.test(fs.readFileSync(path.join(tmp, 'out', 'all.md'), 'utf8')), 'heatmap: fallback is called out in the comment');
+    run(['heatmap', '--touched', 'all.json', '--phases', 'kb', '--now', '2026-09-04T00:00:00Z', '--out', 'out/all2.json', '--md', 'out/all2.md']);
+    check(fs.readFileSync(path.join(tmp, 'out', 'all.md'), 'utf8') === fs.readFileSync(path.join(tmp, 'out', 'all2.md'), 'utf8')
+       && fs.readFileSync(path.join(tmp, 'out', 'all.json'), 'utf8') === fs.readFileSync(path.join(tmp, 'out', 'all2.json'), 'utf8'), 'heatmap: byte-identical across runs with --now');
+
+    // comment: a stub gh on PATH records argv; PATCH when the marker exists, POST otherwise; --dry-run never calls gh
+    const bin = path.join(tmp, 'stub-bin'); fs.mkdirSync(bin);
+    const ghLog = path.join(tmp, 'gh.log');
+    const stub = `#!/bin/sh\nprintf '%s\\n' "$*" >> "${ghLog}"\ncase "$*" in\n  *--paginate*) cat "${path.join(tmp, 'comments.jsonl')}";;\n  *) echo '{"id":99,"html_url":"https://x/c/99"}';;\nesac\n`;
+    fs.writeFileSync(path.join(bin, 'gh'), stub, { mode: 0o755 });
+    const ghEnv = { PATH: `${bin}${path.delimiter}${process.env.PATH}` };
+    const dry = JSON.parse(run(['comment', '--repo', 'o/r', '--pr', '7', '--body-file', 'out/h.md', '--dry-run'], ghEnv));
+    check(dry.dryRun === true && dry.url === 'repos/o/r/issues/7/comments' && !fs.existsSync(ghLog), 'comment: --dry-run reports the target and never invokes gh');
+    fs.writeFileSync(path.join(tmp, 'comments.jsonl'), '{"id":1,"body":"hello"}\n');
+    const created = JSON.parse(run(['comment', '--repo', 'o/r', '--pr', '7', '--body-file', 'out/h.md'], ghEnv));
+    check(created.action === 'created' && created.id === 99 && /-X POST repos\/o\/r\/issues\/7\/comments -F body=@out\/h\.md/.test(fs.readFileSync(ghLog, 'utf8')), 'comment: no marker on the PR → POST a new comment', fs.readFileSync(ghLog, 'utf8'));
+    fs.writeFileSync(path.join(tmp, 'comments.jsonl'), '{"id":1,"body":"hello"}\n{"id":42,"body":"<!-- qabuddy:heatmap -->\\nold"}\n');
+    const patched = JSON.parse(run(['comment', '--repo', 'o/r', '--pr', '7', '--body-file', 'out/h.md'], ghEnv));
+    check(patched.action === 'patched' && /-X PATCH repos\/o\/r\/issues\/comments\/42 -F body=@out\/h\.md/.test(fs.readFileSync(ghLog, 'utf8')), 'comment: marker found → PATCH that comment in place', fs.readFileSync(ghLog, 'utf8'));
+    fs.writeFileSync(path.join(tmp, 'plain.md'), 'no marker here\n');
+    check(exitCode(['comment', '--repo', 'o/r', '--pr', '7', '--body-file', 'plain.md']) === 3, 'comment: refuses a body without the marker (exit 3)');
+    const brokenBin = path.join(tmp, 'broken-bin'); fs.mkdirSync(brokenBin);
+    fs.writeFileSync(path.join(brokenBin, 'gh'), '#!/bin/sh\necho "boom" >&2\nexit 1\n', { mode: 0o755 });
+    const brokenEnv = { PATH: `${brokenBin}${path.delimiter}${process.env.PATH}` };
+    const failCode = (() => { try { run(['comment', '--repo', 'o/r', '--pr', '7', '--body-file', 'out/h.md'], brokenEnv); return 0; } catch (e) { return e.status; } })();
+    check(failCode === 4, 'comment: gh failure exits 4', `exit ${failCode}`);
+  } finally {
+    fs.rmSync(tmp, { recursive: true, force: true });
+  }
+}
+
+
 // ─── Akela equivalence harness (RFC 0003, PR A) ──────────────────────────
 //
 // Proves the in-tree engine (shipped qab.js) and the pinned npm engine (akela)
@@ -2243,6 +2383,7 @@ testCrlfTolerance();
 testInstallerSkillSync();
 testDistBom();
 testKbPathHygiene();
+testPrCoverage();
 
 testBadgeCount();
 
