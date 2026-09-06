@@ -23,7 +23,7 @@ AI 코딩 어시스턴트의 네이티브 **스킬 시스템** 위에 구축되�
 QABuddy는 AI가 자동으로 인식하고 실행하는 `SKILL.md` 파일 모음입니다 —<br>
 별도의 앱과 데몬이 없고, 고정 의존성은 하나 — [Akela](https://github.com/TimothyHan/akela) 엔진(그 자체는 의존성 0)이며 빌드 시점에 dist로 벤더링됩니다.
 
-[빠른 시작](#빠른-시작) · [스킬](#스킬) · [안내 워크플로우](#안내-워크플로우) · [셀프러닝 가이드](docs/self-learning-guide.md) · [변경 이력](CHANGELOG-ko.md) · [기여하기](CONTRIBUTING.md)
+[빠른 시작](#빠른-시작) · [스킬](#스킬) · [안내 워크플로우](#안내-워크플로우) · [셀프러닝 가이드](docs/self-learning-guide.md) · [스킬 평가](docs/skill-evals.md) · [변경 이력](CHANGELOG-ko.md) · [기여하기](CONTRIBUTING.md)
 
 스킬 자체도 채점됩니다 — 지식만이 아니라: 대상 모델에서의 헤드리스 실행, 스킬 자신의 제약 조건에 대해 산출물을 채점하는 별도의 Opus 판정자, must 기준마다의 바닥값, 사람이 채점한 산출물에서 도출한 임계값 ([RFC 0005](docs/rfc/0005-rubric-scored-evals.md)).
 
@@ -140,7 +140,7 @@ node build.js all --locale ko
 | 스킬 | 명령어 | 기능 |
 |-------|---------|------|
 | **Improve** | `/qa-improve` | 스킬 실패 수정; 학습 레이어 정제 (중복 제거, 은퇴, 정본 승격) |
-| **Eval** | `/qa-eval` | 스킬의 eval 픽스처를 실행하여 정확성 검증 |
+| **Eval** | `/qa-eval` | 스킬의 eval 픽스처 실행; `--rubric`은 캘리브레이션된 루브릭 벤치를 실행 (RFC 0005) |
 
 
 > 명령어는 기본 `qa-` 접두사 기준입니다. `--no-prefix`로 설치하면 접두사 없이 사용합니다.
@@ -309,7 +309,7 @@ flowchart LR
 
 **정제와 승격.** `/qa-improve` distill 모드가 로그의 숫자로 학습 레이어를 정리합니다 (`applied ≥ 3`, 서로 다른 실행 `≥ 3`, 모순 없음 → 승격 후보; `contradicted ≥ 2` 이후 적용 없음 → 반증): 중복 병합, 반증된 항목 은퇴, 증명된 규칙의 정본 레퍼런스 승격 — `contributeUpstream`이 활성화되어 있으면 QABuddy 저장소에 PR로 제출되어 모든 사용자에게 도움이 됩니다.
 
-**품질 게이트.** `/qa-eval`이 모든 스킬에 대해 픽스처 스위트를 실행합니다 — 번들된 픽스처 앱에 대해 실제 `npx playwright test` 종료 코드로 채점하는 execute 모드 픽스처 포함.
+**품질 게이트.** `/qa-eval`이 모든 스킬에 대해 픽스처 스위트를 실행합니다 — 번들된 픽스처 앱에 대해 실제 `npx playwright test` 종료 코드로 채점하는 execute 모드 픽스처 포함. 캘리브레이션된 루브릭을 가진 스킬(`test-cases`, `exploratory`)은 `bin/eval.js`로 품질까지 채점됩니다: 대상 모델에서의 헤드리스 실행, 스킬 자신의 제약 조건에 대해 채점하는 별도의 Opus 판정자, 바닥값, 사람이 채점한 산출물로 캘리브레이션된 임계값 — 그리고 `/qa-improve`는 이 스킬들의 모든 변경을 전달 전에 A/B합니다 ([가이드](docs/skill-evals.md)).
 
 ---
 

@@ -23,7 +23,7 @@ Built on the native **skills system** of your AI coding assistant.<br>
 QABuddy is a collection of `SKILL.md` files that your AI discovers and invokes automatically —<br>
 no separate app, no daemon; one pinned dependency — the [Akela](https://github.com/TimothyHan/akela) engine (itself zero-dependency), vendored into dist at build time.
 
-[Quick Start](#quick-start) · [Skills](#skills) · [Guided Workflow](#the-guided-workflow) · [Self-Learning Guide](docs/self-learning-guide-en.md) · [Changelog](CHANGELOG.md) · [Contributing](CONTRIBUTING-en.md)
+[Quick Start](#quick-start) · [Skills](#skills) · [Guided Workflow](#the-guided-workflow) · [Self-Learning Guide](docs/self-learning-guide-en.md) · [Skill Evals](docs/skill-evals-en.md) · [Changelog](CHANGELOG.md) · [Contributing](CONTRIBUTING-en.md)
 
 </div>
 
@@ -142,7 +142,7 @@ node build.js all
 | Skill | Command | What it does |
 |-------|---------|-------------|
 | **Improve** | `/qa-improve` | Fix skill failures; distill the learnings layer (dedupe, retire, promote to canon) |
-| **Eval** | `/qa-eval` | Run eval fixtures against a skill to verify correctness |
+| **Eval** | `/qa-eval` | Run eval fixtures against a skill; `--rubric` runs the calibrated rubric bench (RFC 0005) |
 
 
 > Commands use the default `qa-` prefix. Install with `--no-prefix` to use bare names.
@@ -311,7 +311,7 @@ flowchart LR
 
 **Distillation & promotion.** `/qa-improve` distill mode sweeps the learnings layer with the log's numbers (`applied ≥ 3` across `≥ 3` runs and never contradicted → promotion candidate; `contradicted ≥ 2` with no application since → falsified): merges duplicates, retires falsified entries, and promotes proven rules into the canonical references — and, with `contributeUpstream` enabled, PRs them to the QABuddy repo so everyone benefits.
 
-**Quality gate.** `/qa-eval` runs fixture suites against any skill — including execute-mode fixtures that grade real `npx playwright test` exit codes against a bundled fixture app.
+**Quality gate.** `/qa-eval` runs fixture suites against any skill — including execute-mode fixtures that grade real `npx playwright test` exit codes against a bundled fixture app. Skills with a calibrated rubric (`test-cases`, `exploratory`) are also graded on quality by `bin/eval.js`: a headless run on the target model, a separate Opus judge scoring against the skill's own constraints, floors, and a threshold calibrated on artifacts a human scored — and `/qa-improve` A/Bs every change to them before delivery ([guide](docs/skill-evals-en.md)).
 
 ---
 

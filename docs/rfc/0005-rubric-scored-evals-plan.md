@@ -4,6 +4,8 @@ Working document for [RFC 0005](0005-rubric-scored-evals.md). One section per PR
 behaviour, checks, acceptance, cost. Each PR is green on `node test.js` and independently
 revertable. Timothy merges every PR.
 
+**Status 2026-09-06:** PR1–PR5 delivered on `feat/rfc-0005-rubric-evals` (#71–#75); PR6 deferred (no other skill has enough logged runs). User guide: [docs/skill-evals-en.md](../skill-evals-en.md).
+
 Conventions that apply throughout: en + ko twins for every `SKILL.md` and reference edit; badge
 re-sync when the check count moves; no credentials in committed files; `dist/` is generated.
 

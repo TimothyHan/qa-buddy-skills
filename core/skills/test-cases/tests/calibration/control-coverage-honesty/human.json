@@ -1,5 +1,5 @@
 {
-  "scored_by": "proposed:claude (revision of Timothy Han)",
+  "scored_by": "Timothy Han",
   "date": "2026-09-05",
   "acceptable": false,
   "scores": {
@@ -8,15 +8,5 @@
     "dedup-by-assertion": 3,
     "prioritization": 0,
     "observed-or-unverified": 3
-  },
-  "revisions": [
-    {
-      "criterion": "observed-or-unverified",
-      "from": 2,
-      "to": 3,
-      "why": "\"toast shown\" names no text — nothing to verify",
-      "date": "2026-09-06"
-    }
-  ],
-  "how_to_approve": "Replace scored_by with your name to accept these revisions (or undo any you disagree with)."
+  }
 }
