@@ -1,0 +1,7 @@
+{
+  "id": "control-no-duplicate-scenarios",
+  "source": "control",
+  "case": "v1-clean",
+  "origin": "tests/controls/no-duplicate-scenarios.md",
+  "added": "2026-09-05"
+}

@@ -7,3 +7,5 @@ A consequence the same defect produces, and which is a valid second finding rath
 
 Everything else works as in v1. The non-bug behaviours from v1-clean (350 ms re-render, toast auto-dismiss, shared Delete name, unlabeled search, bare empty state, inert status filter) still apply.
 Existing KB test cases: TC-01 sign in, TC-02 create, TC-03 duplicate rejected, TC-04 delete.
+
+Behaviours the spec does not decide and which are therefore a **question** or **missing requirement**, never a bug: the duplicate-name check is case-sensitive ("Website Redesign" and "website redesign" can coexist); names are not trimmed of surrounding whitespace; there is no maximum name length. A finding that files any of these as a defect scores 1 on `finding-correctness` (real observation, wrong category); filing it as a question or missing requirement is correct.

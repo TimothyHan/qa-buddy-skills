@@ -1,0 +1,7 @@
+{
+  "id": "control-finding-correctness",
+  "source": "control",
+  "case": "v1-clean",
+  "origin": "tests/controls/finding-correctness.md",
+  "added": "2026-09-05"
+}
