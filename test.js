@@ -635,6 +635,152 @@ function testEvalFixtures() {
   }
 }
 
+// ─── Rubrics (RFC 0005 PR1): schema, citations, controls, cases ─────────────
+// A rubric is the contract a skill is graded against (docs/rfc/0005-rubric-scored-evals.md).
+// Everything here is free and deterministic: shape, citation resolution against SKILL.md,
+// one control per floored criterion, and — for check/process criteria — proof that the
+// control actually fails its check (the eval's own mutation smoke). Judge criteria are
+// graded by `eval.js` (PR2); here only their structure is checked.
+function testRubrics() {
+  console.log('\n📏 Rubrics (RFC 0005)');
+  const KINDS = ['judge', 'check', 'process'];
+  const OPS = ['contains', 'not_contains', 'matches', 'count_gte'];
+  const FIELD_BY_KIND = { check: /^(files|file):/, process: /^(run|exec|log):/ };
+  const stripHeader = (t) => t.replace(/^<!--\s*rubric-control:[^\n]*-->\n?/, '');
+  const evalOp = (text, op, value) => {
+    if (op === 'contains') return text.includes(value);
+    if (op === 'not_contains') return !text.includes(value);
+    if (op === 'matches') return new RegExp(value, 'm').test(text);
+    if (op === 'count_gte') return (text.match(new RegExp(value.pattern, 'gm')) || []).length >= value.min;
+    return false;
+  };
+  const controlFile = (dir, field) => {
+    if (/^run:/.test(field)) return path.join(dir, field.slice(4));
+    if (/^exec:/.test(field)) return path.join(dir, 'exec.jsonl');
+    if (/^log:/.test(field)) return path.join(dir, 'learnings-log.jsonl');
+    return null;
+  };
+  // Items under a heading until the next `## ` or `---`; numbered lists keep their number,
+  // `- [ ]` lists are counted in order.
+  const sectionItems = (md, headingRe) => {
+    const lines = md.split('\n');
+    const start = lines.findIndex(l => headingRe.test(l));
+    if (start < 0) return null;
+    const items = {}; let n = 0;
+    for (let i = start + 1; i < lines.length; i++) {
+      const l = lines[i];
+      if (/^## /.test(l) || /^---\s*$/.test(l)) break;
+      const num = l.match(/^(\d+)\.\s+(.*)/);
+      const box = l.match(/^-\s*\[ \]\s+(.*)/);
+      if (num) items[Number(num[1])] = num[2];
+      else if (box) items[++n] = box[1];
+    }
+    return items;
+  };
+  let rubrics = 0;
+  for (const skill of getSkillDirs()) {
+    const tests = path.join(CORE_DIR, 'skills', skill, 'tests');
+    const rp = path.join(tests, 'rubric.json');
+    if (!fs.existsSync(rp)) continue;
+    rubrics++;
+    let r;
+    try { r = JSON.parse(fs.readFileSync(rp, 'utf8')); } catch (e) { fail(`${skill}: rubric.json parses`, e.message); continue; }
+    const skillMd = readFile(path.join(CORE_DIR, 'skills', skill, 'SKILL.md')) || '';
+    const { fields } = parseFrontmatter(skillMd);
+    check(r.skill === skill, `${skill}: rubric skill field matches directory`);
+    check(r.skill_version === fields.version, `${skill}: rubric skill_version ${r.skill_version} equals SKILL.md ${fields.version}`, 'bump the rubric when the skill changes');
+    check(Number.isInteger(r.rubric_version) && r.rubric_version >= 1, `${skill}: rubric_version is an integer ≥ 1`);
+    check(r.judge && /^claude-opus-/.test(String(r.judge.model)), `${skill}: judge.model is an Opus id, never the runner's model (RFC 0005 decision 15)`, String(r.judge && r.judge.model));
+    check(r.judge && typeof r.judge.prompt === 'string' && r.judge.temperature === 0, `${skill}: judge has a prompt path and temperature 0`);
+    check(r.threshold === null || (r.calibration && typeof r.threshold === 'number'), `${skill}: threshold is null unless calibration is present`);
+    const constraints = sectionItems(skillMd, /^## Constraints/) || {};
+    const selfChecks = sectionItems(skillMd, /^## .*Self-[Ee]valuation/) || {};
+    check(Object.keys(constraints).length > 0 && Object.keys(selfChecks).length > 0, `${skill}: SKILL.md has numbered constraints (${Object.keys(constraints).length}) and self-checks (${Object.keys(selfChecks).length})`);
+    const ids = new Set();
+    const floored = [];
+    for (const c of (r.criteria || [])) {
+      const tag = `${skill}/${c.id || '?'}`;
+      check(/^[a-z0-9]+(-[a-z0-9]+)*$/.test(String(c.id)) && !ids.has(c.id), `${tag}: id is kebab-case and unique`);
+      ids.add(c.id);
+      check(KINDS.includes(c.kind), `${tag}: kind is judge|check|process`, String(c.kind));
+      check(Number.isInteger(c.weight) && c.weight >= 1 && c.weight <= 3, `${tag}: weight 1–3`);
+      check(Number.isInteger(c.floor) && c.floor >= 0 && c.floor <= 3, `${tag}: floor 0–3`);
+      check(typeof c.statement === 'string' && c.statement.length > 20, `${tag}: has a statement`);
+      const cites = c.cites || {};
+      const citesOk = (cites.constraint !== undefined || cites.self_check !== undefined)
+        && (cites.constraint === undefined || constraints[cites.constraint] !== undefined)
+        && (cites.self_check === undefined || selfChecks[cites.self_check] !== undefined);
+      check(citesOk, `${tag}: cites resolve (constraint ${cites.constraint ?? '-'}, self_check ${cites.self_check ?? '-'})`, 'every criterion must cite a numbered constraint or self-check that exists in SKILL.md');
+      if (c.kind === 'judge') {
+        check(c.anchors && ['0', '1', '2', '3'].every(k => typeof c.anchors[k] === 'string' && c.anchors[k].length > 10), `${tag}: judge criterion has four anchors`);
+        check(c.check === undefined, `${tag}: judge criterion has no check block`);
+      } else {
+        const ck = c.check || {};
+        check(typeof ck.field === 'string' && FIELD_BY_KIND[c.kind].test(ck.field), `${tag}: ${c.kind} field prefix valid`, String(ck.field));
+        check(OPS.includes(ck.op), `${tag}: op "${ck.op}" is valid`);
+        check(ck.op === 'count_gte' ? (ck.value && ck.value.pattern && Number.isInteger(ck.value.min)) : typeof ck.value === 'string', `${tag}: check value shape matches op`);
+        check(c.anchors === undefined, `${tag}: ${c.kind} criterion has no anchors`);
+      }
+      if (c.floor > 0) floored.push(c);
+    }
+    // cases
+    const casesDir = path.join(tests, 'cases');
+    const caseIds = fs.existsSync(casesDir) ? fs.readdirSync(casesDir).filter(d => fs.statSync(path.join(casesDir, d)).isDirectory()) : [];
+    check(caseIds.length >= 3, `${skill}: has ${caseIds.length} cases (≥ 3)`);
+    for (const id of caseIds) {
+      const cd = path.join(casesDir, id);
+      let cj = null;
+      try { cj = JSON.parse(fs.readFileSync(path.join(cd, 'case.json'), 'utf8')); } catch (e) { fail(`${skill}/cases/${id}: case.json parses`, e.message); continue; }
+      check(cj.id === id, `${skill}/cases/${id}: id matches directory`);
+      check([null, 'v1', 'v2', 'v3'].includes(cj.app) && Number.isInteger(cj.port) && typeof cj.runner_args === 'string' && cj.runner_args.length > 0, `${skill}/cases/${id}: app/port/runner_args valid`);
+      const inputs = listMarkdown(path.join(cd, 'input')).concat(walkAll(path.join(cd, 'input')));
+      check(inputs.length > 0, `${skill}/cases/${id}: input/ is non-empty`);
+      const notes = readFile(path.join(cd, 'judge-notes.md'));
+      if (notes) {
+        const secrets = notes.split('\n').map(l => l.trim()).filter(l => l.length >= 24 && !/^(#|<!--)/.test(l));
+        const inputText = inputs.map(f => readFile(f) || '').join('\n');
+        const leaked = secrets.filter(l => inputText.includes(l));
+        check(leaked.length === 0, `${skill}/cases/${id}: judge-notes never appear in input/ (ANSWER-KEY rule)`, leaked[0]);
+      }
+    }
+    // controls
+    const controlsDir = path.join(tests, 'controls');
+    const controlNames = fs.existsSync(controlsDir) ? fs.readdirSync(controlsDir) : [];
+    for (const c of floored) {
+      const md = path.join(controlsDir, `${c.id}.md`);
+      const dir = path.join(controlsDir, c.id);
+      const isDir = fs.existsSync(dir) && fs.statSync(dir).isDirectory();
+      check(fs.existsSync(md) || isDir, `${skill}/${c.id}: floored criterion has a control`, `add tests/controls/${c.id}.md or tests/controls/${c.id}/`);
+      if (fs.existsSync(md)) {
+        const text = fs.readFileSync(md, 'utf8');
+        const h = text.match(/^<!--\s*rubric-control:\s*criterion=(\S+)\s+case=(\S+)\s+expect=below-floor\s*-->/);
+        check(h && h[1] === c.id && caseIds.includes(h[2]), `${skill}/${c.id}: control header names the criterion and an existing case`, h ? `${h[1]} / ${h[2]}` : 'missing header');
+        if (c.kind === 'check') check(!evalOp(stripHeader(text), c.check.op, c.check.value), `${skill}/${c.id}: control fails its check (detection power)`, 'the control passed — it does not break the graded thing');
+      }
+      if (c.kind === 'process') {
+        const f = isDir ? controlFile(dir, c.check.field) : null;
+        check(f && fs.existsSync(f), `${skill}/${c.id}: process control holds ${c.check.field}`);
+        if (f && fs.existsSync(f)) check(!evalOp(stripHeader(fs.readFileSync(f, 'utf8')), c.check.op, c.check.value), `${skill}/${c.id}: process control fails its check (detection power)`);
+      }
+    }
+    for (const name of controlNames) {
+      const id = name.replace(/\.md$/, '');
+      check(ids.has(id), `${skill}: control "${name}" belongs to a criterion`, 'stale control');
+    }
+  }
+  console.log(`  Total: ${rubrics} rubrics`);
+}
+
+function walkAll(dir, acc = []) {
+  if (!fs.existsSync(dir)) return acc;
+  for (const e of fs.readdirSync(dir)) {
+    const p = path.join(dir, e);
+    if (fs.statSync(p).isDirectory()) walkAll(p, acc);
+    else if (!/\.md$/.test(e)) acc.push(p);
+  }
+  return acc;
+}
+
 // The README badge states the size of this suite. It is the one documented number that
 // cannot be derived up front — the total is only known once every check has run — so it
 // used to be the number most likely to rot silently (CONTRIBUTING sat at 1137 while the
@@ -2249,6 +2395,7 @@ testFingerprints();
 testAkelaEquivalence();
 testExcludeConditions();
 testEvalFixtures();
+testRubrics();
 testCrlfTolerance();
 testInstallerSkillSync();
 testDistBom();

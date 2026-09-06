@@ -302,6 +302,21 @@ Rules: `##` headings outside code fences must carry a comment (`###` belong to t
 
 ---
 
+## Rubrics (RFC 0005)
+
+A skill may carry `tests/rubric.json` — the quality contract it is graded against by the rubric
+eval ([RFC 0005](docs/rfc/0005-rubric-scored-evals.md)). Schema and rules:
+[`core/skills/eval/tests/RUBRIC-SCHEMA.md`](core/skills/eval/tests/RUBRIC-SCHEMA.md).
+
+- Criteria cite the skill's numbered constraints or self-checks (`cites`); `test.js` resolves them,
+  so a change to a constraint must touch the rubric that cites it (`skill_version` must match).
+- Every criterion with a floor ships a control under `tests/controls/` that breaks exactly that
+  criterion; `check`/`process` controls are executed by `test.js` and must fail their check.
+- Cases live under `tests/cases/<id>/`; `judge-notes.md` is judge-only and must never appear in `input/`.
+- The judge model is Opus, never the runner's model (decision 15). A human writes rubrics; the tool validates.
+
+---
+
 ## Reporting Skill Issues
 
 ### Automated (recommended)
@@ -389,6 +404,7 @@ All skills use `features-kb/features/{EPIC-KEY}/` as the base path. Never `featu
 ### Testing
 - [ ] `node test.js` passes
 - [ ] `/qa-eval {skill}` passes all fixtures
+- [ ] `tests/rubric.json` (if present) validates: `cites` resolve, every floored criterion has a control, `skill_version` matches
 - [ ] Tested with Sonnet on a real task
 - [ ] AI follows all phases without skipping
 

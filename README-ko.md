@@ -10,7 +10,7 @@
 [![Skills: 13](https://img.shields.io/badge/Skills-13-green.svg)](#스킬)
 [![Platform: Claude Code](https://img.shields.io/badge/Platform-Claude_Code-purple.svg)](#작동-방식)
 [![Locales: en, ko](https://img.shields.io/badge/Locales-en_|_ko-orange.svg)](#로케일)
-[![Structural checks: 1284](https://img.shields.io/badge/Structural_checks-1284-brightgreen.svg)](#작동-방식)
+[![Structural checks: 1526](https://img.shields.io/badge/Structural_checks-1526-brightgreen.svg)](#작동-방식)
 
 소프트웨어를 테스트하는 사람이라면 누구나를 위한 AI 파트너 —<br>
 에픽 테스트 계획 수립부터 스프린트 실행, 릴리스 검증까지.<br>
@@ -339,7 +339,7 @@ flowchart LR
 ```bash
 node build.js all                  # 모든 플랫폼용 빌드
 node build.js all --locale ko      # 한국어 버전 빌드
-node test.js                       # 1284개 구조 검사 실행
+node test.js                       # 1526개 구조 검사 실행
 ```
 
 > **구조 검사와 동작 검증은 다릅니다.** `node test.js`는 빌드 산출물의 형태를
@@ -354,7 +354,7 @@ node test.js                       # 1284개 구조 검사 실행
 ```
 QABuddy/
 ├── build.js                     # 빌드 스크립트 (node; 고정 버전 엔진을 벤더링)
-├── test.js                      # 구조 검사 스위트 (1284개 검사)
+├── test.js                      # 구조 검사 스위트 (1526개 검사)
 ├── package.json                 # 고정 의존성 1개: akela (엔진)
 ├── bin/akela.js                 # 엔진 런처 (환경변수 매핑 · 첫 실행 akela.json · 위임)
 ├── bin/qab.js                   # 지원 중단 심 (한 릴리스)

@@ -302,6 +302,20 @@ Cursor와 Copilot은 `tool-groups`를 무시합니다 — 해당 에이전트가
 
 ---
 
+## 루브릭 (RFC 0005)
+
+스킬은 `tests/rubric.json`을 가질 수 있습니다 — 루브릭 평가([RFC 0005](docs/rfc/0005-rubric-scored-evals.md))가
+채점하는 품질 계약입니다. 스키마와 규칙: [`core/skills/eval/tests/RUBRIC-SCHEMA.md`](core/skills/eval/tests/RUBRIC-SCHEMA.md).
+
+- 기준은 스킬의 번호 매긴 제약 조건 또는 자체 평가 항목을 인용합니다(`cites`); `test.js`가 이를 해석하므로
+  제약 조건을 바꾸면 그것을 인용하는 루브릭도 함께 바꿔야 합니다(`skill_version` 일치 필수).
+- 바닥값이 있는 모든 기준은 `tests/controls/`에 그 기준만 정확히 깨뜨린 컨트롤을 둡니다; `check`/`process`
+  컨트롤은 `test.js`가 실행하며 자기 검사에 반드시 실패해야 합니다.
+- 케이스는 `tests/cases/<id>/`에; `judge-notes.md`는 판정자 전용이며 `input/`에 절대 나타나면 안 됩니다.
+- 판정자 모델은 Opus이며 러너의 모델은 절대 아닙니다(결정 15). 루브릭은 사람이 쓰고, 도구는 검증합니다.
+
+---
+
 ## 스킬 이슈 보고
 
 ### 자동 (권장)
@@ -389,6 +403,7 @@ Current / After / Within 300-line budget?
 ### 테스트
 - [ ] `node test.js` 통과
 - [ ] `/qa-eval {skill}` 모든 픽스처 통과
+- [ ] `tests/rubric.json`(있다면) 검증 통과: `cites` 해석, 바닥값 기준마다 컨트롤 존재, `skill_version` 일치
 - [ ] 실제 작업에 Sonnet으로 테스트 완료
 - [ ] AI가 모든 단계를 건너뛰지 않고 수행
 

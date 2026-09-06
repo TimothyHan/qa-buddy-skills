@@ -1,0 +1,7 @@
+{
+  "id": "projects-happy",
+  "description": "Six ACs, app reachable, one smoke test in the repo — the ordinary path; exercises constraint 7 (probe the running app)",
+  "app": "v1", "port": 4173,
+  "runner_args": "projects --headless",
+  "tags": ["happy-path", "probe"]
+}
