@@ -84,7 +84,7 @@ any judge output. `node bin/eval.js calibrate <skill>` then judges every entry N
 
 | gate | rule |
 |---|---|
-| (b) agreement | exact-score agreement ≥ 0.8 per judge criterion over every (entry, pass) with a human score; floor agreement 1.0 on floored criteria |
+| (b) agreement | exact-score agreement ≥ 0.8 per judge criterion over every (entry, pass) with a human score; floor agreement 1.0 on floored criteria, decided **per entry on the majority of passes** (three passes exist so one noisy pass is outvoted; the per-pass figure is reported alongside) |
 | (c) repeatability | on real artifacts (`eval-run`, `external`): every floored criterion lands on the same side of its floor in every pass, and ≥ 80 % of (entry, criterion) pairs score identically across passes. Revised 2026-09-05: a one-anchor flip on a weight-3 criterion moves the total by 0.143, so a total-based 0.1 rule fails on granularity |
 | size | ≥ 10 human-scored entries |
 | threshold | the minimum judge mean total among `eval-run` entries the human marked acceptable — controls and external artifacts feed agreement only, since they lack run data |

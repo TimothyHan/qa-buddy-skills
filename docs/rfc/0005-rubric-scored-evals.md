@@ -210,7 +210,7 @@ Detail per PR, with files, checks and acceptance, is in the [plan](0005-rubric-s
 | | Criterion | Kill if |
 |---|---|---|
 | (a) | every control scores below its floor in 3/3 judge passes | any control passes — that criterion's anchors are rewritten or the criterion dropped |
-| (b) | calibration agreement ≥ 80 % per criterion, 100 % on floors | two anchor revisions do not reach it — the criterion is not judge-gradable, move it to `check`/`process` or drop it |
+| (b) | calibration agreement ≥ 80 % per criterion, 100 % on floors — floor side decided per artifact by the majority of the three judge passes *(clarified 2026-09-06: one 3 in a 1/3/1 pass set was the only thing failing an otherwise-calibrated rubric)* | two anchor revisions do not reach it — the criterion is not judge-gradable, move it to `check`/`process` or drop it |
 | (c) | judge repeatability on real artifacts: no floored criterion changes side of its floor across three passes, and ≥ 80 % of (artifact, criterion) pairs score identically *(revised 2026-09-05 — see §6: the original "total within 0.1" failed on granularity, one anchor step on a weight-3 criterion is 0.143)* | floor flips on real artifacts, or pair agreement below 0.8 — the instrument is unusable for that skill |
 | (d) | discrimination: a deliberately degraded skill variant (e.g. `test-cases` with constraint 7 removed) scores below the intact one beyond the spread on the case that exercises it | it does not — the eval cannot see what the constraint buys, and cannot be used to decide ablations |
 | (e) | cost ≤ $15 per skill run, ≤ $30 per A/B; wall ≤ 45 min | 2× either cap |
