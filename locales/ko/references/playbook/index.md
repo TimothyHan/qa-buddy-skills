@@ -3,7 +3,7 @@
 모든 QABuddy 스킬이 공유하는 방법론입니다. 각 스킬은 필요한 파일만
 참조합니다 -- 모든 파일을 한꺼번에 로드하지 마세요.
 
-**Version:** 0.4.0
+**Version:** 0.5.0
 
 ## 파일 목록
 
@@ -11,11 +11,11 @@
 | 파일                         | 다루는 내용                                                                          | 사용하는 스킬                                                            |
 | ---------------------------- | ------------------------------------------------------------------------------------ | ------------------------------------------------------------------------ |
 | `terminology.md`             | 표준화된 용어 (AC, SDT, DoR, DoD 등)                                                 | 모든 스킬                                                                |
-| `risk-and-priority.md`       | 심각도 척도 (6단계), 우선순위 척도 (3단계), 공수 배분, 의사결정 매트릭스             | exploratory, qa, review-ticket, start, test-cases, test-plan, verify-fix |
+| `risk-and-priority.md`       | 심각도 척도 (6단계), 노출 표, 우선순위 척도 (3단계), 공수 배분                       | exploratory, qa, review-ticket, start, test-cases, test-plan, verify-fix |
 | `metrics-and-coverage.md`    | 코드 커버리지 (~80% 목표), 요구사항 커버리지, 향후 지표 자리표시자                   | exploratory, qa, start, test-plan                                        |
 | `shift-left.md`              | 요구사항을 조기에 검증하고 정합성을 확인하며 개발자를 지원하는 원칙                  | review-ticket, start, test-plan                                          |
 | `test-distribution.md`       | 테스트 피라미드 (60/30/10), 다이아몬드 변형 (20/70/10), 중복 제거 규칙               | exploratory, review-ticket, start, test-cases, test-plan                 |
-| `test-types.md`              | 수동 vs 자동화, UAT vs 기능 테스트, 탐색적 테스트 정의                               | exploratory, start, test-cases, test-plan                                |
+| `test-types.md`              | 자동화 가이드라인, 수동 테스트 케이스를 작성하는 경우                                | exploratory, start, test-cases, test-plan                                |
 | `execution-sequence.md`      | 스프린트 내 테스트 순서 (dev -> PR -> QA -> verify-fix -> UAT -> release)            | start, test-plan                                                         |
 | `defect-lifecycle.md`        | 결함 유형, Jira 상태, SLA 기대치, 회귀 테스트 요구사항                               | exploratory, qa, review-ticket, start, test-cases, test-plan, verify-fix |
 | `maintenance-and-ci.md`      | 테스트 소유권, 불안정 테스트 처리 절차, 15분 시간 예산, CI 게이트, 브라우저 매트릭스 | qa, test-cases, test-plan                                                |

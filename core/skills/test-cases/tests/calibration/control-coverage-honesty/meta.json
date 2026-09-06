@@ -1,0 +1,7 @@
+{
+  "id": "control-coverage-honesty",
+  "source": "control",
+  "case": "projects-happy",
+  "origin": "tests/controls/coverage-honesty.md",
+  "added": "2026-09-05"
+}

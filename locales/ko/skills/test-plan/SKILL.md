@@ -69,7 +69,7 @@ Jira MCP를 사용할 수 있으면 간단한 쿼리로 연결 상태를 확인�
    - `metrics-and-coverage.md` — 커버리지 목표
    - `shift-left.md` — 클라이언트 요구사항 정합성
    - `test-distribution.md` — 피라미드/다이아몬드 목표, 중복 제거
-   - `test-types.md` — 자동화 vs 수동, UAT vs 기능 테스트
+   - `test-types.md` — 자동화 가이드라인, 수동 케이스를 작성하는 경우
    - `defect-lifecycle.md` — 위험 평가를 위한 SLA 기대치
    - `test-suite-verification.md` — 자동화 전략에 스위트 검출력 증명 방법을 명시해야 함 (뮤테이션 스모크, 공허 단언 금지)
 

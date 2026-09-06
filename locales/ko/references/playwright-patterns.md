@@ -1,13 +1,14 @@
 # Playwright 패턴 — 생성되는 스위트의 코드 표준
-<!-- qab: scope=e2e-setup,e2e-pom,e2e-write,test-cases -->
+<!-- qab: scope=e2e-setup,e2e-pom,e2e-write -->
 
 [Playwright 공식 베스트 프랙티스](https://playwright.dev/docs/best-practices)를
 기본 전제로 두고, 실전 프로젝트에서 얻은 추가 규칙을 얹습니다. 두 문서가
 충돌하면: 이 문서가 명시적으로 다른 선택을 한 경우(예: 셀렉터 우선순위)는 이
 문서를, 그 외에는 공식 문서를 따릅니다.
 
-사용처: `/qa-e2e-setup`, `/qa-e2e-pom`, `/qa-e2e-write`, `/qa-test-cases`(Playwright 스케치).
-워크플로는 각 스킬의 SKILL.md가, 코드 수준 지식은 이 문서가 담당합니다.
+사용처: `/qa-e2e-setup`, `/qa-e2e-pom`, `/qa-e2e-write`. 워크플로는 각 스킬의
+SKILL.md가, 코드 수준 지식은 이 문서가 담당합니다. (`/qa-test-cases`는 0.4.0부터
+Playwright 스케치를 내지 않으며 이 문서를 더 이상 읽지 않습니다.)
 
 > 출처: 저자의 `playwright-test-patterns` 스킬(slowhama/playwright-best-practices)
 > + QABuddy execute-mode 평가와 Toolshop 실전 검증(2026-08-07)에서 확인된 교훈.
@@ -251,29 +252,8 @@ await expect(row.getByTestId('delete-button')).toHaveCount(0);
 
 ---
 
-## 안티패턴 → 교정
-<!-- qab: id=anti-pattern-correction -->
-
-| ❌ | ✅ |
-| --- | --- |
-| `await page.waitForTimeout(3000)` | 상태 대기: `await expect(locator).toBeVisible()` |
-| `await button.click(); await page.waitForResponse(...)` | 프로미스를 클릭 전에 생성 |
-| `const rows = await locator.all()` (대기 없이) | `first().waitFor()` 후 `.all()` |
-| `rows.nth(table.findIndex(...))` | `-1` 가드 후 throw |
-| `expect(count).toBe(before + 1)` | `toContainEqual(objectContaining({ id }))` |
-| `name: 'test-item'` / `` `x-${Date.now()}` `` | worker+repeat 엔트로피 추가 |
-| 이름 조회에 `filter({ hasText: name })` | `filter({ has: getByText(name, { exact: true }) })` |
-| 본문 마지막 줄 정리 | disposal context 또는 `afterEach` |
-| 테이블 파싱: `.all()` 후 셀마다 `await textContent()` | `evaluateAll`로 원자적 읽기 — 루프 중 리렌더로 행이 detach되면 타임아웃까지 매달림 |
-| 파싱한 행에 `nth(index)`로 액션 | 내용 앵커 로케이터 (`filter({ has: getByText(value, { exact: true }) })`) — 동시 행 변동에 인덱스가 조용히 밀림 |
-| 공유 테이블 파싱 결과에 일회성 `toContainEqual` | `expect.poll(() => parse())` — 파싱은 auto-retry가 없어 단일 스냅샷은 동시 렌더에 플레이크 |
-| `expect(arr).toContainEqual(전체배열)` | `toEqual` 또는 요소 하나만 |
-| `baseURL: 'https://host/api'` + `get('/items')` | 트레일링 슬래시 `…/api/` + 상대 경로 |
-| `beforeAll(async ({ request }) => ...)` | 자체 컨텍스트 생성: `request.newContext(...)` |
-| 테스트마다 `newContext({ storageState })` | `storageState` 옵션 fixture 오버라이드 |
-
 ## 함정 (알아두면 디버깅이 빨라지는 것들)
-<!-- qab: id=pitfalls scope=e2e-setup,e2e-pom,e2e-write,test-cases,qa -->
+<!-- qab: id=pitfalls scope=e2e-setup,e2e-pom,e2e-write,qa -->
 
 - `request.newContext()`는 `use.baseURL`을 상속하지 않는다 — 명시적으로 지정.
 - 경로 포함 base URL은 트레일링 슬래시 + 상대 경로. `/items`는 base의 `/api`를
@@ -294,3 +274,9 @@ await expect(row.getByTestId('delete-button')).toHaveCount(0);
   그것까지 2개를 잡는다 — strict mode 위반이고, 개수가 타이밍에 따라 달라진다. 알림
   로케이터는 내용으로 스코프하거나(`getByRole('alert').filter({ has: page.getByRole('listitem') })`)
   텍스트로 앵커한다; `.nth()` 금지.
+- 테이블 파싱: `.all()` 후 셀마다 `await textContent()`는 루프 중 리렌더로 행이
+  detach되면 타임아웃까지 매달린다 — `evaluateAll`로 원자적으로 읽을 것.
+- 파싱한 행에 `nth(index)`로 액션하면 동시 행 변동에 인덱스가 조용히 밀린다 —
+  내용 앵커 로케이터(`filter({ has: getByText(value, { exact: true }) })`)를 쓸 것.
+- 공유 테이블 파싱 결과에 일회성 `expect(parsed).toContainEqual(...)`은 플레이크다
+  — 파싱은 auto-retry가 없고 동시 렌더가 스냅샷을 바꾼다. `expect.poll(() => parse())`.

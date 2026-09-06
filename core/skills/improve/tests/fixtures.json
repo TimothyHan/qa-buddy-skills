@@ -1,6 +1,6 @@
 {
   "skill": "improve",
-  "version": "0.7.1",
+  "version": "0.8.0",
   "fixtures": [
     {
       "id": "fx-001",
@@ -412,6 +412,34 @@
         "distill",
         "promotion",
         "residue"
+      ]
+    },
+    {
+      "id": "fx-012",
+      "description": "Changed skill has a calibrated rubric — Phase 4 runs eval.js ab and gates on floors and spread",
+      "input": {
+        "context": "/qa-improve fix on test-cases; core/skills/test-cases/tests/rubric.json has threshold 0.75 and a calibration block"
+      },
+      "assertions": [
+        {
+          "field": "output",
+          "op": "contains",
+          "value": "eval.js ab"
+        },
+        {
+          "field": "output",
+          "op": "contains",
+          "value": "floor"
+        },
+        {
+          "field": "output",
+          "op": "contains",
+          "value": "spread"
+        }
+      ],
+      "tags": [
+        "rfc-0005",
+        "rubric-gate"
       ]
     }
   ]

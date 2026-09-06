@@ -1,0 +1,7 @@
+{
+  "id": "control-traceability",
+  "source": "control",
+  "case": "projects-happy",
+  "origin": "tests/controls/traceability.md",
+  "added": "2026-09-05"
+}

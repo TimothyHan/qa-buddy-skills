@@ -1,0 +1,14 @@
+{
+  "ticket": "tags",
+  "epic": "tags",
+  "status": "NEEDS_CONTEXT",
+  "mappings": [],
+  "unmapped_requirements": [
+    "AC1: unfilled template placeholder — no role/feature/benefit specified",
+    "AC2: TBD — no content"
+  ],
+  "test_gaps": [
+    "Entire feature: acceptance criteria contain no testable detail (data model, limits, scope, UI location all unspecified)",
+    "Tag colours explicitly called out in spec as not yet decided with marketing"
+  ]
+}

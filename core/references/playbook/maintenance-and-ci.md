@@ -18,21 +18,12 @@ Tests are retired when:
 ## Flaky Test Process
 <!-- qab: id=flaky-test-process scope=test-cases,qa -->
 
-```
-Test fails intermittently
-  |
-  |-- Fix ASAP (first priority: fix the root cause)
-  |
-  |-- If fix is complex:
-  |     |-- Quarantine: skip the test temporarily (@skip or equivalent)
-  |     |-- Track in flaky test tracker (Datadog)
-  |     |-- Schedule fix within current or next sprint
-  |
-  |-- If fix is not possible after reasonable effort:
-        |-- Retire the test
-        |-- Document why in the test file or tracker
-        |-- Consider if the scenario needs a different test approach
-```
+- **Fix ASAP, root cause first.**
+- **If the fix is complex:** quarantine (skip the test temporarily), register it in
+  the flaky test tracker (Datadog), schedule the fix within the current or next sprint.
+- **If it cannot be fixed after reasonable effort:** retire the test, document why in
+  the test file or tracker, and consider whether the scenario needs a different
+  test approach.
 
 ## Execution Time Budget
 <!-- qab: id=execution-time-budget scope=test-plan -->

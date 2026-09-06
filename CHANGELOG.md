@@ -7,12 +7,48 @@ may remove a skill.
 
 한국어: [CHANGELOG-ko.md](CHANGELOG-ko.md)
 
-## [Unreleased] — POC branch `poc/cloud-service`
+## [Unreleased]
+
+### Added — rubric-scored skill evals ([RFC 0005](docs/rfc/0005-rubric-scored-evals.md))
+
+Skills are now graded on the quality of what they produce, not only on the
+shape of it. `bin/eval.js` runs a skill headless on the target model against
+fixed cases, a **separate Opus judge** scores each artifact against the skill's
+own numbered constraints (`tests/rubric.json`), deterministic checks cover
+files and the run directory, and negative controls that must fail are judged
+first. A rubric gates only after **calibration** against ten artifacts the
+maintainer scored by hand. Guide: [docs/skill-evals-en.md](docs/skill-evals-en.md).
+
+- `bin/eval.js run | controls | judge | report | calibrate | ab` — the bench,
+  the calibration loop, and A/B of two QABuddy refs per criterion.
+- `.github/workflows/skill-eval.yml` — on-demand run or A/B in CI.
+- Pilot rubrics, cases, controls and calibration sets for **test-cases**
+  (threshold 0.857) and **exploratory** (threshold 0.709); both gate.
+- `/qa-improve` 0.8.0: a change to a skill with a calibrated rubric is A/B'd
+  before delivery; a floor breach or a regression outside the spread blocks it.
+- `/qa-eval` 0.5.0: `--rubric` delegates to the bench and reports its verdict.
+- `test.js`: rubrics, cases, controls and calibration sets are validated; a
+  `check`/`process` control must provably fail its check.
+- Measured on the way (RFC §6): removing the "observed beats assumed" rule is
+  caught by the bench; the triple-statement pattern and the exploratory
+  technique lists stay; a 1.6× longer skill did not degrade Sonnet 5.
+
+### Changed — playbook trimmed against usage data
+
+- `playwright-patterns` no longer reaches `/qa-test-cases` (it stopped writing
+  sketches in 0.4.0); its slice drops from 549 to 286 lines (#67).
+- Sections that were native model knowledge and never cited across 75 logged
+  runs are removed or condensed: `test-types` core-principle / UAT-vs-functional
+  / exploratory definition, the pyramid and diamond drawings (numbers kept),
+  `test-suite-verification#when-to-run` (layer guidance folded into
+  mutation-smoke), `risk-and-priority#decision-matrix`, the flaky-test flowchart,
+  and `playwright-patterns#anti-pattern-correction` (its three live lessons moved
+  to pitfalls). Playbook 0.5.0 (#68).
 
 Proof of concept for PR-triggered runs ([RFC 0004](docs/rfc/0004-headless-pr-coverage.md)).
 Not proposed for `main`.
 
-### Added
+### Added — PR-triggered headless runs ([RFC 0004](docs/rfc/0004-headless-pr-coverage.md), POC branch `poc/cloud-service`, not proposed for `main`)
 - **Headless Mode** in the Tier 1 preamble: opt-in via `QABUDDY_HEADLESS=1` or
   `--headless`; every pause takes the stated recommendation and is logged as an
   Auto-decision; escalations close the run as `BLOCKED`; write scope limited to
@@ -35,7 +71,7 @@ Not proposed for `main`.
 - KB spec §6.8 `sources.json` (code and test globs per feature) and §6.9
   `exploratory/{date}.md` (persisted session with an AC-keyed results table).
 
-### Changed
+### Changed — on the POC branch
 - `/qa-test-cases` writes the KB spec §6.5 mapping shape (`testCases[{id, layer,
   type, status}]`); the older `e2e_tests[]` files stay readable.
 - `/qa-exploratory` Focus Area Results table gains `ACs` and `Result` columns.

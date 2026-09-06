@@ -103,11 +103,11 @@ Shared methodology reference split into focused files at `{{REFERENCE_PATH}}/pla
 | File | Covers |
 |------|--------|
 | `terminology.md` | Normalized terms across all output |
-| `risk-and-priority.md` | Severity/priority scales, effort allocation, decision matrix |
+| `risk-and-priority.md` | Severity/priority scales, exposure table, effort allocation |
 | `metrics-and-coverage.md` | Code coverage targets, requirements coverage |
 | `shift-left.md` | Challenge requirements early, verify alignment |
 | `test-distribution.md` | Test pyramid/diamond, deduplication rules |
-| `test-types.md` | Manual vs automation, UAT vs functional, exploratory |
+| `test-types.md` | Automation guidelines, when to write manual test cases |
 | `execution-sequence.md` | Testing order through the sprint |
 | `defect-lifecycle.md` | Bug states, SLA expectations, regression test requirements |
 | `maintenance-and-ci.md` | Flaky tests, time budget, CI gates, browser matrix |

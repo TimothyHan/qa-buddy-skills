@@ -7,12 +7,48 @@ QABuddy의 주요 변경 사항을 기록합니다. 형식은
 
 English: [CHANGELOG.md](CHANGELOG.md)
 
-## [Unreleased] — POC 브랜치 `poc/cloud-service`
+## [Unreleased]
+
+### 추가 — 루브릭 기반 스킬 평가 ([RFC 0005](docs/rfc/0005-rubric-scored-evals.md))
+
+스킬을 이제 산출물의 **형태**가 아니라 **품질**로 채점합니다. `bin/eval.js`가
+스킬을 고정된 케이스에 대해 대상 모델에서 헤드리스로 실행하고, **별도의 Opus
+판정자**가 스킬 자신의 번호 매긴 제약 조건(`tests/rubric.json`)에 대해 각
+산출물을 채점하며, 결정적 검사가 파일과 실행 디렉터리를 맡고, 반드시 실패해야
+하는 네거티브 컨트롤을 먼저 판정합니다. 루브릭은 메인테이너가 손으로 채점한
+산출물 10개로 **캘리브레이션**된 뒤에만 게이트가 됩니다. 가이드:
+[docs/skill-evals.md](docs/skill-evals.md).
+
+- `bin/eval.js run | controls | judge | report | calibrate | ab` — 벤치,
+  캘리브레이션 루프, 두 QABuddy ref의 기준별 A/B.
+- `.github/workflows/skill-eval.yml` — CI에서 수동 실행 또는 A/B.
+- **test-cases**(임계값 0.857)와 **exploratory**(임계값 0.709)의 파일럿 루브릭,
+  케이스, 컨트롤, 캘리브레이션 세트; 둘 다 게이트합니다.
+- `/qa-improve` 0.8.0: 캘리브레이션된 루브릭을 가진 스킬의 변경은 전달 전에
+  A/B됩니다; 바닥값 위반이나 편차를 넘는 회귀는 전달을 막습니다.
+- `/qa-eval` 0.5.0: `--rubric`이 벤치에 위임하고 그 판정을 보고합니다.
+- `test.js`: 루브릭, 케이스, 컨트롤, 캘리브레이션 세트를 검증합니다;
+  `check`/`process` 컨트롤은 자기 검사에 반드시 실패해야 합니다.
+- 진행 중 측정된 것(RFC §6): "관찰이 추정을 이긴다" 규칙 제거는 벤치가
+  잡아냅니다; 3중 서술 패턴과 탐색 기법 목록은 유지; 1.6배 긴 스킬은 Sonnet 5를
+  저하시키지 않았습니다.
+
+### 변경 — 사용 데이터 기준으로 플레이북 축소
+
+- `playwright-patterns`가 더 이상 `/qa-test-cases`에 가지 않습니다(0.4.0부터
+  스케치를 쓰지 않음); 슬라이스가 549줄에서 286줄로 줄었습니다(#67).
+- 모델이 이미 아는 지식이면서 기록된 75회 실행에서 한 번도 인용되지 않은
+  섹션을 제거하거나 압축했습니다: `test-types`의 핵심 원칙 / UAT vs 기능 /
+  탐색적 테스트 정의, 피라미드·다이아몬드 그림(숫자는 유지),
+  `test-suite-verification#when-to-run`(층위 지침은 mutation-smoke로 이동),
+  `risk-and-priority#decision-matrix`, 불안정 테스트 흐름도,
+  `playwright-patterns#anti-pattern-correction`(실전 교훈 3개는 pitfalls로 이동).
+  플레이북 0.5.0(#68).
 
 PR 트리거 실행의 개념 증명([RFC 0004](docs/rfc/0004-headless-pr-coverage.md)).
 `main`에 제안하지 않습니다.
 
-### 추가
+### 추가 — PR 트리거 헤드리스 실행 ([RFC 0004](docs/rfc/0004-headless-pr-coverage.md), POC 브랜치 `poc/cloud-service`, `main`에 제안하지 않음)
 - Tier 1 프리앰블의 **헤드리스 모드**: `QABUDDY_HEADLESS=1` 또는 `--headless`로
   옵트인; 모든 일시정지는 명시된 권장안을 택하고 Auto-decision으로 기록;
   에스컬레이션은 `BLOCKED`로 종료; 쓰기 범위는 `features-kb/`, `playwright/`,
@@ -33,7 +69,7 @@ PR 트리거 실행의 개념 증명([RFC 0004](docs/rfc/0004-headless-pr-covera
 - KB 명세 §6.8 `sources.json`(기능별 코드·테스트 glob)과 §6.9
   `exploratory/{date}.md`(AC 키 결과 표를 가진 영속 세션).
 
-### 변경
+### 변경 — POC 브랜치
 - `/qa-test-cases`가 KB 명세 §6.5 매핑 형태(`testCases[{id, layer, type,
   status}]`)로 씁니다; 예전 `e2e_tests[]` 파일은 계속 읽힙니다.
 - `/qa-exploratory`의 Focus Area Results 표에 `ACs`, `Result` 열이 추가됩니다.

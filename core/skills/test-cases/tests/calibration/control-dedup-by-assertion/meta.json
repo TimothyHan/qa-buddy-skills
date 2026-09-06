@@ -1,0 +1,7 @@
+{
+  "id": "control-dedup-by-assertion",
+  "source": "control",
+  "case": "vacuous-coverage",
+  "origin": "tests/controls/dedup-by-assertion.md",
+  "added": "2026-09-05"
+}

@@ -45,7 +45,7 @@ preamble-tier: 2
 ## Phase 1: 설정
 
 **방법론 참조:** `{{REFERENCE_PATH}}/playbook/`에서 읽기:
-- `test-types.md` -- 탐색적 테스트의 정의, 목적, 시점
+- `test-types.md` -- 수동 테스트 유형 중 탐색적 테스트의 위치 (기능 테스트 이후, UAT 이전)
 - `metrics-and-coverage.md` -- 탐색적 테스트가 커버리지 갭을 채우는 방법
 - `test-distribution.md` -- 발견 사항을 올바른 테스트 레이어에 할당하는 방법
 - `exploratory-heuristics.md` -- 휴리스틱 범주, 기법, 발견 범주

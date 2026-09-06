@@ -1,0 +1,7 @@
+{
+  "id": "thin-ticket",
+  "description": "A ticket whose ACs are placeholders — the honest output lists gaps and asks, it does not invent acceptance criteria",
+  "app": null, "port": 4173,
+  "runner_args": "tags --headless",
+  "tags": ["edge", "needs-context"]
+}

@@ -4,16 +4,6 @@
 ## Default Target: Test Pyramid
 <!-- qab: id=test-pyramid -->
 
-```
-         /‾‾‾‾‾‾\
-        / E2E 10% \
-       /‾‾‾‾‾‾‾‾‾‾‾‾\
-      /  API/Int  30%  \
-     /‾‾‾‾‾‾‾‾‾‾‾‾‾‾‾‾‾‾\
-    /    Unit tests  60%    \
-   /________________________\
-```
-
 | Layer | Target % | Framework | Owner |
 |-------|----------|-----------|-------|
 | Unit | 60% | Project-specific | Developer |
@@ -26,17 +16,11 @@
 Some projects have less unit-testable code (e.g., integration-heavy services, thin
 UI over complex API). In that case, the diamond shape is acceptable:
 
-```
-         /‾‾‾‾‾‾\
-        / E2E 10% \
-       /‾‾‾‾‾‾‾‾‾‾‾‾‾‾‾\
-      /                   \
-     /    API/Int  70%     \
-      \                   /
-       \‾‾‾‾‾‾‾‾‾‾‾‾‾‾‾/
-        \ Unit  20% /
-         \________/
-```
+| Layer | Target % |
+|-------|----------|
+| Unit | 20% |
+| API / Integration | 70% |
+| E2E | 10% |
 
 ## Deduplication Rules
 <!-- qab: id=deduplication-rules -->

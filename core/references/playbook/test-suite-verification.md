@@ -9,7 +9,8 @@ provoked failure says what it *catches*.
 ## Mutation smoke (prove detection power)
 <!-- qab: id=mutation-smoke -->
 
-After building or significantly changing a suite, run at least one mutation smoke:
+After building or significantly changing a suite — or when a run is suspiciously
+fast or suspiciously green — run at least one mutation smoke:
 
 1. **Copy the system under test to a sandbox** — never mutate the real tree.
 2. **Inject one realistic defect:** delete an artifact, invert a guard condition
@@ -21,6 +22,14 @@ After building or significantly changing a suite, run at least one mutation smok
    is absent (or present).
 4. **Run the suite. Expect red.** A green suite over a broken system is a
    finding: record the blind spot and close it before trusting that suite.
+
+Match the form to the layer. **Unit:** automated mutation tools (Stryker, PIT,
+mutmut) are cheap against millisecond suites — recommend them in the developer
+unit-test checklist and run them systematically. **Above unit** (integration,
+e2e, CI scripts): no mainstream tooling exists and suite runtime forbids mutant
+farms — one manual mutation per defect class is the realistic form, and the
+vacuous-assertion risk is highest here (captured output, greps, exit codes sit
+far from the behavior).
 
 ## Vacuous assertion checklist
 <!-- qab: id=vacuous-assertion-checklist -->
@@ -58,17 +67,3 @@ behavior — a no-op wrapper or inverted guard keeps every string in place. Pair
 every structural check that guards a critical behavior with at least one
 execution-level proof (run the script against a decoy/sandbox and assert the
 observable outcome).
-
-## When to run
-<!-- qab: id=when-to-run -->
-
-- Right after building a new suite or check layer (before trusting first green).
-- When a run is suspiciously fast or suspiciously green.
-- After a large refactor of the suite itself.
-- Match the form to the layer. **Unit:** automated mutation tools (Stryker,
-  PIT, mutmut) are cheap against millisecond suites — recommend them in the
-  developer unit-test checklist and run them systematically. **Above unit**
-  (integration, e2e, CI scripts): no mainstream tooling exists and suite
-  runtime forbids mutant farms — the manual one-mutation-per-defect-class
-  smoke is the realistic form, and the vacuous-assertion risk is highest
-  here (captured output, greps, exit codes sit far from the behavior).

@@ -3,7 +3,7 @@
 Shared methodology for all QABuddy skills. Each skill references only the files
 it needs — do not load all files at once.
 
-**Version:** 0.4.0
+**Version:** 0.5.0
 
 ## Files
 
@@ -11,11 +11,11 @@ it needs — do not load all files at once.
 | File                         | What it covers                                                                           | Used by                                                                  |
 | ---------------------------- | ---------------------------------------------------------------------------------------- | ------------------------------------------------------------------------ |
 | `terminology.md`             | Normalized terms (AC, SDT, DoR, DoD, etc.)                                               | All skills                                                               |
-| `risk-and-priority.md`       | Severity scale (6 levels), priority scale (3 levels), effort allocation, decision matrix | exploratory, qa, review-ticket, start, test-cases, test-plan, verify-fix |
+| `risk-and-priority.md`       | Severity scale (6 levels), exposure table, priority scale (3 levels), effort allocation  | exploratory, qa, review-ticket, start, test-cases, test-plan, verify-fix |
 | `metrics-and-coverage.md`    | Code coverage (~80% target), requirements coverage, future metric placeholders           | exploratory, qa, start, test-plan                                        |
 | `shift-left.md`              | Challenge requirements early, verify alignment, dev helper principles                    | review-ticket, start, test-plan                                          |
 | `test-distribution.md`       | Test pyramid (60/30/10), diamond variant (20/70/10), deduplication rules                 | exploratory, review-ticket, start, test-cases, test-plan                 |
-| `test-types.md`              | Manual vs automation, UAT vs functional, exploratory testing definition                  | exploratory, start, test-cases, test-plan                                |
+| `test-types.md`              | Automation guidelines, when to write manual test cases                                   | exploratory, start, test-cases, test-plan                                |
 | `execution-sequence.md`      | Testing order through the sprint (dev → PR → QA → verify-fix → UAT → release)            | start, test-plan                                                         |
 | `defect-lifecycle.md`        | Bug types, Jira states, SLA expectations, regression test requirements                   | exploratory, qa, review-ticket, start, test-cases, test-plan, verify-fix |
 | `maintenance-and-ci.md`      | Test ownership, flaky process, 15-min time budget, CI gates, browser matrix              | qa, test-cases, test-plan                                                |

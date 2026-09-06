@@ -1,10 +1,10 @@
 ---
 name: test-cases
-version: 0.4.0
+version: 0.6.0
 description: |
-  Generate test cases from a Jira ticket's acceptance criteria. Produces Playwright
-  e2e test scenarios and a unit test checklist for developers. Test cases map back
-  to requirements for traceability. Use when: "write test cases", "generate tests",
+  Generate test cases from a Jira ticket's acceptance criteria. Produces e2e test
+  scenarios (steps and expected results, no code) and a unit test checklist for
+  developers. Test cases map back to requirements for traceability. Use when: "write test cases", "generate tests",
   "e2e tests for PROJ-789", "test cases for this ticket".
   Do NOT use when: reviewing ticket testability (use /qa-review-ticket), executing tests (use /qa-qa), exploring the app (use /qa-exploratory).
 tool-groups:
@@ -25,18 +25,19 @@ preamble-tier: 2
 
 You are an SDT partner generating test cases for a ticket. You pull the ticket's
 ACs from Jira, cross-reference the epic test plan, and produce:
-1. Playwright e2e test scenarios (ready to implement)
+1. E2E test scenarios (steps and expected results — `/qa-e2e-write` implements them)
 2. Unit test checklist (for developers)
 3. Requirements-to-test mapping (for traceability)
 
 ## Constraints
 
 1. **Match the project's test style.** Read existing Playwright tests first. Use the same patterns, imports, helpers, page objects.
-2. **Playwright sketches are starting points,** not final code. Make them close enough to be useful but don't over-engineer.
+2. **No implementation code in test cases.** Steps and expected results are the contract; `/qa-e2e-write` owns selectors, waits and fixtures. Put automation constraints a writer must know (isolation, run-once, data hygiene) into Preconditions.
 3. **Every test case traces to a requirement.** No orphan tests. No untested ACs.
 4. **Unit test checklist is for devs.** Keep it brief and actionable — describe what to test, not how.
 5. **Don't duplicate existing tests.** If a scenario is already covered, reference it instead of creating a new one.
 6. **Prioritize ruthlessly.** A ticket with 3 ACs doesn't need 30 test cases. Focus on what catches real bugs.
+7. **Observed beats assumed.** A precondition or step that names a control label, a seeded record, a displayed value or a request the browser makes comes from the running app (Phase 1 step 8) or carries `(unverified)` for `/qa-e2e-pom` to settle. Never assert the network behaviour of a page you have not watched.
 
 ---
 
@@ -53,12 +54,9 @@ ACs from Jira, cross-reference the epic test plan, and produce:
 
 2. **Read methodology references** from `{{REFERENCE_PATH}}/playbook/`:
    - `test-distribution.md` — assign tests to lowest appropriate layer, deduplication rules
-   - `test-types.md` — manual vs automation, UAT vs functional distinction
+   - `test-types.md` — automation guidelines, when a case stays manual
    - `maintenance-and-ci.md` — browser matrix (Playwright runs Chrome, Firefox, Safari, Edge)
-   - `test-suite-verification.md` — vacuous-assertion checklist for sketches (empty captures, conditional asserts, fixture text containing the evidence string)
-   - For Playwright sketches also read `{{REFERENCE_PATH}}/playwright-patterns.md` —
-     sketches must follow its selector, wait, and data rules so `/qa-e2e-write`
-     can implement them without rework
+   - `test-suite-verification.md` — vacuous-assertion checklist for expected results (an outcome that would also hold when the feature is broken is not an expected result)
    - Then the project learnings file (per the preamble) — active `LRN-` entries
      scoped here override the references above; cite applied IDs
 
@@ -79,16 +77,23 @@ ACs from Jira, cross-reference the epic test plan, and produce:
 6. **Read existing tests in the repo:**
    - Scan the Playwright test directory for related tests
    - Learn naming conventions, page object patterns, test data setup, test style
+   - For each existing test you intend to credit as covering an AC, open its body and name the assertion that would fail if the AC broke; a test whose assertion cannot fail for that AC (vacuous-assertion checklist) is not coverage — list the AC as a gap
 
 7. **Check existing test cases for this ticket:**
    - `features-kb/features/{EPIC-KEY}/test-cases/{TICKET-KEY}.md`
    - If they exist, this is an update, not a fresh creation
 
+8. **Probe the running app** (when reachable; ~10 min; read-only — no saves, no uploads):
+   - Base URL from `playwright/AUTOMATION.md`, `.claude/launch.json` or `.qabuddy.json`; otherwise ask the SDT (headless: skip)
+   - For each screen the ACs touch, as the persona the AC names: the real labels of the controls the steps will name; whether the data is server-rendered or which request loads it; which seeded records exist and whether they are shared/read-only
+   - Write each fact as an `Observed:` line under `## Findings` in the scratchpad
+   - Unreachable: record that under `## Findings` and mark every dependent precondition/step `(unverified)`
+
 ---
 
 ## Phase 2: Design Test Cases
 
-### E2E Test Cases (Playwright)
+### E2E Test Cases
 
 For each AC, generate one or more test cases:
 
@@ -109,21 +114,6 @@ For each AC, generate one or more test cases:
 
 **Expected Result:**
 - {observable outcome}
-
-**Playwright Sketch:**
-```typescript
-test('{test title}', async ({ page }) => {
-  // Arrange
-  await page.goto('{url}');
-
-  // Act
-  await page.getByRole('{role}', { name: '{name}' }).click();
-  await page.getByLabel('{label}').fill('{value}');
-
-  // Assert
-  await expect(page.getByText('{expected}')).toBeVisible();
-});
-```
 ```
 
 **Minimum coverage per AC:**
@@ -185,10 +175,11 @@ Before saving, verify consistency across all three artifacts. Fix issues found. 
 
 1. Every AC in `mappings` has at least one test case; `unmappedACs` lists any AC with zero tests
 2. `coverage: "full"` means happy path + negative + boundaries tested; downgrade to `"partial"` otherwise
-3. No new test case duplicates an existing Playwright test — replace with a reference if so
-4. Unit test checklist items checked against existing unit tests for overlap
+3. No new test case duplicates an existing Playwright test — replace with a reference if so; overlap is judged from the assertion body, never the title, and each "already covered" reference names the file and the failing assertion
+4. Unit test checklist items checked against existing unit tests for overlap — same rule: an existing test counts only if its assertion would fail for that item
 5. P0/P1/P2 distribution: not >50% P0, and at least one P0 exists for the core happy path
-6. Playwright sketches match project conventions (import style, page object pattern, assertion style)
+6. No code blocks in the test cases document; automation constraints a writer needs appear in Preconditions
+7. Every precondition or step naming a label, seeded record, displayed value or request is backed by an `Observed:` line in the scratchpad or marked `(unverified)`
 
 ---
 
