@@ -1,22 +1,30 @@
 {
-  "scored_by": "proposed:claude",
+  "scored_by": "proposed:claude (revision of Timothy Han)",
   "date": "2026-09-05",
   "acceptable": false,
   "scores": {
     "finding-correctness": 3,
     "classification": 0,
-    "evidence": 3,
+    "evidence": 2,
     "charter-quality": 0,
     "no-duplicate-scenarios": 3,
-    "unexplored-noted": 1
+    "unexplored-noted": 0
   },
-  "rationale": {
-    "finding-correctness": "loading indicator (UX) and empty-state scenario match v1 — nothing invented — 3",
-    "classification": "Finding 1 has no severity/priority; Finding 2 uses 'important'/'soon' — 0",
-    "evidence": "all fields present — 3",
-    "charter-quality": "no charter — 0",
-    "no-duplicate-scenarios": "AC6 empty state has no KB case — 3",
-    "unexplored-noted": "no next-session list — 1"
-  },
-  "how_to_approve": "Replace scored_by with your name, change any score or acceptable you disagree with, delete this field if you like. Until scored_by is a person, calibrate ignores this entry."
+  "revisions": [
+    {
+      "criterion": "unexplored-noted",
+      "from": 1,
+      "to": 0,
+      "why": "no focus-area accounting at all — anchor 0 as clarified",
+      "date": "2026-09-06"
+    },
+    {
+      "criterion": "evidence",
+      "from": 3,
+      "to": 2,
+      "why": "Finding 1 evidence is \"described observation (no file-save tool)\" with nothing described — generic, anchor 2",
+      "date": "2026-09-06"
+    }
+  ],
+  "how_to_approve": "Replace scored_by with your name to accept these revisions (or undo any you disagree with)."
 }

@@ -1,5 +1,5 @@
 {
-  "scored_by": "proposed:claude",
+  "scored_by": "proposed:claude (revision of Timothy Han)",
   "date": "2026-09-05",
   "acceptable": false,
   "scores": {
@@ -8,15 +8,16 @@
     "evidence": 3,
     "charter-quality": 0,
     "no-duplicate-scenarios": 0,
-    "unexplored-noted": 1
+    "unexplored-noted": 0
   },
-  "rationale": {
-    "finding-correctness": "observations match v1 — 3",
-    "classification": "3",
-    "evidence": "3",
-    "charter-quality": "no charter — 0",
-    "no-duplicate-scenarios": "'duplicate name rejected' restates KB TC-03 — 0",
-    "unexplored-noted": "no next-session list — 1"
-  },
-  "how_to_approve": "Replace scored_by with your name, change any score or acceptable you disagree with, delete this field if you like. Until scored_by is a person, calibrate ignores this entry."
+  "revisions": [
+    {
+      "criterion": "unexplored-noted",
+      "from": 1,
+      "to": 0,
+      "why": "no focus-area accounting — anchor 0",
+      "date": "2026-09-06"
+    }
+  ],
+  "how_to_approve": "Replace scored_by with your name to accept these revisions (or undo any you disagree with)."
 }

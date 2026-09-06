@@ -1,5 +1,5 @@
 {
-  "scored_by": "proposed:claude",
+  "scored_by": "Timothy Han",
   "date": "2026-09-05",
   "acceptable": true,
   "scores": {
@@ -9,15 +9,5 @@
     "charter-quality": 0,
     "no-duplicate-scenarios": 3,
     "unexplored-noted": 3
-  },
-  "rationale": {
-    "finding-correctness": "nothing invented; Findings 1 and 2 file spec-undecided behaviours (empty-copy reuse, case-sensitive duplicates) as 결함 — anchor 1",
-    "classification": "all from the scale, consistent — 3",
-    "evidence": "one finding relies on a described observation without a saved screenshot, which the template allows — 3",
-    "charter-quality": "charter not persisted — 0",
-    "no-duplicate-scenarios": "six new scenarios, none restate TC-01–TC-04 — 3",
-    "unexplored-noted": "explicit list; AC6 skipped with the reason (shared fixture) — 3",
-    "acceptable": "two miscategorised findings, otherwise a well-boxed session with a real duration"
-  },
-  "how_to_approve": "Replace scored_by with your name, change any score or acceptable you disagree with, delete this field if you like. Until scored_by is a person, calibrate ignores this entry."
+  }
 }

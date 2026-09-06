@@ -1,23 +1,23 @@
 {
-  "scored_by": "proposed:claude",
+  "scored_by": "proposed:claude (revision of Timothy Han)",
   "date": "2026-09-05",
   "acceptable": true,
   "scores": {
     "finding-correctness": 1,
-    "classification": 1,
+    "classification": 2,
     "evidence": 3,
     "charter-quality": 3,
     "no-duplicate-scenarios": 3,
     "unexplored-noted": 3
   },
-  "rationale": {
-    "finding-correctness": "nothing invented; Finding 2 files the case-sensitive duplicate check (spec-undecided per notes) as a 결함 — right observation, wrong category — anchor 1",
-    "classification": "Findings 4 and 6 carry 'N/A' severity, not a scale value — anchor 1 by the letter",
-    "evidence": "every finding has steps, expected/actual, evidence path or described observation, action — 3",
-    "charter-quality": "charter file present: mission, already-tested with the four KB cases, five focus areas ranked with heuristic and minutes, out-of-scope — 3",
-    "no-duplicate-scenarios": "new scenarios (security regression, search 0-results, status filter) are all absent from the KB — 3",
-    "unexplored-noted": "every focus area accounted for; explicit unexplored list with reasons — 3",
-    "acceptable": "one miscategorised finding on an otherwise thorough clean-app session"
-  },
-  "how_to_approve": "Replace scored_by with your name, change any score or acceptable you disagree with, delete this field if you like. Until scored_by is a person, calibrate ignores this entry."
+  "revisions": [
+    {
+      "criterion": "classification",
+      "from": 1,
+      "to": 2,
+      "why": "F4 (missing requirement) carries N/A severity — not a confirmation, so one non-scale value remains — anchor 2 as the one inconsistency",
+      "date": "2026-09-06"
+    }
+  ],
+  "how_to_approve": "Replace scored_by with your name to accept these revisions (or undo any you disagree with)."
 }
