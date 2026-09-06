@@ -263,7 +263,9 @@ The bench sees what the rule buys: the process criterion separates the variants 
 
 **Ablation tally (2026-09-05, $53.89 for the four A/Bs including the discrimination check):** no ablation cleared the spread rule at n=3, which is the honest outcome of a small-n bench on a noisy skill — and every one of them has a consistent direction. Two decisions follow: do not collapse the triple statement (1) and keep the technique lists (2); one premise is weakened: length itself did not hurt Sonnet 5 (4). Ablation 3 waits for a test-plan case. §5 (f) is met.
 
-Thresholds stay `null` until the maintainer fills `human.json` for the twenty entries (blind, from the scoring sheets) and `eval.js calibrate` passes gates (b) and (c).
+**test-cases calibrated (2026-09-06).** Timothy scored all ten entries; three calibration passes and two anchor revisions later (no-coverage-values = nothing claimed; spec-copied details need no observation mark; crediting nothing is anchor 3; floor side decided by majority of passes), agreement is traceability 1.0, coverage-honesty 1.0, dedup-by-assertion 1.0, prioritization 0.97, observed-or-unverified 0.90; floor agreement 1.0 on every floored criterion; pair agreement 0.95 on real artifacts; **threshold 0.857** (the lowest judge total among the three real runs marked acceptable). The rubric now gates. Total calibration judge spend ≈ $8.
+
+Exploratory thresholds stay `null` until the maintainer fills `human.json` for the twenty entries (blind, from the scoring sheets) and `eval.js calibrate` passes gates (b) and (c).
 
 ## 7. Non-goals
 
