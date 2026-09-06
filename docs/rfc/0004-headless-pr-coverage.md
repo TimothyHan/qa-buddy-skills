@@ -107,6 +107,12 @@ that does everything the model should not.
     `suite`, `gaps`) into one check named `qabuddy / gate`; whether it blocks a merge is
     a branch rule only the repository owner sets (Timothy's point, 2026-09-05). QABuddy
     never touches that setting.
+16. **Delivery is the caller's choice.** `delivery: companion-pr` (default) keeps the
+    generated files reviewable on their own and lets a merge continue the chain;
+    `delivery: commit` pushes them straight onto the source PR's branch for teams that
+    prefer one PR — no companion, no chain, heatmap still updated, and the push cannot
+    re-trigger the workflow because it uses the workflow token. Proven on PR #2
+    (2026-09-06): kb run → commit on the branch, PR head moved, note posted, $0.66.
 12. **One reusable workflow, many repositories.** `.github/workflows/pr-coverage.yml`
     (`workflow_call`) owns the jobs `resolve → preflight → kb → (explore ∥ automate) →
     deliver`; a consumer repo carries a ~15-line caller written by `pr-coverage.js init`

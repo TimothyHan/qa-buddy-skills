@@ -498,8 +498,8 @@ jobs:
             git commit -q -m "qabuddy: coverage updates for #$PR ($PHASES)"
             git push -q origin "HEAD:$HEAD_REF"
             SHA=$(git rev-parse --short HEAD)
-            { echo "<!-- qabuddy:commit $PR -->"; echo "QABuddy pushed \`$SHA\` to \`$HEAD_REF\` with the files this run generated (phases: $PHASES) — they are part of this PR's diff now. The heatmap comment above has the coverage and the evidence."; \
-              node "$QAB_BIN/pr-coverage.js" summary --touched .qa-reports/pr-coverage/touched.json --heatmap .qa-reports/pr-coverage/heatmap.json $RESULTS --changed "$RUNNER_TEMP/changed.txt" --issues .qa-reports/pr-coverage/issues.json --pr "$PR" --source-ref "$HEAD_REF" --phases "$PHASES" --announce /dev/stdout 2>/dev/null | sed '1d'; } > .qa-reports/pr-coverage/announce-marked.md
+            node "$QAB_BIN/pr-coverage.js" summary --touched .qa-reports/pr-coverage/touched.json --heatmap .qa-reports/pr-coverage/heatmap.json $RESULTS --changed "$RUNNER_TEMP/changed.txt" --issues .qa-reports/pr-coverage/issues.json --pr "$PR" --source-ref "$HEAD_REF" --phases "$PHASES" --announce .qa-reports/pr-coverage/announce.md > /dev/null
+            { echo "<!-- qabuddy:commit $PR -->"; echo "QABuddy pushed \`$SHA\` to \`$HEAD_REF\` with the files this run generated (phases: $PHASES) — they are part of this PR's diff now. The heatmap comment above has the coverage and the evidence."; sed '1d' .qa-reports/pr-coverage/announce.md; } > .qa-reports/pr-coverage/announce-marked.md
             node "$QAB_BIN/pr-coverage.js" comment --repo "$GITHUB_REPOSITORY" --pr "$PR" --marker "<!-- qabuddy:commit $PR -->" --body-file .qa-reports/pr-coverage/announce-marked.md > /dev/null || true
             echo "url=" >> "$GITHUB_OUTPUT"; exit 0
           fi
