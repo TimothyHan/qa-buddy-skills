@@ -1,5 +1,5 @@
 {
-  "scored_by": "proposed:claude",
+  "scored_by": "Timothy Han",
   "date": "2026-09-05",
   "acceptable": false,
   "scores": {
@@ -8,13 +8,5 @@
     "dedup-by-assertion": 3,
     "prioritization": 0,
     "observed-or-unverified": 0
-  },
-  "rationale": {
-    "traceability": "five real ACs uncovered and unlisted — 0",
-    "coverage-honesty": "no coverage claimed — 3 (judgment call, same as control-no-code)",
-    "dedup-by-assertion": "nothing credited — 3",
-    "prioritization": "one P0 case — 0 by the letter",
-    "observed-or-unverified": "'Add Project', 'Title', 'Save', POST /api/project/create, 'Project saved!' do not exist (notes: 'New project', 'Create', POST /api/projects, toast) and nothing is marked (unverified) — anchor 0"
-  },
-  "how_to_approve": "Replace scored_by with your name, change any score or acceptable you disagree with, delete this field if you like. Until scored_by is a person, calibrate ignores this entry."
-}
+  }
+ }

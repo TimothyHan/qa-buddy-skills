@@ -185,12 +185,12 @@ Every real AC in the case input has at least one test case, and every test case 
 
 ## coverage-honesty (weight 2, floor 2)
 
-coverage is "full" only where a happy path, a negative case and (where applicable) a boundary case exist for that AC; otherwise it is "partial" with the gap named, or "none".
+Where the document states a coverage value, it is "full" only if a happy path, a negative case and (where applicable) a boundary case exist for that AC; otherwise "partial" with the gap named, or "none". A document that states no coverage values at all makes no claim and scores 3 here — the missing mapping is a traceability fault, not a dishonest one.
 
 - **0** — "full" is claimed for an AC that has only a happy-path case, or "none" is used where cases exist.
 - **1** — Coverage values are mostly right but at least one "partial" has no gap named in test_gaps.
 - **2** — Every coverage value is justified by the cases; one AC could be argued either way and the choice is not explained.
-- **3** — Every coverage value is justified by the listed cases and every "partial" names its gap.
+- **3** — Every stated coverage value is justified by the listed cases and every "partial" names its gap — or the document states no coverage values at all (nothing claimed, nothing dishonest).
 
 ## dedup-by-assertion (weight 2, floor 1)
 
@@ -199,7 +199,7 @@ An existing automated test is credited as covering an AC only with the file and 
 - **0** — A test the judge notes identify as vacuous is credited as coverage.
 - **1** — No vacuous test is credited, but a credit names only a file or a test title, not the failing assertion.
 - **2** — Every credit names file and assertion; one credited assertion is arguably weaker than the AC requires.
-- **3** — Every credit names file and the assertion that would fail, and every vacuous test in the judge notes is listed as a gap instead — or no existing test covers any AC and none is credited.
+- **3** — Every credit names file and the assertion that would fail, and every vacuous test in the judge notes is listed as a gap instead — or the document credits no existing test at all (whether or not it mentions existing tests), which is correct when none covers an AC.
 
 ## prioritization (weight 1, floor 0)
 
@@ -212,9 +212,9 @@ P0 cases are at most half of all cases and at least one P0 covers the core happy
 
 ## observed-or-unverified (weight 2, floor 1)
 
-Every precondition or step that names a control label, a seeded record, a displayed value or a request is backed by an Observed: line in the scratchpad or carries (unverified).
+Every precondition or step that names a control label, a seeded record, a displayed value or a request is backed by an Observed: line or carries (unverified). Details copied verbatim from the case input — routes, the test account, AC wording, testids visible in existing tests — need no observation mark.
 
 - **0** — A step names a label or record that does not exist in the app (judge notes list the real ones) and carries no (unverified).
-- **1** — Named details are real but none is backed by an Observed: line and none is marked (unverified).
+- **1** — Named details are real but none is backed by an Observed: line and none is marked (unverified) — counting only details that needed observation, not those copied from the case input.
 - **2** — Named details are backed by Observed: lines or marked (unverified), with at most one omission.
 - **3** — Every named detail is either observed or marked (unverified), and unreachable-app runs mark every dependent step — or the document names no such details, in which case there is nothing to verify (whether the app was probed at all is graded by probed-app, not here).

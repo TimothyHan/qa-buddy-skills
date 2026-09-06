@@ -1,5 +1,5 @@
 {
-  "scored_by": "proposed:claude",
+  "scored_by": "Timothy Han",
   "date": "2026-09-05",
   "acceptable": true,
   "scores": {
@@ -8,14 +8,5 @@
     "dedup-by-assertion": 3,
     "prioritization": 3,
     "observed-or-unverified": 1
-  },
-  "rationale": {
-    "traceability": "AC1–AC6 all mapped (8 cases), consistent mapping, test_gaps listed — 3",
-    "coverage-honesty": "'full' only where happy + negative exist (AC1, AC4), 'partial' with the gap named elsewhere; AC6 'full' on one edge case is the one arguable value — 3 (could be 2)",
-    "dedup-by-assertion": "names TC-03's exact assertion and why it cannot fail for AC3, refuses to credit it, replaces both spec cases and explains — anchor 3",
-    "prioritization": "P0 3 of 8, distinct cases, core paths P0 — 3",
-    "observed-or-unverified": "'New project', 'Name already exists', 'No projects yet' are real but nothing is Observed or marked (unverified) — anchor 1",
-    "acceptable": "strong document; the missing observation marks are the only gap"
-  },
-  "how_to_approve": "Replace scored_by with your name, change any score or acceptable you disagree with, delete this field if you like. Until scored_by is a person, calibrate ignores this entry."
+  }
 }

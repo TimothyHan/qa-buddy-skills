@@ -1,5 +1,5 @@
 {
-  "scored_by": "proposed:claude",
+  "scored_by": "Timothy Han",
   "date": "2026-09-05",
   "acceptable": true,
   "scores": {
@@ -8,14 +8,5 @@
     "dedup-by-assertion": 3,
     "prioritization": 3,
     "observed-or-unverified": 2
-  },
-  "rationale": {
-    "traceability": "AC1–AC6 all mapped (TC-001–TC-010), every case names its AC, mapping and document agree, test_gaps listed — 3",
-    "coverage-honesty": "AC3 and AC6 claimed 'full' on one case each; AC3 is itself a negative behaviour so arguable, AC6 less so — anchor 2",
-    "dedup-by-assertion": "smoke test cited only as a testid source, not credited as coverage; nothing else to credit — 3",
-    "prioritization": "P0 3 / P1 5 / P2 2, distinct cases, P0 on the core happy paths — 3",
-    "observed-or-unverified": "declares 'no live-app probe'; details sourced from spec + smoke test, uncertain ones marked (unverified); generic wording ('삭제 컨트롤') where the label was not known — anchor 2",
-    "acceptable": "complete, honest document; the skipped probe is a process finding (probed-app), not a document flaw"
-  },
-  "how_to_approve": "Replace scored_by with your name, change any score or acceptable you disagree with, delete this field if you like. Until scored_by is a person, calibrate ignores this entry."
+  }
 }
