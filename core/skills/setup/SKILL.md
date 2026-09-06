@@ -1,10 +1,11 @@
 ---
 name: setup
-version: 0.4.6
+version: 0.5.0
 description: |
   First-run configuration wizard for QABuddy. Sets up context source (Jira, spec
   docs, chat, custom), team mode (solo vs PR-based), and project preferences.
-  Writes .qabuddy.json to the project root. Re-run to reconfigure.
+  Writes .qabuddy.json to the project root. Optionally wires QABuddy to run on
+  pull requests (the reusable PR-coverage workflow). Re-run to reconfigure.
   Use when: "setup", "configure", "first time setup", "change settings".
   Do NOT use when: asking about QABuddy features, asking how to use a skill, mid-workflow.
 tool-groups:
@@ -197,6 +198,45 @@ mkdir -p features-kb/team-practices
 
 ---
 
+## Phase 5b: PR Automation (optional)
+
+Only when the repository is on GitHub (`git remote get-url origin` names github.com)
+and `gh` is available; skip silently otherwise, and always skip in headless mode.
+
+"Want QABuddy to run on pull requests? Each PR gets its diff mapped to your features,
+test cases written, optionally the running app explored and the gaps automated, then one
+coverage-heatmap comment and a companion PR carrying the tests."
+- **(A) Yes, set it up** (Recommended when team mode is `team`)
+- **(B) Not now** — run `/qa-setup` again later, or the scaffolder by hand
+
+**If Yes:**
+1. **Probe, don't ask.** `package.json` `scripts.start` / `dev` → the start command; a port
+   in that script, `.env.example`, or the README → the app URL. Present both as a
+   recommendation: "Start with `npm start` on http://localhost:3000 — correct?"
+2. **Scaffold:**
+   ```bash
+   node {{REFERENCE_PATH}}/bin/pr-coverage.js init --app-start "{cmd}" --app-url "{url}" --labels true
+   ```
+   It writes `.github/workflows/qabuddy.yml` (a caller of QABuddy's reusable workflow),
+   creates the `qa:*` labels, and prints what is still missing.
+3. **Walk the SDT through what only they can do**, one item at a time. **Never collect a
+   token or key yourself — never ask the SDT to paste one into the chat.**
+   - the token: `claude setup-token`, then `gh secret set CLAUDE_CODE_OAUTH_TOKEN`
+     (subscription) — or `gh secret set ANTHROPIC_API_KEY` (needs API credit)
+   - app login, if any: secrets `TEST_USER` / `TEST_PASS`, or plain `test-user` /
+     `test-pass` inputs in the caller for a public demo account
+   - Settings → Actions → General → allow GitHub Actions to create and approve pull requests
+   - every feature needs a `sources.json` — `/qa-test-plan` writes it; the scaffolder
+     lists the features without one
+4. **Explain the defaults** in one paragraph: `kb` on every PR open; labels `qa:explore` /
+   `qa:automate` / `qa:full` or `/qabuddy …` comments for more; a merged companion PR
+   continues the chain; `/qabuddy heatmap` refreshes for free. Offer to set
+   `default-phases`, `after-companion-merge`, `issues-for`, `gate-on` in the caller if the
+   SDT wants different behaviour.
+5. Suggest committing the caller together with `.qabuddy.json`.
+
+---
+
 ## Phase 6: Next Steps
 
 After saving:
@@ -209,6 +249,7 @@ Your setup:
 - {jira project / spec location / custom method}
 - Team practices: {N} documented, {M} not yet defined
 - Learnings layer: {learningsPath} + learnings-log.jsonl (self-improve active on every skill run)
+- PR automation: {.github/workflows/qabuddy.yml written — set the secret to activate | not set up}
 
 Next: Run `/qa-start {EPIC-KEY or feature description}` to begin the guided workflow.
 Or use any skill individually: `/qa-test-plan`, `/qa-review-ticket`, etc."

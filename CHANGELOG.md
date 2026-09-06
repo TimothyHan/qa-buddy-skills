@@ -29,6 +29,9 @@ Not proposed for `main`.
   `pr-coverage.js init` writes. `pr-coverage.js merge` (three-way union of phase trees),
   `preflight` (prerequisites before any spend), `init` (scaffolder). Prompts, `render.js`,
   `install.sh`, MCP config under `.github/pr-coverage/`.
+- `/qa-setup` Phase 5b: optional PR automation — scaffolds the caller via
+  `pr-coverage.js init`, creates labels, walks the SDT through the secret and the repo
+  setting without ever collecting a token (0.5.0).
 - KB spec §6.8 `sources.json` (code and test globs per feature) and §6.9
   `exploratory/{date}.md` (persisted session with an AC-keyed results table).
 

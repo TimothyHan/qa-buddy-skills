@@ -28,6 +28,8 @@ PR 트리거 실행의 개념 증명([RFC 0004](docs/rfc/0004-headless-pr-covera
   사용. `pr-coverage.js merge`(페이즈 트리 3-way 합집합), `preflight`(지출 전 전제조건
   검사), `init`(스캐폴더). 프롬프트·`render.js`·`install.sh`·MCP 설정은
   `.github/pr-coverage/`에.
+- `/qa-setup` Phase 5b: 선택적 PR 자동화 -- `pr-coverage.js init`으로 호출자를 스캐폴드하고,
+  라벨을 만들고, 토큰을 직접 받지 않은 채 시크릿과 저장소 설정을 안내(0.5.0).
 - KB 명세 §6.8 `sources.json`(기능별 코드·테스트 glob)과 §6.9
   `exploratory/{date}.md`(AC 키 결과 표를 가진 영속 세션).
 

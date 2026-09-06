@@ -153,6 +153,50 @@
         "self-improve",
         "init"
       ]
+    },
+    {
+      "id": "fx-006",
+      "description": "PR automation step: scaffolds the caller with pr-coverage.js init, walks the secret and repo setting, never collects a token",
+      "input": {
+        "repo": "GitHub remote, gh available, team mode, package.json with scripts.start",
+        "answers": "(A) yes to PR automation"
+      },
+      "assertions": [
+        {
+          "field": "output",
+          "op": "contains",
+          "value": "pr-coverage.js init"
+        },
+        {
+          "field": "output",
+          "op": "contains",
+          "value": "qabuddy.yml"
+        },
+        {
+          "field": "output",
+          "op": "contains",
+          "value": "setup-token"
+        },
+        {
+          "field": "output",
+          "op": "not_contains",
+          "value": "paste the token"
+        },
+        {
+          "field": "output",
+          "op": "not_contains",
+          "value": "paste your token"
+        },
+        {
+          "field": "output",
+          "op": "not_contains",
+          "value": "paste your API key"
+        }
+      ],
+      "tags": [
+        "pr-automation",
+        "rfc-0004"
+      ]
     }
   ]
 }
