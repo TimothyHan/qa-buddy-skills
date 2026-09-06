@@ -4,7 +4,7 @@
   "acceptable": false,
   "scores": {
     "finding-correctness": 3,
-    "classification": 3,
+    "classification": 2,
     "evidence": 3,
     "charter-quality": 0,
     "no-duplicate-scenarios": 0,
@@ -12,10 +12,10 @@
   },
   "revisions": [
     {
-      "criterion": "unexplored-noted",
-      "from": 1,
-      "to": 0,
-      "why": "no focus-area accounting — anchor 0",
+      "criterion": "classification",
+      "from": 3,
+      "to": 2,
+      "why": "both findings are confirmations (\"as expected\") carrying Normal/Medium — a scale value on a no-impact finding is the one inconsistency of anchor 2",
       "date": "2026-09-06"
     }
   ],

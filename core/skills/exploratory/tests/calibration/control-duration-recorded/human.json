@@ -1,5 +1,5 @@
 {
-  "scored_by": "proposed:claude (revision of Timothy Han)",
+  "scored_by": "Timothy Han",
   "date": "2026-09-05",
   "acceptable": false,
   "scores": {
@@ -9,15 +9,5 @@
     "charter-quality": 0,
     "no-duplicate-scenarios": 3,
     "unexplored-noted": 0
-  },
-  "revisions": [
-    {
-      "criterion": "unexplored-noted",
-      "from": 1,
-      "to": 0,
-      "why": "no focus-area accounting — anchor 0",
-      "date": "2026-09-06"
-    }
-  ],
-  "how_to_approve": "Replace scored_by with your name to accept these revisions (or undo any you disagree with)."
+  }
 }

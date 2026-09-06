@@ -1,5 +1,5 @@
 {
-  "scored_by": "proposed:claude (revision of Timothy Han)",
+  "scored_by": "Timothy Han",
   "date": "2026-09-05",
   "acceptable": true,
   "scores": {
@@ -9,15 +9,5 @@
     "charter-quality": 0,
     "no-duplicate-scenarios": 3,
     "unexplored-noted": 3
-  },
-  "revisions": [
-    {
-      "criterion": "classification",
-      "from": 1,
-      "to": 3,
-      "why": "the N/A values sit on positive confirmations (F6 XSS, F7 dropdown) — allowed under the clarified statement",
-      "date": "2026-09-06"
-    }
-  ],
-  "how_to_approve": "Replace scored_by with your name to accept these revisions (or undo any you disagree with)."
+  }
 }
