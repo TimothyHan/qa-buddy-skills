@@ -1,0 +1,7 @@
+{
+  "id": "control-no-code",
+  "source": "control",
+  "case": "projects-happy",
+  "origin": "tests/controls/no-code.md",
+  "added": "2026-09-05"
+}

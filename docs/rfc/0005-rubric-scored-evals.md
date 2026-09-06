@@ -1,6 +1,6 @@
 # RFC 0005 — Rubric-scored skill evals: grading performance, not shape
 
-**Status:** Draft | **Author:** Timothy Han (with Claude) | **Created:** 2026-09-05
+**Status:** Accepted — PR1–PR5 built, both pilots calibrated (2026-09-06) | **Author:** Timothy Han (with Claude) | **Created:** 2026-09-05
 **Depends on:** RFC 0004 (headless runs, `claude -p`, the reusable workflow) · RFC 0001 (run directory, `events.jsonl`, `learnings-log.jsonl`)
 **Companion:** [0005-rubric-scored-evals-plan.md](0005-rubric-scored-evals-plan.md) — per-PR implementation plan
 **Locale:** English is the normative record; 한국어 요약 below.
@@ -16,8 +16,8 @@ execute 모드는 강하지만 코드 산출 스킬 3개에만 있다. 이 도�
 3. 모델이 바뀌면 스킬이 필요로 하는 컨텍스트가 바뀌는가 (CONTRIBUTING의 Sonnet 피로 전제는 2026-04-11에 쓰였고 Sonnet 5에서 검증된 적이 없다).
 
 이 RFC는 **루브릭 기반 채점**을 더한다. 세 역할을 분리한다: **러너**(대상 모델에서 헤드리스로
-스킬 실행, 루브릭을 모름), **판정자**(별도 모델 호출, 입력·산출물·루브릭만 받고 SKILL.md는 절대
-보지 않음), **결정적 검사**(exit code, grep, 로그 — 공짜이고 정확함). 기준은 스킬 자신의
+스킬 실행, 루브릭을 모름), **판정자**(러너와 **다른 모델** — Opus가 Sonnet 실행을 채점, 결정 15 — 입력·산출물·루브릭만 받고
+SKILL.md는 절대 보지 않음), **결정적 검사**(exit code, grep, 로그 — 공짜이고 정확함). 기준은 스킬 자신의
 제약·자체 평가 항목에서 나오고 그 줄을 인용해야 한다. 가중 합계 하나로 게이트하지 않는다 —
 **must 기준마다 바닥값**이 있고 하나라도 깨지면 FAIL이다. 모든 must 기준은 **네거티브 컨트롤**
 (일부러 망가뜨린 산출물)이 바닥 아래로 떨어지는 것을 증명해야 하며, 판정자는 사람이 채점한
@@ -55,7 +55,7 @@ quality, which requires a way to score quality that is not the runner grading it
 | Role | What it is | Sees | Never sees |
 |---|---|---|---|
 | **Runner** | the skill, executed headless on the target model against a case (RFC 0004 `claude -p` path; the reusable workflow in CI) | the installed skill, the case input, the app | the rubric, the judge notes |
-| **Judge** | one separate model call per artifact, pinned model, temperature 0 | the case input, the artifact(s), judge-only notes, the rubric's `judge` criteria with anchors | `SKILL.md`, the runner's transcript, other runs' scores |
+| **Judge** | one separate call per artifact to a **different model than the runner** — Opus judging Sonnet runs (decision 15) — pinned, temperature 0 | the case input, the artifact(s), judge-only notes, the rubric's `judge` criteria with anchors | `SKILL.md`, the runner's transcript, other runs' scores |
 | **Checks** | deterministic assertions: the existing execute-mode operators, greps, exit codes, and process checks over the run directory (`events.jsonl`, `scratchpad.md`, the execution file) | run artifacts | — |
 
 Simulate mode's circularity comes from one context playing all three roles. Separating them is the
@@ -66,7 +66,7 @@ whole design; everything else is bookkeeping.
 ```jsonc
 {
   "skill": "test-cases", "skill_version": "0.5.2", "rubric_version": 1,
-  "judge": { "model": "claude-sonnet-5", "prompt": "core/skills/eval/judge.md" },
+  "judge": { "model": "claude-opus-5", "prompt": "core/skills/eval/judge.md" },   // never the runner's model (decision 15)
   "threshold": null,                       // set by calibration (§2.6); null = report only, never PASS/FAIL
   "criteria": [
     { "id": "traceability", "kind": "judge", "weight": 3, "floor": 2,
@@ -189,6 +189,7 @@ calibrated rubric, `eval.js` before/after shows no floor breach and no regressio
 | 12 | Judge-only facts | `judge-notes.md`, never in the runner's input; `test.js` checks | `/qa-eval` constraint 7 (`ANSWER-KEY.md`) generalized |
 | 13 | Model attribution | runner and judge models recorded in every score file | evidence that cannot say which model produced it cannot answer the model-upgrade question |
 | 14 | Who writes rubrics? | a human; the tool validates | RFC 0002 §6: no LLM-written config; a rubric is the eval's config |
+| 15 | Judge model | **a different model than the runner: Opus 5 judges Sonnet 5 runs**; `test.js` refuses a rubric whose judge is the runner's model (2026-09-05, after #69) | a separate context removes self-grading, not shared blind spots; a judge from the same model tends to accept the same mistakes. Calibration (§2.6) still applies to Opus |
 
 ## 4. Implementation sequence
 
@@ -209,15 +210,64 @@ Detail per PR, with files, checks and acceptance, is in the [plan](0005-rubric-s
 | | Criterion | Kill if |
 |---|---|---|
 | (a) | every control scores below its floor in 3/3 judge passes | any control passes — that criterion's anchors are rewritten or the criterion dropped |
-| (b) | calibration agreement ≥ 80 % per criterion, 100 % on floors | two anchor revisions do not reach it — the criterion is not judge-gradable, move it to `check`/`process` or drop it |
-| (c) | judge repeatability: same artifact three times, total within 0.1 | exceeded at temperature 0 — the instrument is unusable for that skill |
+| (b) | calibration agreement ≥ 80 % per criterion, 100 % on floors — floor side decided per artifact by the majority of the three judge passes *(clarified 2026-09-06: one 3 in a 1/3/1 pass set was the only thing failing an otherwise-calibrated rubric)* | two anchor revisions do not reach it — the criterion is not judge-gradable, move it to `check`/`process` or drop it |
+| (c) | judge repeatability on real artifacts: no floored criterion changes side of its floor across three passes, and ≥ 80 % of (artifact, criterion) pairs score identically *(revised 2026-09-05 — see §6: the original "total within 0.1" failed on granularity, one anchor step on a weight-3 criterion is 0.143)* | floor flips on real artifacts, or pair agreement below 0.8 — the instrument is unusable for that skill |
 | (d) | discrimination: a deliberately degraded skill variant (e.g. `test-cases` with constraint 7 removed) scores below the intact one beyond the spread on the case that exercises it | it does not — the eval cannot see what the constraint buys, and cannot be used to decide ablations |
 | (e) | cost ≤ $15 per skill run, ≤ $30 per A/B; wall ≤ 45 min | 2× either cap |
 | (f) | at least one of the four open ablations is decided by the eval during the pilot | none — the bench is not paying for itself |
 
 ## 6. Outcomes
 
-*(filled in by PR3 and PR4)*
+### PR2 — bench built (2026-09-05)
+
+- Controls: test-cases 4/4 and exploratory 4/4 judge-criterion controls scored 0 in 3/3 Opus passes — every one below its floor (§5 a). $0.46.
+- First real run, `test-cases` / `projects-happy`: 19 turns, 140 s, 0 questions, $0.71 runner + $0.21 judge; total 0.786, no floor breach. Every judge score carried a quoted line.
+- Judge calls cost ≈ $0.01 each with `judge.md` as the whole system prompt and no tools; the runner is where the money goes ($0.44–0.81 per test-cases run, $2.1–2.9 per exploratory run at 93–118 turns).
+
+### PR3 — calibration sets assembled, judge measured, human scoring pending (2026-09-05)
+
+| skill | entries | sources | judge-only result |
+|---|---|---|---|
+| test-cases | 10 | 6 controls, 3 eval runs (projects-happy, thin-ticket, vacuous-coverage), 1 external (acme `projects.md`) | 3 passes, $2.20; real artifacts: 22/24 (artifact, criterion) pairs identical, **0 floor flips**; eval-run totals 0.881 / 0.857 / 0.762 with spread ≤ 0.024 |
+| exploratory | 10 | 5 controls, 4 eval runs (quick-timebox, v1-clean, v3-planted ×2), 1 external (acme PR #2 session) | 3 passes, $2.86; real artifacts: pair agreement 0.83, **0 floor flips**; eval-run totals 0.77 / 0.76 / 0.67 / 0.85 (spread up to 0.128 on v3-planted, driven by `finding-correctness` and `classification` flips) |
+
+What the first passes changed:
+
+- **§5 (c) rewritten.** A one-anchor flip on a weight-3 criterion moves a 0–1 total by 0.143, so "total within 0.1" failed on granularity. The rule is now measured on real artifacts as pair agreement ≥ 0.8 and zero floor flips; controls report variance but gate detection power only.
+- **The human read `traceability` as the skill's constraint 3 reads it — "no untested ACs" — while the anchors accepted a listed gap as bookkeeping.** First calibration disagreement, caught on the coverage-honesty control before any judge comparison. Rewritten per decision 14: a real AC without a test case scores 0 whether or not it is listed, unless the judge notes say it could not be covered (placeholder ACs, no app).
+- **Anchors and notes must not disagree.** The exploratory notes said an unspecified behaviour filed as a bug scores 1; anchor 0 still called it "invented", and the judge followed the anchor (0/1/0 on one real run). The rule now lives in anchor 1 and the notes only state facts.
+- **Judge notes must be complete about unspecified behaviour.** The v1-clean session filed the case-sensitive duplicate check as a defect; the spec never decides it, and the notes had not said so, so the judge scored the finding as invented. The notes now list the unspecified behaviours and score such a finding 1 (right observation, wrong category), not 0.
+- **The ko build labels duration `소요 시간`.** The `duration-recorded` check failed on 3/3 real runs for that reason alone; it now accepts both labels. A check written from the English template against a Korean install is a locale bug in the rubric, not in the skill.
+- **Skill findings surfaced by the bench, for `/qa-improve`:** `test-cases` skipped the live probe on a reachable app in a headless run and marked details `(unverified)` instead; `thin-ticket` with no app got no "unreachable" note in the scratchpad; the cases document carried a fenced block once in three runs.
+
+### PR4 — discrimination check and ablations (2026-09-05)
+
+**§5 (d), discrimination.** `eval.js ab test-cases --a HEAD --b eval/degraded-test-cases-no-c7 --cases projects-happy --runs 3` (the variant drops constraint 7, Phase 1 step 8 and self-check 7 — the "observed beats assumed" rule in all three places). 6 runs, $4.67.
+
+| criterion | A (intact) | B (rule removed) | verdict |
+|---|---|---|---|
+| probed-app (process) | 3 / 3–3 | 0 / 0–0, floor breached in 3/3 runs | **regression** |
+| observed-or-unverified (judge) | 2 / 1–3 | 1 / 1–1 | inside A's spread |
+| total | 0.841, spread 0.238 | 0.722, spread 0.096 | not distinguishable at n=3 |
+
+The bench sees what the rule buys: the process criterion separates the variants cleanly and every B run breaches a floor, so B would FAIL any calibrated gate. The total is masked by A's own variance (one A run scored `coverage-honesty` 0). Two lessons for ablations: read the per-criterion table, not the total; and a criterion that the removed text feeds directly (here `probed-app`) is the one to watch.
+
+**Ablations** (variant branches `eval/ablation-*`, pinned A = `feat/rfc-0005-pr4-ab`): results are appended below as they land.
+
+| # | variant B | skill / cases | result |
+|---|---|---|---|
+| 1 | the observed-beats-assumed rule stated once (Phase 1 step 8 only; constraint 7 and self-check 7 dropped) | test-cases / all three, 3 runs | 18 runs, $14.78. Total A 0.815 (spread 0.333) → B 0.714 (spread 0.19): **not distinguishable at n=3, but every moved criterion moved the same way** — `probed-app` 1.33 → 0 (A probed in 4/9 runs, B in 0/9), `observed-or-unverified` 2.0 → 1.44, `coverage-honesty` 2.11 → 1.44, floor breaches 7 → 14. Reading: on Sonnet 5 the repeated statement is not inert; the single procedural statement is weaker. **Do not collapse.** The stronger finding is about A itself: even with the rule in three places the skill probes a reachable app less than half the time — a `/qa-improve` item, not an ablation result. |
+| 2 | `exploratory-heuristics#techniques-per-heuristic` removed | exploratory / v3-planted, 3 runs | 6 runs, $19.31. Total A 0.786 (spread 0.179) → B 0.744 (spread 0.103): not distinguishable. Direction against B on `charter-quality` 1.0 → 0.33, `finding-correctness` 1.67 → 1.33, `classification` 2.67 → 2.33; `evidence` up 2.67 → 3.0. Reading: the technique lists shape the charter more than the findings; the planted bug was found on both sides. **Keep the section** — the cost is 13 lines in one skill's slice and the direction is against removal. |
+| 3 | `shift-left#principles` removed | test-plan | deferred — no test-plan case (plan PR6) |
+| 4 | constraints, self-checks and two preamble sections restated verbatim (≈ 1.6× length) | test-cases / all three, 3 runs | 18 runs, $15.13. Total A 0.77 (spread 0.286) → B 0.833 (spread 0.239): not distinguishable, **direction favours the longer variant** on every criterion that moved (`traceability` +0.22, `coverage-honesty` +0.56, `prioritization` +0.45, `observed-or-unverified` +0.56; none moved against). Reading: on Sonnet 5, 1.6× redundant instruction text did not degrade the output; the CONTRIBUTING fatigue premise (2026-04-11, Sonnet 4 era) is **not supported at this n**. The 300-line budget stays as a discipline, not as a measured cliff. |
+
+**Ablation tally (2026-09-05, $53.89 for the four A/Bs including the discrimination check):** no ablation cleared the spread rule at n=3, which is the honest outcome of a small-n bench on a noisy skill — and every one of them has a consistent direction. Two decisions follow: do not collapse the triple statement (1) and keep the technique lists (2); one premise is weakened: length itself did not hurt Sonnet 5 (4). Ablation 3 waits for a test-plan case. §5 (f) is met.
+
+**test-cases calibrated (2026-09-06).** Timothy scored all ten entries; three calibration passes and two anchor revisions later (no-coverage-values = nothing claimed; spec-copied details need no observation mark; crediting nothing is anchor 3; floor side decided by majority of passes), agreement is traceability 1.0, coverage-honesty 1.0, dedup-by-assertion 1.0, prioritization 0.97, observed-or-unverified 0.90; floor agreement 1.0 on every floored criterion; pair agreement 0.95 on real artifacts; **threshold 0.857** (the lowest judge total among the three real runs marked acceptable). The rubric now gates. Total calibration judge spend ≈ $8.
+
+**exploratory calibrated (2026-09-06).** Same loop, three passes: five anchor clarifications (distinct scenarios suffice; a report with no focus-area accounting scores 0 on unexplored-noted; a confirmation may say "as expected" and carry N/A; a results table is not a charter) and ten score revisions, all but one on the drafted proposals. Final agreement (as written into `rubric.json`): finding-correctness 0.87, classification 0.90, evidence 0.83, charter-quality 0.90, no-duplicate-scenarios 1.0, unexplored-noted 1.0; floor agreement 1.0 on every floored criterion; pair agreement 0.9; **threshold 0.709** (the v1-clean run, the lowest of the four real sessions marked acceptable). Both pilot rubrics now gate; §5 (b) is met.
+
+Thresholds are recorded in each `rubric.json`; changing an anchor, the judge model, or a cited constraint resets them. Nothing further stays `null` for the pilots — the next `eval.js run` verdict is PASS or FAIL, and `/qa-improve`'s rubric gate (PR5) is live for `test-cases` and `exploratory`. Legacy note: thresholds stay `null` for any future rubric until the maintainer fills `human.json` for the twenty entries (blind, from the scoring sheets) and `eval.js calibrate` passes gates (b) and (c).
 
 ## 7. Non-goals
 
@@ -232,8 +282,7 @@ Detail per PR, with files, checks and acceptance, is in the [plan](0005-rubric-s
 
 1. Should projects add their own criteria (`PRJ-` style) so a team's expectations grade the same
    output? Deferred until two pilots show the judge is stable.
-2. Judge model: same family as the runner (Sonnet 5 grading Sonnet 5, different context) or a
-   different one? Calibration (b) decides empirically; the risk of shared blind spots is noted.
+2. *(resolved as decision 15: the judge is Opus, never the runner's model)*
 3. Case inputs for Jira-dependent skills (`review-ticket`, `test-plan`) — spec-mode files are the
    plan; whether they exercise the skills realistically is unknown until PR6.
 4. Should `stats` learn to read `scores.json` so a section's citation count can sit beside the

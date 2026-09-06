@@ -4,6 +4,8 @@ Working document for [RFC 0005](0005-rubric-scored-evals.md). One section per PR
 behaviour, checks, acceptance, cost. Each PR is green on `node test.js` and independently
 revertable. Timothy merges every PR.
 
+**Status 2026-09-06:** PR1–PR5 delivered on `feat/rfc-0005-rubric-evals` (#71–#75); PR6 deferred (no other skill has enough logged runs). User guide: [docs/skill-evals-en.md](../skill-evals-en.md).
+
 Conventions that apply throughout: en + ko twins for every `SKILL.md` and reference edit; badge
 re-sync when the check count moves; no credentials in committed files; `dist/` is generated.
 
@@ -115,6 +117,7 @@ findings); **v3-planted** (delete returns 204 but the row stays — the RFC 0004
 - `judge` criteria have four anchors; `check`/`process` have a `check` block with a known operator
 - every criterion with `floor > 0` has `tests/controls/<id>.md`
 - `threshold` is null unless `calibration` is present
+- `judge.model` is an Opus id and never equals the runner model passed to `eval.js` (decision 15)
 - every case has `case.json` + `input/`; no file under `input/` contains a line from
   `judge-notes.md` (the ANSWER-KEY rule)
 - CONTRIBUTING: new section "Rubrics" (en + ko), submission checklist item
@@ -161,7 +164,7 @@ node bin/eval.js report <eval-dir>         # regenerate report.md from scores.js
 
 ```jsonc
 { "schema": "eval-scores/1", "skill": "test-cases", "skill_version": "0.5.2", "rubric_version": 1,
-  "ref": { "name": "HEAD", "sha": "…" }, "models": { "runner": "claude-sonnet-5", "judge": "claude-sonnet-5" },
+  "ref": { "name": "HEAD", "sha": "…" }, "models": { "runner": "claude-sonnet-5", "judge": "claude-opus-5" },
   "controls": { "traceability": { "score": 1, "floor": 2, "ok": true }, … },
   "cases": [ { "id": "projects-happy", "runs": [
       { "n": 1, "cost_usd": 1.24, "turns": 33, "run_dir": "…",
@@ -219,6 +222,8 @@ $1.31) ≈ $12, plus ≈ 10 judge calls.
    (c) hold, otherwise prints the criteria to revise.
 4. Anchor revisions are commits; each re-runs calibration. Two failed revisions on one criterion →
    move it to `check`/`process` or drop it (RFC §5 (b) kill).
+
+**Status 2026-09-06: done.** Both pilot rubrics calibrated — test-cases threshold 0.857 (three passes, two anchor revisions), exploratory threshold 0.709 (three passes, five anchor clarifications). Every calibration disagreement was resolved by rewording an anchor or correcting a drafted score, never by moving a human score to match the judge. Details in RFC §6.
 
 ### Acceptance
 
@@ -296,6 +301,8 @@ edit or skill edit) citing the eval run.
 
 ## PR6 — Remaining prose skills (optional, per skill)
 
+**Status 2026-09-05:** not started — no other skill reaches the ≥ 8 logged runs the calibration set needs (qa 5, test-plan 2, review-ticket 1 across the three logged projects). Revisit when a project's logs cross the line.
+
 Only when a skill has ≥ 8 logged runs to calibrate against. Order by log volume: `qa`,
 `e2e-pom`/`e2e-write` (execute criteria as floors), `test-plan`, `review-ticket`, `verify-fix`.
 Each is its own PR: rubric + 3 cases + controls + calibration.
@@ -315,9 +322,10 @@ Each is its own PR: rubric + 3 cases + controls + calibration.
 
 ## Risks
 
-- **Judge shares the runner's blind spots** (same model family). Calibration agreement is the only
-  defence; if (b) fails on a criterion that a human grades easily, switch the judge model for that
-  rubric and re-calibrate.
+- **Judge and runner are both Claude models.** Decision 15 puts Opus on the judge seat so the runner
+  never grades itself or its twin; residual shared blind spots are what calibration (b) exists to
+  catch. If (b) fails on a criterion a human grades easily, the anchors are the first suspect, the
+  judge model the second.
 - **Fixture app is too small** to show differences between variants (ceiling effect). Mitigation:
   the acme scratch repository cases and the thin/vacuous cases are designed to be hard, not happy.
 - **n=3 noise swamps small effects.** Stated in every report; ablations that come out "not

@@ -1,0 +1,13 @@
+{
+  "scored_by": "Timothy Han",
+  "date": "2026-09-05",
+  "acceptable": false,
+  "scores": {
+    "finding-correctness": 3,
+    "classification": 3,
+    "evidence": 0,
+    "charter-quality": 0,
+    "no-duplicate-scenarios": 3,
+    "unexplored-noted": 0
+  }
+}

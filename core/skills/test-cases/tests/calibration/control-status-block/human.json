@@ -1,0 +1,12 @@
+{
+  "scored_by": "Timothy Han",
+  "date": "2026-09-05",
+  "acceptable": false,
+  "scores": {
+    "traceability": 0,
+    "coverage-honesty": 1,
+    "dedup-by-assertion": 3,
+    "prioritization": 0,
+    "observed-or-unverified": 3
+  }
+}

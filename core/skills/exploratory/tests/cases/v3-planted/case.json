@@ -1,0 +1,7 @@
+{
+  "id": "v3-planted",
+  "description": "DELETE returns 204 but the row stays listed — the session must find it (RFC 0004 §4 (c): found 3/3 so far)",
+  "app": "v3", "port": 4173,
+  "runner_args": "projects --headless --url http://localhost:4173",
+  "tags": ["planted-bug", "AC4"]
+}

@@ -1,0 +1,66 @@
+# RFC 0005 PR4 — rubric-scored skill eval, on demand. One skill, one or two QABuddy refs.
+# `ref-b` empty → a single `eval.js run`; set → `eval.js ab` (A/B, the ablation bench).
+# Costs real money: the runner is claude-sonnet-5 via the subscription token (or an API key),
+# the judge is the rubric's Opus model. `budget-usd` stops the job and reports partial.
+name: Skill eval (RFC 0005)
+
+on:
+  workflow_dispatch:
+    inputs:
+      skill:      { type: string, required: true,  description: "Skill with a rubric: test-cases | exploratory" }
+      ref-a:      { type: string, default: "HEAD",  description: "QABuddy git ref for variant A (HEAD = this checkout)" }
+      ref-b:      { type: string, default: "",      description: "QABuddy git ref for variant B (empty = single run, no A/B)" }
+      cases:      { type: string, default: "",      description: "Comma-separated case ids (empty = all)" }
+      runs:       { type: string, default: "3" }
+      model:      { type: string, default: "claude-sonnet-5", description: "Runner model (the judge is pinned in rubric.json)" }
+      budget-usd: { type: string, default: "30",    description: "Eval-level cap; the job stops and reports partial at this spend" }
+      locale:     { type: string, default: "ko",    description: "Which build to install for the runner (ko matches the maintainer's install)" }
+
+jobs:
+  eval:
+    runs-on: ubuntu-latest
+    timeout-minutes: 240
+    env:
+      CLAUDE_CODE_OAUTH_TOKEN: ${{ secrets.CLAUDE_CODE_OAUTH_TOKEN }}
+      ANTHROPIC_API_KEY: ${{ secrets.CLAUDE_CODE_OAUTH_TOKEN == '' && secrets.ANTHROPIC_API_KEY || '' }}
+    steps:
+      - uses: actions/checkout@v4
+        with: { fetch-depth: 0 }          # variants are git worktrees of arbitrary refs
+      - uses: actions/setup-node@v4
+        with: { node-version: "20" }
+      - name: Install QABuddy (HEAD) globally — the runner reads ~/.claude/skills/qa-references
+        run: |
+          npm ci --silent
+          node build.js all && node build.js all --locale ko
+          dist/${{ inputs.locale == 'ko' && 'ko/' || '' }}claude/setup
+          dist/${{ inputs.locale == 'ko' && 'ko/' || '' }}claude/setup --status
+      - name: Claude Code CLI + Playwright browser for the MCP server
+        run: |
+          npm install -g @anthropic-ai/claude-code
+          npx --yes playwright@1.47.0 install --with-deps chromium
+          claude --version
+      - name: Controls (judge only — refuses a vacuous rubric before any runner spend)
+        run: node bin/eval.js controls "${{ inputs.skill }}" --passes 3
+      - name: Run
+        env:
+          CASES: ${{ inputs.cases }}
+        run: |
+          set -euo pipefail
+          ARGS=(--runs "${{ inputs.runs }}" --model "${{ inputs.model }}" --eval-budget "${{ inputs.budget-usd }}" --skip-controls)
+          [ -n "$CASES" ] && ARGS+=(--cases "$CASES")
+          if [ -n "${{ inputs.ref-b }}" ]; then
+            node bin/eval.js ab "${{ inputs.skill }}" --a "${{ inputs.ref-a }}" --b "${{ inputs.ref-b }}" --locale "${{ inputs.locale }}" "${ARGS[@]}" --out .qa-reports/evals/ci
+          else
+            node bin/eval.js run "${{ inputs.skill }}" "${ARGS[@]}" --out .qa-reports/evals/ci
+          fi
+      - name: Summary
+        if: always()
+        run: |
+          { [ -f .qa-reports/evals/ci/ab-report.md ] && cat .qa-reports/evals/ci/ab-report.md; } || { [ -f .qa-reports/evals/ci/report.md ] && cat .qa-reports/evals/ci/report.md; } || echo "no report produced" >> "$GITHUB_STEP_SUMMARY"
+          { [ -f .qa-reports/evals/ci/ab-report.md ] && cat .qa-reports/evals/ci/ab-report.md || cat .qa-reports/evals/ci/report.md; } >> "$GITHUB_STEP_SUMMARY" 2>/dev/null || true
+      - uses: actions/upload-artifact@v4
+        if: always()
+        with:
+          name: skill-eval-${{ inputs.skill }}-${{ github.run_id }}
+          path: .qa-reports/evals/ci
+          include-hidden-files: true

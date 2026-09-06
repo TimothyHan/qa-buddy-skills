@@ -1,0 +1,7 @@
+{
+  "id": "control-observed-or-unverified",
+  "source": "control",
+  "case": "projects-happy",
+  "origin": "tests/controls/observed-or-unverified.md",
+  "added": "2026-09-05"
+}
