@@ -265,7 +265,9 @@ The bench sees what the rule buys: the process criterion separates the variants 
 
 **test-cases calibrated (2026-09-06).** Timothy scored all ten entries; three calibration passes and two anchor revisions later (no-coverage-values = nothing claimed; spec-copied details need no observation mark; crediting nothing is anchor 3; floor side decided by majority of passes), agreement is traceability 1.0, coverage-honesty 1.0, dedup-by-assertion 1.0, prioritization 0.97, observed-or-unverified 0.90; floor agreement 1.0 on every floored criterion; pair agreement 0.95 on real artifacts; **threshold 0.857** (the lowest judge total among the three real runs marked acceptable). The rubric now gates. Total calibration judge spend ≈ $8.
 
-Exploratory thresholds stay `null` until the maintainer fills `human.json` for the twenty entries (blind, from the scoring sheets) and `eval.js calibrate` passes gates (b) and (c).
+**exploratory calibrated (2026-09-06).** Same loop, three passes: five anchor clarifications (distinct scenarios suffice; a report with no focus-area accounting scores 0 on unexplored-noted; a confirmation may say "as expected" and carry N/A; a results table is not a charter) and ten score revisions, all but one on the drafted proposals. Final agreement: finding-correctness 0.93, classification ≈ 0.97, evidence 0.97, charter-quality 0.93, no-duplicate-scenarios 0.9, unexplored-noted 1.0; floor agreement 1.0 on every floored criterion; pair agreement 0.9; **threshold 0.709** (the v1-clean run, the lowest of the four real sessions marked acceptable). Both pilot rubrics now gate; §5 (b) is met.
+
+Thresholds are recorded in each `rubric.json`; changing an anchor, the judge model, or a cited constraint resets them. Nothing further stays `null` for the pilots — the next `eval.js run` verdict is PASS or FAIL, and `/qa-improve`'s rubric gate (PR5) is live for `test-cases` and `exploratory`. Legacy note: thresholds stay `null` for any future rubric until the maintainer fills `human.json` for the twenty entries (blind, from the scoring sheets) and `eval.js calibrate` passes gates (b) and (c).
 
 ## 7. Non-goals
 

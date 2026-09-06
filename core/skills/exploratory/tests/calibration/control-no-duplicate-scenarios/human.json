@@ -1,5 +1,5 @@
 {
-  "scored_by": "proposed:claude (revision of Timothy Han)",
+  "scored_by": "Timothy Han",
   "date": "2026-09-05",
   "acceptable": false,
   "scores": {
@@ -9,15 +9,5 @@
     "charter-quality": 0,
     "no-duplicate-scenarios": 0,
     "unexplored-noted": 0
-  },
-  "revisions": [
-    {
-      "criterion": "classification",
-      "from": 3,
-      "to": 2,
-      "why": "both findings are confirmations (\"as expected\") carrying Normal/Medium — a scale value on a no-impact finding is the one inconsistency of anchor 2",
-      "date": "2026-09-06"
-    }
-  ],
-  "how_to_approve": "Replace scored_by with your name to accept these revisions (or undo any you disagree with)."
+  }
 }

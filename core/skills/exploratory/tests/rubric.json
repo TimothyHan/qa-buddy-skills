@@ -11,8 +11,39 @@
     ".qa-reports/exploratory-*.md",
     "features-kb/**/exploratory/*.md"
   ],
-  "threshold": null,
-  "calibration": null,
+  "threshold": 0.709,
+  "calibration": {
+    "date": "2026-09-06",
+    "artifacts": 10,
+    "human_scored": 10,
+    "passes": 3,
+    "agreement": {
+      "finding-correctness": 0.87,
+      "classification": 0.9,
+      "evidence": 0.83,
+      "charter-quality": 0.9,
+      "no-duplicate-scenarios": 1,
+      "unexplored-noted": 1
+    },
+    "floor_agreement": {
+      "finding-correctness": 1,
+      "classification": 1,
+      "evidence": 1,
+      "charter-quality": null,
+      "no-duplicate-scenarios": 1,
+      "unexplored-noted": null
+    },
+    "floor_agreement_per_pass": {
+      "finding-correctness": 1,
+      "classification": 1,
+      "evidence": 1,
+      "charter-quality": null,
+      "no-duplicate-scenarios": 1,
+      "unexplored-noted": null
+    },
+    "pair_agreement": 0.9,
+    "judge": "claude-opus-5"
+  },
   "criteria": [
     {
       "id": "finding-correctness",
