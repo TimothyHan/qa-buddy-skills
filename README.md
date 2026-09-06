@@ -23,7 +23,7 @@ Built on the native **skills system** of your AI coding assistant.<br>
 QABuddy is a collection of `SKILL.md` files that your AI discovers and invokes automatically —<br>
 no separate app, no daemon; one pinned dependency — the [Akela](https://github.com/TimothyHan/akela) engine (itself zero-dependency), vendored into dist at build time.
 
-[Quick Start](#quick-start) · [Skills](#skills) · [Guided Workflow](#the-guided-workflow) · [Self-Learning Guide](docs/self-learning-guide-en.md) · [Skill Evals](docs/skill-evals-en.md) · [Changelog](CHANGELOG.md) · [Contributing](CONTRIBUTING-en.md)
+[Quick Start](#quick-start) · [Skills](#skills) · [Guided Workflow](#the-guided-workflow) · [Self-Learning Guide](docs/self-learning-guide-en.md) · [Skill Evals](docs/skill-evals-en.md) · [On Pull Requests](docs/pr-coverage-en.md) · [Changelog](CHANGELOG.md) · [Contributing](CONTRIBUTING-en.md)
 
 </div>
 
@@ -174,6 +174,19 @@ At every pause, you choose:
 | **(A) Approve** | Continue to next phase |
 | **(B) Content feedback** | Iterate on the output |
 | **(C) Tool feedback** | Dispatches to `/qa-improve`: root cause, approved fix, rebuild, eval — then resumes |
+
+---
+
+## On Pull Requests (POC)
+
+QABuddy can also run unattended on every pull request: a reusable GitHub workflow maps
+the PR's diff to your features, writes test cases, optionally explores the running app
+and automates the gaps, then posts **one coverage-heatmap comment** and delivers the
+generated files as a **companion PR** against the PR's own branch. A reviewer merging that
+companion continues the chain; findings that need a human become issues; nothing writes
+to the base branch. Set it up with `/qa-setup` or one `pr-coverage.js init` command.
+Proof of concept on branch `poc/cloud-service` — guide: [docs/pr-coverage-en.md](docs/pr-coverage-en.md),
+design: [RFC 0004](docs/rfc/0004-headless-pr-coverage.md).
 
 ---
 

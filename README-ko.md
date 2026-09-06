@@ -23,7 +23,7 @@ AI 코딩 어시스턴트의 네이티브 **스킬 시스템** 위에 구축되�
 QABuddy는 AI가 자동으로 인식하고 실행하는 `SKILL.md` 파일 모음입니다 —<br>
 별도의 앱과 데몬이 없고, 고정 의존성은 하나 — [Akela](https://github.com/TimothyHan/akela) 엔진(그 자체는 의존성 0)이며 빌드 시점에 dist로 벤더링됩니다.
 
-[빠른 시작](#빠른-시작) · [스킬](#스킬) · [안내 워크플로우](#안내-워크플로우) · [셀프러닝 가이드](docs/self-learning-guide.md) · [스킬 평가](docs/skill-evals.md) · [변경 이력](CHANGELOG-ko.md) · [기여하기](CONTRIBUTING.md)
+[빠른 시작](#빠른-시작) · [스킬](#스킬) · [안내 워크플로우](#안내-워크플로우) · [셀프러닝 가이드](docs/self-learning-guide.md) · [스킬 평가](docs/skill-evals.md) · [풀 리퀘스트 위에서](docs/pr-coverage.md) · [변경 이력](CHANGELOG-ko.md) · [기여하기](CONTRIBUTING.md)
 
 스킬 자체도 채점됩니다 — 지식만이 아니라: 대상 모델에서의 헤드리스 실행, 스킬 자신의 제약 조건에 대해 산출물을 채점하는 별도의 Opus 판정자, must 기준마다의 바닥값, 사람이 채점한 산출물에서 도출한 임계값 ([RFC 0005](docs/rfc/0005-rubric-scored-evals.md)).
 
@@ -172,6 +172,18 @@ node build.js all --locale ko
 | **(A) 승인** | 다음 단계로 진행 |
 | **(B) 내용 피드백** | 결과물을 반복 수정 |
 | **(C) 도구 피드백** | `/qa-improve`로 디스패치: 근본 원인, 승인된 수정, 리빌드, eval — 이후 재개 |
+
+---
+
+## 풀 리퀘스트 위에서 (POC)
+
+QABuddy는 모든 풀 리퀘스트에서 사람 없이 실행될 수도 있습니다: 재사용 GitHub 워크플로우가
+PR의 diff를 기능에 매핑하고, 테스트 케이스를 쓰고, 원하면 실행 중인 앱을 탐색해 갭을
+자동화한 뒤, **커버리지 히트맵 코멘트 하나**를 올리고 생성된 파일을 PR 자신의 브랜치에
+대한 **동반 PR**로 전달합니다. 리뷰어가 그 동반 PR을 머지하면 체인이 이어지고, 사람이
+필요한 발견은 이슈가 되며, 베이스 브랜치에는 아무것도 쓰지 않습니다. `/qa-setup` 또는
+`pr-coverage.js init` 한 번으로 설정합니다. `poc/cloud-service` 브랜치의 개념 증명 --
+가이드: [docs/pr-coverage.md](docs/pr-coverage.md), 설계: [RFC 0004](docs/rfc/0004-headless-pr-coverage.md).
 
 ---
 
