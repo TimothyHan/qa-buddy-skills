@@ -798,7 +798,8 @@ function testRubrics() {
   {
     const { spawnSync } = require('child_process');
     const help = spawnSync(process.execPath, [path.join(ROOT, 'bin', 'eval.js'), '--help'], { encoding: 'utf8' });
-    check(help.status === 0 && /controls <skill>/.test(help.stdout), 'eval.js --help exits 0 and lists the commands');
+    check(help.status === 0 && /controls <skill>/.test(help.stdout) && /ab <skill> --a/.test(help.stdout) && /calibrate <skill>/.test(help.stdout), 'eval.js --help exits 0 and lists run/controls/judge/report/calibrate/ab');
+    check(fs.existsSync(path.join(ROOT, '.github', 'workflows', 'skill-eval.yml')) && /workflow_dispatch/.test(readFile(path.join(ROOT, '.github', 'workflows', 'skill-eval.yml')) || '') && /eval\.js ab/.test(readFile(path.join(ROOT, '.github', 'workflows', 'skill-eval.yml')) || ''), 'skill-eval.yml is a manual-dispatch workflow that runs eval.js ab');
     const rep = spawnSync(process.execPath, [path.join(ROOT, 'bin', 'eval.js'), 'report', path.join(CORE_DIR, 'skills', 'eval', 'tests', 'sample-scores.json')], { encoding: 'utf8' });
     check(rep.status === 0 && /\| alpha \| judge \| 3 \| 2 \| 2\.00 \| 1 \| 3 \| 1 \|/.test(rep.stdout), 'eval.js report renders the per-criterion table (mean/min/max/breaches)', (rep.stdout || rep.stderr).slice(0, 200));
     check(/spread 0\.5/.test(rep.stdout) && /REPORT-ONLY/.test(rep.stdout) && /VACUOUS|✓/.test(rep.stdout), 'eval.js report carries the spread line, the verdict and the controls table');
