@@ -221,7 +221,7 @@ $1.31) ≈ $12, plus ≈ 10 judge calls.
 4. Anchor revisions are commits; each re-runs calibration. Two failed revisions on one criterion →
    move it to `check`/`process` or drop it (RFC §5 (b) kill).
 
-**Status 2026-09-05:** tooling shipped (`eval.js calibrate --init` / `calibrate`), sets assembled (10 entries per pilot skill, scoring sheets generated), judge repeatability measured (RFC §6). Blocked on the human step: `human.json` is blank in all twenty entries until the maintainer scores them. Thresholds stay `null`; PR4's A/B does not need them.
+**Status 2026-09-06: done.** Both pilot rubrics calibrated — test-cases threshold 0.857 (three passes, two anchor revisions), exploratory threshold 0.709 (three passes, five anchor clarifications). Every calibration disagreement was resolved by rewording an anchor or correcting a drafted score, never by moving a human score to match the judge. Details in RFC §6.
 
 ### Acceptance
 
@@ -298,6 +298,8 @@ edit or skill edit) citing the eval run.
 ---
 
 ## PR6 — Remaining prose skills (optional, per skill)
+
+**Status 2026-09-05:** not started — no other skill reaches the ≥ 8 logged runs the calibration set needs (qa 5, test-plan 2, review-ticket 1 across the three logged projects). Revisit when a project's logs cross the line.
 
 Only when a skill has ≥ 8 logged runs to calibrate against. Order by log volume: `qa`,
 `e2e-pom`/`e2e-write` (execute criteria as floors), `test-plan`, `review-ticket`, `verify-fix`.

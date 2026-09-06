@@ -1,12 +1,29 @@
 {
-  "scored_by": null,
-  "date": null,
-  "acceptable": null,
+  "scored_by": "proposed:claude (revision of Timothy Han)",
+  "date": "2026-09-05",
+  "acceptable": true,
   "scores": {
-    "traceability": null,
-    "coverage-honesty": null,
-    "dedup-by-assertion": null,
-    "prioritization": null,
-    "observed-or-unverified": null
-  }
+    "traceability": 3,
+    "coverage-honesty": 2,
+    "dedup-by-assertion": 3,
+    "prioritization": 3,
+    "observed-or-unverified": 3
+  },
+  "revisions": [
+    {
+      "criterion": "observed-or-unverified",
+      "from": 1,
+      "to": 3,
+      "why": "all named details are copied from the case input — anchor 3 under the revised statement",
+      "date": "2026-09-06"
+    },
+    {
+      "criterion": "coverage-honesty",
+      "from": 3,
+      "to": 2,
+      "why": "AC6 full on one edge case — \"argued either way\" — anchor 2",
+      "date": "2026-09-06"
+    }
+  ],
+  "how_to_approve": "Replace scored_by with your name to accept these revisions (or undo any you disagree with)."
 }

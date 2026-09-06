@@ -1,12 +1,12 @@
 {
-  "scored_by": null,
-  "date": null,
-  "acceptable": null,
+  "scored_by": "Timothy Han",
+  "date": "2026-09-05",
+  "acceptable": true,
   "scores": {
-    "traceability": null,
-    "coverage-honesty": null,
-    "dedup-by-assertion": null,
-    "prioritization": null,
-    "observed-or-unverified": null
+    "traceability": 3,
+    "coverage-honesty": 3,
+    "dedup-by-assertion": 3,
+    "prioritization": 3,
+    "observed-or-unverified": 3
   }
 }

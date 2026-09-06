@@ -1,13 +1,13 @@
 {
-  "scored_by": null,
-  "date": null,
-  "acceptable": null,
+  "scored_by": "Timothy Han",
+  "date": "2026-09-05",
+  "acceptable": true,
   "scores": {
-    "finding-correctness": null,
-    "classification": null,
-    "evidence": null,
-    "charter-quality": null,
-    "no-duplicate-scenarios": null,
-    "unexplored-noted": null
+    "finding-correctness": 3,
+    "classification": 3,
+    "evidence": 3,
+    "charter-quality": 0,
+    "no-duplicate-scenarios": 3,
+    "unexplored-noted": 3
   }
 }
