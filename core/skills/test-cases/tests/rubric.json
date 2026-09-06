@@ -2,13 +2,27 @@
   "skill": "test-cases",
   "skill_version": "0.5.2",
   "rubric_version": 1,
-  "judge": { "model": "claude-opus-5", "prompt": "core/skills/eval/judge.md", "temperature": 0 },
+  "judge": {
+    "model": "claude-opus-5",
+    "prompt": "core/skills/eval/judge.md",
+    "temperature": 0
+  },
+  "artifacts": [
+    "features-kb/**/test-cases/*.md",
+    "features-kb/**/test-cases/*-mapping.json"
+  ],
   "threshold": null,
   "calibration": null,
   "criteria": [
     {
-      "id": "traceability", "kind": "judge", "weight": 3, "floor": 2,
-      "cites": { "constraint": 3, "self_check": 1 },
+      "id": "traceability",
+      "kind": "judge",
+      "weight": 3,
+      "floor": 2,
+      "cites": {
+        "constraint": 3,
+        "self_check": 1
+      },
       "statement": "Every AC has at least one test case, every test case names its AC, and any AC without a case is listed as a gap (unmapped_requirements or test_gaps).",
       "anchors": {
         "0": "At least one AC has no test case and is not listed as a gap anywhere.",
@@ -18,8 +32,13 @@
       }
     },
     {
-      "id": "coverage-honesty", "kind": "judge", "weight": 2, "floor": 2,
-      "cites": { "self_check": 2 },
+      "id": "coverage-honesty",
+      "kind": "judge",
+      "weight": 2,
+      "floor": 2,
+      "cites": {
+        "self_check": 2
+      },
       "statement": "coverage is \"full\" only where a happy path, a negative case and (where applicable) a boundary case exist for that AC; otherwise it is \"partial\" with the gap named, or \"none\".",
       "anchors": {
         "0": "\"full\" is claimed for an AC that has only a happy-path case, or \"none\" is used where cases exist.",
@@ -29,25 +48,47 @@
       }
     },
     {
-      "id": "no-code", "kind": "check", "weight": 1, "floor": 1,
-      "cites": { "constraint": 2, "self_check": 6 },
+      "id": "no-code",
+      "kind": "check",
+      "weight": 1,
+      "floor": 1,
+      "cites": {
+        "constraint": 2,
+        "self_check": 6
+      },
       "statement": "The test cases document contains no fenced code; automation constraints go into Preconditions as prose.",
-      "check": { "field": "files:features-kb/**/test-cases/*.md", "op": "not_contains", "value": "```" }
+      "check": {
+        "field": "files:features-kb/**/test-cases/*.md",
+        "op": "not_contains",
+        "value": "```"
+      }
     },
     {
-      "id": "dedup-by-assertion", "kind": "judge", "weight": 2, "floor": 1,
-      "cites": { "constraint": 5, "self_check": 3 },
+      "id": "dedup-by-assertion",
+      "kind": "judge",
+      "weight": 2,
+      "floor": 1,
+      "cites": {
+        "constraint": 5,
+        "self_check": 3
+      },
       "statement": "An existing automated test is credited as covering an AC only with the file and the assertion that would fail if that AC broke; a test whose assertion cannot fail for the AC is not credited (judge notes name any such test).",
       "anchors": {
         "0": "A test the judge notes identify as vacuous is credited as coverage.",
         "1": "No vacuous test is credited, but a credit names only a file or a test title, not the failing assertion.",
         "2": "Every credit names file and assertion; one credited assertion is arguably weaker than the AC requires.",
-        "3": "Every credit names file and the assertion that would fail, and every vacuous test in the judge notes is listed as a gap instead."
+        "3": "Every credit names file and the assertion that would fail, and every vacuous test in the judge notes is listed as a gap instead — or no existing test covers any AC and none is credited."
       }
     },
     {
-      "id": "prioritization", "kind": "judge", "weight": 1, "floor": 0,
-      "cites": { "constraint": 6, "self_check": 5 },
+      "id": "prioritization",
+      "kind": "judge",
+      "weight": 1,
+      "floor": 0,
+      "cites": {
+        "constraint": 6,
+        "self_check": 5
+      },
       "statement": "P0 cases are at most half of all cases and at least one P0 covers the core happy path; case count is proportional to the ACs (no padding).",
       "anchors": {
         "0": "More than half the cases are P0, or the core happy path has no P0.",
@@ -57,8 +98,14 @@
       }
     },
     {
-      "id": "observed-or-unverified", "kind": "judge", "weight": 2, "floor": 1,
-      "cites": { "constraint": 7, "self_check": 7 },
+      "id": "observed-or-unverified",
+      "kind": "judge",
+      "weight": 2,
+      "floor": 1,
+      "cites": {
+        "constraint": 7,
+        "self_check": 7
+      },
       "statement": "Every precondition or step that names a control label, a seeded record, a displayed value or a request is backed by an Observed: line in the scratchpad or carries (unverified).",
       "anchors": {
         "0": "A step names a label or record that does not exist in the app (judge notes list the real ones) and carries no (unverified).",
@@ -68,22 +115,49 @@
       }
     },
     {
-      "id": "probed-app", "kind": "process", "weight": 1, "floor": 1,
-      "cites": { "constraint": 7 },
+      "id": "probed-app",
+      "kind": "process",
+      "weight": 1,
+      "floor": 1,
+      "cites": {
+        "constraint": 7
+      },
       "statement": "The run's scratchpad records what was observed, or records that the app was unreachable.",
-      "check": { "field": "run:scratchpad.md", "op": "matches", "value": "^Observed:|\\(unverified\\)|[Uu]nreachable" }
+      "check": {
+        "field": "run:scratchpad.md",
+        "op": "matches",
+        "value": "^Observed:|\\(unverified\\)|[Uu]nreachable"
+      }
     },
     {
-      "id": "cited-sources", "kind": "process", "weight": 1, "floor": 0,
-      "cites": { "constraint": 3 },
+      "id": "cited-sources",
+      "kind": "process",
+      "weight": 1,
+      "floor": 0,
+      "cites": {
+        "constraint": 3
+      },
       "statement": "At least one reference section or learning was cited via `log applied` during the run (preamble obligation 2).",
-      "check": { "field": "log:", "op": "contains", "value": "\"event\":\"applied\"" }
+      "check": {
+        "field": "log:",
+        "op": "contains",
+        "value": "\"event\":\"applied\""
+      }
     },
     {
-      "id": "status-block", "kind": "check", "weight": 1, "floor": 1,
-      "cites": { "self_check": 1 },
+      "id": "status-block",
+      "kind": "check",
+      "weight": 1,
+      "floor": 1,
+      "cites": {
+        "self_check": 1
+      },
       "statement": "The test cases document ends with the Status / Summary / Next steps block.",
-      "check": { "field": "files:features-kb/**/test-cases/*.md", "op": "matches", "value": "\\*\\*Status:\\*\\* (DONE|DONE_WITH_CONCERNS|BLOCKED|NEEDS_CONTEXT)" }
+      "check": {
+        "field": "files:features-kb/**/test-cases/*.md",
+        "op": "matches",
+        "value": "\\*\\*Status:\\*\\* (DONE|DONE_WITH_CONCERNS|BLOCKED|NEEDS_CONTEXT)"
+      }
     }
   ]
 }

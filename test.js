@@ -693,6 +693,7 @@ function testRubrics() {
     check(r.judge && /^claude-opus-/.test(String(r.judge.model)), `${skill}: judge.model is an Opus id, never the runner's model (RFC 0005 decision 15)`, String(r.judge && r.judge.model));
     check(r.judge && typeof r.judge.prompt === 'string' && r.judge.temperature === 0, `${skill}: judge has a prompt path and temperature 0`);
     check(r.threshold === null || (r.calibration && typeof r.threshold === 'number'), `${skill}: threshold is null unless calibration is present`);
+    check(Array.isArray(r.artifacts) && r.artifacts.length > 0 && r.artifacts.every(g => typeof g === 'string' && g.length > 0), `${skill}: artifacts lists the globs the judge grades`);
     const constraints = sectionItems(skillMd, /^## Constraints/) || {};
     const selfChecks = sectionItems(skillMd, /^## .*Self-[Ee]valuation/) || {};
     check(Object.keys(constraints).length > 0 && Object.keys(selfChecks).length > 0, `${skill}: SKILL.md has numbered constraints (${Object.keys(constraints).length}) and self-checks (${Object.keys(selfChecks).length})`);
@@ -767,6 +768,17 @@ function testRubrics() {
       const id = name.replace(/\.md$/, '');
       check(ids.has(id), `${skill}: control "${name}" belongs to a criterion`, 'stale control');
     }
+  }
+  // eval.js (PR2): help exits 0; report renders the per-criterion table and the spread line from a sample scores.json. No model calls.
+  {
+    const { spawnSync } = require('child_process');
+    const help = spawnSync(process.execPath, [path.join(ROOT, 'bin', 'eval.js'), '--help'], { encoding: 'utf8' });
+    check(help.status === 0 && /controls <skill>/.test(help.stdout), 'eval.js --help exits 0 and lists the commands');
+    const rep = spawnSync(process.execPath, [path.join(ROOT, 'bin', 'eval.js'), 'report', path.join(CORE_DIR, 'skills', 'eval', 'tests', 'sample-scores.json')], { encoding: 'utf8' });
+    check(rep.status === 0 && /\| alpha \| judge \| 3 \| 2 \| 2\.00 \| 1 \| 3 \| 1 \|/.test(rep.stdout), 'eval.js report renders the per-criterion table (mean/min/max/breaches)', (rep.stdout || rep.stderr).slice(0, 200));
+    check(/spread 0\.5/.test(rep.stdout) && /REPORT-ONLY/.test(rep.stdout) && /VACUOUS|✓/.test(rep.stdout), 'eval.js report carries the spread line, the verdict and the controls table');
+    for (const f of ['judge.md', 'eval-headless.md', 'mcp.json']) check(fs.existsSync(path.join(CORE_DIR, 'skills', 'eval', f)), `core/skills/eval/${f} shipped for eval.js`);
+    check(/JSON only/.test(readFile(path.join(CORE_DIR, 'skills', 'eval', 'judge.md')) || '') && !/SKILL\.md/.test(readFile(path.join(CORE_DIR, 'skills', 'eval', 'judge.md')) || ''), 'judge prompt demands JSON and never mentions SKILL.md (judge never sees the procedure)');
   }
   console.log(`  Total: ${rubrics} rubrics`);
 }
