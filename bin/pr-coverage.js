@@ -708,6 +708,7 @@ jobs:
       # install: npm ci              # how to install the app's dependencies
       # node-version: "20"
       # model: claude-sonnet-5
+      # delivery: companion-pr      # companion-pr (reviewable, chains) | commit (push onto the PR's branch, no chain)
       # default-phases: kb          # on PR open: kb | kb,explore | kb,automate | kb,explore,automate
       # after-companion-merge: full   # when a reviewed companion PR merges: full | automate | none
       # gate-on: none                 # none | at-risk | suite | gaps — require the check "qabuddy / gate" to block merges

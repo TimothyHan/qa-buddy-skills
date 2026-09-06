@@ -20,6 +20,7 @@ on:
       extra-prompt:   { type: string, default: ".github/qabuddy/extra.md", description: "Optional file in the consumer repo appended to every phase prompt" }
       fallback:       { type: string, default: "none",  description: "`none`: unmapped diffs run nothing; `all`: run every feature" }
       default-phases: { type: string, default: "kb",    description: "Phases on PR open / ready-for-review: `kb`, `kb,explore`, `kb,automate`, or `kb,explore,automate`; labels and `/qabuddy` comments override per PR" }
+      delivery:       { type: string, default: "companion-pr", description: "`companion-pr`: open a PR with the generated files against the source PR's branch (reviewable; a merge continues the chain). `commit`: push the generated files straight onto the source PR's branch — no second PR, no chain; the heatmap still updates" }
       issues-for:     { type: string, default: "decisions", description: "Open GitHub issues for findings: `decisions` (findings that need a human), `all` (bugs too), or `none`. De-duplicated by a hidden marker; labelled `qabuddy`" }
       gate-on:        { type: string, default: "none",  description: "Verdict of the `gate` check (require it in branch protection to block merges): `none` (advisory), `at-risk` (a failing spec or an exploratory finding on any AC), `suite` (executed Playwright suite has failures), `gaps` (an AC with no test case)" }
       after-companion-merge: { type: string, default: "full", description: "When a reviewed companion PR (`qabuddy/pr-<n>`) merges into the source branch, run this on the source PR: `full` (kb + explore ∥ automate — explore adds no wall time), `automate` (kb + automate), or `none`. Skipped when the merged companion already carried automation." }
@@ -488,6 +489,20 @@ jobs:
           $SUM --issues .qa-reports/pr-coverage/issues.json --body .qa-reports/pr-coverage/companion-body.md > /dev/null
           git config user.name "qabuddy[bot]"
           git config user.email "qabuddy@users.noreply.github.com"
+          if [ "${{ inputs.delivery }}" = "commit" ]; then
+            # Push the generated files onto the source PR's own branch. A push with the workflow
+            # token never re-triggers this workflow, so this cannot loop.
+            git fetch -q origin "$HEAD_REF"
+            git checkout -q -B "$HEAD_REF" "origin/$HEAD_REF"
+            for p in features-kb playwright playwright.config.ts playwright.config.js package.json package-lock.json; do [ -e "$p" ] && git add -A -- "$p"; done
+            git commit -q -m "qabuddy: coverage updates for #$PR ($PHASES)"
+            git push -q origin "HEAD:$HEAD_REF"
+            SHA=$(git rev-parse --short HEAD)
+            { echo "<!-- qabuddy:commit $PR -->"; echo "QABuddy pushed \`$SHA\` to \`$HEAD_REF\` with the files this run generated (phases: $PHASES) — they are part of this PR's diff now. The heatmap comment above has the coverage and the evidence."; \
+              node "$QAB_BIN/pr-coverage.js" summary --touched .qa-reports/pr-coverage/touched.json --heatmap .qa-reports/pr-coverage/heatmap.json $RESULTS --changed "$RUNNER_TEMP/changed.txt" --issues .qa-reports/pr-coverage/issues.json --pr "$PR" --source-ref "$HEAD_REF" --phases "$PHASES" --announce /dev/stdout 2>/dev/null | sed '1d'; } > .qa-reports/pr-coverage/announce-marked.md
+            node "$QAB_BIN/pr-coverage.js" comment --repo "$GITHUB_REPOSITORY" --pr "$PR" --marker "<!-- qabuddy:commit $PR -->" --body-file .qa-reports/pr-coverage/announce-marked.md > /dev/null || true
+            echo "url=" >> "$GITHUB_OUTPUT"; exit 0
+          fi
           git checkout -B "qabuddy/pr-$PR"
           git commit -q -m "qabuddy: coverage updates for #$PR ($PHASES)"
           git push -f origin "qabuddy/pr-$PR"

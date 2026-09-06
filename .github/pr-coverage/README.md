@@ -66,6 +66,15 @@ updates rather than duplicates, and linked from both the PR body and the announc
 The fix belongs on the source branch, not the companion: the companion carries the tests, and
 the failing spec that documents the bug should turn green there once the fix lands.
 
+## Companion PR or commit to the PR
+
+`delivery: companion-pr` (default) opens the generated files as a PR against the source
+PR's branch: reviewable on its own, and a merge continues the chain. `delivery: commit`
+pushes them straight onto the source PR's branch instead — the tests appear in the PR's own
+diff, a short note says which commit, the heatmap still updates. There is then no companion
+to review or merge, so the chain does not apply; phases run only by the open default, labels,
+or comments. The push uses the workflow token, so it cannot re-trigger the workflow.
+
 ## Blocking merges
 
 Every job reports a check, but "the run finished" is the wrong thing to gate a QA bot on: a
