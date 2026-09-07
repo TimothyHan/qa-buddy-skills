@@ -6,12 +6,17 @@ demo repository; the interactive skills are unchanged. Design record:
 
 한국어: [pr-coverage.md](pr-coverage.md)
 
-QABuddy can run on every pull request of a repository, unattended: it maps the PR's diff to
-the features in that repo's knowledge base, writes or updates test cases, optionally
-explores the running app and automates the gaps with Playwright, then posts **one coverage
-heatmap comment** and delivers the generated files as a **companion pull request**. A human
-stays in the loop at two points — reviewing the companion, and deciding what the
-exploratory session could not — and the bot never writes to the base branch.
+QABuddy turns a pull request into an evidence-backed QA plan, built from the project's own
+accumulated QA knowledge. On every PR, unattended, it answers three questions: *why test
+this* (the diff is mapped through `sources.json` to the features that own the changed code,
+and to their acceptance criteria), *what did the project already know* (the feature's test
+cases, past exploratory sessions, and captured learnings shape what is written next), and
+*can you prove the coverage* (the heatmap marks a criterion covered only with evidence on
+disk). Along the way it writes or updates test cases, optionally explores the running app
+and automates the gaps with Playwright, then posts **one coverage heatmap comment** and
+delivers the generated files as a **companion pull request**. A human stays in the loop at
+two points — reviewing the companion, and deciding what the exploratory session could
+not — and the bot never writes to the base branch.
 
 ---
 

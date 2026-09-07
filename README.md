@@ -179,14 +179,23 @@ At every pause, you choose:
 
 ## QABuddy on CI (experimental)
 
-QABuddy can also run unattended on every pull request. On a PR, the reusable GitHub
-workflow:
+QABuddy turns a pull request into an evidence-backed QA plan, using the project's own
+accumulated QA knowledge. Claude can write Playwright; that is not the point. The point is
+that every PR gets answers to three questions:
 
-1. Maps the PR's diff to the features in the knowledge base.
-2. Writes or updates test cases.
-3. Optionally explores the running app and automates the gaps with Playwright.
-4. Posts **one coverage-heatmap comment** and delivers the generated files as a
-   **companion PR** against the PR's own branch.
+1. **Why test this?** The diff is mapped to the features that own the changed code, and
+   from there to their acceptance criteria. Nothing is tested because a model guessed.
+2. **What did the project already know?** The feature's test cases, its past exploratory
+   sessions, and the learnings captured from earlier runs shape what is written next, so
+   the plan reflects your team's history, not a generic checklist.
+3. **Can you prove the coverage?** The heatmap comment marks an acceptance criterion
+   covered only when evidence exists on disk: a spec whose title carries the test-case id,
+   a unit test that names the criterion, a saved report, a persisted exploratory result.
+   A test case without proof shows as partial.
+
+The reusable workflow does this on every PR: map the diff, write or update test cases,
+optionally explore the running app and automate the gaps, then post **one heatmap
+comment** and deliver the files as a **companion PR** against the PR's own branch.
 
 Merging the companion refreshes the heatmap for free. Nothing more runs unless asked:
 labels or `/qabuddy` comments per PR, or one caller input to chain explore and automate
