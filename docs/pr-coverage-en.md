@@ -69,6 +69,18 @@ Three ways to the same fifteen-line caller:
 3. **By hand** — copy the caller from
    [`.github/pr-coverage/README.md`](../.github/pr-coverage/README.md).
 
+**Already using QABuddy in this repository?** Your config stays; only the caller is
+added. Re-run `/qa-setup` and pick *Keep, and set up PR automation* (offered while the
+repo has no caller yet), go straight there with `/qa-setup --pr`, or run the scaffolder
+above. Two things older repositories tend to hit: features created before this work have
+no `sources.json`, so their code maps to nothing until one `/qa-test-plan` run per feature
+writes it — the scaffolder and preflight both name them; and branches cut before the
+caller was committed cannot chain on a merged companion until the base is merged in.
+
+**Which QABuddy build?** None of this is in a release yet — the wizard step, the
+scaffolder and headless mode ship only from `poc/cloud-service`. Until a release carries
+it: pull that branch, `node build.js all`, and re-run `dist/claude/setup`.
+
 The caller says only how to run *your* app; the jobs, prompts, merge and preflight live in
 QABuddy's reusable workflow, so a QABuddy release is a workflow release:
 
