@@ -1,6 +1,6 @@
 ---
 name: setup
-version: 0.5.1
+version: 0.5.2
 description: |
   First-run configuration wizard for QABuddy. Sets up context source (Jira, spec
   docs, chat, custom), team mode (solo vs PR-based), and project preferences.
@@ -223,20 +223,34 @@ coverage-heatmap comment and a companion PR carrying the tests."
    ```
    It writes `.github/workflows/qabuddy.yml` (a caller of QABuddy's reusable workflow),
    creates the `qa:*` labels, and prints what is still missing.
-3. **Walk the SDT through what only they can do**, one item at a time. **Never collect a
-   token or key yourself — never ask the SDT to paste one into the chat.**
-   - the token: `claude setup-token`, then `gh secret set CLAUDE_CODE_OAUTH_TOKEN`
-     (subscription) — or `gh secret set ANTHROPIC_API_KEY` (needs API credit)
-   - app login, if any: secrets `TEST_USER` / `TEST_PASS`, or plain `test-user` /
-     `test-pass` inputs in the caller for a public demo account
-   - Settings → Actions → General → allow GitHub Actions to create and approve pull requests
-   - every feature needs a `sources.json` — `/qa-test-plan` writes it; the scaffolder
-     lists the features without one
-4. **Explain the defaults** in one paragraph: `kb` on every PR open; labels `qa:explore` /
-   `qa:automate` / `qa:full` or `/qabuddy …` comments for more; a merged companion PR
-   continues the chain; `/qabuddy heatmap` refreshes for free. Offer to set
-   `default-phases`, `after-companion-merge`, `issues-for`, `gate-on` in the caller if the
-   SDT wants different behaviour.
+3. **Walk the SDT through what only they can do, one item at a time, and verify each
+   before moving on.** **Never collect a token or key yourself — never ask the SDT to
+   paste one into the chat.** Before the token commands, say who pays: a token from
+   `claude setup-token` bills the Claude subscription of whoever minted it — fine for a
+   personal repo; a team repo should mint it from a dedicated account or use an API key.
+   - **Token** — `claude setup-token`, then `gh secret set CLAUDE_CODE_OAUTH_TOKEN`
+     (subscription) — or `gh secret set ANTHROPIC_API_KEY` (API credit). Verify:
+     `gh secret list` shows one of the two names (names only, never values).
+   - **App login, if any** — secrets `TEST_USER` / `TEST_PASS` (verify with
+     `gh secret list`), or plain `test-user` / `test-pass` inputs in the caller for a
+     public demo account.
+   - **Actions may open pull requests** — check with
+     `gh api repos/{owner}/{repo}/actions/permissions/workflow --jq .can_approve_pull_request_reviews`;
+     if `false`, offer to enable it (`gh api -X PUT` on the same path with
+     `-F can_approve_pull_request_reviews=true`) and run that only on an explicit yes — it
+     is a repository setting.
+   - **`sources.json` for every feature** — the scaffolder lists the features without one.
+     This is crucial: a feature without it maps to nothing and its heatmap stays empty.
+     Offer to run `/qa-test-plan {feature}` now for each; if declined, say the first PR's
+     preflight will name them.
+   Do not close this step while an item is unverified unless the SDT explicitly defers it;
+   deferred items go in the Phase 6 summary.
+4. **Explain the default in one paragraph:** `kb` on every PR open → one heatmap comment
+   and a companion PR with the tests; merging the companion only refreshes the heatmap.
+   Nothing more runs unless asked — labels `qa:explore` / `qa:automate` / `qa:full` or
+   `/qabuddy …` comments per PR, or `after-companion-merge: full` in the caller to chain
+   explore ∥ automate after a reviewed companion. Offer `default-phases`,
+   `after-companion-merge`, `issues-for`, `gate-on` if the SDT wants different behaviour.
 5. Suggest committing the caller together with `.qabuddy.json`.
 
 ---
@@ -253,7 +267,7 @@ Your setup:
 - {jira project / spec location / custom method}
 - Team practices: {N} documented, {M} not yet defined
 - Learnings layer: {learningsPath} + learnings-log.jsonl (self-improve active on every skill run)
-- PR automation: {.github/workflows/qabuddy.yml written — set the secret to activate | not set up}
+- PR automation: {caller written — token ✓ · login ✓ · Actions PR setting ✓ · sources.json ✓ | deferred: … | not set up}
 
 Next: Run `/qa-start {EPIC-KEY or feature description}` to begin the guided workflow.
 Or use any skill individually: `/qa-test-plan`, `/qa-review-ticket`, etc."

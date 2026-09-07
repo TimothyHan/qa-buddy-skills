@@ -127,6 +127,19 @@ that does everything the model should not.
 10. **Fork PRs are skipped.** GitHub withholds secrets from forks and the run needs an
     API key and a write token; the workflow's `if:` checks the head repository. This
     is documented, not solved — a hosted service would run forks read-only.
+17. **Chaining is opt-in.** `after-companion-merge` defaults to `none`: merging a
+    reviewed companion refreshes the heatmap on the merged branch (no model) and nothing
+    else. The default experience is therefore one cheap comment and one companion per PR,
+    with every further phase requested by label, comment, or the caller input. The chain
+    (`full` / `automate`) stays as built for teams that want it. Reason: the chain was the
+    hardest idea to explain to a new user, and a default should not need explaining.
+18. **Prerequisites are verified, and billing is said out loud.** The wizard walks the
+    token, the login secrets, the Actions PR setting, and `sources.json` one at a time and
+    verifies each — `gh secret list` (names only), the Actions permissions API (offering
+    the `PUT` on an explicit yes), and an offer to run `/qa-test-plan` for every feature
+    without sources — refusing to close the step while an item is unverified and not
+    deferred. Who pays is stated before the token commands, repeated by the scaffolder,
+    and printed in every heatmap comment's footer (spend per phase, which secret).
 
 ## 3 · Staged delivery
 

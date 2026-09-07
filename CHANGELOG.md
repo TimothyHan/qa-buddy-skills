@@ -67,7 +67,14 @@ Not proposed for `main`.
   `install.sh`, MCP config under `.github/pr-coverage/`.
 - `/qa-setup` Phase 5b: optional PR automation — scaffolds the caller via
   `pr-coverage.js init`, creates labels, walks the SDT through the secret and the repo
-  setting without ever collecting a token (0.5.0).
+  setting without ever collecting a token (0.5.0); existing-config path `(C)` and
+  `--pr` (0.5.1); states who pays, verifies each prerequisite (`gh secret list`, the
+  Actions permissions API), offers `/qa-test-plan` for features without `sources.json`
+  (0.5.2).
+- Heatmap footer: model spend per phase and which secret paid (`heatmap --logs --billing`);
+  preflight reports the billing source.
+- `after-companion-merge` defaults to `none` — a merged companion only refreshes the
+  heatmap; chaining is opt-in (RFC 0004 decision 17).
 - KB spec §6.8 `sources.json` (code and test globs per feature) and §6.9
   `exploratory/{date}.md` (persisted session with an AC-keyed results table).
 

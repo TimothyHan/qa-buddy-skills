@@ -972,6 +972,15 @@ function testPrCoverage() {
     check(fs.readFileSync(path.join(tmp, 'out', 'all.md'), 'utf8') === fs.readFileSync(path.join(tmp, 'out', 'all2.md'), 'utf8')
        && fs.readFileSync(path.join(tmp, 'out', 'all.json'), 'utf8') === fs.readFileSync(path.join(tmp, 'out', 'all2.json'), 'utf8'), 'heatmap: byte-identical across runs with --now');
 
+    // spend footer: per-phase execution logs + who pays; absent when neither --logs nor --billing is given
+    w('logs/claude-kb.json', JSON.stringify([{ type: 'system' }, { type: 'result', total_cost_usd: 1.234, num_turns: 10, duration_ms: 60000 }]));
+    w('logs/claude-automate.json', JSON.stringify({ type: 'result', total_cost_usd: 3.5 }));
+    run(['heatmap', '--touched', 'all.json', '--phases', 'kb', '--now', '2026-09-04T00:00:00Z', '--logs', 'logs', '--billing', 'subscription', '--out', 'out/sp.json', '--md', 'out/sp.md']);
+    const sp = JSON.parse(fs.readFileSync(path.join(tmp, 'out', 'sp.json'), 'utf8')); const spMd = fs.readFileSync(path.join(tmp, 'out', 'sp.md'), 'utf8');
+    check(sp.spend && sp.spend.total === 4.73 && sp.spend.phases.kb === 1.234 && sp.spend.billing === 'subscription', 'heatmap --logs --billing: spend per phase, total, billing source in JSON');
+    check(/💳 Model spend this run: automate \$3\.50 · kb \$1\.23 = \*\*\$4\.73\*\* — billed to the Claude subscription that minted `CLAUDE_CODE_OAUTH_TOKEN`/.test(spMd), 'heatmap footer says what the run cost and who pays');
+    check(!/Model spend/.test(fs.readFileSync(path.join(tmp, 'out', 'all.md'), 'utf8')) && !('spend' in JSON.parse(fs.readFileSync(path.join(tmp, 'out', 'all.json'), 'utf8'))), 'heatmap: no spend line without --logs/--billing (determinism unchanged)');
+
     // comment: a stub gh on PATH records argv; PATCH when the marker exists, POST otherwise; --dry-run never calls gh
     const bin = path.join(tmp, 'stub-bin'); fs.mkdirSync(bin);
     const ghLog = path.join(tmp, 'gh.log');
@@ -1039,6 +1048,10 @@ function testPrCoverage() {
     check(/app-start: "node server\.js"/.test(caller) && /app-url: "http:\/\/localhost:4173"/.test(caller) && /secrets: inherit/.test(caller), 'init: caller carries app-start, app-url, secrets: inherit');
     check(/pull_request:/.test(caller) && /closed\]/.test(caller) && /issue_comment:/.test(caller) && /concurrency:/.test(caller) && /pull-requests: write/.test(caller), 'init: caller has the triggers (incl. closed for the companion chain), concurrency group, and permissions');
     check(init.next.some(s => /setup-token/.test(s)) && init.next.some(s => /qa-test-plan/.test(s)) && init.labels === 'skipped', 'init: next steps name the secret, the KB, and the labels');
+    check(init.next.some(s => /bills the Claude subscription of whoever minted it/.test(s) && /gh secret list/.test(s)), 'init: next steps say who pays and how to verify the secret');
+    check(/# after-companion-merge: none/.test(caller) && /refreshes the heatmap/.test(caller), 'init: caller documents chaining as opt-in (after-companion-merge: none)');
+    const initDef = JSON.parse(execFileSync(process.execPath, [src, 'init', '--force'], { cwd: I, encoding: 'utf8' }));
+    check(/^v\d+\.\d+\.\d+/.test(initDef.ref) && new RegExp('@' + initDef.ref.replace(/\./g, '\\.')).test(fs.readFileSync(path.join(I, '.github', 'workflows', 'qabuddy.yml'), 'utf8')), 'init: default ref is a version tag the caller pins');
     const again = (() => { try { execFileSync(process.execPath, [src, 'init'], { cwd: I, stdio: 'ignore' }); return 0; } catch (e) { return e.status; } })();
     check(again === 3, 'init: refuses to overwrite an existing caller without --force');
 
@@ -1084,6 +1097,9 @@ function testPrCoverage() {
     check(/^on:\n\s+workflow_call:/m.test(wf), '.github/workflows/pr-coverage.yml is a reusable workflow (workflow_call)');
     for (const inp of ['app-start', 'app-url', 'qabuddy-ref', 'kb-budget', 'automate-turns', 'default-phases', 'test-user', 'after-companion-merge', 'gate-on', 'issues-for', 'delivery']) check(new RegExp(`^\\s+${inp}:`, 'm').test(wf), `pr-coverage.yml declares input ${inp}`);
     for (const job of ['resolve', 'preflight', 'kb', 'explore', 'automate', 'deliver', 'gate']) check(new RegExp(`^  ${job}:`, 'm').test(wf), `pr-coverage.yml has job ${job}`);
+    check(/after-companion-merge: \{ type: string, default: "none"/.test(wf) && /none\|""\)\s+PH=heatmap/.test(wf), 'pr-coverage.yml: chaining is opt-in — a merged companion refreshes the heatmap by default');
+    check(/--token-kind "\$TOKEN_KIND"/.test(wf) && /--logs \.qa-reports\/pr-coverage --billing "\$BILLING"/.test(wf), 'pr-coverage.yml: preflight reports the billing source, the heatmap footer shows spend and who pays');
+    check(/qabuddy-ref:\s+\{ type: string, default: "v\d+\.\d+\.\d+[^"]*"/.test(wf), 'pr-coverage.yml: qabuddy-ref defaults to a version tag');
     check(!/&[a-z-]+\n/.test(wf) && !/\*[a-z-]+\n/.test(wf), 'pr-coverage.yml uses no YAML anchors (GitHub Actions does not support them)');
     check(/pr-coverage\.js"? merge/.test(wf) && /pr-coverage\.js"? preflight/.test(wf) && /include-hidden-files: true/.test(wf), 'pr-coverage.yml merges phase trees, runs preflight, and uploads dot-directories');
     check(/pr-coverage\.js"? summary/.test(wf) && /pr-coverage\.js"? issues/.test(wf) && /--body-file \.qa-reports\/pr-coverage\/companion-body\.md/.test(wf) && /qabuddy:companion \$NUM/.test(wf), 'pr-coverage.yml: deliver writes the companion body from summary, opens issues, and posts a per-companion announcement');

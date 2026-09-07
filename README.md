@@ -10,7 +10,7 @@
 [![Skills: 13](https://img.shields.io/badge/Skills-13-green.svg)](#skills)
 [![Platform: Claude Code](https://img.shields.io/badge/Platform-Claude_Code-purple.svg)](#how-it-works)
 [![Locales: en, ko](https://img.shields.io/badge/Locales-en_|_ko-orange.svg)](#locales)
-[![Structural checks: 1815](https://img.shields.io/badge/Structural_checks-1815-brightgreen.svg)](#how-it-works)
+[![Structural checks: 1827](https://img.shields.io/badge/Structural_checks-1827-brightgreen.svg)](#how-it-works)
 
 An AI partner for anyone who tests software —<br>
 from epic test planning through sprint execution to release verification.<br>
@@ -188,8 +188,10 @@ workflow:
 4. Posts **one coverage-heatmap comment** and delivers the generated files as a
    **companion PR** against the PR's own branch.
 
-A reviewer merging the companion continues the chain. Findings that need a human become
-issues. Nothing ever writes to the base branch.
+Merging the companion refreshes the heatmap for free. Nothing more runs unless asked:
+labels or `/qabuddy` comments per PR, or one caller input to chain explore and automate
+after a reviewed companion. Findings that need a human become issues. Nothing ever writes
+to the base branch.
 
 **Set up** -- one of three:
 
@@ -199,12 +201,13 @@ issues. Nothing ever writes to the base branch.
 
 **Requires** -- Claude only: the workflow runs on `anthropics/claude-code-action`, whichever
 platform you use the skills on. It needs one repository secret that you set yourself, the
-wizard never handles the value: `claude setup-token` then
+wizard never handles the value but does verify it landed: `claude setup-token` then
 `gh secret set CLAUDE_CODE_OAUTH_TOKEN` (bills that Claude subscription), or
 `ANTHROPIC_API_KEY` with API credit.
 
-**Status** -- proof of concept on branch `poc/cloud-service`, not in a release yet; build
-from that branch to use it. Guide: [docs/pr-coverage-en.md](docs/pr-coverage-en.md),
+**Status** -- proof of concept, pre-release tag `v0.9.0-poc.1` cut from `poc/cloud-service`.
+The caller pins that tag, so the runner needs nothing from you; for the wizard, install
+from the tag. Guide: [docs/pr-coverage-en.md](docs/pr-coverage-en.md),
 design: [RFC 0004](docs/rfc/0004-headless-pr-coverage.md).
 
 ---
@@ -375,7 +378,7 @@ Skills are authored once in `core/skills/`. The build script generates platform-
 ```bash
 node build.js all                  # Build for all platforms
 node build.js all --locale ko      # Build Korean version
-node test.js                       # Run 1815 structural checks
+node test.js                       # Run 1827 structural checks
 ```
 
 > **Structural checks are not behavioural verification.** `node test.js` inspects
@@ -391,7 +394,7 @@ node test.js                       # Run 1815 structural checks
 ```
 QABuddy/
 ├── build.js                     # Build script (node; vendors the pinned engine)
-├── test.js                      # Structural check suite (1815 checks)
+├── test.js                      # Structural check suite (1827 checks)
 ├── package.json                 # One pinned dependency: akela (the engine)
 ├── bin/akela.js                 # Engine launcher (env map · first-run akela.json · delegation)
 ├── bin/qab.js                   # Deprecation shim (one release)

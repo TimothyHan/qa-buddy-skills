@@ -16,14 +16,14 @@ on:
       install:        { type: string, default: "npm ci", description: "Command that installs the app's dependencies" }
       node-version:   { type: string, default: "20" }
       model:          { type: string, default: "claude-sonnet-5" }
-      qabuddy-ref:    { type: string, default: "poc/cloud-service", description: "QABuddy git ref to install on the runner" }
+      qabuddy-ref:    { type: string, default: "v0.9.0-poc.1", description: "QABuddy git ref (tag or branch) to install on the runner" }
       extra-prompt:   { type: string, default: ".github/qabuddy/extra.md", description: "Optional file in the consumer repo appended to every phase prompt" }
       fallback:       { type: string, default: "none",  description: "`none`: unmapped diffs run nothing; `all`: run every feature" }
       default-phases: { type: string, default: "kb",    description: "Phases on PR open / ready-for-review: `kb`, `kb,explore`, `kb,automate`, or `kb,explore,automate`; labels and `/qabuddy` comments override per PR" }
-      delivery:       { type: string, default: "companion-pr", description: "`companion-pr`: open a PR with the generated files against the source PR's branch (reviewable; a merge continues the chain). `commit`: push the generated files straight onto the source PR's branch — no second PR, no chain; the heatmap still updates" }
+      delivery:       { type: string, default: "companion-pr", description: "`companion-pr`: open a PR with the generated files against the source PR's branch (reviewable; a merge refreshes the heatmap, or continues the chain when `after-companion-merge` says so). `commit`: push the generated files straight onto the source PR's branch — no second PR, no chain; the heatmap still updates" }
       issues-for:     { type: string, default: "decisions", description: "Open GitHub issues for findings: `decisions` (findings that need a human), `all` (bugs too), or `none`. De-duplicated by a hidden marker; labelled `qabuddy`" }
       gate-on:        { type: string, default: "none",  description: "Verdict of the `gate` check (require it in branch protection to block merges): `none` (advisory), `at-risk` (a failing spec or an exploratory finding on any AC), `suite` (executed Playwright suite has failures), `gaps` (an AC with no test case)" }
-      after-companion-merge: { type: string, default: "full", description: "When a reviewed companion PR (`qabuddy/pr-<n>`) merges into the source branch, run this on the source PR: `full` (kb + explore ∥ automate — explore adds no wall time), `automate` (kb + automate), or `none`. Skipped when the merged companion already carried automation." }
+      after-companion-merge: { type: string, default: "none", description: "When a reviewed companion PR (`qabuddy/pr-<n>`) merges into the source branch: `none` (default) only refreshes the heatmap on the merged branch (no model); `full` (kb + explore ∥ automate — explore adds no wall time) or `automate` (kb + automate) chain the remaining phases on the source PR. Chaining stops once a companion that carried automation has merged." }
       test-user:      { type: string, default: "",      description: "Login for the app under test when it is a public demo account; otherwise use the TEST_USER secret" }
       test-pass:      { type: string, default: "",      description: "Password for that account; otherwise use the TEST_PASS secret" }
       kb-turns:       { type: string, default: "80" }
@@ -47,7 +47,7 @@ jobs:
   resolve:
     # Three ways in: a same-repo, non-draft PR event (never on a companion PR itself); a
     # `/qabuddy` comment on a PR; or a companion PR `qabuddy/pr-<n>` merged by a reviewer,
-    # which continues the chain on PR <n> (input `after-companion-merge`).
+    # which refreshes the heatmap on PR <n>, or continues the chain when `after-companion-merge` asks.
     if: >-
       (github.event_name == 'pull_request'
         && github.event.action != 'closed'
@@ -108,7 +108,7 @@ jobs:
             case "$AFTER_MERGE" in
               automate) PH=kb,automate ;;
               full)     PH=kb,explore,automate ;;
-              none|"")  echo "after-companion-merge is none — nothing to do"; exit 0 ;;
+              none|"")  PH=heatmap; echo "after-companion-merge is none — refreshing the heatmap on the merged branch (no model)" ;;
               *) echo "::error::after-companion-merge must be automate, full, or none"; exit 1 ;;
             esac
             case ",$DONE," in *,automate,*) PH=heatmap; echo "companion for #$PR_NUMBER already carried automation ($DONE) — chain complete; refreshing the heatmap on the merged branch (no model)";; esac
@@ -168,6 +168,7 @@ jobs:
         env:
           GH_TOKEN: ${{ github.token }}
           HAS_TOKEN: ${{ secrets.CLAUDE_CODE_OAUTH_TOKEN != '' || secrets.ANTHROPIC_API_KEY != '' }}
+          TOKEN_KIND: ${{ secrets.CLAUDE_CODE_OAUTH_TOKEN != '' && 'subscription' || (secrets.ANTHROPIC_API_KEY != '' && 'api-key' || 'none') }}
         run: |
           set -euo pipefail
           CAN=$(gh api "repos/$GITHUB_REPOSITORY/actions/permissions/workflow" --jq '.can_approve_pull_request_reviews' 2>/dev/null || echo unknown)
@@ -176,7 +177,7 @@ jobs:
           CALLER=false; grep -rqs 'workflows/pr-coverage.yml@' .github/workflows/ && CALLER=true
           set +e
           node "$QAB_BIN/pr-coverage.js" preflight --touched .qa-reports/pr-coverage/touched.json \
-            --has-token "$HAS_TOKEN" --can-create-prs "$CAN" --caller-on-branch "$CALLER" --pr "${{ needs.resolve.outputs.pr }}" \
+            --has-token "$HAS_TOKEN" --token-kind "$TOKEN_KIND" --can-create-prs "$CAN" --caller-on-branch "$CALLER" --pr "${{ needs.resolve.outputs.pr }}" \
             --md .qa-reports/pr-coverage/preflight.md | tee .qa-reports/pr-coverage/preflight.json
           RC=$?
           set -e
@@ -532,12 +533,13 @@ jobs:
         env:
           GH_TOKEN: ${{ github.token }}
           COMPANION: ${{ steps.companion.outputs.url }}
+          BILLING: ${{ secrets.CLAUDE_CODE_OAUTH_TOKEN != '' && 'subscription' || 'api-key' }}
         run: |
           set -euo pipefail
           RESULTS=""
           [ -f .qa-reports/pr-coverage/playwright-results.json ] && RESULTS="--results .qa-reports/pr-coverage/playwright-results.json"
           node "$QAB_BIN/pr-coverage.js" heatmap --touched .qa-reports/pr-coverage/touched.json --phases "$PHASES" --pr "$PR" \
-            $RESULTS ${COMPANION:+--companion-url "$COMPANION"} \
+            $RESULTS ${COMPANION:+--companion-url "$COMPANION"} --logs .qa-reports/pr-coverage --billing "$BILLING" \
             --run-url "$GITHUB_SERVER_URL/$GITHUB_REPOSITORY/actions/runs/$GITHUB_RUN_ID" \
             --out .qa-reports/pr-coverage/heatmap.json --md .qa-reports/pr-coverage/heatmap.md
           node "$QAB_BIN/pr-coverage.js" comment --repo "$GITHUB_REPOSITORY" --pr "$PR" --body-file .qa-reports/pr-coverage/heatmap.md

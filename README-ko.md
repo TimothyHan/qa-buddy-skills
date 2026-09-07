@@ -10,7 +10,7 @@
 [![Skills: 13](https://img.shields.io/badge/Skills-13-green.svg)](#스킬)
 [![Platform: Claude Code](https://img.shields.io/badge/Platform-Claude_Code-purple.svg)](#작동-방식)
 [![Locales: en, ko](https://img.shields.io/badge/Locales-en_|_ko-orange.svg)](#로케일)
-[![Structural checks: 1815](https://img.shields.io/badge/Structural_checks-1815-brightgreen.svg)](#작동-방식)
+[![Structural checks: 1827](https://img.shields.io/badge/Structural_checks-1827-brightgreen.svg)](#작동-방식)
 
 소프트웨어를 테스트하는 사람이라면 누구나를 위한 AI 파트너 —<br>
 에픽 테스트 계획 수립부터 스프린트 실행, 릴리스 검증까지.<br>
@@ -186,8 +186,10 @@ PR에서 하는 일:
 4. **커버리지 히트맵 코멘트 하나**를 올리고, 생성된 파일은 PR 자신의 브랜치를 향한
    **동반 PR**로 전달합니다.
 
-리뷰어가 동반 PR을 머지하면 다음 페이즈가 이어집니다. 사람의 판단이 필요한 발견은
-이슈가 됩니다. 베이스 브랜치에는 아무것도 쓰지 않습니다.
+동반 PR을 머지하면 히트맵이 무료로 갱신됩니다. 요청하지 않으면 더 돌지 않습니다:
+PR마다 라벨이나 `/qabuddy` 코멘트로, 또는 리뷰된 동반 PR 뒤에 explore와 automate를
+이어가는 호출자 입력 하나로 켭니다. 사람의 판단이 필요한 발견은 이슈가 됩니다. 베이스
+브랜치에는 아무것도 쓰지 않습니다.
 
 **설정** -- 세 가지 중 하나:
 
@@ -197,12 +199,13 @@ PR에서 하는 일:
 
 **필요한 것** -- Claude 전용입니다: 스킬을 어느 플랫폼에서 쓰든 워크플로우는
 `anthropics/claude-code-action`에서 돕니다. 저장소 시크릿 하나가 필요하며 직접 설정합니다,
-마법사는 값을 절대 다루지 않습니다: `claude setup-token` 후
+마법사는 값을 절대 다루지 않지만 설정됐는지는 확인합니다: `claude setup-token` 후
 `gh secret set CLAUDE_CODE_OAUTH_TOKEN`(그 Claude 구독에 과금), 또는 API 크레딧이 있는
 `ANTHROPIC_API_KEY`.
 
-**상태** -- `poc/cloud-service` 브랜치의 개념 증명이며, 아직 릴리스에는 없습니다. 쓰려면
-그 브랜치에서 빌드하세요. 가이드: [docs/pr-coverage.md](docs/pr-coverage.md), 설계:
+**상태** -- 개념 증명, `poc/cloud-service`에서 자른 프리릴리스 태그 `v0.9.0-poc.1`. 호출자가
+그 태그를 고정하므로 러너는 아무것도 요구하지 않습니다; 마법사를 쓰려면 태그에서
+설치하세요. 가이드: [docs/pr-coverage.md](docs/pr-coverage.md), 설계:
 [RFC 0004](docs/rfc/0004-headless-pr-coverage.md).
 
 ---
@@ -373,7 +376,7 @@ flowchart LR
 ```bash
 node build.js all                  # 모든 플랫폼용 빌드
 node build.js all --locale ko      # 한국어 버전 빌드
-node test.js                       # 1815개 구조 검사 실행
+node test.js                       # 1827개 구조 검사 실행
 ```
 
 > **구조 검사와 동작 검증은 다릅니다.** `node test.js`는 빌드 산출물의 형태를
@@ -388,7 +391,7 @@ node test.js                       # 1815개 구조 검사 실행
 ```
 QABuddy/
 ├── build.js                     # 빌드 스크립트 (node; 고정 버전 엔진을 벤더링)
-├── test.js                      # 구조 검사 스위트 (1815개 검사)
+├── test.js                      # 구조 검사 스위트 (1827개 검사)
 ├── package.json                 # 고정 의존성 1개: akela (엔진)
 ├── bin/akela.js                 # 엔진 런처 (환경변수 매핑 · 첫 실행 akela.json · 위임)
 ├── bin/qab.js                   # 지원 중단 심 (한 릴리스)

@@ -1,6 +1,6 @@
 ---
 name: setup
-version: 0.5.1
+version: 0.5.2
 description: |
   QABuddy 초기 설정 마법사. 컨텍스트 소스(Jira, 스펙 문서, 채팅, 커스텀),
   팀 모드(솔로 vs PR 기반), 프로젝트 환경설정을 구성합니다.
@@ -221,19 +221,32 @@ mkdir -p features-kb/team-practices
    ```
    `.github/workflows/qabuddy.yml`(QABuddy 재사용 워크플로우의 호출자)을 쓰고, `qa:*`
    라벨을 만들고, 아직 빠진 것을 출력한다.
-3. **SDT만 할 수 있는 일을 하나씩 안내한다. 토큰이나 키를 직접 받지 않는다 -- 채팅에
-   붙여 달라고 절대 요청하지 않는다.**
-   - 토큰: `claude setup-token` 후 `gh secret set CLAUDE_CODE_OAUTH_TOKEN`(구독) -- 또는
-     `gh secret set ANTHROPIC_API_KEY`(API 크레딧 필요)
-   - 앱 로그인이 있으면: 시크릿 `TEST_USER` / `TEST_PASS`, 공개 데모 계정이면 호출자의
-     `test-user` / `test-pass` 입력
-   - Settings → Actions → General → GitHub Actions의 PR 생성·승인 허용
-   - 모든 기능에 `sources.json`이 필요 -- `/qa-test-plan`이 쓴다; 스캐폴더가 없는 기능을
-     나열한다
-4. **기본 동작을 한 문단으로 설명한다:** PR 열릴 때마다 `kb`; 더 필요하면 라벨
-   `qa:explore` / `qa:automate` / `qa:full` 또는 `/qabuddy …` 코멘트; 동반 PR이 머지되면
-   체인이 이어진다; `/qabuddy heatmap`은 무료 갱신. SDT가 다른 동작을 원하면 호출자의
-   `default-phases`, `after-companion-merge`, `issues-for`, `gate-on` 설정을 제안한다.
+3. **SDT만 할 수 있는 일을 하나씩 안내하고, 각각 확인한 뒤에 다음으로 넘어간다.**
+   **토큰이나 키를 직접 받지 않는다 -- 채팅에 붙여 달라고 절대 요청하지 않는다.** 토큰
+   명령 전에 누가 비용을 내는지 말한다: `claude setup-token`의 토큰은 발급한 사람의
+   Claude 구독에 과금된다 -- 개인 저장소면 괜찮고, 팀 저장소는 전용 계정으로 발급하거나
+   API 키를 쓴다.
+   - **토큰** -- `claude setup-token` 후 `gh secret set CLAUDE_CODE_OAUTH_TOKEN`(구독)
+     -- 또는 `gh secret set ANTHROPIC_API_KEY`(API 크레딧). 확인: `gh secret list`에 두
+     이름 중 하나가 보인다(이름만, 값은 절대 아님).
+   - **앱 로그인이 있으면** -- 시크릿 `TEST_USER` / `TEST_PASS`(`gh secret list`로 확인),
+     공개 데모 계정이면 호출자의 `test-user` / `test-pass` 입력.
+   - **Actions의 PR 생성 허용** --
+     `gh api repos/{owner}/{repo}/actions/permissions/workflow --jq .can_approve_pull_request_reviews`로
+     확인; `false`면 켜 주겠다고 제안하고(같은 경로에 `gh api -X PUT`,
+     `-F can_approve_pull_request_reviews=true`) 명시적 예에만 실행한다 -- 저장소 설정이다.
+   - **모든 기능의 `sources.json`** -- 스캐폴더가 없는 기능을 나열한다. 이것이 핵심이다:
+     없는 기능은 아무것에도 매핑되지 않아 히트맵이 비어 있다. 기능마다 지금
+     `/qa-test-plan {feature}`을 실행하겠다고 제안하고, 거절하면 첫 PR의 preflight가
+     그 기능들을 알려줄 것이라고 말한다.
+   SDT가 명시적으로 미루지 않는 한 확인 안 된 항목이 있는 채로 이 단계를 닫지 않는다;
+   미룬 항목은 Phase 6 요약에 적는다.
+4. **기본 동작을 한 문단으로 설명한다:** PR 열릴 때마다 `kb` → 히트맵 코멘트 하나와
+   테스트를 담은 동반 PR; 동반 PR을 머지하면 히트맵만 갱신된다. 요청하지 않으면 더
+   돌지 않는다 -- PR마다 라벨 `qa:explore` / `qa:automate` / `qa:full` 또는 `/qabuddy …`
+   코멘트, 또는 리뷰된 동반 PR 뒤에 explore ∥ automate를 이어가려면 호출자에
+   `after-companion-merge: full`. SDT가 다른 동작을 원하면 `default-phases`,
+   `after-companion-merge`, `issues-for`, `gate-on`을 제안한다.
 5. 호출자를 `.qabuddy.json`과 함께 커밋하도록 제안한다.
 
 ---
@@ -250,7 +263,7 @@ mkdir -p features-kb/team-practices
 - {Jira 프로젝트 / 스펙 위치 / 커스텀 방식}
 - 팀 실무 관행: {N}개 문서화 완료, {M}개 미정의
 - 학습 레이어: {learningsPath} + learnings-log.jsonl (모든 스킬 실행에서 자기 개선 활성)
-- PR 자동화: {.github/workflows/qabuddy.yml 작성됨 -- 시크릿을 설정하면 활성 | 미설정}
+- PR 자동화: {호출자 작성됨 -- 토큰 ✓ · 로그인 ✓ · Actions PR 설정 ✓ · sources.json ✓ | 미룸: … | 미설정}
 
 다음: `/qa-start {EPIC-KEY 또는 기능 설명}`을 실행하여 가이드 워크플로우를 시작하세요.
 또는 개별 스킬을 직접 사용할 수 있습니다: `/qa-test-plan`, `/qa-review-ticket` 등"

@@ -48,7 +48,7 @@ recommendation at every pause and records it as an *Auto-decision*.
 |---|---|
 | PR opened, or marked ready for review | the caller's `default-phases` (`kb` by default) |
 | labels `qa:explore` · `qa:automate` · `qa:full`, or comments `/qabuddy explore` · `automate` · `full` · `kb` | those phases, on that PR |
-| a reviewer **merges the companion PR** | the rest of the chain on the source PR (`after-companion-merge`, default `full`); stops once a companion that carried automation has merged |
+| a reviewer **merges the companion PR** | by default only the free heatmap refresh on the merged branch; with `after-companion-merge: full` the rest of the chain on the source PR, stopping once a companion that carried automation has merged |
 | `/qabuddy heatmap`, or automatically when the chain completes | model-free refresh: re-map the diff, run the suite on the branch as it is, re-post the heatmap — about 90 seconds, $0 |
 
 Never: on every push, on drafts, on forks, or on the companion PRs themselves. One run per
@@ -58,16 +58,20 @@ PR at a time; a newer trigger cancels the older run.
 
 ## Set it up in a repository
 
-Three ways to the same fifteen-line caller:
+Three ways to the same fifteen-line caller. The runner installs QABuddy itself from
+`qabuddy-ref`, so your locally installed version only matters for the last two:
 
-1. **The wizard** — `/qa-setup` offers a *PR Automation* step after saving the config,
-   probes the start command and URL, runs the scaffolder, and walks you through the rest.
-2. **The scaffolder** —
+1. **By hand** — copy the caller below (or from
+   [`.github/pr-coverage/README.md`](../.github/pr-coverage/README.md)) into
+   `.github/workflows/qabuddy.yml`, set `app-start` and `app-url`, then go through the
+   prerequisites table. Works from any installed QABuddy version.
+2. **The wizard** — `/qa-setup` offers a *PR Automation* step after saving the config,
+   probes the start command and URL, runs the scaffolder, then walks you through the
+   prerequisites and verifies each one before it lets you go.
+3. **The scaffolder** —
    ```bash
    node ~/.claude/skills/qa-references/bin/pr-coverage.js init --app-start "node server.js" --app-url http://localhost:4173 --labels true
    ```
-3. **By hand** — copy the caller from
-   [`.github/pr-coverage/README.md`](../.github/pr-coverage/README.md).
 
 **Already using QABuddy in this repository?** Your config stays; only the caller is
 added. Re-run `/qa-setup` and pick *Keep, and set up PR automation* (offered while the
@@ -77,9 +81,14 @@ no `sources.json`, so their code maps to nothing until one `/qa-test-plan` run p
 writes it — the scaffolder and preflight both name them; and branches cut before the
 caller was committed cannot chain on a merged companion until the base is merged in.
 
-**Which QABuddy build?** None of this is in a release yet — the wizard step, the
-scaffolder and headless mode ship only from `poc/cloud-service`. Until a release carries
-it: pull that branch, `node build.js all`, and re-run `dist/claude/setup`.
+**Which QABuddy build?** None of this is in a regular release yet. The runner needs
+nothing from you — the caller pins the pre-release tag `v0.9.0-poc.1` and installs it. Your
+local install only matters for the wizard and the scaffolder; to get them, check out the
+same tag, `node build.js all`, and re-run `dist/claude/setup`:
+
+```bash
+git clone --branch v0.9.0-poc.1 https://github.com/TimothyHan/qa-buddy-skills.git && cd qa-buddy-skills && npm ci && node build.js all && dist/claude/setup
+```
 
 The caller says only how to run *your* app; the jobs, prompts, merge and preflight live in
 QABuddy's reusable workflow, so a QABuddy release is a workflow release:
@@ -87,17 +96,20 @@ QABuddy's reusable workflow, so a QABuddy release is a workflow release:
 ```yaml
 jobs:
   qabuddy:
-    uses: TimothyHan/qa-buddy-skills/.github/workflows/pr-coverage.yml@poc/cloud-service
+    uses: TimothyHan/qa-buddy-skills/.github/workflows/pr-coverage.yml@v0.9.0-poc.1
     with:
       app-start: "node server.js"
       app-url: "http://localhost:4173"
     secrets: inherit
 ```
 
-**Claude only.** The workflow runs on `anthropics/claude-code-action`, whichever platform
-you use the skills on, and it spends against the token you store: a subscription token from
-`claude setup-token` bills the subscription of whoever minted it, so a team repo should use
-a dedicated account or an API key.
+**Claude only, and who pays.** The workflow runs on `anthropics/claude-code-action`,
+whichever platform you use the skills on, and it spends against the token you store. A
+subscription token from `claude setup-token` bills the Claude subscription of whoever
+minted it, so a team repo should mint it from a dedicated account or use an API key with
+credit. Nothing hides this: the wizard says it before the token commands, the scaffolder
+repeats it, and every heatmap comment ends with the run's spend per phase and which secret
+paid.
 
 **Prerequisites** — the `preflight` job checks all of these before any model spend and
 explains what is missing in the PR comment:
@@ -120,14 +132,14 @@ Nobody, including the wizard, ever collects the token value: you run `gh secret 
 | Input | Default | Meaning |
 |---|---|---|
 | `default-phases` | `kb` | what runs on open: `kb`, `kb,explore`, `kb,automate`, `kb,explore,automate` |
-| `after-companion-merge` | `full` | what a merged companion continues with: `full`, `automate`, `none` |
+| `after-companion-merge` | `none` | what a merged companion continues with: `none` (heatmap refresh only), `full`, `automate` |
 | `delivery` | `companion-pr` | `commit` pushes the generated files straight onto the PR's branch instead — one PR, no chain |
 | `issues-for` | `decisions` | which findings become issues: `decisions`, `all` (bugs too), `none` |
 | `gate-on` | `none` | verdict of the `qabuddy / gate` check: `at-risk`, `suite`, `gaps` — require it in branch protection to block merges; the bot never sets that rule |
 | `kb-turns` / `kb-budget` … | 80 / $5, 120 / $10, 300 / $25 | per-phase caps |
 | `model` | `claude-sonnet-5` | |
 | `extra-prompt` | `.github/qabuddy/extra.md` | optional project instructions appended to every phase |
-| `qabuddy-ref` | `poc/cloud-service` | QABuddy ref installed on the runner |
+| `qabuddy-ref` | `v0.9.0-poc.1` | QABuddy ref installed on the runner — a pre-release tag cut from `poc/cloud-service` |
 
 ---
 

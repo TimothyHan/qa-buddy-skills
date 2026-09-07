@@ -48,7 +48,7 @@ automate는 kb 뒤에 **병렬로** 실행됩니다. 데모 앱에서 전체 실
 |---|---|
 | PR 열림 또는 ready for review | 호출자의 `default-phases`(기본 `kb`) |
 | 라벨 `qa:explore` · `qa:automate` · `qa:full`, 또는 코멘트 `/qabuddy explore` · `automate` · `full` · `kb` | 해당 페이즈, 그 PR에서 |
-| 리뷰어가 **동반 PR을 머지** | 소스 PR에서 나머지 체인(`after-companion-merge`, 기본 `full`); 자동화를 담은 동반 PR이 머지되면 종료 |
+| 리뷰어가 **동반 PR을 머지** | 기본은 머지된 브랜치에서 무료 히트맵 갱신만; `after-companion-merge: full`이면 소스 PR에서 나머지 체인, 자동화를 담은 동반 PR이 머지되면 종료 |
 | `/qabuddy heatmap`, 또는 체인 완료 시 자동 | 모델 없는 갱신: diff 재매핑, 현재 브랜치에서 스위트 실행, 히트맵 재게시 -- 약 90초, $0 |
 
 절대 하지 않는 것: 모든 푸시마다, 드래프트에서, 포크에서, 동반 PR 자체에서 실행. PR당
@@ -58,16 +58,19 @@ automate는 kb 뒤에 **병렬로** 실행됩니다. 데모 앱에서 전체 실
 
 ## 저장소에 설정하기
 
-같은 15줄 호출자에 이르는 세 가지 길:
+같은 15줄 호출자에 이르는 세 가지 길. 러너가 `qabuddy-ref`에서 QABuddy를 직접 설치하므로
+로컬에 설치된 버전은 뒤의 두 가지에만 영향을 줍니다:
 
-1. **마법사** -- `/qa-setup`이 설정 저장 후 *PR 자동화* 단계를 제안하고, 시작 명령과 URL을
-   프로브하고, 스캐폴더를 실행하고, 나머지를 안내합니다.
-2. **스캐폴더** --
+1. **직접** -- 아래 호출자(또는 [`.github/pr-coverage/README.md`](../.github/pr-coverage/README.md)의
+   것)를 `.github/workflows/qabuddy.yml`에 복사하고 `app-start`와 `app-url`을 채운 뒤 전제
+   조건 표를 따라갑니다. 어느 QABuddy 버전이 설치돼 있든 됩니다.
+2. **마법사** -- `/qa-setup`이 설정 저장 후 *PR 자동화* 단계를 제안하고, 시작 명령과 URL을
+   프로브하고, 스캐폴더를 실행한 뒤, 전제 조건을 하나씩 안내하고 각각 확인한 다음에야
+   끝냅니다.
+3. **스캐폴더** --
    ```bash
    node ~/.claude/skills/qa-references/bin/pr-coverage.js init --app-start "node server.js" --app-url http://localhost:4173 --labels true
    ```
-3. **직접** -- [`.github/pr-coverage/README.md`](../.github/pr-coverage/README.md)의
-   호출자를 복사합니다.
 
 **이미 이 저장소에서 QABuddy를 쓰고 있다면?** 설정은 그대로 두고 호출자만 추가됩니다.
 `/qa-setup`을 다시 실행해 *유지하고 PR 자동화 설정*을 고르거나(저장소에 호출자가 없을
@@ -77,9 +80,14 @@ automate는 kb 뒤에 **병렬로** 실행됩니다. 데모 앱에서 전체 실
 스캐폴더와 preflight가 그 기능들을 이름으로 알려줍니다; 호출자를 커밋하기 전에 딴
 브랜치는 베이스를 머지하기 전까지 동반 PR 머지에 체인이 이어지지 않습니다.
 
-**어느 QABuddy 빌드?** 아직 릴리스에는 아무것도 없습니다 -- 마법사 단계, 스캐폴더,
-헤드리스 모드는 `poc/cloud-service`에서만 나옵니다. 릴리스가 담기 전까지는 그 브랜치를
-받아 `node build.js all` 후 `dist/claude/setup`을 다시 실행하세요.
+**어느 QABuddy 빌드?** 아직 정식 릴리스에는 없습니다. 러너는 아무것도 요구하지 않습니다
+-- 호출자가 프리릴리스 태그 `v0.9.0-poc.1`를 고정하고 직접 설치합니다. 로컬 설치는 마법사와
+스캐폴더에만 필요하며, 같은 태그를 받아 `node build.js all` 후 `dist/claude/setup`을 다시
+실행하면 됩니다:
+
+```bash
+git clone --branch v0.9.0-poc.1 https://github.com/TimothyHan/qa-buddy-skills.git && cd qa-buddy-skills && npm ci && node build.js all && dist/claude/setup
+```
 
 호출자는 *당신의* 앱을 어떻게 실행하는지만 말합니다; 잡, 프롬프트, 머지, 프리플라이트는
 QABuddy의 재사용 워크플로우에 살기 때문에 QABuddy 릴리스가 곧 워크플로우 릴리스입니다:
@@ -87,16 +95,18 @@ QABuddy의 재사용 워크플로우에 살기 때문에 QABuddy 릴리스가 �
 ```yaml
 jobs:
   qabuddy:
-    uses: TimothyHan/qa-buddy-skills/.github/workflows/pr-coverage.yml@poc/cloud-service
+    uses: TimothyHan/qa-buddy-skills/.github/workflows/pr-coverage.yml@v0.9.0-poc.1
     with:
       app-start: "node server.js"
       app-url: "http://localhost:4173"
     secrets: inherit
 ```
 
-**Claude 전용.** 스킬을 어느 플랫폼에서 쓰든 워크플로우는 `anthropics/claude-code-action`에서
-돌고, 저장한 토큰으로 지출합니다: `claude setup-token`의 구독 토큰은 발급한 사람의 구독에
-과금되므로 팀 저장소는 전용 계정이나 API 키를 쓰는 편이 좋습니다.
+**Claude 전용, 그리고 누가 내는가.** 스킬을 어느 플랫폼에서 쓰든 워크플로우는
+`anthropics/claude-code-action`에서 돌고, 저장한 토큰으로 지출합니다. `claude setup-token`의
+구독 토큰은 발급한 사람의 Claude 구독에 과금되므로 팀 저장소는 전용 계정으로 발급하거나
+크레딧이 있는 API 키를 씁니다. 이것을 숨기지 않습니다: 마법사가 토큰 명령 전에 말하고,
+스캐폴더가 반복하고, 모든 히트맵 코멘트가 페이즈별 지출과 어느 시크릿이 냈는지로 끝납니다.
 
 **전제 조건** -- `preflight` 잡이 모델 지출 전에 모두 검사하고 빠진 것을 PR 코멘트로
 설명합니다:
@@ -119,14 +129,14 @@ jobs:
 | 입력 | 기본 | 의미 |
 |---|---|---|
 | `default-phases` | `kb` | 열릴 때 실행: `kb`, `kb,explore`, `kb,automate`, `kb,explore,automate` |
-| `after-companion-merge` | `full` | 동반 PR 머지 후 이어갈 것: `full`, `automate`, `none` |
+| `after-companion-merge` | `none` | 동반 PR 머지 후 이어갈 것: `none`(히트맵 갱신만), `full`, `automate` |
 | `delivery` | `companion-pr` | `commit`은 생성 파일을 PR 브랜치에 직접 푸시 -- PR 하나, 체인 없음 |
 | `issues-for` | `decisions` | 이슈가 되는 발견: `decisions`, `all`(버그 포함), `none` |
 | `gate-on` | `none` | `qabuddy / gate` 검사의 판정: `at-risk`, `suite`, `gaps` -- 머지를 막으려면 브랜치 보호에서 필수로 지정; 봇은 그 규칙을 절대 설정하지 않음 |
 | `kb-turns` / `kb-budget` … | 80 / $5, 120 / $10, 300 / $25 | 페이즈별 캡 |
 | `model` | `claude-sonnet-5` | |
 | `extra-prompt` | `.github/qabuddy/extra.md` | 모든 페이즈에 덧붙는 선택적 프로젝트 지침 |
-| `qabuddy-ref` | `poc/cloud-service` | 러너에 설치되는 QABuddy ref |
+| `qabuddy-ref` | `v0.9.0-poc.1` | 러너에 설치되는 QABuddy ref -- `poc/cloud-service`에서 자른 프리릴리스 태그 |
 
 ---
 

@@ -38,7 +38,7 @@ until the base branch is merged into it — preflight warns when that is the cas
 | comment `/qabuddy kb` | back to the kb phase only |
 | comment `/qabuddy heatmap` | no model: re-map the diff, run the suite on the branch as it is, re-post the heatmap |
 | a reviewer merges the companion that carried automation | the chain is complete: the same model-free refresh, so the heatmap reflects the merged branch |
-| a reviewer merges the companion PR `qabuddy/pr-<n>` into the source branch | the rest on PR `<n>` — `after-companion-merge` input: `full` (default; explore runs beside automate, so it adds cost of about a dollar and no wall time), `automate`, or `none`; skipped when that companion already carried automation |
+| a reviewer merges the companion PR `qabuddy/pr-<n>` into the source branch | `after-companion-merge` input: `none` (default) — the model-free heatmap refresh only; `full` (explore runs beside automate, so it adds about a dollar and no wall time) or `automate` — the rest on PR `<n>`, skipped once a companion carried automation |
 
 The caller's `default-phases` input sets what runs on open (`kb` by default; `kb,explore,automate`
 for everything on every PR). Labels and comments override per PR. `kb` is always included —
@@ -69,7 +69,8 @@ the failing spec that documents the bug should turn green there once the fix lan
 ## Companion PR or commit to the PR
 
 `delivery: companion-pr` (default) opens the generated files as a PR against the source
-PR's branch: reviewable on its own, and a merge continues the chain. `delivery: commit`
+PR's branch: reviewable on its own; a merge refreshes the heatmap, or continues the chain
+when `after-companion-merge` asks. `delivery: commit`
 pushes them straight onto the source PR's branch instead — the tests appear in the PR's own
 diff, a short note says which commit, the heatmap still updates. There is then no companion
 to review or merge, so the chain does not apply; phases run only by the open default, labels,

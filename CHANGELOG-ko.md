@@ -65,7 +65,13 @@ PR 트리거 실행의 개념 증명([RFC 0004](docs/rfc/0004-headless-pr-covera
   검사), `init`(스캐폴더). 프롬프트·`render.js`·`install.sh`·MCP 설정은
   `.github/pr-coverage/`에.
 - `/qa-setup` Phase 5b: 선택적 PR 자동화 -- `pr-coverage.js init`으로 호출자를 스캐폴드하고,
-  라벨을 만들고, 토큰을 직접 받지 않은 채 시크릿과 저장소 설정을 안내(0.5.0).
+  라벨을 만들고, 토큰을 직접 받지 않은 채 시크릿과 저장소 설정을 안내(0.5.0); 기존 설정
+  경로 `(C)`와 `--pr`(0.5.1); 누가 내는지 명시, 전제 조건별 확인(`gh secret list`, Actions
+  권한 API), `sources.json` 없는 기능에 `/qa-test-plan` 제안(0.5.2).
+- 히트맵 푸터: 페이즈별 모델 지출과 어느 시크릿이 냈는지(`heatmap --logs --billing`);
+  preflight가 과금 출처를 보고.
+- `after-companion-merge` 기본값 `none` -- 머지된 동반 PR은 히트맵만 갱신; 체인은
+  옵트인(RFC 0004 결정 17).
 - KB 명세 §6.8 `sources.json`(기능별 코드·테스트 glob)과 §6.9
   `exploratory/{date}.md`(AC 키 결과 표를 가진 영속 세션).
 

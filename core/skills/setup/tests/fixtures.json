@@ -156,7 +156,7 @@
     },
     {
       "id": "fx-006",
-      "description": "PR automation step: scaffolds the caller with pr-coverage.js init, walks the secret and repo setting, never collects a token",
+      "description": "PR automation step: scaffolds the caller with pr-coverage.js init, states who pays, verifies each prerequisite (gh secret list, Actions setting), offers /qa-test-plan for features without sources.json, never collects a token",
       "input": {
         "repo": "GitHub remote, gh available, team mode, package.json with scripts.start",
         "answers": "(A) yes to PR automation"
@@ -191,6 +191,21 @@
           "field": "output",
           "op": "not_contains",
           "value": "paste your API key"
+        },
+        {
+          "field": "output",
+          "op": "contains",
+          "value": "gh secret list"
+        },
+        {
+          "field": "output",
+          "op": "matches",
+          "value": "bills|billed|billing|who pays"
+        },
+        {
+          "field": "output",
+          "op": "contains",
+          "value": "qa-test-plan"
         }
       ],
       "tags": [
