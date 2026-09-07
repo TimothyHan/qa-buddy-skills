@@ -1,6 +1,6 @@
 ---
 name: setup
-version: 0.5.0
+version: 0.5.1
 description: |
   First-run configuration wizard for QABuddy. Sets up context source (Jira, spec
   docs, chat, custom), team mode (solo vs PR-based), and project preferences.
@@ -40,6 +40,10 @@ cat .qabuddy.json 2>/dev/null
 - **If config exists:** Show it and ask: "Want to reconfigure or keep current settings?"
   - (A) Reconfigure — proceed to Phase 2
   - (B) Keep — show summary and exit
+  - (C) Keep, and set up PR automation — jump to Phase 5b (offer this only when the
+    repository has no `.github/workflows/qabuddy.yml` yet)
+- **`/qa-setup --pr`:** skip straight to Phase 5b, whether or not a config exists
+  (if none exists, run Phases 2–4 first — the workflow needs `.qabuddy.json`).
 - **If no config:** Proceed to Phase 2
 
 ---

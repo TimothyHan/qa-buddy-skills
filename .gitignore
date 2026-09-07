@@ -26,3 +26,6 @@ docs/blog/
 
 # npm — akela 엔진 의존성 (RFC 0003); dist는 빌드가 자급자족으로 복사
 node_modules/
+
+# humanize-korean working files
+/_workspace/
