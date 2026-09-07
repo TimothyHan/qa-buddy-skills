@@ -10,7 +10,7 @@
 [![Skills: 13](https://img.shields.io/badge/Skills-13-green.svg)](#skills)
 [![Platform: Claude Code](https://img.shields.io/badge/Platform-Claude_Code-purple.svg)](#how-it-works)
 [![Locales: en, ko](https://img.shields.io/badge/Locales-en_|_ko-orange.svg)](#locales)
-[![Structural checks: 1827](https://img.shields.io/badge/Structural_checks-1827-brightgreen.svg)](#how-it-works)
+[![Structural checks: 1835](https://img.shields.io/badge/Structural_checks-1835-brightgreen.svg)](#how-it-works)
 
 An AI partner for anyone who tests software —<br>
 from epic test planning through sprint execution to release verification.<br>
@@ -378,7 +378,7 @@ Skills are authored once in `core/skills/`. The build script generates platform-
 ```bash
 node build.js all                  # Build for all platforms
 node build.js all --locale ko      # Build Korean version
-node test.js                       # Run 1827 structural checks
+node test.js                       # Run 1835 structural checks
 ```
 
 > **Structural checks are not behavioural verification.** `node test.js` inspects
@@ -394,7 +394,7 @@ node test.js                       # Run 1827 structural checks
 ```
 QABuddy/
 ├── build.js                     # Build script (node; vendors the pinned engine)
-├── test.js                      # Structural check suite (1827 checks)
+├── test.js                      # Structural check suite (1835 checks)
 ├── package.json                 # One pinned dependency: akela (the engine)
 ├── bin/akela.js                 # Engine launcher (env map · first-run akela.json · delegation)
 ├── bin/qab.js                   # Deprecation shim (one release)

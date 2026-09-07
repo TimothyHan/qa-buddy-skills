@@ -125,6 +125,11 @@ explains what is missing in the PR comment:
 
 Nobody, including the wizard, ever collects the token value: you run `gh secret set` yourself.
 
+**Changed your mind mid-setup** — no subscription, no API credit, not now? Say *stop* in the
+wizard, or run `pr-coverage.js init --remove`: it deletes the caller and the `qa:*` labels
+and touches nothing else. A caller without a token is never left behind, since every PR
+would otherwise get a "could not start" comment. `/qa-setup --pr` brings it back later.
+
 ---
 
 ## Tune it (caller inputs)

@@ -1052,6 +1052,11 @@ function testPrCoverage() {
     check(/# after-companion-merge: none/.test(caller) && /refreshes the heatmap/.test(caller), 'init: caller documents chaining as opt-in (after-companion-merge: none)');
     const initDef = JSON.parse(execFileSync(process.execPath, [src, 'init', '--force'], { cwd: I, encoding: 'utf8' }));
     check(/^v\d+\.\d+\.\d+/.test(initDef.ref) && new RegExp('@' + initDef.ref.replace(/\./g, '\\.')).test(fs.readFileSync(path.join(I, '.github', 'workflows', 'qabuddy.yml'), 'utf8')), 'init: default ref is a version tag the caller pins');
+    const rm = JSON.parse(execFileSync(process.execPath, [src, 'init', '--remove'], { cwd: I, encoding: 'utf8', env: { ...process.env, PATH: path.join(tmp, 'no-gh') } }));
+    check(rm.removed && rm.removed.workflow === true && !fs.existsSync(path.join(I, '.github', 'workflows', 'qabuddy.yml')) && /secrets/.test(rm.note), 'init --remove: deletes the caller, leaves secrets alone, says so');
+    const rm2 = JSON.parse(execFileSync(process.execPath, [src, 'init', '--remove'], { cwd: I, encoding: 'utf8', env: { ...process.env, PATH: path.join(tmp, 'no-gh') } }));
+    check(rm2.removed.workflow === false, 'init --remove: idempotent when nothing is there');
+    execFileSync(process.execPath, [src, 'init', '--app-start', 'node server.js', '--app-url', 'http://localhost:4173', '--qabuddy-ref', 'v9.9.9'], { cwd: I, stdio: 'ignore' });
     const again = (() => { try { execFileSync(process.execPath, [src, 'init'], { cwd: I, stdio: 'ignore' }); return 0; } catch (e) { return e.status; } })();
     check(again === 3, 'init: refuses to overwrite an existing caller without --force');
 

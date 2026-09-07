@@ -1,6 +1,6 @@
 ---
 name: setup
-version: 0.5.2
+version: 0.5.3
 description: |
   First-run configuration wizard for QABuddy. Sets up context source (Jira, spec
   docs, chat, custom), team mode (solo vs PR-based), and project preferences.
@@ -243,8 +243,16 @@ coverage-heatmap comment and a companion PR carrying the tests."
      This is crucial: a feature without it maps to nothing and its heatmap stays empty.
      Offer to run `/qa-test-plan {feature}` now for each; if declined, say the first PR's
      preflight will name them.
-   Do not close this step while an item is unverified unless the SDT explicitly defers it;
-   deferred items go in the Phase 6 summary.
+   At every item the SDT may answer **stop** — e.g. they realise they have neither a Claude
+   subscription nor API credit. Then undo the scaffold, nothing else:
+   ```bash
+   node {{REFERENCE_PATH}}/bin/pr-coverage.js init --remove
+   ```
+   (deletes the caller and the `qa:*` labels; secrets and repo settings are theirs). Say
+   what was removed and that `/qa-setup --pr` brings it back. Never leave the caller in
+   place without a token: every PR would get a "could not start" comment. So *defer* is
+   only for items other than the token; an unset token means stop or finish. Do not close
+   this step with an unverified item unless it is deferred; deferred items go in Phase 6.
 4. **Explain the default in one paragraph:** `kb` on every PR open → one heatmap comment
    and a companion PR with the tests; merging the companion only refreshes the heatmap.
    Nothing more runs unless asked — labels `qa:explore` / `qa:automate` / `qa:full` or
@@ -267,7 +275,7 @@ Your setup:
 - {jira project / spec location / custom method}
 - Team practices: {N} documented, {M} not yet defined
 - Learnings layer: {learningsPath} + learnings-log.jsonl (self-improve active on every skill run)
-- PR automation: {caller written — token ✓ · login ✓ · Actions PR setting ✓ · sources.json ✓ | deferred: … | not set up}
+- PR automation: {caller written — token ✓ · login ✓ · Actions PR setting ✓ · sources.json ✓ | deferred: … | removed at the SDT's request | not set up}
 
 Next: Run `/qa-start {EPIC-KEY or feature description}` to begin the guided workflow.
 Or use any skill individually: `/qa-test-plan`, `/qa-review-ticket`, etc."

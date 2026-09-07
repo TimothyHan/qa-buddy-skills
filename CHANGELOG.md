@@ -70,7 +70,8 @@ Not proposed for `main`.
   setting without ever collecting a token (0.5.0); existing-config path `(C)` and
   `--pr` (0.5.1); states who pays, verifies each prerequisite (`gh secret list`, the
   Actions permissions API), offers `/qa-test-plan` for features without `sources.json`
-  (0.5.2).
+  (0.5.2); *stop* at any prerequisite runs `init --remove` — the caller and labels go,
+  secrets stay, a caller is never left without a token (0.5.3).
 - Heatmap footer: model spend per phase and which secret paid (`heatmap --logs --billing`);
   preflight reports the billing source.
 - `after-companion-merge` defaults to `none` — a merged companion only refreshes the

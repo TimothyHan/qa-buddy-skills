@@ -1,6 +1,6 @@
 ---
 name: setup
-version: 0.5.2
+version: 0.5.3
 description: |
   QABuddy 초기 설정 마법사. 컨텍스트 소스(Jira, 스펙 문서, 채팅, 커스텀),
   팀 모드(솔로 vs PR 기반), 프로젝트 환경설정을 구성합니다.
@@ -239,8 +239,16 @@ mkdir -p features-kb/team-practices
      없는 기능은 아무것에도 매핑되지 않아 히트맵이 비어 있다. 기능마다 지금
      `/qa-test-plan {feature}`을 실행하겠다고 제안하고, 거절하면 첫 PR의 preflight가
      그 기능들을 알려줄 것이라고 말한다.
-   SDT가 명시적으로 미루지 않는 한 확인 안 된 항목이 있는 채로 이 단계를 닫지 않는다;
-   미룬 항목은 Phase 6 요약에 적는다.
+   어느 항목에서든 SDT는 **중단**이라고 답할 수 있다 -- 예: Claude 구독도 API 크레딧도
+   없다는 걸 깨달았을 때. 그러면 스캐폴드만 되돌린다:
+   ```bash
+   node {{REFERENCE_PATH}}/bin/pr-coverage.js init --remove
+   ```
+   (호출자와 `qa:*` 라벨을 삭제; 시크릿과 저장소 설정은 SDT의 것). 무엇을 지웠는지와
+   `/qa-setup --pr`로 되살릴 수 있음을 말한다. 토큰 없이 호출자를 남겨두지 않는다: 모든
+   PR에 "시작할 수 없음" 코멘트가 달린다. 따라서 *미루기*는 토큰 외 항목에만 해당하고,
+   토큰이 없으면 중단하거나 끝낸다. 미루지 않은 미확인 항목이 있는 채로 이 단계를 닫지
+   않는다; 미룬 항목은 Phase 6에 적는다.
 4. **기본 동작을 한 문단으로 설명한다:** PR 열릴 때마다 `kb` → 히트맵 코멘트 하나와
    테스트를 담은 동반 PR; 동반 PR을 머지하면 히트맵만 갱신된다. 요청하지 않으면 더
    돌지 않는다 -- PR마다 라벨 `qa:explore` / `qa:automate` / `qa:full` 또는 `/qabuddy …`
@@ -263,7 +271,7 @@ mkdir -p features-kb/team-practices
 - {Jira 프로젝트 / 스펙 위치 / 커스텀 방식}
 - 팀 실무 관행: {N}개 문서화 완료, {M}개 미정의
 - 학습 레이어: {learningsPath} + learnings-log.jsonl (모든 스킬 실행에서 자기 개선 활성)
-- PR 자동화: {호출자 작성됨 -- 토큰 ✓ · 로그인 ✓ · Actions PR 설정 ✓ · sources.json ✓ | 미룸: … | 미설정}
+- PR 자동화: {호출자 작성됨 -- 토큰 ✓ · 로그인 ✓ · Actions PR 설정 ✓ · sources.json ✓ | 미룸: … | SDT 요청으로 제거됨 | 미설정}
 
 다음: `/qa-start {EPIC-KEY 또는 기능 설명}`을 실행하여 가이드 워크플로우를 시작하세요.
 또는 개별 스킬을 직접 사용할 수 있습니다: `/qa-test-plan`, `/qa-review-ticket` 등"

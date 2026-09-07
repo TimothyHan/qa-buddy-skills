@@ -242,6 +242,41 @@
         "rfc-0004",
         "existing-config"
       ]
+    },
+    {
+      "id": "fx-008",
+      "description": "Opt-out mid-setup: the SDT says they have no Claude subscription or API credit at the token step; the wizard removes the caller and labels via init --remove, leaves secrets alone, never leaves a caller without a token",
+      "input": {
+        "repo": "GitHub remote, gh available, caller just scaffolded by Phase 5b",
+        "answers": "(A) yes to PR automation; at the token item: 'stop — I don't have a Claude subscription'"
+      },
+      "assertions": [
+        {
+          "field": "output",
+          "op": "contains",
+          "value": "init --remove"
+        },
+        {
+          "field": "output",
+          "op": "matches",
+          "value": "removed|deleted"
+        },
+        {
+          "field": "output",
+          "op": "contains",
+          "value": "--pr"
+        },
+        {
+          "field": "output",
+          "op": "not_contains",
+          "value": "paste the token"
+        }
+      ],
+      "tags": [
+        "pr-automation",
+        "rfc-0004",
+        "opt-out"
+      ]
     }
   ]
 }

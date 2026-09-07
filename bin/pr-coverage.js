@@ -27,8 +27,9 @@
  *            [--caller-on-branch true|false] [--md note.md] [--pr N]
  *            Everything a run needs, checked before any model spend; the note carries the sticky marker.
  *
- *   init     [--app-start CMD] [--app-url URL] [--qabuddy-ref REF] [--labels true] [--force]
- *            Writes the caller workflow for the reusable workflow and lists what is still missing.
+ *   init     [--app-start CMD] [--app-url URL] [--qabuddy-ref REF] [--labels true] [--force] | --remove
+ *            Writes the caller workflow for the reusable workflow and lists what is still missing;
+ *            --remove deletes the caller and the qa:* labels (the opt-out mid-setup).
  *
  *   summary  --touched touched.json [--heatmap h.json] [--results pw.json] [--changed files] [--issues issues.json]
  *            [--pr N] [--source-ref BR] [--companion-url URL] [--phases P] [--json out] [--body out.md] [--announce out.md]
@@ -70,7 +71,7 @@ function parseArgs(argv) {
     const a = argv[i];
     if (!a.startsWith('--')) usage(`unexpected argument: ${a}`);
     const key = a.slice(2);
-    if (key === 'dry-run' || key === 'force') { opts[key === 'dry-run' ? 'dryRun' : 'force'] = true; continue; }
+    if (key === 'dry-run' || key === 'force' || key === 'remove') { opts[key === 'dry-run' ? 'dryRun' : key] = true; continue; }
     const val = argv[i + 1];
     if (val === undefined || val.startsWith('--')) usage(`--${key} needs a value`);
     opts[key.replace(/-([a-z])/g, (_, c) => c.toUpperCase())] = val;
@@ -748,6 +749,16 @@ jobs:
 function cmdInit(o) {
   const root = path.resolve(o.root || '.');
   const wf = path.resolve(root, o.workflow || '.github/workflows/qabuddy.yml');
+  if (o.remove) {
+    // Opt-out: undo everything init did, nothing else. Secrets are the user's; we never touch them.
+    const removed = { workflow: false, labels: [] };
+    if (fs.existsSync(wf)) { fs.unlinkSync(wf); removed.workflow = true; }
+    for (const [name] of LABELS) {
+      try { execFileSync('gh', ['label', 'delete', name, '--yes'], { cwd: root, stdio: ['ignore', 'pipe', 'pipe'] }); removed.labels.push(name); } catch { /* absent or no gh */ }
+    }
+    process.stdout.write(JSON.stringify({ schema: 'pr-init/1', removed, note: 'repository secrets and the Actions setting were not changed — remove them yourself if you set them' }, null, 2) + '\n');
+    return;
+  }
   if (fs.existsSync(wf) && !o.force) die(3, `${path.relative(root, wf)} exists — pass --force to overwrite`);
   fs.mkdirSync(path.dirname(wf), { recursive: true });
   fs.writeFileSync(wf, callerWorkflow(o));
