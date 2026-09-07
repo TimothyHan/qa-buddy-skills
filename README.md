@@ -23,7 +23,7 @@ Built on the native **skills system** of your AI coding assistant.<br>
 QABuddy is a collection of `SKILL.md` files that your AI discovers and invokes automatically —<br>
 no separate app, no daemon; one pinned dependency — the [Akela](https://github.com/TimothyHan/akela) engine (itself zero-dependency), vendored into dist at build time.
 
-[Quick Start](#quick-start) · [Skills](#skills) · [Guided Workflow](#the-guided-workflow) · [Self-Learning Guide](docs/self-learning-guide-en.md) · [Skill Evals](docs/skill-evals-en.md) · [On Pull Requests](docs/pr-coverage-en.md) · [Changelog](CHANGELOG.md) · [Contributing](CONTRIBUTING-en.md)
+[Quick Start](#quick-start) · [Skills](#skills) · [Guided Workflow](#the-guided-workflow) · [Self-Learning Guide](docs/self-learning-guide-en.md) · [Skill Evals](docs/skill-evals-en.md) · [QABuddy on CI](docs/pr-coverage-en.md) · [Changelog](CHANGELOG.md) · [Contributing](CONTRIBUTING-en.md)
 
 </div>
 
@@ -177,7 +177,7 @@ At every pause, you choose:
 
 ---
 
-## On Pull Requests (POC)
+## QABuddy on CI (POC)
 
 QABuddy can also run unattended on every pull request. On a PR, the reusable GitHub
 workflow:

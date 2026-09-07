@@ -1,4 +1,4 @@
-# QABuddy on Pull Requests
+# QABuddy on CI
 
 **Status:** proof of concept on branch `poc/cloud-service` — everything below is built and
 measured, nothing is on `main` yet. Design record: [RFC 0004](rfc/0004-headless-pr-coverage.md).

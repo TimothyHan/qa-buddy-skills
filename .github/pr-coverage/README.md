@@ -1,4 +1,4 @@
-# QABuddy on pull requests — reusable workflow
+# QABuddy on CI — reusable workflow
 
 `.github/workflows/pr-coverage.yml` runs QABuddy headlessly on a consumer repository's pull
 requests: it maps the diff to features in that repo's `features-kb/`, writes or updates test

@@ -1,4 +1,4 @@
-# 풀 리퀘스트 위의 QABuddy
+# CI에서 QABuddy
 
 **상태:** `poc/cloud-service` 브랜치의 개념 증명 -- 아래 내용은 모두 만들어지고 측정되었지만
 아직 `main`에는 없습니다. 설계 기록: [RFC 0004](rfc/0004-headless-pr-coverage.md).

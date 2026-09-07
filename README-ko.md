@@ -23,7 +23,7 @@ AI 코딩 어시스턴트의 네이티브 **스킬 시스템** 위에 구축되�
 QABuddy는 AI가 자동으로 인식하고 실행하는 `SKILL.md` 파일 모음입니다 —<br>
 별도의 앱과 데몬이 없고, 고정 의존성은 하나 — [Akela](https://github.com/TimothyHan/akela) 엔진(그 자체는 의존성 0)이며 빌드 시점에 dist로 벤더링됩니다.
 
-[빠른 시작](#빠른-시작) · [스킬](#스킬) · [안내 워크플로우](#안내-워크플로우) · [셀프러닝 가이드](docs/self-learning-guide.md) · [스킬 평가](docs/skill-evals.md) · [풀 리퀘스트 위에서](docs/pr-coverage.md) · [변경 이력](CHANGELOG-ko.md) · [기여하기](CONTRIBUTING.md)
+[빠른 시작](#빠른-시작) · [스킬](#스킬) · [안내 워크플로우](#안내-워크플로우) · [셀프러닝 가이드](docs/self-learning-guide.md) · [스킬 평가](docs/skill-evals.md) · [CI에서 QABuddy](docs/pr-coverage.md) · [변경 이력](CHANGELOG-ko.md) · [기여하기](CONTRIBUTING.md)
 
 스킬 자체도 채점됩니다 — 지식만이 아니라: 대상 모델에서의 헤드리스 실행, 스킬 자신의 제약 조건에 대해 산출물을 채점하는 별도의 Opus 판정자, must 기준마다의 바닥값, 사람이 채점한 산출물에서 도출한 임계값 ([RFC 0005](docs/rfc/0005-rubric-scored-evals.md)).
 
@@ -175,7 +175,7 @@ node build.js all --locale ko
 
 ---
 
-## 풀 리퀘스트 위에서 (POC)
+## CI에서 QABuddy (POC)
 
 QABuddy는 풀 리퀘스트마다 사람 없이 실행될 수도 있습니다. 재사용 GitHub 워크플로우가
 PR에서 하는 일:
