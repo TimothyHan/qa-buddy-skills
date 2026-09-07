@@ -984,9 +984,11 @@ function testPrCoverage() {
     // comment: a stub gh on PATH records argv; PATCH when the marker exists, POST otherwise; --dry-run never calls gh
     const bin = path.join(tmp, 'stub-bin'); fs.mkdirSync(bin);
     const ghLog = path.join(tmp, 'gh.log');
-    const stub = `#!/bin/sh\nprintf '%s\\n' "$*" >> "${ghLog}"\ncase "$*" in\n  *--paginate*) cat "${path.join(tmp, 'comments.jsonl')}";;\n  *) echo '{"id":99,"html_url":"https://x/c/99"}';;\nesac\n`;
-    fs.writeFileSync(path.join(bin, 'gh'), stub, { mode: 0o755 });
-    const ghEnv = { PATH: `${bin}${path.delimiter}${process.env.PATH}` };
+    // Node stubs via QABUDDY_GH (a shell stub on PATH would not be found by execFileSync on Windows)
+    const stub = `const fs=require('fs');const a=process.argv.slice(2);fs.appendFileSync(${JSON.stringify(ghLog)},a.join(' ')+'\\n');
+if(a.includes('--paginate'))process.stdout.write(fs.readFileSync(${JSON.stringify(path.join(tmp, 'comments.jsonl'))},'utf8'));else process.stdout.write('{"id":99,"html_url":"https://x/c/99"}\\n');\n`;
+    fs.writeFileSync(path.join(bin, 'gh.js'), stub);
+    const ghEnv = { QABUDDY_GH: path.join(bin, 'gh.js') };
     const dry = JSON.parse(run(['comment', '--repo', 'o/r', '--pr', '7', '--body-file', 'out/h.md', '--dry-run'], ghEnv));
     check(dry.dryRun === true && dry.url === 'repos/o/r/issues/7/comments' && !fs.existsSync(ghLog), 'comment: --dry-run reports the target and never invokes gh');
     fs.writeFileSync(path.join(tmp, 'comments.jsonl'), '{"id":1,"body":"hello"}\n');
@@ -998,8 +1000,8 @@ function testPrCoverage() {
     fs.writeFileSync(path.join(tmp, 'plain.md'), 'no marker here\n');
     check(exitCode(['comment', '--repo', 'o/r', '--pr', '7', '--body-file', 'plain.md']) === 3, 'comment: refuses a body without the marker (exit 3)');
     const brokenBin = path.join(tmp, 'broken-bin'); fs.mkdirSync(brokenBin);
-    fs.writeFileSync(path.join(brokenBin, 'gh'), '#!/bin/sh\necho "boom" >&2\nexit 1\n', { mode: 0o755 });
-    const brokenEnv = { PATH: `${brokenBin}${path.delimiter}${process.env.PATH}` };
+    fs.writeFileSync(path.join(brokenBin, 'gh.js'), "process.stderr.write('boom\\n');process.exit(1);\n");
+    const brokenEnv = { QABUDDY_GH: path.join(brokenBin, 'gh.js') };
     const failCode = (() => { try { run(['comment', '--repo', 'o/r', '--pr', '7', '--body-file', 'out/h.md'], brokenEnv); return 0; } catch (e) { return e.status; } })();
     check(failCode === 4, 'comment: gh failure exits 4', `exit ${failCode}`);
 
@@ -1052,9 +1054,9 @@ function testPrCoverage() {
     check(/# after-companion-merge: none/.test(caller) && /refreshes the heatmap/.test(caller), 'init: caller documents chaining as opt-in (after-companion-merge: none)');
     const initDef = JSON.parse(execFileSync(process.execPath, [src, 'init', '--force'], { cwd: I, encoding: 'utf8' }));
     check(/^v\d+\.\d+\.\d+/.test(initDef.ref) && new RegExp('@' + initDef.ref.replace(/\./g, '\\.')).test(fs.readFileSync(path.join(I, '.github', 'workflows', 'qabuddy.yml'), 'utf8')), 'init: default ref is a version tag the caller pins');
-    const rm = JSON.parse(execFileSync(process.execPath, [src, 'init', '--remove'], { cwd: I, encoding: 'utf8', env: { ...process.env, PATH: path.join(tmp, 'no-gh') } }));
+    const rm = JSON.parse(execFileSync(process.execPath, [src, 'init', '--remove'], { cwd: I, encoding: 'utf8', env: { ...process.env, QABUDDY_GH: path.join(brokenBin, 'gh.js') } }));
     check(rm.removed && rm.removed.workflow === true && !fs.existsSync(path.join(I, '.github', 'workflows', 'qabuddy.yml')) && /secrets/.test(rm.note), 'init --remove: deletes the caller, leaves secrets alone, says so');
-    const rm2 = JSON.parse(execFileSync(process.execPath, [src, 'init', '--remove'], { cwd: I, encoding: 'utf8', env: { ...process.env, PATH: path.join(tmp, 'no-gh') } }));
+    const rm2 = JSON.parse(execFileSync(process.execPath, [src, 'init', '--remove'], { cwd: I, encoding: 'utf8', env: { ...process.env, QABUDDY_GH: path.join(brokenBin, 'gh.js') } }));
     check(rm2.removed.workflow === false, 'init --remove: idempotent when nothing is there');
     execFileSync(process.execPath, [src, 'init', '--app-start', 'node server.js', '--app-url', 'http://localhost:4173', '--qabuddy-ref', 'v9.9.9'], { cwd: I, stdio: 'ignore' });
     const again = (() => { try { execFileSync(process.execPath, [src, 'init'], { cwd: I, stdio: 'ignore' }); return 0; } catch (e) { return e.status; } })();
@@ -1074,8 +1076,9 @@ function testPrCoverage() {
     check(sm_fj.stats.phases.explore.cost === 1.04 && sm_fj.stats.skills['qa-exploratory'].concerns.length === 1 && sm_fj.adds.specs === 1 && sm_fj.adds.bugs === 1, 'summary: reads execution logs, close files, and the changed-file categories');
     const ghIssues = path.join(tmp, 'gh-issues'); fs.mkdirSync(ghIssues);
     const issueLog = path.join(tmp, 'issues.log');
-    fs.writeFileSync(path.join(ghIssues, 'gh'), `#!/bin/sh\nprintf '%s\\n' "$*" >> "${issueLog}"\ncase "$1 $2" in\n  "issue list") cat "${path.join(tmp, 'issues-existing.json')}";;\n  "issue create") echo "https://github.com/o/r/issues/42";;\n  *) echo "";;\nesac\n`, { mode: 0o755 });
-    const ghEnv2 = { PATH: `${ghIssues}${path.delimiter}${process.env.PATH}` };
+    fs.writeFileSync(path.join(ghIssues, 'gh.js'), `const fs=require('fs');const a=process.argv.slice(2);fs.appendFileSync(${JSON.stringify(issueLog)},a.join(' ')+'\\n');
+const k=a[0]+' '+a[1];if(k==='issue list')process.stdout.write(fs.readFileSync(${JSON.stringify(path.join(tmp, 'issues-existing.json'))},'utf8'));else if(k==='issue create')process.stdout.write('https://github.com/o/r/issues/42\\n');else process.stdout.write('\\n');\n`);
+    const ghEnv2 = { QABUDDY_GH: path.join(ghIssues, 'gh.js') };
     fs.writeFileSync(path.join(tmp, 'issues-existing.json'), '[]');
     const idry = JSON.parse(run(['issues', '--repo', 'o/r', '--pr', '7', '--findings', 'out/findings.json', '--dry-run'], ghEnv2));
     check(idry.dryRun === true && idry.issues.length === 1 && idry.issues[0].kind === 'decision' && !fs.existsSync(issueLog), 'issues: --dry-run lists only decision findings and never calls gh');

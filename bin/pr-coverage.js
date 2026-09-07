@@ -533,8 +533,15 @@ function cmdHeatmap(o) {
 
 // ─── comment ───────────────────────────────────────────────────────────────
 
+// Every gh call goes through here. QABUDDY_GH names a Node script that stands in for gh
+// (tests; cross-platform — a shell stub on PATH is invisible to execFileSync on Windows).
+function ghExec(args, opts) {
+  const stub = process.env.QABUDDY_GH;
+  return stub ? execFileSync(process.execPath, [stub, ...args], opts) : execFileSync('gh', args, opts);
+}
+
 function gh(args) {
-  try { return execFileSync('gh', args, { encoding: 'utf8', stdio: ['ignore', 'pipe', 'pipe'] }); }
+  try { return ghExec(args, { encoding: 'utf8', stdio: ['ignore', 'pipe', 'pipe'] }); }
   catch (e) { die(4, `gh ${args.slice(0, 3).join(' ')} failed: ${(e.stderr || e.message || '').toString().trim()}`); }
 }
 
@@ -754,7 +761,7 @@ function cmdInit(o) {
     const removed = { workflow: false, labels: [] };
     if (fs.existsSync(wf)) { fs.unlinkSync(wf); removed.workflow = true; }
     for (const [name] of LABELS) {
-      try { execFileSync('gh', ['label', 'delete', name, '--yes'], { cwd: root, stdio: ['ignore', 'pipe', 'pipe'] }); removed.labels.push(name); } catch { /* absent or no gh */ }
+      try { ghExec(['label', 'delete', name, '--yes'], { cwd: root, stdio: ['ignore', 'pipe', 'pipe'] }); removed.labels.push(name); } catch { /* absent or no gh */ }
     }
     process.stdout.write(JSON.stringify({ schema: 'pr-init/1', removed, note: 'repository secrets and the Actions setting were not changed — remove them yourself if you set them' }, null, 2) + '\n');
     return;
@@ -770,7 +777,7 @@ function cmdInit(o) {
   if (o.labels === 'true' || o.labels === true) {
     labels = [];
     for (const [name, desc] of LABELS) {
-      try { execFileSync('gh', ['label', 'create', name, '--description', desc, '--color', '5319e7', '--force'], { cwd: root, stdio: ['ignore', 'pipe', 'pipe'] }); labels.push(name); }
+      try { ghExec(['label', 'create', name, '--description', desc, '--color', '5319e7', '--force'], { cwd: root, stdio: ['ignore', 'pipe', 'pipe'] }); labels.push(name); }
       catch (e) { labels.push(`${name}: ${(e.stderr || e.message || '').toString().trim().split('\n')[0]}`); }
     }
   } else next.push(`create the phase labels: ${LABELS.map(l => '`' + l[0] + '`').join(', ')} (or rerun with --labels true)`);
