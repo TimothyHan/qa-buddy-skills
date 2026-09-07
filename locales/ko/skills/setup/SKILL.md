@@ -1,6 +1,6 @@
 ---
 name: setup
-version: 0.5.0
+version: 0.5.1
 description: |
   QABuddy 초기 설정 마법사. 컨텍스트 소스(Jira, 스펙 문서, 채팅, 커스텀),
   팀 모드(솔로 vs PR 기반), 프로젝트 환경설정을 구성합니다.
@@ -40,6 +40,10 @@ cat .qabuddy.json 2>/dev/null
 - **설정 파일이 있는 경우:** 현재 설정을 보여주고 묻는다: "재구성하시겠습니까, 현재 설정을 유지하시겠습니까?"
   - (A) 재구성 -- Phase 2로 진행
   - (B) 유지 -- 요약을 보여주고 종료
+  - (C) 유지하고 PR 자동화 설정 -- Phase 5b로 이동 (저장소에 아직
+    `.github/workflows/qabuddy.yml`이 없을 때만 제안)
+- **`/qa-setup --pr`:** 설정 유무와 관계없이 Phase 5b로 바로 이동 (설정이 없으면
+  Phase 2–4를 먼저 실행 -- 워크플로우는 `.qabuddy.json`이 필요)
 - **설정 파일이 없는 경우:** Phase 2로 진행
 
 ---

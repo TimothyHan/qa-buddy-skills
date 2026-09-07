@@ -197,6 +197,36 @@
         "pr-automation",
         "rfc-0004"
       ]
+    },
+    {
+      "id": "fx-007",
+      "description": "Existing config: offers to keep it and add PR automation; --pr jumps straight to Phase 5b",
+      "input": {
+        "repo": ".qabuddy.json present, no .github/workflows/qabuddy.yml, GitHub remote",
+        "answers": "(C) keep and set up PR automation"
+      },
+      "assertions": [
+        {
+          "field": "output",
+          "op": "matches",
+          "value": "\\(C\\)|--pr"
+        },
+        {
+          "field": "output",
+          "op": "contains",
+          "value": "pr-coverage.js init"
+        },
+        {
+          "field": "output",
+          "op": "not_contains",
+          "value": "paste the token"
+        }
+      ],
+      "tags": [
+        "pr-automation",
+        "rfc-0004",
+        "existing-config"
+      ]
     }
   ]
 }
