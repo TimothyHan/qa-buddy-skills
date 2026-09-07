@@ -16,7 +16,7 @@ on:
       install:        { type: string, default: "npm ci", description: "Command that installs the app's dependencies" }
       node-version:   { type: string, default: "20" }
       model:          { type: string, default: "claude-sonnet-5" }
-      qabuddy-ref:    { type: string, default: "v0.9.0-poc.1", description: "QABuddy git ref (tag or branch) to install on the runner" }
+      qabuddy-ref:    { type: string, default: "v0.9.0-poc.2", description: "QABuddy git ref (tag or branch) to install on the runner" }
       extra-prompt:   { type: string, default: ".github/qabuddy/extra.md", description: "Optional file in the consumer repo appended to every phase prompt" }
       fallback:       { type: string, default: "none",  description: "`none`: unmapped diffs run nothing; `all`: run every feature" }
       default-phases: { type: string, default: "kb",    description: "Phases on PR open / ready-for-review: `kb`, `kb,explore`, `kb,automate`, or `kb,explore,automate`; labels and `/qabuddy` comments override per PR" }

@@ -203,7 +203,7 @@ PR마다 라벨이나 `/qabuddy` 코멘트로, 또는 리뷰된 동반 PR 뒤에
 `gh secret set CLAUDE_CODE_OAUTH_TOKEN`(그 Claude 구독에 과금), 또는 API 크레딧이 있는
 `ANTHROPIC_API_KEY`.
 
-**상태** -- 개념 증명, `poc/cloud-service`에서 자른 프리릴리스 태그 `v0.9.0-poc.1`. 호출자가
+**상태** -- 개념 증명, `poc/cloud-service`에서 자른 프리릴리스 태그 `v0.9.0-poc.2`. 호출자가
 그 태그를 고정하므로 러너는 아무것도 요구하지 않습니다; 마법사를 쓰려면 태그에서
 설치하세요. 가이드: [docs/pr-coverage.md](docs/pr-coverage.md), 설계:
 [RFC 0004](docs/rfc/0004-headless-pr-coverage.md).

@@ -205,7 +205,7 @@ wizard never handles the value but does verify it landed: `claude setup-token` t
 `gh secret set CLAUDE_CODE_OAUTH_TOKEN` (bills that Claude subscription), or
 `ANTHROPIC_API_KEY` with API credit.
 
-**Status** -- proof of concept, pre-release tag `v0.9.0-poc.1` cut from `poc/cloud-service`.
+**Status** -- proof of concept, pre-release tag `v0.9.0-poc.2` cut from `poc/cloud-service`.
 The caller pins that tag, so the runner needs nothing from you; for the wizard, install
 from the tag. Guide: [docs/pr-coverage-en.md](docs/pr-coverage-en.md),
 design: [RFC 0004](docs/rfc/0004-headless-pr-coverage.md).

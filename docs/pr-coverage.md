@@ -81,12 +81,12 @@ automate는 kb 뒤에 **병렬로** 실행됩니다. 데모 앱에서 전체 실
 브랜치는 베이스를 머지하기 전까지 동반 PR 머지에 체인이 이어지지 않습니다.
 
 **어느 QABuddy 빌드?** 아직 정식 릴리스에는 없습니다. 러너는 아무것도 요구하지 않습니다
--- 호출자가 프리릴리스 태그 `v0.9.0-poc.1`를 고정하고 직접 설치합니다. 로컬 설치는 마법사와
+-- 호출자가 프리릴리스 태그 `v0.9.0-poc.2`를 고정하고 직접 설치합니다. 로컬 설치는 마법사와
 스캐폴더에만 필요하며, 같은 태그를 받아 `node build.js all` 후 `dist/claude/setup`을 다시
 실행하면 됩니다:
 
 ```bash
-git clone --branch v0.9.0-poc.1 https://github.com/TimothyHan/qa-buddy-skills.git && cd qa-buddy-skills && npm ci && node build.js all && dist/claude/setup
+git clone --branch v0.9.0-poc.2 https://github.com/TimothyHan/qa-buddy-skills.git && cd qa-buddy-skills && npm ci && node build.js all && dist/claude/setup
 ```
 
 호출자는 *당신의* 앱을 어떻게 실행하는지만 말합니다; 잡, 프롬프트, 머지, 프리플라이트는
@@ -95,7 +95,7 @@ QABuddy의 재사용 워크플로우에 살기 때문에 QABuddy 릴리스가 �
 ```yaml
 jobs:
   qabuddy:
-    uses: TimothyHan/qa-buddy-skills/.github/workflows/pr-coverage.yml@v0.9.0-poc.1
+    uses: TimothyHan/qa-buddy-skills/.github/workflows/pr-coverage.yml@v0.9.0-poc.2
     with:
       app-start: "node server.js"
       app-url: "http://localhost:4173"
@@ -141,7 +141,7 @@ jobs:
 | `kb-turns` / `kb-budget` … | 80 / $5, 120 / $10, 300 / $25 | 페이즈별 캡 |
 | `model` | `claude-sonnet-5` | |
 | `extra-prompt` | `.github/qabuddy/extra.md` | 모든 페이즈에 덧붙는 선택적 프로젝트 지침 |
-| `qabuddy-ref` | `v0.9.0-poc.1` | 러너에 설치되는 QABuddy ref -- `poc/cloud-service`에서 자른 프리릴리스 태그 |
+| `qabuddy-ref` | `v0.9.0-poc.2` | 러너에 설치되는 QABuddy ref -- `poc/cloud-service`에서 자른 프리릴리스 태그 |
 
 ---
 

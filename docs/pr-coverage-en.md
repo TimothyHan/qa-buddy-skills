@@ -82,12 +82,12 @@ writes it — the scaffolder and preflight both name them; and branches cut befo
 caller was committed cannot chain on a merged companion until the base is merged in.
 
 **Which QABuddy build?** None of this is in a regular release yet. The runner needs
-nothing from you — the caller pins the pre-release tag `v0.9.0-poc.1` and installs it. Your
+nothing from you — the caller pins the pre-release tag `v0.9.0-poc.2` and installs it. Your
 local install only matters for the wizard and the scaffolder; to get them, check out the
 same tag, `node build.js all`, and re-run `dist/claude/setup`:
 
 ```bash
-git clone --branch v0.9.0-poc.1 https://github.com/TimothyHan/qa-buddy-skills.git && cd qa-buddy-skills && npm ci && node build.js all && dist/claude/setup
+git clone --branch v0.9.0-poc.2 https://github.com/TimothyHan/qa-buddy-skills.git && cd qa-buddy-skills && npm ci && node build.js all && dist/claude/setup
 ```
 
 The caller says only how to run *your* app; the jobs, prompts, merge and preflight live in
@@ -96,7 +96,7 @@ QABuddy's reusable workflow, so a QABuddy release is a workflow release:
 ```yaml
 jobs:
   qabuddy:
-    uses: TimothyHan/qa-buddy-skills/.github/workflows/pr-coverage.yml@v0.9.0-poc.1
+    uses: TimothyHan/qa-buddy-skills/.github/workflows/pr-coverage.yml@v0.9.0-poc.2
     with:
       app-start: "node server.js"
       app-url: "http://localhost:4173"
@@ -144,7 +144,7 @@ would otherwise get a "could not start" comment. `/qa-setup --pr` brings it back
 | `kb-turns` / `kb-budget` … | 80 / $5, 120 / $10, 300 / $25 | per-phase caps |
 | `model` | `claude-sonnet-5` | |
 | `extra-prompt` | `.github/qabuddy/extra.md` | optional project instructions appended to every phase |
-| `qabuddy-ref` | `v0.9.0-poc.1` | QABuddy ref installed on the runner — a pre-release tag cut from `poc/cloud-service` |
+| `qabuddy-ref` | `v0.9.0-poc.2` | QABuddy ref installed on the runner — a pre-release tag cut from `poc/cloud-service` |
 
 ---
 
