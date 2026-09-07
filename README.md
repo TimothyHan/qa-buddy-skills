@@ -179,15 +179,26 @@ At every pause, you choose:
 
 ## On Pull Requests (POC)
 
-QABuddy can also run unattended on every pull request: a reusable GitHub workflow maps
-the PR's diff to your features, writes test cases, optionally explores the running app
-and automates the gaps, then posts **one coverage-heatmap comment** and delivers the
-generated files as a **companion PR** against the PR's own branch. A reviewer merging that
-companion continues the chain; findings that need a human become issues; nothing writes
-to the base branch. Set it up with `/qa-setup` — already configured repos pick *Keep, and
-set up PR automation* or run `/qa-setup --pr` — or with one `pr-coverage.js init` command.
-Proof of concept on branch `poc/cloud-service`, not in a release yet: build from that
-branch to get it. Guide: [docs/pr-coverage-en.md](docs/pr-coverage-en.md),
+QABuddy can also run unattended on every pull request. On a PR, the reusable GitHub
+workflow:
+
+1. Maps the PR's diff to the features in the knowledge base.
+2. Writes or updates test cases.
+3. Optionally explores the running app and automates the gaps with Playwright.
+4. Posts **one coverage-heatmap comment** and delivers the generated files as a
+   **companion PR** against the PR's own branch.
+
+A reviewer merging the companion continues the chain. Findings that need a human become
+issues. Nothing ever writes to the base branch.
+
+**Set up** -- one of three:
+
+- First time: `/qa-setup` offers a PR-automation step at the end.
+- Already configured: run `/qa-setup --pr`.
+- From a terminal: one `pr-coverage.js init` command.
+
+**Status** -- proof of concept on branch `poc/cloud-service`, not in a release yet; build
+from that branch to use it. Guide: [docs/pr-coverage-en.md](docs/pr-coverage-en.md),
 design: [RFC 0004](docs/rfc/0004-headless-pr-coverage.md).
 
 ---
