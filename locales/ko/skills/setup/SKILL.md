@@ -1,10 +1,11 @@
 ---
 name: setup
-version: 0.4.6
+version: 0.5.3
 description: |
   QABuddy 초기 설정 마법사. 컨텍스트 소스(Jira, 스펙 문서, 채팅, 커스텀),
   팀 모드(솔로 vs PR 기반), 프로젝트 환경설정을 구성합니다.
-  프로젝트 루트에 .qabuddy.json을 생성합니다. 재실행하면 재구성할 수 있습니다.
+  프로젝트 루트에 .qabuddy.json을 생성합니다. 원하면 QABuddy가 풀 리퀘스트마다
+  실행되도록 (재사용 PR 커버리지 워크플로우) 연결합니다. 재실행하면 재구성할 수 있습니다.
   Use when: "setup", "configure", "first time setup", "change settings".
   Do NOT use when: asking about QABuddy features, asking how to use a skill, mid-workflow.
 tool-groups:
@@ -39,6 +40,10 @@ cat .qabuddy.json 2>/dev/null
 - **설정 파일이 있는 경우:** 현재 설정을 보여주고 묻는다: "재구성하시겠습니까, 현재 설정을 유지하시겠습니까?"
   - (A) 재구성 -- Phase 2로 진행
   - (B) 유지 -- 요약을 보여주고 종료
+  - (C) 유지하고 PR 자동화 설정 -- Phase 5b로 이동 (저장소에 아직
+    `.github/workflows/qabuddy.yml`이 없을 때만 제안)
+- **`/qa-setup --pr`:** 설정 유무와 관계없이 Phase 5b로 바로 이동 (설정이 없으면
+  Phase 2–4를 먼저 실행 -- 워크플로우는 `.qabuddy.json`이 필요)
 - **설정 파일이 없는 경우:** Phase 2로 진행
 
 ---
@@ -195,6 +200,65 @@ mkdir -p features-kb/team-practices
 
 ---
 
+## Phase 5b: PR 자동화 (선택)
+
+저장소가 GitHub에 있고(`git remote get-url origin`에 github.com) `gh`를 쓸 수 있을 때만;
+아니면 조용히 건너뛰고, 헤드리스 모드에서는 항상 건너뛴다.
+
+"QABuddy를 풀 리퀘스트마다 실행할까요? PR의 diff를 기능에 매핑하고, 테스트 케이스를
+쓰고, 원하면 실행 중인 앱을 탐색해 갭을 자동화한 뒤, 커버리지 히트맵 코멘트 하나와
+테스트를 담은 동반 PR을 올립니다."
+- **(A) 예, 설정한다** (팀 모드가 `team`이면 권장)
+- **(B) 지금은 아니오** -- 나중에 `/qa-setup`을 다시 실행하거나 스캐폴더를 직접 실행
+
+**예를 선택한 경우:**
+1. **묻기 전에 프로브.** `package.json`의 `scripts.start` / `dev` → 시작 명령; 그 스크립트의
+   포트, `.env.example`, README → 앱 URL. 둘 다 추천으로 제시한다: "`npm start`로
+   http://localhost:3000 에서 시작 -- 맞나요?"
+2. **스캐폴드:**
+   ```bash
+   node {{REFERENCE_PATH}}/bin/pr-coverage.js init --app-start "{cmd}" --app-url "{url}" --labels true
+   ```
+   `.github/workflows/qabuddy.yml`(QABuddy 재사용 워크플로우의 호출자)을 쓰고, `qa:*`
+   라벨을 만들고, 아직 빠진 것을 출력한다.
+3. **SDT만 할 수 있는 일을 하나씩 안내하고, 각각 확인한 뒤에 다음으로 넘어간다.**
+   **토큰이나 키를 직접 받지 않는다 -- 채팅에 붙여 달라고 절대 요청하지 않는다.** 토큰
+   명령 전에 누가 비용을 내는지 말한다: `claude setup-token`의 토큰은 발급한 사람의
+   Claude 구독에 과금된다 -- 개인 저장소면 괜찮고, 팀 저장소는 전용 계정으로 발급하거나
+   API 키를 쓴다.
+   - **토큰** -- `claude setup-token` 후 `gh secret set CLAUDE_CODE_OAUTH_TOKEN`(구독)
+     -- 또는 `gh secret set ANTHROPIC_API_KEY`(API 크레딧). 확인: `gh secret list`에 두
+     이름 중 하나가 보인다(이름만, 값은 절대 아님).
+   - **앱 로그인이 있으면** -- 시크릿 `TEST_USER` / `TEST_PASS`(`gh secret list`로 확인),
+     공개 데모 계정이면 호출자의 `test-user` / `test-pass` 입력.
+   - **Actions의 PR 생성 허용** --
+     `gh api repos/{owner}/{repo}/actions/permissions/workflow --jq .can_approve_pull_request_reviews`로
+     확인; `false`면 켜 주겠다고 제안하고(같은 경로에 `gh api -X PUT`,
+     `-F can_approve_pull_request_reviews=true`) 명시적 예에만 실행한다 -- 저장소 설정이다.
+   - **모든 기능의 `sources.json`** -- 스캐폴더가 없는 기능을 나열한다. 이것이 핵심이다:
+     없는 기능은 아무것에도 매핑되지 않아 히트맵이 비어 있다. 기능마다 지금
+     `/qa-test-plan {feature}`을 실행하겠다고 제안하고, 거절하면 첫 PR의 preflight가
+     그 기능들을 알려줄 것이라고 말한다.
+   어느 항목에서든 SDT는 **중단**이라고 답할 수 있다 -- 예: Claude 구독도 API 크레딧도
+   없다는 걸 깨달았을 때. 그러면 스캐폴드만 되돌린다:
+   ```bash
+   node {{REFERENCE_PATH}}/bin/pr-coverage.js init --remove
+   ```
+   (호출자와 `qa:*` 라벨을 삭제; 시크릿과 저장소 설정은 SDT의 것). 무엇을 지웠는지와
+   `/qa-setup --pr`로 되살릴 수 있음을 말한다. 토큰 없이 호출자를 남겨두지 않는다: 모든
+   PR에 "시작할 수 없음" 코멘트가 달린다. 따라서 *미루기*는 토큰 외 항목에만 해당하고,
+   토큰이 없으면 중단하거나 끝낸다. 미루지 않은 미확인 항목이 있는 채로 이 단계를 닫지
+   않는다; 미룬 항목은 Phase 6에 적는다.
+4. **기본 동작을 한 문단으로 설명한다:** PR 열릴 때마다 `kb` → 히트맵 코멘트 하나와
+   테스트를 담은 동반 PR; 동반 PR을 머지하면 히트맵만 갱신된다. 요청하지 않으면 더
+   돌지 않는다 -- PR마다 라벨 `qa:explore` / `qa:automate` / `qa:full` 또는 `/qabuddy …`
+   코멘트, 또는 리뷰된 동반 PR 뒤에 explore ∥ automate를 이어가려면 호출자에
+   `after-companion-merge: full`. SDT가 다른 동작을 원하면 `default-phases`,
+   `after-companion-merge`, `issues-for`, `gate-on`을 제안한다.
+5. 호출자를 `.qabuddy.json`과 함께 커밋하도록 제안한다.
+
+---
+
 ## Phase 6: 다음 단계
 
 저장 후:
@@ -207,6 +271,7 @@ mkdir -p features-kb/team-practices
 - {Jira 프로젝트 / 스펙 위치 / 커스텀 방식}
 - 팀 실무 관행: {N}개 문서화 완료, {M}개 미정의
 - 학습 레이어: {learningsPath} + learnings-log.jsonl (모든 스킬 실행에서 자기 개선 활성)
+- PR 자동화: {호출자 작성됨 -- 토큰 ✓ · 로그인 ✓ · Actions PR 설정 ✓ · sources.json ✓ | 미룸: … | SDT 요청으로 제거됨 | 미설정}
 
 다음: `/qa-start {EPIC-KEY 또는 기능 설명}`을 실행하여 가이드 워크플로우를 시작하세요.
 또는 개별 스킬을 직접 사용할 수 있습니다: `/qa-test-plan`, `/qa-review-ticket` 등"

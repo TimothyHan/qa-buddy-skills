@@ -856,6 +856,274 @@ function testBadgeCount() {
 }
 
 
+// ─── PR coverage helper (RFC 0004) ───────────────────────────────────────
+// bin/pr-coverage.js is the deterministic half of a PR-triggered run: diff→feature
+// mapping, the coverage heatmap, and the sticky comment. Everything below runs
+// against a scratch knowledge base in a temp dir, so it is ko-only-dist safe — the
+// only dist-dependent checks are the "shipped byte-identical" ones, which resolve
+// through resolvePlatformDir like the runtime-helper suite.
+function testPrCoverage() {
+  console.log('\n🗺  PR coverage helper (bin/pr-coverage.js — RFC 0004)');
+  const { execFileSync } = require('child_process');
+  const os = require('os');
+
+  const src = path.join(ROOT, 'bin', 'pr-coverage.js');
+  check(fs.existsSync(src), 'bin/pr-coverage.js exists in repo');
+  for (const platform of PLATFORMS) {
+    const dir = resolvePlatformDir(platform);
+    if (!fs.existsSync(dir)) continue;
+    const shipped = path.join(dir, 'references', 'bin', 'pr-coverage.js');
+    check(fs.existsSync(shipped), `dist/${platform}/references/bin/pr-coverage.js shipped`, 'build.js copies bin/ into references/bin/');
+    if (fs.existsSync(shipped) && fs.existsSync(src)) {
+      check(fs.readFileSync(shipped, 'utf8') === fs.readFileSync(src, 'utf8'), `dist/${platform}/references/bin/pr-coverage.js matches source`);
+    }
+  }
+  if (!fs.existsSync(src)) return;
+
+  // A scratch project: three features covering the three mapping shapes the scanner
+  // must tolerate, plus the evidence files each heatmap column is proven from.
+  const tmp = fs.mkdtempSync(path.join(os.tmpdir(), 'qab-prcov-'));
+  const w = (rel, content) => { const p = path.join(tmp, rel); fs.mkdirSync(path.dirname(p), { recursive: true }); fs.writeFileSync(p, content); };
+  w('features-kb/index.json', JSON.stringify({ alpha: { title: 'Alpha feature' }, beta: { title: 'Beta' } }));
+  w('features-kb/features/alpha/feature.md', '# Feature: Alpha feature\n\n## Acceptance Criteria\n- AC1: Sign in works\n- AC2: Create thing\n- AC3: Delete thing\n');
+  w('features-kb/features/alpha/sources.json', JSON.stringify({ feature: 'alpha', sources: ['src/alpha/**'], exclude: ['**/*.md'], tests: { e2e: ['playwright/tests/**/*.spec.ts'], api: ['playwright/tests/api/**'], unit: ['test/**'] } }));
+  w('features-kb/features/alpha/test-cases/alpha.md', '### TC-01: sign in\n### TC-02: create\n### TC-03: delete\n');
+  w('features-kb/features/alpha/test-cases/alpha-mapping.json', JSON.stringify({ mappings: [
+    { ac: 'AC #1: Sign in works', testCases: [{ id: 'TC-01', layer: 'e2e' }], unitTests: ['auth-validate'], coverage: 'full' },
+    { ac: 'AC #2: Create thing', testCases: [{ id: 'TC-02', layer: 'e2e' }], unitTests: [], coverage: 'full' },
+    { ac: 'AC #3: Delete thing', testCases: [{ id: 'TC-03', layer: 'e2e' }], unitTests: [], coverage: 'partial' },
+  ], unmappedACs: ['AC4'] }));
+  w('features-kb/features/alpha/exploratory/2026-09-04.md', '## Focus Area Results\n| Focus Area | ACs | Time | Findings | Result |\n|---|---|---|---|---|\n| Login | AC1 | 5m | 0 | clean |\n| Delete | AC3 | 10m | Finding 1 | finding |\n| Search | AC4 | 0 | - | unexplored |\n');
+  w('features-kb/features/beta/feature.md', '# Beta\n| AC1 | Beta works |\n');
+  w('features-kb/features/beta/test-cases/b-mapping.json', JSON.stringify({ mappings: [{ requirement: 'AC #1: Beta works', e2e_tests: ['TC-B1'], unit_tests: ['beta-unit'], coverage: 'full' }] }));
+  w('features-kb/features/gamma/feature.md', '# Gamma\n- AC1.1 gamma infra\n');
+  w('features-kb/features/gamma/test-cases/g-mapping.json', JSON.stringify({ mappings: [{ requirement: 'AC1.1 gamma infra', tests: ['META — test.js self-checks'], coverage: 'full' }] }));
+  w('playwright/tests/alpha.spec.ts', "test('TC-02: create a thing', async () => {});\ntest(\"TC-01: sign in\", async () => {});\n");
+  w('playwright/pom/inventory/projects.json', JSON.stringify([{ element: 'delete', sourceTCs: ['TC-03'] }]));
+  w('results.json', JSON.stringify({ suites: [{ specs: [
+    { title: 'TC-02: create a thing', ok: false, tests: [{ results: [{ status: 'failed' }] }] },
+    { title: 'TC-01: sign in', tests: [{ results: [{ status: 'passed' }] }] },
+  ] }] }));
+  w('playwright/AUTOMATION.md', '# decisions\n');
+  w('files.txt', 'src/alpha/x.js\nsrc/alpha/notes.md\nREADME.md\nplaywright/tests/alpha.spec.ts\nplaywright/pom/alpha.page.ts\nplaywright.config.ts\nfeatures-kb/features/alpha/test-cases/alpha.md\n');
+  w('none.txt', 'docs/x.md\n');
+
+  const run = (args, extraEnv) => execFileSync(process.execPath, [src, ...args], { cwd: tmp, env: { ...process.env, ...(extraEnv || {}) }, encoding: 'utf8', stdio: ['ignore', 'pipe', 'pipe'] });
+  const exitCode = (args) => { try { run(args); return 0; } catch (e) { return e.status; } };
+
+  try {
+    // touched: sources.json globs decide; exclude wins; unmapped files and source-less features reported
+    const touched = JSON.parse(run(['touched', '--files', 'files.txt']));
+    check(touched.schema === 'pr-touched/1', 'touched: schema pr-touched/1');
+    check(touched.features.map(f => f.key).join() === 'alpha', 'touched: src/alpha/x.js maps to alpha only', JSON.stringify(touched.features));
+    check(touched.features[0].matchedFiles.join() === 'src/alpha/x.js', 'touched: exclude glob drops src/alpha/notes.md', JSON.stringify(touched.features[0]));
+    check(touched.features[0].title === 'Alpha feature', 'touched: title read from index.json');
+    check(touched.unmapped.files.join() === 'README.md,src/alpha/notes.md', 'touched: unmapped files listed — a feature\'s own spec, the automation folder, its config, and KB files are never unclaimed', touched.unmapped.files.join());
+    check(touched.features[0].matchedTests.join() === 'playwright/tests/alpha.spec.ts', 'touched: a changed spec under the feature\'s test globs is reported as matchedTests');
+    check(touched.unmapped.featuresWithoutSources.join() === 'beta,gamma', 'touched: features without sources.json listed');
+    check(touched.fallback === false, 'touched: no fallback when a feature matched');
+    const none = JSON.parse(run(['touched', '--files', 'none.txt']));
+    check(none.features.length === 0 && none.fallback === false, 'touched: nothing matched, --fallback none → empty');
+    const all = JSON.parse(run(['touched', '--files', 'none.txt', '--fallback', 'all']));
+    check(all.fallback === true && all.features.map(f => f.key).join() === 'alpha,beta,gamma', 'touched: --fallback all lists every feature and flags it');
+    check(exitCode(['touched']) === 2, 'touched: usage error exits 2');
+    check(exitCode(['touched', '--files', 'files.txt', '--kb', 'nope']) === 3, 'touched: unreadable KB exits 3');
+
+    // heatmap: one cell per column, proven from files — the mapping alone never earns "covered"
+    fs.writeFileSync(path.join(tmp, 'touched.json'), JSON.stringify(touched));
+    const out = JSON.parse(run(['heatmap', '--touched', 'touched.json', '--results', 'results.json', '--phases', 'kb,explore', '--now', '2026-09-04T00:00:00Z', '--pr', '7', '--out', 'out/h.json', '--md', 'out/h.md']));
+    check(out.summary && typeof out.summary.covered === 'number', 'heatmap: prints a summary when writing files');
+    const h = JSON.parse(fs.readFileSync(path.join(tmp, 'out', 'h.json'), 'utf8'));
+    check(h.schema === 'pr-coverage/1' && h.pr === 7 && h.generatedAt === '2026-09-04T00:00:00Z', 'heatmap: schema, pr, --now honoured');
+    const rows = Object.fromEntries(h.features[0].rows.map(r => [r.ac, r]));
+    check(Object.keys(rows).join() === 'AC1,AC2,AC3,AC4', 'heatmap: rows = feature.md ACs ∪ mapping ACs ∪ unmapped, sorted', Object.keys(rows).join());
+    const st = (ac, col) => rows[ac] && rows[ac].cells[col] && rows[ac].cells[col].state;
+    check(st('AC1', 'e2e') === 'covered' && rows.AC1.cells.e2e.result === 'passed' && rows.AC1.cells.e2e.evidence[0] === 'playwright/tests/alpha.spec.ts', 'heatmap: E2E covered needs a spec whose title carries the TC id; result from --results');
+    check(st('AC2', 'e2e') === 'covered' && rows.AC2.cells.e2e.result === 'failed' && rows.AC2.atRisk === true, 'heatmap: a failed spec marks the AC at risk');
+    check(st('AC3', 'e2e') === 'partial' && rows.AC3.cells.e2e.evidence[0] === 'playwright/pom/inventory/projects.json', 'heatmap: TC in POM inventory without a spec is partial');
+    check(st('AC4', 'e2e') === 'gap' && st('AC4', 'manual') === 'gap', 'heatmap: an AC with no test case is a gap');
+    check(st('AC1', 'unit') === 'partial' && st('AC2', 'unit') === 'gap', 'heatmap: declared unit test without a file is partial; none declared is gap');
+    check(st('AC1', 'manual') === 'partial', 'heatmap: a designed, never-executed TC is partial in Manual');
+    check(st('AC1', 'exploratory') === 'covered' && rows.AC1.cells.exploratory.result === 'clean', 'heatmap: exploratory row with clean result is covered');
+    check(st('AC3', 'exploratory') === 'covered' && rows.AC3.cells.exploratory.result === 'finding' && rows.AC3.atRisk === true && /#Finding 1$/.test(rows.AC3.cells.exploratory.evidence[0]), 'heatmap: exploratory finding is covered + at risk, evidence points at the finding');
+    check(st('AC4', 'exploratory') === 'partial', 'heatmap: AC listed as unexplored is partial');
+    check(st('AC2', 'exploratory') === 'gap', 'heatmap: explore phase ran and the AC was never listed → gap');
+    check(h.summary.atRisk === 2, 'heatmap: summary counts ACs at risk', JSON.stringify(h.summary));
+    check(h.unmapped.files.includes('README.md'), 'heatmap: carries unmapped files through from touched.json');
+    const md = fs.readFileSync(path.join(tmp, 'out', 'h.md'), 'utf8');
+    check(md.startsWith('<!-- qabuddy:heatmap -->\n'), 'heatmap: markdown starts with the sticky-comment marker');
+    check(/\| AC \| Unit \| API \| E2E \| Manual \| Exploratory \|/.test(md), 'heatmap: markdown table has the five layer columns');
+    check(/⚠️ \*\*AC2\*\*/.test(md) && /TC-02 · FAIL/.test(md), 'heatmap: at-risk rows and failing specs are visible in the table');
+    check(/<details><summary>Evidence<\/summary>/.test(md) && /`playwright\/tests\/alpha\.spec\.ts`/.test(md), 'heatmap: evidence paths listed under <details>');
+    check(!/`playwright\/tests\/alpha\.spec\.ts`, `playwright\/tests\/alpha\.spec\.ts`/.test(md), 'heatmap: evidence paths are de-duplicated per cell');
+    check(/README\.md/.test(md) && /`beta`, `gamma`/.test(md), 'heatmap: unmapped files and source-less features reported in the comment');
+
+    // Legacy mapping shapes + META rows, via --fallback all; not-run when explore did not run
+    fs.writeFileSync(path.join(tmp, 'all.json'), JSON.stringify(all));
+    run(['heatmap', '--touched', 'all.json', '--phases', 'kb', '--now', '2026-09-04T00:00:00Z', '--out', 'out/all.json', '--md', 'out/all.md']);
+    const ha = JSON.parse(fs.readFileSync(path.join(tmp, 'out', 'all.json'), 'utf8'));
+    const beta = ha.features.find(f => f.key === 'beta').rows[0];
+    const gamma = ha.features.find(f => f.key === 'gamma').rows[0];
+    check(beta.ac === 'AC1' && beta.cells.e2e.state === 'partial' && beta.cells.e2e.tcs.join() === 'TC-B1' && beta.cells.unit.state === 'partial', 'heatmap: legacy e2e_tests/unit_tests shape parsed');
+    check(gamma.ac === 'AC1.1' && gamma.cells.unit.state === 'covered' && gamma.cells.unit.evidence[0] === 'META', 'heatmap: legacy tests[] shape parsed; META rows count as unit evidence, never as TC ids');
+    check(gamma.cells.exploratory.state === 'not-run' && beta.cells.exploratory.state === 'not-run', 'heatmap: exploratory is not-run when the phase did not run and no session exists');
+    check(/showing every feature/.test(fs.readFileSync(path.join(tmp, 'out', 'all.md'), 'utf8')), 'heatmap: fallback is called out in the comment');
+    run(['heatmap', '--touched', 'all.json', '--phases', 'kb', '--now', '2026-09-04T00:00:00Z', '--out', 'out/all2.json', '--md', 'out/all2.md']);
+    check(fs.readFileSync(path.join(tmp, 'out', 'all.md'), 'utf8') === fs.readFileSync(path.join(tmp, 'out', 'all2.md'), 'utf8')
+       && fs.readFileSync(path.join(tmp, 'out', 'all.json'), 'utf8') === fs.readFileSync(path.join(tmp, 'out', 'all2.json'), 'utf8'), 'heatmap: byte-identical across runs with --now');
+
+    // spend footer: per-phase execution logs + who pays; absent when neither --logs nor --billing is given
+    w('logs/claude-kb.json', JSON.stringify([{ type: 'system' }, { type: 'result', total_cost_usd: 1.234, num_turns: 10, duration_ms: 60000 }]));
+    w('logs/claude-automate.json', JSON.stringify({ type: 'result', total_cost_usd: 3.5 }));
+    run(['heatmap', '--touched', 'all.json', '--phases', 'kb', '--now', '2026-09-04T00:00:00Z', '--logs', 'logs', '--billing', 'subscription', '--out', 'out/sp.json', '--md', 'out/sp.md']);
+    const sp = JSON.parse(fs.readFileSync(path.join(tmp, 'out', 'sp.json'), 'utf8')); const spMd = fs.readFileSync(path.join(tmp, 'out', 'sp.md'), 'utf8');
+    check(sp.spend && sp.spend.total === 4.73 && sp.spend.phases.kb === 1.234 && sp.spend.billing === 'subscription', 'heatmap --logs --billing: spend per phase, total, billing source in JSON');
+    check(/💳 Model spend this run: automate \$3\.50 · kb \$1\.23 = \*\*\$4\.73\*\* — billed to the Claude subscription that minted `CLAUDE_CODE_OAUTH_TOKEN`/.test(spMd), 'heatmap footer says what the run cost and who pays');
+    check(!/Model spend/.test(fs.readFileSync(path.join(tmp, 'out', 'all.md'), 'utf8')) && !('spend' in JSON.parse(fs.readFileSync(path.join(tmp, 'out', 'all.json'), 'utf8'))), 'heatmap: no spend line without --logs/--billing (determinism unchanged)');
+
+    // comment: a stub gh on PATH records argv; PATCH when the marker exists, POST otherwise; --dry-run never calls gh
+    const bin = path.join(tmp, 'stub-bin'); fs.mkdirSync(bin);
+    const ghLog = path.join(tmp, 'gh.log');
+    // Node stubs via QABUDDY_GH (a shell stub on PATH would not be found by execFileSync on Windows)
+    const stub = `const fs=require('fs');const a=process.argv.slice(2);fs.appendFileSync(${JSON.stringify(ghLog)},a.join(' ')+'\\n');
+if(a.includes('--paginate'))process.stdout.write(fs.readFileSync(${JSON.stringify(path.join(tmp, 'comments.jsonl'))},'utf8'));else process.stdout.write('{"id":99,"html_url":"https://x/c/99"}\\n');\n`;
+    fs.writeFileSync(path.join(bin, 'gh.js'), stub);
+    const ghEnv = { QABUDDY_GH: path.join(bin, 'gh.js') };
+    const dry = JSON.parse(run(['comment', '--repo', 'o/r', '--pr', '7', '--body-file', 'out/h.md', '--dry-run'], ghEnv));
+    check(dry.dryRun === true && dry.url === 'repos/o/r/issues/7/comments' && !fs.existsSync(ghLog), 'comment: --dry-run reports the target and never invokes gh');
+    fs.writeFileSync(path.join(tmp, 'comments.jsonl'), '{"id":1,"body":"hello"}\n');
+    const created = JSON.parse(run(['comment', '--repo', 'o/r', '--pr', '7', '--body-file', 'out/h.md'], ghEnv));
+    check(created.action === 'created' && created.id === 99 && /-X POST repos\/o\/r\/issues\/7\/comments -F body=@out\/h\.md/.test(fs.readFileSync(ghLog, 'utf8')), 'comment: no marker on the PR → POST a new comment', fs.readFileSync(ghLog, 'utf8'));
+    fs.writeFileSync(path.join(tmp, 'comments.jsonl'), '{"id":1,"body":"hello"}\n{"id":42,"body":"<!-- qabuddy:heatmap -->\\nold"}\n');
+    const patched = JSON.parse(run(['comment', '--repo', 'o/r', '--pr', '7', '--body-file', 'out/h.md'], ghEnv));
+    check(patched.action === 'patched' && /-X PATCH repos\/o\/r\/issues\/comments\/42 -F body=@out\/h\.md/.test(fs.readFileSync(ghLog, 'utf8')), 'comment: marker found → PATCH that comment in place', fs.readFileSync(ghLog, 'utf8'));
+    fs.writeFileSync(path.join(tmp, 'plain.md'), 'no marker here\n');
+    check(exitCode(['comment', '--repo', 'o/r', '--pr', '7', '--body-file', 'plain.md']) === 3, 'comment: refuses a body without the marker (exit 3)');
+    const brokenBin = path.join(tmp, 'broken-bin'); fs.mkdirSync(brokenBin);
+    fs.writeFileSync(path.join(brokenBin, 'gh.js'), "process.stderr.write('boom\\n');process.exit(1);\n");
+    const brokenEnv = { QABUDDY_GH: path.join(brokenBin, 'gh.js') };
+    const failCode = (() => { try { run(['comment', '--repo', 'o/r', '--pr', '7', '--body-file', 'out/h.md'], brokenEnv); return 0; } catch (e) { return e.status; } })();
+    check(failCode === 4, 'comment: gh failure exits 4', `exit ${failCode}`);
+
+    // merge: three-way union of phase trees (kb = base, automate = ours, explore = theirs)
+    const M = path.join(tmp, 'merge'); const mw = (side, rel, content) => w(`merge/${side}/${rel}`, content);
+    mw('base', 'features-kb/features/p/feature.md', 'a\nb\nc\n'); mw('ours', 'features-kb/features/p/feature.md', 'a\nb\nc\nours-line\n'); mw('theirs', 'features-kb/features/p/feature.md', 'theirs-top\na\nb\nc\n');
+    mw('base', 'features-kb/learnings-log.jsonl', '{"x":1}\n'); mw('ours', 'features-kb/learnings-log.jsonl', '{"x":1}\n{"o":2}\n'); mw('theirs', 'features-kb/learnings-log.jsonl', '{"x":1}\n{"t":3}\n');
+    for (const side of ['base', 'ours', 'theirs']) mw(side, 'features-kb/index.json', '{"same":true}\n');
+    mw('ours', 'playwright/tests/a.spec.ts', "test('TC-01: x', () => {});\n"); mw('theirs', 'features-kb/features/p/exploratory/2026-09-05.md', '| Focus Area | ACs |\n');
+    mw('base', 'features-kb/LEARNINGS.md', 'base\n'); mw('ours', 'features-kb/LEARNINGS.md', 'ours\n'); mw('theirs', 'features-kb/LEARNINGS.md', 'theirs\n');
+    mw('base', 'features-kb/old.md', 'gone\n'); mw('theirs', 'features-kb/old.md', 'gone\n');
+    mw('base', '.qa-reports/run', 'run-a\n'); mw('ours', '.qa-reports/run', 'run-b\n'); mw('theirs', '.qa-reports/run', 'run-c\n');
+    const mergeCode = (() => { try { run(['merge', '--base', `${M}/base`, '--ours', `${M}/ours`, '--theirs', `${M}/theirs`, '--out', `${M}/out`]); return 0; } catch (e) { return e.status; } })();
+    check(mergeCode === 5, 'merge: exits 5 when a file conflicted (everything else still written)', `exit ${mergeCode}`);
+    const mo = rel => { const p = path.join(M, 'out', rel); return fs.existsSync(p) ? fs.readFileSync(p, 'utf8') : null; };
+    check(mo('features-kb/features/p/feature.md') === 'theirs-top\na\nb\nc\nours-line\n', 'merge: both sides changed a markdown file → git merge-file with the kb tree as base');
+    check(mo('features-kb/learnings-log.jsonl') === '{"x":1}\n{"o":2}\n{"t":3}\n', 'merge: append-only .jsonl gets a line union');
+    check(mo('features-kb/LEARNINGS.md') === 'ours\n', 'merge: a true conflict keeps automate (ours) and is reported');
+    check(mo('playwright/tests/a.spec.ts') !== null && mo('features-kb/features/p/exploratory/2026-09-05.md') !== null, 'merge: files unique to one side are copied');
+    check(mo('features-kb/old.md') === null, 'merge: a file one side deleted and the other left untouched stays deleted');
+    check(mo('features-kb/index.json') === '{"same":true}\n', 'merge: identical files copied once');
+    const mergeReport = JSON.parse((() => { try { return run(['merge', '--base', `${M}/base`, '--ours', `${M}/ours`, '--theirs', `${M}/theirs`, '--out', `${M}/out3`]); } catch (e) { return e.stdout; } })());
+    check(mergeReport.ephemeral.includes('.qa-reports/run') && !mergeReport.conflicts.includes('.qa-reports/run') && mo('.qa-reports/run') === 'run-b\n', 'merge: a conflict under .qa-reports/ (run markers, logs) is ephemeral — ours wins, not reported as a conflict');
+    const sameCode = (() => { try { run(['merge', '--base', `${M}/base`, '--ours', `${M}/base`, '--theirs', `${M}/base`, '--out', `${M}/out2`]); return 0; } catch (e) { return e.status; } })();
+    check(sameCode === 0, 'merge: a skipped phase passed as the kb tree merges cleanly (exit 0)');
+
+    // preflight: prerequisites checked before any spend; the note carries the sticky marker
+    const pf = (args) => { try { return { code: 0, out: JSON.parse(run(['preflight', ...args])) }; } catch (e) { return { code: e.status, out: JSON.parse(e.stdout || '{}') }; } };
+    const p1 = pf(['--has-token', 'false', '--can-create-prs', 'false', '--caller-on-branch', 'false', '--md', 'out/pf.md', '--pr', '7']);
+    check(p1.code === 6 && p1.out.ok === false, 'preflight: missing token is a problem (exit 6)');
+    check(p1.out.problems.some(x => x.code === 'no-config') && p1.out.problems.some(x => x.code === 'no-token'), 'preflight: names the missing .qabuddy.json and the missing secret');
+    check(p1.out.warnings.some(x => x.code === 'no-pr-permission') && p1.out.warnings.some(x => x.code === 'some-sources') && p1.out.warnings.some(x => x.code === 'no-caller-on-branch'), 'preflight: PR-permission, partial sources.json, and a branch without the caller are warnings, not blockers');
+    const pfmd = fs.readFileSync(path.join(tmp, 'out', 'pf.md'), 'utf8');
+    check(pfmd.startsWith('<!-- qabuddy:heatmap -->') && /could not start/.test(pfmd) && /PR #7/.test(pfmd), 'preflight: the note carries the sticky marker so it becomes the one PR comment');
+    w('.qabuddy.json', '{"version":"1.0","contextSource":"spec","teamMode":"team"}');
+    const p2 = pf(['--has-token', 'true', '--can-create-prs', 'true']);
+    check(p2.code === 0 && p2.out.ok === true && p2.out.features.join() === 'alpha,beta,gamma', 'preflight: passes with config + token, lists features');
+    w('bad/.qabuddy.json', '{not json'); const p3 = pf(['--root', 'bad', '--has-token', 'true']);
+    check(p3.code === 6 && p3.out.problems.some(x => x.code === 'bad-config') && p3.out.problems.some(x => x.code === 'no-features'), 'preflight: invalid JSON and an empty KB are problems');
+
+    // init: scaffolds the caller workflow, refuses to overwrite, lists what is missing
+    const I = path.join(tmp, 'init'); fs.mkdirSync(I, { recursive: true });
+    const init = JSON.parse(execFileSync(process.execPath, [src, 'init', '--app-start', 'node server.js', '--app-url', 'http://localhost:4173', '--qabuddy-ref', 'v9.9.9'], { cwd: I, encoding: 'utf8' }));
+    const caller = fs.readFileSync(path.join(I, '.github', 'workflows', 'qabuddy.yml'), 'utf8');
+    check(init.workflow === '.github/workflows/qabuddy.yml' && /uses: TimothyHan\/qa-buddy-skills\/\.github\/workflows\/pr-coverage\.yml@v9\.9\.9/.test(caller), 'init: writes a caller that uses the reusable workflow at the requested ref');
+    check(/app-start: "node server\.js"/.test(caller) && /app-url: "http:\/\/localhost:4173"/.test(caller) && /secrets: inherit/.test(caller), 'init: caller carries app-start, app-url, secrets: inherit');
+    check(/pull_request:/.test(caller) && /closed\]/.test(caller) && /issue_comment:/.test(caller) && /concurrency:/.test(caller) && /pull-requests: write/.test(caller), 'init: caller has the triggers (incl. closed for the companion chain), concurrency group, and permissions');
+    check(init.next.some(s => /setup-token/.test(s)) && init.next.some(s => /qa-test-plan/.test(s)) && init.labels === 'skipped', 'init: next steps name the secret, the KB, and the labels');
+    check(init.next.some(s => /bills the Claude subscription of whoever minted it/.test(s) && /gh secret list/.test(s)), 'init: next steps say who pays and how to verify the secret');
+    check(/# after-companion-merge: none/.test(caller) && /refreshes the heatmap/.test(caller), 'init: caller documents chaining as opt-in (after-companion-merge: none)');
+    const initDef = JSON.parse(execFileSync(process.execPath, [src, 'init', '--force'], { cwd: I, encoding: 'utf8' }));
+    check(/^v\d+\.\d+\.\d+/.test(initDef.ref) && new RegExp('@' + initDef.ref.replace(/\./g, '\\.')).test(fs.readFileSync(path.join(I, '.github', 'workflows', 'qabuddy.yml'), 'utf8')), 'init: default ref is a version tag the caller pins');
+    const rm = JSON.parse(execFileSync(process.execPath, [src, 'init', '--remove'], { cwd: I, encoding: 'utf8', env: { ...process.env, QABUDDY_GH: path.join(brokenBin, 'gh.js') } }));
+    check(rm.removed && rm.removed.workflow === true && !fs.existsSync(path.join(I, '.github', 'workflows', 'qabuddy.yml')) && /secrets/.test(rm.note), 'init --remove: deletes the caller, leaves secrets alone, says so');
+    const rm2 = JSON.parse(execFileSync(process.execPath, [src, 'init', '--remove'], { cwd: I, encoding: 'utf8', env: { ...process.env, QABUDDY_GH: path.join(brokenBin, 'gh.js') } }));
+    check(rm2.removed.workflow === false, 'init --remove: idempotent when nothing is there');
+    execFileSync(process.execPath, [src, 'init', '--app-start', 'node server.js', '--app-url', 'http://localhost:4173', '--qabuddy-ref', 'v9.9.9'], { cwd: I, stdio: 'ignore' });
+    const again = (() => { try { execFileSync(process.execPath, [src, 'init'], { cwd: I, stdio: 'ignore' }); return 0; } catch (e) { return e.status; } })();
+    check(again === 3, 'init: refuses to overwrite an existing caller without --force');
+
+    // summary: the run as a work list — findings from the session, bugs, close files, heatmap, results
+    w('features-kb/features/alpha/exploratory/2026-09-06.md', '# Report\n## Focus Area Results\n| Focus Area | ACs | Time | Findings | Result |\n|---|---|---|---|---|\n| Delete | AC3 | 5m | Finding 1 | finding |\n\n## Detailed Findings\n### Finding 1: Deleted thing stays listed\n**Category:** Bug | **Severity:** Critical (as BUG-001) | **Priority:** High\n**Action:** file bug\n\n### Finding 2: Should deleted names be reusable?\n**Category:** Missing requirement | **Severity:** Minor | **Priority:** Low\n**What I did:** reuse a name | **Expected:** unclear | **Actual:** 409\n**Action:** discuss with product | keep the 409 or free the name\n');
+    w('features-kb/features/alpha/bugs/BUG-001.md', '# BUG-001: Deleted things remain listed\n**Feature:** alpha | **Severity:** P1\n**Status:** Open\n');
+    w('.qa-reports/headless/qa-exploratory.json', JSON.stringify({ skill: 'qa-exploratory', status: 'DONE_WITH_CONCERNS', artifacts: [], autoDecisions: ['x'], concerns: ['TC-03 needs the global-state project'] }));
+    w('.qa-reports/pr-coverage/claude-explore.json', JSON.stringify([{ type: 'result', num_turns: 61, total_cost_usd: 1.04, duration_ms: 420000, is_error: false }]));
+    w('changed.txt', 'features-kb/features/alpha/test-cases/alpha.md\nplaywright/tests/alpha.spec.ts\nfeatures-kb/features/alpha/bugs/BUG-001.md\n');
+    const sm_sum = JSON.parse(run(['summary', '--touched', 'touched.json', '--heatmap', 'out/h.json', '--results', 'results.json', '--changed', 'changed.txt', '--pr', '7', '--source-ref', 'feat/x', '--phases', 'kb,explore', '--json', 'out/findings.json']));
+    const sm_fj = JSON.parse(fs.readFileSync(path.join(tmp, 'out', 'findings.json'), 'utf8'));
+    check(sm_sum.findings === 2 && sm_sum.bugs === 1 && sm_sum.decisions === 1 && sm_sum.failed === 1, 'summary: counts findings, bug files, decisions, failing specs', JSON.stringify(sm_sum));
+    check(sm_fj.findings[0].kind === 'bug' && sm_fj.findings[1].kind === 'decision' && /^[0-9a-f]{12}$/.test(sm_fj.findings[1].hash) && sm_fj.findings[1].fields.action === 'discuss with product | keep the 409 or free the name', 'summary: classifies findings from the session block, hashes them, keeps the whole action sentence');
+    check(sm_fj.findings[0].bug === 'BUG-001', 'summary: a finding that names a bug file is linked to it');
+    check(sm_fj.stats.phases.explore.cost === 1.04 && sm_fj.stats.skills['qa-exploratory'].concerns.length === 1 && sm_fj.adds.specs === 1 && sm_fj.adds.bugs === 1, 'summary: reads execution logs, close files, and the changed-file categories');
+    const ghIssues = path.join(tmp, 'gh-issues'); fs.mkdirSync(ghIssues);
+    const issueLog = path.join(tmp, 'issues.log');
+    fs.writeFileSync(path.join(ghIssues, 'gh.js'), `const fs=require('fs');const a=process.argv.slice(2);fs.appendFileSync(${JSON.stringify(issueLog)},a.join(' ')+'\\n');
+const k=a[0]+' '+a[1];if(k==='issue list')process.stdout.write(fs.readFileSync(${JSON.stringify(path.join(tmp, 'issues-existing.json'))},'utf8'));else if(k==='issue create')process.stdout.write('https://github.com/o/r/issues/42\\n');else process.stdout.write('\\n');\n`);
+    const ghEnv2 = { QABUDDY_GH: path.join(ghIssues, 'gh.js') };
+    fs.writeFileSync(path.join(tmp, 'issues-existing.json'), '[]');
+    const idry = JSON.parse(run(['issues', '--repo', 'o/r', '--pr', '7', '--findings', 'out/findings.json', '--dry-run'], ghEnv2));
+    check(idry.dryRun === true && idry.issues.length === 1 && idry.issues[0].kind === 'decision' && !fs.existsSync(issueLog), 'issues: --dry-run lists only decision findings and never calls gh');
+    const sm_created = JSON.parse(run(['issues', '--repo', 'o/r', '--pr', '7', '--findings', 'out/findings.json', '--out', 'out/issues.json'], ghEnv2));
+    const ilog = fs.readFileSync(issueLog, 'utf8');
+    check(sm_created.issues[0].action === 'created' && sm_created.issues[0].number === 42 && /label create qabuddy/.test(ilog) && /issue create [\s\S]*--label qabuddy/.test(ilog) && new RegExp(`qabuddy:finding ${sm_fj.findings[1].hash}`).test(ilog), 'issues: ensures the label, creates the issue with the finding marker', JSON.stringify(sm_created) + ' | ' + ilog.slice(0, 300));
+    fs.writeFileSync(path.join(tmp, 'issues-existing.json'), JSON.stringify([{ number: 42, url: 'https://github.com/o/r/issues/42', title: 'x', body: `<!-- qabuddy:finding ${sm_fj.findings[1].hash} -->` }]));
+    fs.unlinkSync(issueLog);
+    const sm_again2 = JSON.parse(run(['issues', '--repo', 'o/r', '--pr', '7', '--findings', 'out/findings.json'], ghEnv2));
+    check(sm_again2.issues[0].action === 'updated' && /issue edit 42/.test(fs.readFileSync(issueLog, 'utf8')) && !/issue create/.test(fs.readFileSync(issueLog, 'utf8')), 'issues: a rerun with the same finding updates the existing issue instead of opening another', JSON.stringify(sm_again2) + ' | ' + fs.readFileSync(issueLog, 'utf8').slice(0, 300));
+    const sm_all = JSON.parse(run(['issues', '--repo', 'o/r', '--pr', '7', '--findings', 'out/findings.json', '--for', 'all', '--dry-run'], ghEnv2));
+    const sm_none = JSON.parse(run(['issues', '--repo', 'o/r', '--pr', '7', '--findings', 'out/findings.json', '--for', 'none', '--dry-run'], ghEnv2));
+    check(sm_all.issues.length === 2 && sm_none.issues.length === 0, 'issues: --for all includes bugs, --for none opens nothing');
+    run(['summary', '--touched', 'touched.json', '--heatmap', 'out/h.json', '--results', 'results.json', '--changed', 'changed.txt', '--issues', 'out/issues.json', '--pr', '7', '--source-ref', 'feat/x', '--companion-url', 'https://github.com/o/r/pull/9', '--phases', 'kb,explore', '--body', 'out/body.md', '--announce', 'out/announce.md']);
+    const sm_body = fs.readFileSync(path.join(tmp, 'out', 'body.md'), 'utf8'), sm_ann = fs.readFileSync(path.join(tmp, 'out', 'announce.md'), 'utf8');
+    check(/## What this PR adds/.test(sm_body) && /1 Playwright spec/.test(sm_body) && /## Findings \(2\)/.test(sm_body) && /🐞 \*\*BUG-001\*\* \(P1\)/.test(sm_body), 'summary sm_body: what it adds, findings with bug files');
+    check(/### Fix on `feat\/x` \(author\)/.test(sm_body) && /- \[ \] failing spec: TC-02/.test(sm_body) && /\/qabuddy heatmap/.test(sm_body) && /### Decide \(reviewer\)/.test(sm_body) && /issues\/42 — Should deleted names/.test(sm_body), 'summary sm_body: to-do list — fix on the source branch, decisions link to their issues');
+    check(/also seen as Finding 1/.test(sm_body) && !/- \[ \] Finding 1/.test(sm_body), 'summary body: a finding linked to a bug file is listed under the bug, not as a second to-do');
+    check(/### Not automated yet/.test(sm_body) && /TC-03 \(AC3\)/.test(sm_body) && /Concerns raised by the phases/.test(sm_body), 'summary sm_body: unautomated test cases and phase concerns');
+    check(sm_ann.startsWith('QABuddy opened https://github.com/o/r/pull/9 with tests for this PR (phases: kb, explore)') && /\*\*To fix on this branch\*\*/.test(sm_ann) && /\*\*Needs a decision:\*\*/.test(sm_ann) && /issues\/42/.test(sm_ann), 'summary announcement: starts with the phrase the merge-marker looks for, lists fixes and decisions');
+
+    // The reusable workflow and its support files ship in this repository
+    const wf = readFile(path.join(ROOT, '.github', 'workflows', 'pr-coverage.yml')) || '';
+    check(/^on:\n\s+workflow_call:/m.test(wf), '.github/workflows/pr-coverage.yml is a reusable workflow (workflow_call)');
+    for (const inp of ['app-start', 'app-url', 'qabuddy-ref', 'kb-budget', 'automate-turns', 'default-phases', 'test-user', 'after-companion-merge', 'gate-on', 'issues-for', 'delivery']) check(new RegExp(`^\\s+${inp}:`, 'm').test(wf), `pr-coverage.yml declares input ${inp}`);
+    for (const job of ['resolve', 'preflight', 'kb', 'explore', 'automate', 'deliver', 'gate']) check(new RegExp(`^  ${job}:`, 'm').test(wf), `pr-coverage.yml has job ${job}`);
+    check(/after-companion-merge: \{ type: string, default: "none"/.test(wf) && /none\|""\)\s+PH=heatmap/.test(wf), 'pr-coverage.yml: chaining is opt-in — a merged companion refreshes the heatmap by default');
+    check(/--token-kind "\$TOKEN_KIND"/.test(wf) && /--logs \.qa-reports\/pr-coverage --billing "\$BILLING"/.test(wf), 'pr-coverage.yml: preflight reports the billing source, the heatmap footer shows spend and who pays');
+    check(/qabuddy-ref:\s+\{ type: string, default: "v\d+\.\d+\.\d+[^"]*"/.test(wf), 'pr-coverage.yml: qabuddy-ref defaults to a version tag');
+    check(!/&[a-z-]+\n/.test(wf) && !/\*[a-z-]+\n/.test(wf), 'pr-coverage.yml uses no YAML anchors (GitHub Actions does not support them)');
+    check(/pr-coverage\.js"? merge/.test(wf) && /pr-coverage\.js"? preflight/.test(wf) && /include-hidden-files: true/.test(wf), 'pr-coverage.yml merges phase trees, runs preflight, and uploads dot-directories');
+    check(/pr-coverage\.js"? summary/.test(wf) && /pr-coverage\.js"? issues/.test(wf) && /--body-file \.qa-reports\/pr-coverage\/companion-body\.md/.test(wf) && /qabuddy:companion \$NUM/.test(wf), 'pr-coverage.yml: deliver writes the companion body from summary, opens issues, and posts a per-companion announcement');
+    check((wf.match(/continue-on-error: true/g) || []).length === 3, 'pr-coverage.yml: each of the three phase sessions is continue-on-error');
+    for (const f of ['prompts/header.md', 'prompts/kb.md', 'prompts/explore.md', 'prompts/automate.md', 'render.js', 'install.sh', 'mcp.json', 'README.md']) check(fs.existsSync(path.join(ROOT, '.github', 'pr-coverage', f)), `.github/pr-coverage/${f} ships`);
+    const rendered = execFileSync(process.execPath, [path.join(ROOT, '.github', 'pr-coverage', 'render.js'), 'explore', path.join(tmp, 'extra.md')], { env: { ...process.env, PR: '7', FEATURES: 'alpha', BASE_URL: 'http://x', BASE_SHA: 'abc' }, encoding: 'utf8' });
+    check(/pull request #7/.test(rendered) && /\*\*explore\*\* phase/.test(rendered) && /qa-exploratory alpha/.test(rendered) && !/\{\{/.test(rendered), 'render.js fills every placeholder for a phase');
+    w('extra.md', 'EXTRA-PROJECT-RULE\n');
+    const rendered2 = execFileSync(process.execPath, [path.join(ROOT, '.github', 'pr-coverage', 'render.js'), 'kb', path.join(tmp, 'extra.md')], { env: { ...process.env, PR: '7', FEATURES: 'alpha' }, encoding: 'utf8' });
+    check(/EXTRA-PROJECT-RULE/.test(rendered2) && rendered2.indexOf('EXTRA-PROJECT-RULE') < rendered2.indexOf('qa-test-cases'), 'render.js appends the consumer extra-prompt between header and phase body');
+  } finally {
+    fs.rmSync(tmp, { recursive: true, force: true });
+  }
+}
+
+
 // ─── Akela equivalence harness (RFC 0003, PR A) ──────────────────────────
 //
 // Proves the in-tree engine (shipped qab.js) and the pinned npm engine (akela)
@@ -2438,6 +2706,7 @@ testCrlfTolerance();
 testInstallerSkillSync();
 testDistBom();
 testKbPathHygiene();
+testPrCoverage();
 
 testBadgeCount();
 

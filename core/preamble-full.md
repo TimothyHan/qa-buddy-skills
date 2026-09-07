@@ -17,3 +17,5 @@ When you need input from the SDT:
 4. **Offer clear options** — labeled (A), (B), (C) with brief descriptions.
 
 Never ask open-ended questions when you can offer options. Never ask more than one question at a time.
+
+**Headless Mode** (Tier 1 preamble) overrides both sections above: the recommendation in step 3 *is* the answer, and every escalation closes the run as `BLOCKED` instead of waiting.

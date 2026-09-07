@@ -1,0 +1,281 @@
+# RFC 0004 — Headless Mode and PR-Triggered Coverage Runs
+
+| | |
+|---|---|
+| **Status** | Accepted — shipped in 0.9.0 as experimental (§4 criteria all met on the demo repository) |
+| **Author** | Timothy Han (with Claude) |
+| **Created** | 2026-09-04 |
+| **Depends on** | RFC 0001 (run protocol, evidence log), RFC 0003 (Akela engine); KB spec §6.5 |
+| **Supersedes** | nothing — interactive behaviour is unchanged; headless is opt-in |
+| **Locale** | English normative; Korean twin to follow |
+
+## 1 · Problem
+
+QABuddy is interactive by construction. Every skill pauses for the SDT — Review
+Options after each phase, "does this look right?" before a charter, "confirm?" on a
+page-object screenshot — and the guided workflow will not advance without a human.
+That is the right default for a QA engineer at a keyboard. It is also the only thing
+standing between the skills and a pull request: a PR has a bounded diff, a natural
+trigger, a place to write results, and a reviewer already waiting, but nobody is
+there to answer (A).
+
+Two smaller gaps sit underneath. Nothing in the knowledge base says *which code a
+feature owns*, so a diff cannot be mapped to the features it touches. And test
+coverage is only ever stated per AC as `full | partial | none` — an intent recorded by
+the mapping, not proof on disk — so a per-layer coverage view (unit / API / e2e /
+manual / exploratory) has no data to draw from.
+
+This RFC adds the smallest set of things that lets a workflow run the existing skills
+unattended on a PR and post one honest coverage comment: a headless mode, a
+`sources.json` per feature, a canonical layered mapping, and a deterministic script
+that does everything the model should not.
+
+## 2 · Decisions
+
+1. **No new skill.** Headless is a *mode* of the existing skills, defined once in the
+   Tier 1 preamble (`core/preamble-base.md` "Headless Mode") and reinforced at the
+   handful of gates that are truly blocking. `QABUDDY_HEADLESS=1` is the primary
+   switch because skills invoke skills (`/qa-e2e-write` → `/qa-e2e-pom`) and an env
+   var survives the hop; `--headless` is a per-invocation alias. Defaults are unchanged:
+   the eval fixture that asserts `/qa-start` pauses stays green.
+2. **Determinism boundary.** Everything that maps, scores, renders, or posts lives in
+   `bin/pr-coverage.js` (zero dependencies, shipped as
+   `{{REFERENCE_PATH}}/bin/pr-coverage.js`). The model produces knowledge-base and
+   Playwright artifacts; it never decides what "covered" means and never talks to the
+   GitHub API. The workflow runs the script before the skills (`touched`) and after
+   them (`heatmap`, `comment`).
+3. **Write scope.** A headless run writes only under `features-kb/`, `playwright/`,
+   `playwright.config.*`, and `.qa-reports/`. It never commits, pushes, or opens a PR.
+   Delivery is the workflow's job: one sticky comment on the source PR (found by the
+   marker `<!-- qabuddy:heatmap -->`, patched in place) and one companion PR on branch
+   `qabuddy/pr-<n>` **into the source PR's head branch** (Timothy's call, 2026-09-05:
+   the diff is then only the tests, and they reach the base branch together with the
+   feature), opened by a workflow step and announced once with a comment on the source
+   PR. Nothing writes to the base branch directly.
+4. **`features-kb/features/<key>/sources.json`** (KB spec §6.8) is the canonical
+   diff→feature mapping: `sources` globs the feature owns, `tests.{unit,api,e2e}` globs
+   where its tests live, `exclude` winning over both. `/qa-test-plan` writes it (step
+   4b; proposed and confirmed interactively, mandatory headless). When no feature
+   matches a diff the workflow's default is `--fallback none`: nothing runs, nothing is
+   spent, and the comment names the unmapped files. `--fallback all` (every feature,
+   flagged in the comment) is opt-in for repositories that have not written
+   `sources.json` yet.
+5. **The mapping shape is KB spec §6.5** — `testCases[{id, layer, type, status}]`,
+   `unitTests[]`, `coverage` — written by `/qa-test-cases` in both modes. The scanner
+   stays read-compatible with the two legacy shapes (`e2e_tests[]`/`unit_tests[]`, flat
+   `tests[]`) and treats `META — …` strings as infrastructure evidence, never TC ids.
+6. **Evidence rule.** A heatmap cell is `covered` only with a resolved path: a spec
+   whose `test()` title carries the TC id (with pass/fail from Playwright's JSON
+   reporter when present), a unit file that names the AC or TC, a saved QA report that
+   executed the TC, or an exploratory session row that lists the AC. A test case that
+   exists without proof is `partial`; no test case is `gap`. This is test-plan's
+   "never claim coverage without a file path" applied per layer.
+7. **Headless exploratory persists into the KB** at
+   `features-kb/features/<key>/exploratory/<date>.md` (KB spec §6.9) — the same report
+   `/qa-exploratory` saves under the gitignored `.qa-reports/` — with an `ACs` column in
+   Focus Area Results so the Exploratory column has evidence. Provisional: see §5.
+8. **Runtime** is `anthropics/claude-code-action@v1` with a `prompt` (automation
+   mode), the customer's own `ANTHROPIC_API_KEY`, per-phase `--max-turns` and
+   `--max-budget-usd`, an explicit `--allowedTools` list, `--disallowedTools
+   AskUserQuestion` as a belt-and-braces guard, and Playwright MCP (`@playwright/mcp
+   --headless`) via `--mcp-config` for the browser. Skills are installed on the runner
+   with `dist/claude/setup` (global symlinks, as CI already proves on ubuntu). The action
+   receives the workflow's own `github_token`, so no Claude GitHub App install is needed —
+   the sticky comment and the companion PR are posted by workflow steps, not by the action.
+9. **Phases are selected by label or comment, never by every push.** `pull_request`
+   `opened` / `ready_for_review` runs the cheap `kb` phase (test cases, mapping, gaps,
+   heatmap). Labels `qa:explore`, `qa:automate`, `qa:full` add the expensive phases;
+   `/qabuddy [explore|automate|full]` in a comment reruns. One concurrency group per
+   PR, cancel-in-progress. Drafts are skipped.
+11. **One session per phase.** `kb`, `explore`, and `automate` each run in their own
+    `claude-code-action` invocation with their own `--max-turns` / `--max-budget-usd`
+    and `continue-on-error: true`. Later phases build on the files earlier phases wrote.
+    Delivery steps run `always()`; a final step fails the job if any phase failed, after
+    everything produced has been delivered.
+13. **The review gate is a merge.** A companion PR merged by a reviewer into the source
+    branch is the signal to continue: the workflow (trigger `pull_request: closed`, head
+    `qabuddy/pr-<n>`, merged) runs the rest on PR `<n>` — `after-companion-merge`
+    input, default `full` (explore runs in parallel with automate, so it adds about a
+    dollar and no wall time — Timothy's call), skipped when the merged companion already
+    carried automation. This
+    is the reviewed, phase-by-phase chain Timothy asked about, without extra workflows:
+    open → kb companion → review + merge → automate companion → review + merge.
+    Companion PRs themselves never trigger a run of their own.
+14. **Gating is the owner's, not the bot's.** Every job reports a check, but a run that
+    found a failing spec still finishes green — that failure is what it delivers. The
+    `gate` job turns a caller-chosen policy (`gate-on`: `none` default, `at-risk`,
+    `suite`, `gaps`) into one check named `qabuddy / gate`; whether it blocks a merge is
+    a branch rule only the repository owner sets (Timothy's point, 2026-09-05). QABuddy
+    never touches that setting.
+16. **Delivery is the caller's choice.** `delivery: companion-pr` (default) keeps the
+    generated files reviewable on their own and lets a merge continue the chain;
+    `delivery: commit` pushes them straight onto the source PR's branch for teams that
+    prefer one PR — no companion, no chain, heatmap still updated, and the push cannot
+    re-trigger the workflow because it uses the workflow token. Proven on PR #2
+    (2026-09-06): kb run → commit on the branch, PR head moved, note posted, $0.66.
+12. **One reusable workflow, many repositories.** `.github/workflows/pr-coverage.yml`
+    (`workflow_call`) owns the jobs `resolve → preflight → kb → (explore ∥ automate) →
+    deliver`; a consumer repo carries a ~15-line caller written by `pr-coverage.js init`
+    that only says how to run its app (`app-start`, `app-url`, …) and inherits secrets.
+    Prompts, `render.js`, `install.sh`, and the MCP config ship with QABuddy under
+    `.github/pr-coverage/`, so the workflow and the skills are always the same version.
+    Phases hand their trees to each other as artifacts; `deliver` unions explore and
+    automate with `pr-coverage.js merge` (three-way, kb tree as base, `.jsonl` line
+    union, conflicts keep automate and are reported). `preflight` checks config, features,
+    `sources.json`, the token secret, and the PR-creation setting before any spend and
+    explains what is missing in the sticky comment.
+10. **Fork PRs are skipped.** GitHub withholds secrets from forks and the run needs an
+    API key and a write token; the workflow's `if:` checks the head repository. This
+    is documented, not solved — a hosted service would run forks read-only.
+17. **Chaining is opt-in.** `after-companion-merge` defaults to `none`: merging a
+    reviewed companion refreshes the heatmap on the merged branch (no model) and nothing
+    else. The default experience is therefore one cheap comment and one companion per PR,
+    with every further phase requested by label, comment, or the caller input. The chain
+    (`full` / `automate`) stays as built for teams that want it. Reason: the chain was the
+    hardest idea to explain to a new user, and a default should not need explaining.
+18. **Prerequisites are verified, and billing is said out loud.** The wizard walks the
+    token, the login secrets, the Actions PR setting, and `sources.json` one at a time and
+    verifies each — `gh secret list` (names only), the Actions permissions API (offering
+    the `PUT` on an explicit yes), and an offer to run `/qa-test-plan` for every feature
+    without sources — refusing to close the step while an item is unverified and not
+    deferred. Who pays is stated before the token commands, repeated by the scaffolder,
+    and printed in every heatmap comment's footer (spend per phase, which secret).
+
+## 3 · Staged delivery
+
+| Step | Repo | Content | Behaviour change |
+|---|---|---|---|
+| A | QABuddy | `bin/pr-coverage.js`, `testPrCoverage` (48 checks), KB spec §6.5 note + §6.8 + §6.9 (en + ko), this RFC | none — new file, new docs |
+| B | QABuddy | Headless Mode in the preambles (en + ko), gate edits in start / test-plan / test-cases / exploratory / e2e-setup / e2e-pom, six `headless` fixtures | none unless `QABUDDY_HEADLESS=1` or `--headless`; `/qa-test-cases` now writes the §6.5 mapping shape in both modes |
+| C | `qabuddy-poc-acme` | Scratch customer repo: Acme Projects app, seeded KB (AC1–AC6, TC-01–TC-04 mapped, AC5/AC6 deliberately unmapped), workflow, prompt, MCP config; control PR and demo PR; `kb` phase | n/a (new repo) |
+| D | `qabuddy-poc-acme` + this RFC | `qa:explore`, `qa:automate`, `qa:full`; seeded Playwright scaffold; measurements recorded in §4; Accept / Kill | n/a |
+
+Nothing in this RFC is proposed for `main`. The branch is a proof of concept; the
+decision to promote any part of it is Timothy's, after §4 has numbers.
+
+## 4 · Measurement and kill criteria
+
+On the demo PR (`server.js` changed so that DELETE returns 204 but the row stays
+listed — the fixture app's `v3` behaviour arriving as a plausible refactor):
+
+| | Criterion | Kill if |
+|---|---|---|
+| (a) | `touched` maps `server.js` → `projects`, deterministically | fails — the deterministic layer is wrong |
+| (b) | Heatmap shows AC5 / AC6 as `gap` in E2E and Manual before the run; AC4 at risk after | fails — same |
+| (c) | Headless exploratory reports a finding on the delete flow in ≥ 2 of 3 runs | (c) and (d) both fail on 3 consecutive runs |
+| (d) | Automate phase produces specs whose titles carry TC ids; TC-04 red on the demo branch | see (c) |
+| (e) | Cost within caps — kb ≤ $5, explore ≤ $10, automate ≤ $20, full ≤ $30 — and wall time ≤ 60 min | cost > 2× cap |
+| (f) | Zero `AskUserQuestion` calls in the action's execution file | any call — headless leaked a question |
+
+### Results so far (step C, 2026-09-05, `TimothyHan/qabuddy-poc-acme`)
+
+| Check | Result |
+|---|---|
+| Control PR #1 (README only) | `resolve` + `run` green in ~1 min; `touched` mapped nothing; model step skipped; comment posted naming `README.md` as unmapped; **$0** |
+| `/qabuddy` comment on #1 | second run patched the same comment (id unchanged, `updated_at` moved) — one comment per PR holds |
+| Demo PR #2 (`server.js` soft-delete) | `touched` → `projects` deterministically (a); seeded heatmap posted: AC1–AC4 `partial` in E2E + Manual, AC5/AC6 `gap`, Exploratory `not run` (b, pre-run half); QABuddy installed on the runner from `poc/cloud-service` and `dist/claude/setup --status` clean |
+| Model step on #2 | failed before any spend: `ANTHROPIC_API_KEY` secret not set, and the action attempted a GitHub App token exchange (fixed: `github_token` passed) |
+
+### Local headless runs (step D, Timothy's Claude Code, `claude -p`, ko skills via the local symlink)
+
+| Run | Result |
+|---|---|
+| `/qa-test-cases projects --update --headless` | DONE in 33 turns, 231 s, **$1.24**; zero questions, zero permission denials (f); three Auto-decisions in `.qa-reports/headless/qa-test-cases.json`; §6.5 mapping written; TC-05–TC-07 added so AC5/AC6 move from `gap` to `partial` (b, post-run half for the kb phase); captured LRN-20260904-02 (zero-match search and the true empty state render the same DOM) |
+| `/qa-e2e-setup --headless` (Playwright MCP via `--mcp-config`) | DONE in 52 turns, 404 s, **$1.60**; zero questions; probed cookie auth → storageState, workers 2 + dependent global-state project (applied LRN-20260904-01), white-box = propose (because `sources.json` exists), functional POM; both gates green; four Auto-decisions in AUTOMATION.md and the close file; captured LRN-03 (`/api/reset` is harness-only) and LRN-04 (the four testability gaps). Scaffold seeded into `qabuddy-poc-acme` main so CI automate starts at `/qa-e2e-pom` |
+| `/qa-exploratory projects --quick --headless --url …` against the soft-delete build (Playwright MCP) | DONE in 47 turns, 260 s, **$1.31**; zero questions; charter derived from the diff; **found the planted bug** — BUG-001, deleted rows stay listed (AC4, Blocker) — plus BUG-002, the duplicate-name check counts soft-deleted rows (AC2/AC3); session persisted to `features-kb/features/projects/exploratory/2026-09-04.md` with the AC-keyed table; screenshot evidence saved; the heatmap then shows AC2/AC3/AC4 ⚠️ with `#Finding` links — (c) 1 of 3 runs, (b) post-run half |
+
+Local tally against §4: (a) ✓ · (b) ✓ · (c) 1/1 so far · (d) pending CI automate · (e) every
+local phase far under its cap (kb $1.24 / $5, explore $1.31 / $10, setup $1.60) · (f) 0
+questions across three headless runs, 132 turns.
+
+### First full CI run (2026-09-05, PR #2, `/qabuddy full`, subscription OAuth token)
+
+| | |
+|---|---|
+| Session | one `claude-code-action` session for all three phases: **222 turns, $8.18, 27.5 min**, final result `success` — then failed by the action because 222 > the 220-turn cap, which skipped the suite-execution step |
+| Heatmap posted | every AC has a spec whose title carries its TC id (E2E ✅ ×6, "not run" because the results step was skipped); exploratory row for every AC, **AC4 ⚠️ finding**; 12 covered · 9 partial · 9 gap · 1 AC at risk |
+| Companion branch `qabuddy/pr-2` | 30 files: TC-05/TC-06 added, §6.5 mapping, persisted exploratory session, BUG-001, page objects for login and projects with proof screenshots, POM inventory, API client, fixtures, seven specs, updated AUTOMATION.md. `gh pr create` was refused — the repository did not allow Actions to open PRs (setting enabled afterwards; PR #3 opened by hand) |
+| Not uploaded | the `.qa-reports` artifact — `upload-artifact@v4` skips dot-directories unless `include-hidden-files: true` |
+| Auth detours before this run | API key: valid but its organization had no credit (`billing_error`); first OAuth token: pasted value rejected (401); second OAuth token: worked. Each failed attempt cost $0 |
+
+Tally after the first full run: (a) ✓ · (b) ✓ · (c) 2/2 (local + CI) · (d) specs with TC ids ✓,
+pass/fail pending a run whose results step executes · (e) $8.18 for `full`, under the $25 cap ·
+(f) `AskUserQuestion` was disallowed at the CLI; the run finished without a question.
+
+### Split-phase full CI run (2026-09-05, PR #2, `/qabuddy full`, decision 11 in place)
+
+| Phase | Turns | Cost | Wall | Questions | Outcome |
+|---|---|---|---|---|---|
+| kb | 44 | $1.15 | 5 min | 0 | DONE_WITH_CONCERNS — TC-01..TC-07, all six ACs mapped; flagged the soft-delete regression from the diff alone |
+| explore | 62 | $1.07 | 4 min | 0 | DONE_WITH_CONCERNS — live-confirmed the bug: deleted projects never leave the list (AC4) |
+| automate | 103 | $3.53 | 15 min | 0 | DONE — page objects, API client, 9 specs, 4 gates green; TC-04 / TC-07 written as expected failures against the soft-delete build |
+| **run** | **209** | **$5.75** | **25 min** | **0** | job green; suite executed: 9 tests, TC-04 and TC-07 fail (the regression), rest pass; companion PR #3 reused; artifact uploaded |
+
+Repeat with the ordering fix (run 33945106786): kb 50 turns / $1.26 / 6 min · explore 61 /
+$1.04 / 7 min · automate 123 / $3.04 / 12 min — **$5.34, 26.5 min, 0 questions**; the run
+itself posted the correct heatmap (TC-04 and TC-07 red, four ACs at risk, 11 covered) and
+reused companion PR #3. Two full runs, same verdict.
+
+The heatmap posted by the first split-phase run was stale — the companion step had checked the PR head
+back out before the heatmap step ran (fixed: the job stays on the companion branch).
+The corrected heatmap for the same tree and results was posted from the artifact.
+
+**Tally against §4:** (a) ✓ · (b) ✓ AC5/AC6 gap before, AC4 ⚠️ after · (c) **3/3** (one
+local, two CI runs) · (d) ✓ specs carry TC ids, TC-04 red on the demo branch · (e) ✓ $5.75
+for `full` against a $25 cap ($8.18 single-session), 25 min ≤ 60 · (f) ✓ 0 `AskUserQuestion`
+calls in 209 turns. **No kill criterion tripped. Verdict: the loop works unattended;
+promotion to `main` and productisation are Timothy's call.**
+
+### Through the reusable workflow (2026-09-05, `qabuddy-poc-acme` as a 15-line caller)
+
+| Run | Jobs | Result |
+|---|---|---|
+| `/qabuddy full` (33947054333) | resolve 5 s · preflight 14 s · kb 6.5 min · explore 5 min ∥ automate 15 min · deliver 16 s | **22.5 min** wall (26.5 sequential), kb $1.14 / explore $1.31 / automate $3.34 = **$5.79**, 0 questions; explore and automate started within one second of each other; three-way merge of their trees: 83 files, one `.jsonl` union, no content conflicts. Suite reported 0 tests — the demo login was not reaching global setup (secrets only; fixed with `test-user`/`test-pass` inputs) |
+| `/qabuddy automate` (33948169266) | kb 3 min · automate 17 min | kb $0.73 / automate $3.90; **14 tests executed**, TC-04 / TC-07 / TC-08 red on the soft-delete build, results in the posted heatmap; merge report clean |
+
+### The reviewed chain on a fresh PR (2026-09-05, PR #6, branch cut from `main`)
+
+| Step | What happened |
+|---|---|
+| open #6 | kb ran by default (`default-phases: kb`); deliver opened companion #8 → `demo/soft-delete-2` (KB files only) and announced it on #6 |
+| reviewer merges #8 | the `closed` event woke the workflow; resolve read the companion's phases (`kb`) and ran kb + automate (explore skipped — `after-companion-merge` was still `automate`, now `full`); deliver opened companion #9 (page objects, API client, specs, gap report) and announced it; heatmap: 6 covered, 1 AC at risk |
+| reviewer merges #9 | resolve saw the companion already carried automation → chain complete, every other job skipped, $0; the #9 announcement got a 🚀 reaction and a "Merged into `demo/soft-delete-2`" line |
+
+| `/qabuddy heatmap` (or automatically when the automation companion merges) | model-free refresh: re-map the diff, run the merged suite on the branch as it now stands, re-post — **98 s, $0**; 11 tests executed, TC-04 still red → AC4 ⚠️; `gate` advisory-passing |
+
+Lesson recorded as a preflight warning: `pull_request` workflows run from the PR's own
+branch, so a branch cut before the caller was added (PR #2) cannot chain until the base
+branch is merged into it.
+
+### The companion as a work list (2026-09-05, PR #6, `/qabuddy explore`)
+
+kb 29 turns / $0.59 · explore 102 turns / $2.13 · deliver rendered companion #11's body from
+the session, the bug files, the close files and the heatmap: 2 bug files + 3 bug findings in
+the author's fix list, one UX finding turned into issue #10 (labelled `qabuddy`, de-duplicated
+by marker) under "Decide", phase table with cost, concerns raised by the session; the
+announcement on #6 carries the same fixes and the decision link. Decision 15: findings that
+need a human become issues (`issues-for`); the fix belongs on the source branch, the
+companion carries the tests.
+
+**Design change from this run (decision 11):** one action session per phase — `kb`,
+`explore`, `automate` — each with its own turn and budget cap and `continue-on-error`,
+so a cap or failure in automation never discards the documentation phases, and the
+results, companion PR, heatmap, and artifact steps always run. The job's final step
+reports per-phase outcomes and fails the run honestly if any phase did.
+
+## 5 · Open questions
+
+- **`learnings-log.jsonl` under concurrent PRs.** Every headless run appends to the
+  project-wide log and the companion PR carries the lines. Ten open PRs mean ten
+  companion PRs appending to one file. Options: rebase-merge (trivial conflicts,
+  manual), per-PR shards (`learnings-log/<pr>.jsonl`, needs an engine change
+  upstream), or exclude the log from companion PRs (loses evidence). Not decided.
+- **Exploratory persistence (decision 7).** Writing sessions into the KB makes them
+  evidence but also makes the KB grow per PR. A retention rule (keep the latest N per
+  feature) or a reference to the workflow artifact may be the better long-term home.
+- ~~Companion PR targets base while artifacts were generated against head.~~ Resolved:
+  the companion PR targets the source PR's head branch (decision 3, revised).
+- **Skill discovery inside the action.** Claude Code discovers personal skills under
+  `~/.claude/skills`; the workflow keeps a project-scope fallback (copy into
+  `.claude/skills/`) behind a repository variable in case the action's runner scope
+  differs. Verified in step C.

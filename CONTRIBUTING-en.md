@@ -14,8 +14,8 @@ Skills are designed for **Claude Sonnet** as the minimum. Every skill must work 
 
 | Component | Budget |
 |-----------|--------|
-| Preamble (Tier 1) | ~89 lines |
-| Preamble (Tier 2) | ~108 lines (Tier 1 + 19) |
+| Preamble (Tier 1) | ~102 lines |
+| Preamble (Tier 2) | ~123 lines (Tier 1 + 21) |
 | **Skill body** | **150-300 lines** (enforced by `test.js`) |
 | Compiled knowledge slice | one `slice.md`; size varies by skill scope, recorded per run as `budget.used` |
 | **Total per invocation** | **~290-450 built lines + the slice** |
@@ -185,8 +185,8 @@ Assertion operators — simulate mode: `eq`, `contains`, `not_contains`, `matche
 
 | Tier | Injects | Use for |
 |------|---------|---------|
-| `1` | Context Recovery + Context Source + Project Learnings + Review Options + Completion Status (89 lines) | Lightweight skills |
-| `2` | Tier 1 + Escalation + Asking Questions (108 lines) | Interactive, classification-heavy skills |
+| `1` | Context Recovery + Context Source + Project Learnings + Review Options + Headless Mode + Completion Status (102 lines) | Lightweight skills |
+| `2` | Tier 1 + Escalation + Asking Questions (123 lines) | Interactive, classification-heavy skills |
 
 **Placeholder:** `{{REFERENCE_PATH}}` → replaced with platform-specific reference path at build time.
 

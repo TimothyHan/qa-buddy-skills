@@ -10,7 +10,7 @@
 [![Skills: 13](https://img.shields.io/badge/Skills-13-green.svg)](#스킬)
 [![Platform: Claude Code](https://img.shields.io/badge/Platform-Claude_Code-purple.svg)](#작동-방식)
 [![Locales: en, ko](https://img.shields.io/badge/Locales-en_|_ko-orange.svg)](#로케일)
-[![Structural checks: 1656](https://img.shields.io/badge/Structural_checks-1656-brightgreen.svg)](#작동-방식)
+[![Structural checks: 1835](https://img.shields.io/badge/Structural_checks-1835-brightgreen.svg)](#작동-방식)
 
 소프트웨어를 테스트하는 사람이라면 누구나를 위한 AI 파트너 —<br>
 에픽 테스트 계획 수립부터 스프린트 실행, 릴리스 검증까지.<br>
@@ -23,7 +23,7 @@ AI 코딩 어시스턴트의 네이티브 **스킬 시스템** 위에 구축되�
 QABuddy는 AI가 자동으로 인식하고 실행하는 `SKILL.md` 파일 모음입니다 —<br>
 별도의 앱과 데몬이 없고, 고정 의존성은 하나 — [Akela](https://github.com/TimothyHan/akela) 엔진(그 자체는 의존성 0)이며 빌드 시점에 dist로 벤더링됩니다.
 
-[빠른 시작](#빠른-시작) · [스킬](#스킬) · [안내 워크플로우](#안내-워크플로우) · [셀프러닝 가이드](docs/self-learning-guide.md) · [스킬 평가](docs/skill-evals.md) · [변경 이력](CHANGELOG-ko.md) · [기여하기](CONTRIBUTING.md)
+[빠른 시작](#빠른-시작) · [스킬](#스킬) · [안내 워크플로우](#안내-워크플로우) · [셀프러닝 가이드](docs/self-learning-guide.md) · [스킬 평가](docs/skill-evals.md) · [CI에서 QABuddy](docs/pr-coverage.md) · [변경 이력](CHANGELOG-ko.md) · [기여하기](CONTRIBUTING.md)
 
 스킬 자체도 채점됩니다 — 지식만이 아니라: 대상 모델에서의 헤드리스 실행, 스킬 자신의 제약 조건에 대해 산출물을 채점하는 별도의 Opus 판정자, must 기준마다의 바닥값, 사람이 채점한 산출물에서 도출한 임계값 ([RFC 0005](docs/rfc/0005-rubric-scored-evals.md)).
 
@@ -172,6 +172,49 @@ node build.js all --locale ko
 | **(A) 승인** | 다음 단계로 진행 |
 | **(B) 내용 피드백** | 결과물을 반복 수정 |
 | **(C) 도구 피드백** | `/qa-improve`로 디스패치: 근본 원인, 승인된 수정, 리빌드, eval — 이후 재개 |
+
+---
+
+## CI에서 QABuddy (실험적)
+
+QABuddy는 풀 리퀘스트를 프로젝트가 쌓아 온 QA 지식으로 만든, 증거 있는 QA 계획으로
+바꿉니다. Claude가 Playwright를 쓸 줄 안다는 건 요점이 아닙니다. 요점은 PR마다 세 가지
+질문에 답이 붙는다는 것입니다:
+
+1. **왜 이걸 테스트하나?** diff를 바뀐 코드를 소유한 기능에, 거기서 그 기능의 인수
+   조건에 매핑합니다. 모델이 짐작해서 테스트하는 것은 없습니다.
+2. **프로젝트가 이미 알던 것은?** 그 기능의 테스트 케이스, 지난 탐색 세션, 이전 실행에서
+   포착한 학습이 다음에 쓸 것을 결정합니다 -- 일반 체크리스트가 아니라 팀의 이력이
+   계획에 반영됩니다.
+3. **커버리지를 증명할 수 있나?** 히트맵 코멘트는 디스크에 증거가 있을 때만 인수 조건을
+   covered로 표시합니다: 제목에 테스트 케이스 id를 가진 스펙, 그 조건을 이름 짓는 단위
+   테스트, 저장된 보고서, 영속된 탐색 결과. 증거 없는 테스트 케이스는 partial입니다.
+
+재사용 워크플로우가 PR마다 이 일을 합니다: diff를 매핑하고, 테스트 케이스를 쓰거나
+갱신하고, 원하면 실행 중인 앱을 탐색해 갭을 자동화한 뒤, **히트맵 코멘트 하나**를 올리고
+파일을 PR 자신의 브랜치를 향한 **동반 PR**로 전달합니다.
+
+동반 PR을 머지하면 히트맵이 무료로 갱신됩니다. 요청하지 않으면 더 돌지 않습니다:
+PR마다 라벨이나 `/qabuddy` 코멘트로, 또는 리뷰된 동반 PR 뒤에 explore와 automate를
+이어가는 호출자 입력 하나로 켭니다. 사람의 판단이 필요한 발견은 이슈가 됩니다. 베이스
+브랜치에는 아무것도 쓰지 않습니다.
+
+**설정** -- 세 가지 중 하나:
+
+- 처음이라면 `/qa-setup`이 마지막에 PR 자동화 단계를 제안합니다.
+- 이미 구성된 저장소라면 `/qa-setup --pr`을 실행합니다.
+- 터미널에서는 `pr-coverage.js init` 한 번이면 됩니다.
+
+**필요한 것** -- Claude 전용입니다: 스킬을 어느 플랫폼에서 쓰든 워크플로우는
+`anthropics/claude-code-action`에서 돕니다. 저장소 시크릿 하나가 필요하며 직접 설정합니다,
+마법사는 값을 절대 다루지 않지만 설정됐는지는 확인합니다: `claude setup-token` 후
+`gh secret set CLAUDE_CODE_OAUTH_TOKEN`(그 Claude 구독에 과금), 또는 API 크레딧이 있는
+`ANTHROPIC_API_KEY`.
+
+**상태** -- 0.9.0부터 실험적: 데모 저장소 하나에서 끝까지 증명했고, 대화형 스킬은
+그대로입니다. 호출자가 QABuddy 릴리스 태그를 고정하므로 러너는 여러분의 머신에서 아무것도
+요구하지 않습니다. 가이드: [docs/pr-coverage.md](docs/pr-coverage.md), 설계:
+[RFC 0004](docs/rfc/0004-headless-pr-coverage.md).
 
 ---
 
@@ -341,7 +384,7 @@ flowchart LR
 ```bash
 node build.js all                  # 모든 플랫폼용 빌드
 node build.js all --locale ko      # 한국어 버전 빌드
-node test.js                       # 1656개 구조 검사 실행
+node test.js                       # 1835개 구조 검사 실행
 ```
 
 > **구조 검사와 동작 검증은 다릅니다.** `node test.js`는 빌드 산출물의 형태를
@@ -356,10 +399,11 @@ node test.js                       # 1656개 구조 검사 실행
 ```
 QABuddy/
 ├── build.js                     # 빌드 스크립트 (node; 고정 버전 엔진을 벤더링)
-├── test.js                      # 구조 검사 스위트 (1656개 검사)
+├── test.js                      # 구조 검사 스위트 (1835개 검사)
 ├── package.json                 # 고정 의존성 1개: akela (엔진)
 ├── bin/akela.js                 # 엔진 런처 (환경변수 매핑 · 첫 실행 akela.json · 위임)
 ├── bin/qab.js                   # 지원 중단 심 (한 릴리스)
+├── bin/pr-coverage.js           # PR 실행: diff→기능, 커버리지 히트맵, 고정 코멘트 (RFC 0004)
 ├── core/                        # 단일 소스 — 여기서 편집
 │   ├── skills/ (13)             # {{플레이스홀더}} 포함 스킬 템플릿
 │   ├── references/playbook/     # 11개 방법론 파일

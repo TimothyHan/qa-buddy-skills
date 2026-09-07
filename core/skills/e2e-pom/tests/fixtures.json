@@ -1,7 +1,7 @@
 {
   "skill": "e2e-pom",
   "version": "0.1.2",
-  "note": "RED SUITE \u2014 written before the skill exists (eval-first). Execute fixtures run against core/skills/eval/tests/fixture-app/ with its test-cases.md as feature context. Ground truth: ANSWER-KEY.md (never shown to the skill). fx-002 reuses fx-001's workspace.",
+  "note": "RED SUITE — written before the skill exists (eval-first). Execute fixtures run against core/skills/eval/tests/fixture-app/ with its test-cases.md as feature context. Ground truth: ANSWER-KEY.md (never shown to the skill). fx-002 reuses fx-001's workspace.",
   "fixtures": [
     {
       "id": "fx-001",
@@ -186,6 +186,36 @@
       ],
       "tags": [
         "proof-gate"
+      ]
+    },
+    {
+      "id": "fx-005",
+      "description": "Headless build: proof run replaces the confirm step; ambiguity is flagged, never chosen",
+      "input": {
+        "env": "QABUDDY_HEADLESS=1",
+        "mode": "build",
+        "testCases": "TC-01..TC-06 against Acme v1"
+      },
+      "assertions": [
+        {
+          "field": "output",
+          "op": "matches",
+          "value": "proof|proven"
+        },
+        {
+          "field": "output",
+          "op": "not_contains",
+          "value": "confirm?"
+        },
+        {
+          "field": "output",
+          "op": "matches",
+          "value": "flag|ambiguous"
+        }
+      ],
+      "tags": [
+        "headless",
+        "rfc-0004"
       ]
     }
   ]

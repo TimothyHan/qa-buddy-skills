@@ -10,7 +10,7 @@
 [![Skills: 13](https://img.shields.io/badge/Skills-13-green.svg)](#skills)
 [![Platform: Claude Code](https://img.shields.io/badge/Platform-Claude_Code-purple.svg)](#how-it-works)
 [![Locales: en, ko](https://img.shields.io/badge/Locales-en_|_ko-orange.svg)](#locales)
-[![Structural checks: 1656](https://img.shields.io/badge/Structural_checks-1656-brightgreen.svg)](#how-it-works)
+[![Structural checks: 1835](https://img.shields.io/badge/Structural_checks-1835-brightgreen.svg)](#how-it-works)
 
 An AI partner for anyone who tests software —<br>
 from epic test planning through sprint execution to release verification.<br>
@@ -23,7 +23,7 @@ Built on the native **skills system** of your AI coding assistant.<br>
 QABuddy is a collection of `SKILL.md` files that your AI discovers and invokes automatically —<br>
 no separate app, no daemon; one pinned dependency — the [Akela](https://github.com/TimothyHan/akela) engine (itself zero-dependency), vendored into dist at build time.
 
-[Quick Start](#quick-start) · [Skills](#skills) · [Guided Workflow](#the-guided-workflow) · [Self-Learning Guide](docs/self-learning-guide-en.md) · [Skill Evals](docs/skill-evals-en.md) · [Changelog](CHANGELOG.md) · [Contributing](CONTRIBUTING-en.md)
+[Quick Start](#quick-start) · [Skills](#skills) · [Guided Workflow](#the-guided-workflow) · [Self-Learning Guide](docs/self-learning-guide-en.md) · [Skill Evals](docs/skill-evals-en.md) · [QABuddy on CI](docs/pr-coverage-en.md) · [Changelog](CHANGELOG.md) · [Contributing](CONTRIBUTING-en.md)
 
 </div>
 
@@ -174,6 +174,50 @@ At every pause, you choose:
 | **(A) Approve** | Continue to next phase |
 | **(B) Content feedback** | Iterate on the output |
 | **(C) Tool feedback** | Dispatches to `/qa-improve`: root cause, approved fix, rebuild, eval — then resumes |
+
+---
+
+## QABuddy on CI (experimental)
+
+QABuddy turns a pull request into an evidence-backed QA plan, using the project's own
+accumulated QA knowledge. Claude can write Playwright; that is not the point. The point is
+that every PR gets answers to three questions:
+
+1. **Why test this?** The diff is mapped to the features that own the changed code, and
+   from there to their acceptance criteria. Nothing is tested because a model guessed.
+2. **What did the project already know?** The feature's test cases, its past exploratory
+   sessions, and the learnings captured from earlier runs shape what is written next, so
+   the plan reflects your team's history, not a generic checklist.
+3. **Can you prove the coverage?** The heatmap comment marks an acceptance criterion
+   covered only when evidence exists on disk: a spec whose title carries the test-case id,
+   a unit test that names the criterion, a saved report, a persisted exploratory result.
+   A test case without proof shows as partial.
+
+The reusable workflow does this on every PR: map the diff, write or update test cases,
+optionally explore the running app and automate the gaps, then post **one heatmap
+comment** and deliver the files as a **companion PR** against the PR's own branch.
+
+Merging the companion refreshes the heatmap for free. Nothing more runs unless asked:
+labels or `/qabuddy` comments per PR, or one caller input to chain explore and automate
+after a reviewed companion. Findings that need a human become issues. Nothing ever writes
+to the base branch.
+
+**Set up** -- one of three:
+
+- First time: `/qa-setup` offers a PR-automation step at the end.
+- Already configured: run `/qa-setup --pr`.
+- From a terminal: one `pr-coverage.js init` command.
+
+**Requires** -- Claude only: the workflow runs on `anthropics/claude-code-action`, whichever
+platform you use the skills on. It needs one repository secret that you set yourself, the
+wizard never handles the value but does verify it landed: `claude setup-token` then
+`gh secret set CLAUDE_CODE_OAUTH_TOKEN` (bills that Claude subscription), or
+`ANTHROPIC_API_KEY` with API credit.
+
+**Status** -- experimental since 0.9.0: proven end to end on one demo repository, and the
+interactive skills are unchanged. The caller pins a QABuddy release tag, so the runner
+needs nothing from your machine. Guide: [docs/pr-coverage-en.md](docs/pr-coverage-en.md),
+design: [RFC 0004](docs/rfc/0004-headless-pr-coverage.md).
 
 ---
 
@@ -343,7 +387,7 @@ Skills are authored once in `core/skills/`. The build script generates platform-
 ```bash
 node build.js all                  # Build for all platforms
 node build.js all --locale ko      # Build Korean version
-node test.js                       # Run 1656 structural checks
+node test.js                       # Run 1835 structural checks
 ```
 
 > **Structural checks are not behavioural verification.** `node test.js` inspects
@@ -359,10 +403,11 @@ node test.js                       # Run 1656 structural checks
 ```
 QABuddy/
 ├── build.js                     # Build script (node; vendors the pinned engine)
-├── test.js                      # Structural check suite (1656 checks)
+├── test.js                      # Structural check suite (1835 checks)
 ├── package.json                 # One pinned dependency: akela (the engine)
 ├── bin/akela.js                 # Engine launcher (env map · first-run akela.json · delegation)
 ├── bin/qab.js                   # Deprecation shim (one release)
+├── bin/pr-coverage.js           # PR runs: diff→feature, coverage heatmap, sticky comment (RFC 0004)
 ├── core/                        # Single source of truth — edit here
 │   ├── skills/ (13)             # Skill templates with {{placeholders}}
 │   ├── references/playbook/     # 11 methodology files

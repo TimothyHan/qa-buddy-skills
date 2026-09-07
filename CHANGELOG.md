@@ -9,6 +9,10 @@ may remove a skill.
 
 ## [Unreleased]
 
+Nothing yet.
+
+## [0.9.0] — 2026-09-07
+
 ### Added — rubric-scored skill evals ([RFC 0005](docs/rfc/0005-rubric-scored-evals.md))
 
 Skills are now graded on the quality of what they produce, not only on the
@@ -44,6 +48,46 @@ maintainer scored by hand. Guide: [docs/skill-evals-en.md](docs/skill-evals-en.m
   mutation-smoke), `risk-and-priority#decision-matrix`, the flaky-test flowchart,
   and `playwright-patterns#anti-pattern-correction` (its three live lessons moved
   to pitfalls). Playbook 0.5.0 (#68).
+
+And QABuddy on CI ([RFC 0004](docs/rfc/0004-headless-pr-coverage.md)): QABuddy running
+unattended on pull requests. Experimental — measured on one demo repository; the interactive
+skills are unchanged and headless mode is opt-in.
+
+### Added — QABuddy on CI ([RFC 0004](docs/rfc/0004-headless-pr-coverage.md), experimental)
+- **Headless Mode** in the Tier 1 preamble: opt-in via `QABUDDY_HEADLESS=1` or
+  `--headless`; every pause takes the stated recommendation and is logged as an
+  Auto-decision; escalations close the run as `BLOCKED`; write scope limited to
+  `features-kb/`, `playwright/`, `.qa-reports/`; machine-readable close file.
+  Gate overrides in `/qa-start`, `/qa-test-plan`, `/qa-test-cases`,
+  `/qa-exploratory`, `/qa-e2e-setup`, `/qa-e2e-pom`; six `headless` eval fixtures.
+- `bin/pr-coverage.js` — deterministic diff→feature mapping (`touched`), a per-AC
+  coverage heatmap over Unit / API / E2E / Manual / Exploratory where *covered*
+  needs evidence on disk (`heatmap`), and a sticky PR comment (`comment`).
+  48 structural checks.
+- **Reusable workflow** `.github/workflows/pr-coverage.yml` (`workflow_call`): jobs
+  `resolve → preflight → kb → (explore ∥ automate) → deliver`, one Claude session per
+  phase with its own caps; consumers call it with a ~15-line workflow that
+  `pr-coverage.js init` writes. `pr-coverage.js merge` (three-way union of phase trees),
+  `preflight` (prerequisites before any spend), `init` (scaffolder). Prompts, `render.js`,
+  `install.sh`, MCP config under `.github/pr-coverage/`.
+- `/qa-setup` Phase 5b: optional PR automation — scaffolds the caller via
+  `pr-coverage.js init`, creates labels, walks the SDT through the secret and the repo
+  setting without ever collecting a token (0.5.0); existing-config path `(C)` and
+  `--pr` (0.5.1); states who pays, verifies each prerequisite (`gh secret list`, the
+  Actions permissions API), offers `/qa-test-plan` for features without `sources.json`
+  (0.5.2); *stop* at any prerequisite runs `init --remove` — the caller and labels go,
+  secrets stay, a caller is never left without a token (0.5.3).
+- Heatmap footer: model spend per phase and which secret paid (`heatmap --logs --billing`);
+  preflight reports the billing source.
+- `after-companion-merge` defaults to `none` — a merged companion only refreshes the
+  heatmap; chaining is opt-in (RFC 0004 decision 17).
+- KB spec §6.8 `sources.json` (code and test globs per feature) and §6.9
+  `exploratory/{date}.md` (persisted session with an AC-keyed results table).
+
+### Changed
+- `/qa-test-cases` writes the KB spec §6.5 mapping shape (`testCases[{id, layer,
+  type, status}]`); the older `e2e_tests[]` files stay readable.
+- `/qa-exploratory` Focus Area Results table gains `ACs` and `Result` columns.
 
 ## [0.8.0] — 2026-08-29
 

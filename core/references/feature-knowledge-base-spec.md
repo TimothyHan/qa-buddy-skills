@@ -20,7 +20,8 @@ mind rather than as a description of what exists.
 **Built, and written by skills today:** `index.json` · `features/{EPIC}/feature.md` ·
 `test-plan.md` · `test-cases/{TICKET}.md` + `{TICKET}-mapping.json` · `reviews/` ·
 `qa-reports/` · `bugs/` — plus the learnings layer added by RFC 0001 (`LEARNINGS.md`,
-`learnings-log.jsonl`, `fingerprints.jsonl`, `.cache/scoreboard.json`).
+`learnings-log.jsonl`, `fingerprints.jsonl`, `.cache/scoreboard.json`) — and, since RFC 0004,
+`sources.json` (§6.8) and `exploratory/{date}.md` (§6.9), read by `bin/pr-coverage.js`.
 
 **Specified but not built** — no skill reads or writes any of these:
 
@@ -145,6 +146,7 @@ features-kb/
 │   ├── {EPIC-KEY}/
 │   │   ├── feature.md                   # Consolidated feature context (§4.1)
 │   │   ├── test-plan.md                 # Test plan (from /qa-test-plan)
+│   │   ├── sources.json                 # Code + test globs this feature owns (§6.8, RFC 0004)
 │   │   ├── tickets/
 │   │   │   ├── {TICKET-KEY}.md          # Per-ticket ACs + context (§4.2)
 │   │   │   └── ...
@@ -155,9 +157,11 @@ features-kb/
 │   │   ├── reviews/
 │   │   │   ├── {TICKET-KEY}-review.md   # Ticket review (from /qa-review-ticket)
 │   │   │   └── ...
-│   │   └── qa-reports/
+│   │   ├── qa-reports/
 │   │       ├── {TICKET-KEY}-{DATE}.md   # QA reports
-│   │       └── ...
+│   │   │   └── ...
+│   │   └── exploratory/
+│   │       └── {YYYY-MM-DD}.md          # Persisted exploratory session (§6.9, headless runs)
 │   └── ...
 └── relations/
     ├── feature-map.json                 # Feature dependency graph (§4.3)
@@ -342,6 +346,13 @@ Per-ticket context. Focused on ACs and test coverage.
 
 AC-to-test-case traceability mapping.
 
+> **Canonical shape** (RFC 0004): `/qa-test-cases` writes this shape — one entry per
+> test case with its `layer` (`unit` | `api` | `e2e` | `manual`) — so a coverage scan can
+> place each case in a test layer. Two older shapes stay *read-compatible* and are
+> parsed by `bin/pr-coverage.js`: `e2e_tests[]` / `unit_tests[]` (earlier
+> `/qa-test-cases`) and a flat `tests[]` (hand-written). `META — …` strings in any
+> array are infrastructure evidence, never test-case ids (LRN-20260808-05 convention).
+
 ```json
 {
   "ticket": "PROJ-101",
@@ -370,6 +381,48 @@ AC-to-test-case traceability mapping.
   "testGaps": []
 }
 ```
+
+### 6.8 sources.json (per feature)
+
+Which code paths a feature owns and where its tests live. `bin/pr-coverage.js touched`
+maps a diff to features through these globs; `heatmap` scans the `tests` globs for
+evidence. Written by `/qa-test-plan` (step 4b), proposed-and-confirmed interactively,
+mandatory in headless runs. Globs are anchored to the repo root; `exclude` wins.
+
+```json
+{
+  "feature": "projects",
+  "sources": ["server.js", "src/projects/**"],
+  "tests": {
+    "unit": ["test/**/*.test.*"],
+    "api": ["playwright/tests/api/**"],
+    "e2e": ["playwright/tests/**/*.spec.ts"]
+  },
+  "exclude": ["**/*.md"]
+}
+```
+
+A feature without `sources.json` never matches a diff; the heatmap comment lists it
+under "features without sources.json" so the gap is visible rather than silent.
+
+### 6.9 exploratory/{YYYY-MM-DD}.md (per feature)
+
+A persisted exploratory session — the same report `/qa-exploratory` saves under
+`.qa-reports/`, written into the KB when the run is headless (RFC 0004 decision 7) so
+that the Exploratory column of a coverage heatmap has evidence on disk. The report's
+**Focus Area Results** table carries an `ACs` column; the scanner reads only that table:
+
+```markdown
+## Focus Area Results
+| Focus Area | ACs | Time | Findings | Result |
+|-----------|-----|------|----------|--------|
+| Delete flow | AC4 | 10 min | Finding 1 | finding |
+| Search | AC5 | 5 min | 0 | clean |
+| Empty state | AC6 | 0 | - | unexplored |
+```
+
+`Result` ∈ `clean` | `finding` | `unexplored`. A `finding` row marks its ACs *at risk*
+and links the cell to `#Finding N`; `unexplored` is honest partial coverage.
 
 ### 6.6 relations/feature-map.json
 

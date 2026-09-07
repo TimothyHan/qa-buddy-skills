@@ -100,6 +100,37 @@
         "report",
         "recommendation"
       ]
+    },
+    {
+      "id": "fx-004",
+      "description": "Headless: charter approved as written, session persisted into the KB with an AC-keyed results table",
+      "input": {
+        "env": "QABUDDY_HEADLESS=1",
+        "feature": "projects",
+        "url": "http://localhost:4173",
+        "flags": "--quick"
+      },
+      "assertions": [
+        {
+          "field": "file:features-kb/features/*/exploratory/*.md",
+          "op": "exists",
+          "value": true
+        },
+        {
+          "field": "file:features-kb/features/*/exploratory/*.md",
+          "op": "contains",
+          "value": "| Result |"
+        },
+        {
+          "field": "output",
+          "op": "not_contains",
+          "value": "Adjust focus areas"
+        }
+      ],
+      "tags": [
+        "headless",
+        "rfc-0004"
+      ]
     }
   ]
 }

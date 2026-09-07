@@ -9,6 +9,10 @@ English: [CHANGELOG.md](CHANGELOG.md)
 
 ## [Unreleased]
 
+아직 없음.
+
+## [0.9.0] — 2026-09-07
+
 ### 추가 — 루브릭 기반 스킬 평가 ([RFC 0005](docs/rfc/0005-rubric-scored-evals.md))
 
 스킬을 이제 산출물의 **형태**가 아니라 **품질**로 채점합니다. `bin/eval.js`가
@@ -44,6 +48,44 @@ English: [CHANGELOG.md](CHANGELOG.md)
   `risk-and-priority#decision-matrix`, 불안정 테스트 흐름도,
   `playwright-patterns#anti-pattern-correction`(실전 교훈 3개는 pitfalls로 이동).
   플레이북 0.5.0(#68).
+
+그리고 CI에서 QABuddy([RFC 0004](docs/rfc/0004-headless-pr-coverage.md)): 풀 리퀘스트에서
+사람 없이 도는 QABuddy. 실험적 -- 데모 저장소 하나에서 측정했고, 대화형 스킬은 그대로이며
+헤드리스 모드는 옵트인입니다.
+
+### 추가 — CI에서 QABuddy ([RFC 0004](docs/rfc/0004-headless-pr-coverage.md), 실험적)
+- Tier 1 프리앰블의 **헤드리스 모드**: `QABUDDY_HEADLESS=1` 또는 `--headless`로
+  옵트인; 모든 일시정지는 명시된 권장안을 택하고 Auto-decision으로 기록;
+  에스컬레이션은 `BLOCKED`로 종료; 쓰기 범위는 `features-kb/`, `playwright/`,
+  `.qa-reports/`; 기계가 읽는 마무리 파일. `/qa-start`, `/qa-test-plan`,
+  `/qa-test-cases`, `/qa-exploratory`, `/qa-e2e-setup`, `/qa-e2e-pom`의 게이트
+  오버라이드; `headless` eval fixture 6개.
+- `bin/pr-coverage.js` -- 결정적 diff→기능 매핑(`touched`), *covered*가 디스크 위
+  증거를 요구하는 Unit / API / E2E / Manual / Exploratory별 AC 커버리지
+  히트맵(`heatmap`), 고정 PR 코멘트(`comment`). 구조 검사 48개.
+- **재사용 워크플로우** `.github/workflows/pr-coverage.yml`(`workflow_call`): 잡
+  `resolve → preflight → kb → (explore ∥ automate) → deliver`, 페이즈마다 별도 Claude
+  세션과 캡; 소비 저장소는 `pr-coverage.js init`이 써 주는 ~15줄 호출 워크플로우로
+  사용. `pr-coverage.js merge`(페이즈 트리 3-way 합집합), `preflight`(지출 전 전제조건
+  검사), `init`(스캐폴더). 프롬프트·`render.js`·`install.sh`·MCP 설정은
+  `.github/pr-coverage/`에.
+- `/qa-setup` Phase 5b: 선택적 PR 자동화 -- `pr-coverage.js init`으로 호출자를 스캐폴드하고,
+  라벨을 만들고, 토큰을 직접 받지 않은 채 시크릿과 저장소 설정을 안내(0.5.0); 기존 설정
+  경로 `(C)`와 `--pr`(0.5.1); 누가 내는지 명시, 전제 조건별 확인(`gh secret list`, Actions
+  권한 API), `sources.json` 없는 기능에 `/qa-test-plan` 제안(0.5.2); 어느 전제 조건에서든
+  *중단*하면 `init --remove` -- 호출자와 라벨은 지우고 시크릿은 두며, 토큰 없는 호출자를
+  남기지 않음(0.5.3).
+- 히트맵 푸터: 페이즈별 모델 지출과 어느 시크릿이 냈는지(`heatmap --logs --billing`);
+  preflight가 과금 출처를 보고.
+- `after-companion-merge` 기본값 `none` -- 머지된 동반 PR은 히트맵만 갱신; 체인은
+  옵트인(RFC 0004 결정 17).
+- KB 명세 §6.8 `sources.json`(기능별 코드·테스트 glob)과 §6.9
+  `exploratory/{date}.md`(AC 키 결과 표를 가진 영속 세션).
+
+### 변경
+- `/qa-test-cases`가 KB 명세 §6.5 매핑 형태(`testCases[{id, layer, type,
+  status}]`)로 씁니다; 예전 `e2e_tests[]` 파일은 계속 읽힙니다.
+- `/qa-exploratory`의 Focus Area Results 표에 `ACs`, `Result` 열이 추가됩니다.
 
 ## [0.8.0] — 2026-08-29
 
