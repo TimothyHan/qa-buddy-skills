@@ -9,6 +9,10 @@ may remove a skill.
 
 ## [Unreleased]
 
+Nothing yet.
+
+## [0.9.0] — 2026-09-07
+
 ### Added — rubric-scored skill evals ([RFC 0005](docs/rfc/0005-rubric-scored-evals.md))
 
 Skills are now graded on the quality of what they produce, not only on the
@@ -45,10 +49,11 @@ maintainer scored by hand. Guide: [docs/skill-evals-en.md](docs/skill-evals-en.m
   and `playwright-patterns#anti-pattern-correction` (its three live lessons moved
   to pitfalls). Playbook 0.5.0 (#68).
 
-Proof of concept for PR-triggered runs ([RFC 0004](docs/rfc/0004-headless-pr-coverage.md)).
-Not proposed for `main`.
+And QABuddy on CI ([RFC 0004](docs/rfc/0004-headless-pr-coverage.md)): QABuddy running
+unattended on pull requests. Experimental — measured on one demo repository; the interactive
+skills are unchanged and headless mode is opt-in.
 
-### Added — PR-triggered headless runs ([RFC 0004](docs/rfc/0004-headless-pr-coverage.md), POC branch `poc/cloud-service`, not proposed for `main`)
+### Added — QABuddy on CI ([RFC 0004](docs/rfc/0004-headless-pr-coverage.md), experimental)
 - **Headless Mode** in the Tier 1 preamble: opt-in via `QABUDDY_HEADLESS=1` or
   `--headless`; every pause takes the stated recommendation and is logged as an
   Auto-decision; escalations close the run as `BLOCKED`; write scope limited to
@@ -79,7 +84,7 @@ Not proposed for `main`.
 - KB spec §6.8 `sources.json` (code and test globs per feature) and §6.9
   `exploratory/{date}.md` (persisted session with an AC-keyed results table).
 
-### Changed — on the POC branch
+### Changed
 - `/qa-test-cases` writes the KB spec §6.5 mapping shape (`testCases[{id, layer,
   type, status}]`); the older `e2e_tests[]` files stay readable.
 - `/qa-exploratory` Focus Area Results table gains `ACs` and `Result` columns.

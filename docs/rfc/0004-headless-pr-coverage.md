@@ -2,7 +2,7 @@
 
 | | |
 |---|---|
-| **Status** | Draft — proof of concept on branch `poc/cloud-service`; not proposed for `main` |
+| **Status** | Accepted — shipped in 0.9.0 as experimental (§4 criteria all met on the demo repository) |
 | **Author** | Timothy Han (with Claude) |
 | **Created** | 2026-09-04 |
 | **Depends on** | RFC 0001 (run protocol, evidence log), RFC 0003 (Akela engine); KB spec §6.5 |

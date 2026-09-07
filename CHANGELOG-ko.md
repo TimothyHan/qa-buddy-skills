@@ -9,6 +9,10 @@ English: [CHANGELOG.md](CHANGELOG.md)
 
 ## [Unreleased]
 
+아직 없음.
+
+## [0.9.0] — 2026-09-07
+
 ### 추가 — 루브릭 기반 스킬 평가 ([RFC 0005](docs/rfc/0005-rubric-scored-evals.md))
 
 스킬을 이제 산출물의 **형태**가 아니라 **품질**로 채점합니다. `bin/eval.js`가
@@ -45,10 +49,11 @@ English: [CHANGELOG.md](CHANGELOG.md)
   `playwright-patterns#anti-pattern-correction`(실전 교훈 3개는 pitfalls로 이동).
   플레이북 0.5.0(#68).
 
-PR 트리거 실행의 개념 증명([RFC 0004](docs/rfc/0004-headless-pr-coverage.md)).
-`main`에 제안하지 않습니다.
+그리고 CI에서 QABuddy([RFC 0004](docs/rfc/0004-headless-pr-coverage.md)): 풀 리퀘스트에서
+사람 없이 도는 QABuddy. 실험적 -- 데모 저장소 하나에서 측정했고, 대화형 스킬은 그대로이며
+헤드리스 모드는 옵트인입니다.
 
-### 추가 — PR 트리거 헤드리스 실행 ([RFC 0004](docs/rfc/0004-headless-pr-coverage.md), POC 브랜치 `poc/cloud-service`, `main`에 제안하지 않음)
+### 추가 — CI에서 QABuddy ([RFC 0004](docs/rfc/0004-headless-pr-coverage.md), 실험적)
 - Tier 1 프리앰블의 **헤드리스 모드**: `QABUDDY_HEADLESS=1` 또는 `--headless`로
   옵트인; 모든 일시정지는 명시된 권장안을 택하고 Auto-decision으로 기록;
   에스컬레이션은 `BLOCKED`로 종료; 쓰기 범위는 `features-kb/`, `playwright/`,
@@ -77,7 +82,7 @@ PR 트리거 실행의 개념 증명([RFC 0004](docs/rfc/0004-headless-pr-covera
 - KB 명세 §6.8 `sources.json`(기능별 코드·테스트 glob)과 §6.9
   `exploratory/{date}.md`(AC 키 결과 표를 가진 영속 세션).
 
-### 변경 — POC 브랜치
+### 변경
 - `/qa-test-cases`가 KB 명세 §6.5 매핑 형태(`testCases[{id, layer, type,
   status}]`)로 씁니다; 예전 `e2e_tests[]` 파일은 계속 읽힙니다.
 - `/qa-exploratory`의 Focus Area Results 표에 `ACs`, `Result` 열이 추가됩니다.

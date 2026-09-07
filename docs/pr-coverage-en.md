@@ -1,7 +1,8 @@
 # QABuddy on CI
 
-**Status:** proof of concept on branch `poc/cloud-service` — everything below is built and
-measured, nothing is on `main` yet. Design record: [RFC 0004](rfc/0004-headless-pr-coverage.md).
+**Status:** experimental, shipped in 0.9.0 — everything below is built and measured on one
+demo repository; the interactive skills are unchanged. Design record:
+[RFC 0004](rfc/0004-headless-pr-coverage.md).
 
 한국어: [pr-coverage.md](pr-coverage.md)
 
@@ -81,13 +82,13 @@ no `sources.json`, so their code maps to nothing until one `/qa-test-plan` run p
 writes it — the scaffolder and preflight both name them; and branches cut before the
 caller was committed cannot chain on a merged companion until the base is merged in.
 
-**Which QABuddy build?** None of this is in a regular release yet. The runner needs
-nothing from you — the caller pins the pre-release tag `v0.9.0-poc.2` and installs it. Your
-local install only matters for the wizard and the scaffolder; to get them, check out the
-same tag, `node build.js all`, and re-run `dist/claude/setup`:
+**Which QABuddy build?** The runner needs nothing from you — the caller pins a release tag
+(`v0.9.0` or later) and installs it. Your local install only matters for the wizard and
+the scaffolder, which need 0.9.0 or later: `git pull`, `node build.js all`, re-run
+`dist/claude/setup` — or from scratch:
 
 ```bash
-git clone --branch v0.9.0-poc.2 https://github.com/TimothyHan/qa-buddy-skills.git && cd qa-buddy-skills && npm ci && node build.js all && dist/claude/setup
+git clone --branch v0.9.0 https://github.com/TimothyHan/qa-buddy-skills.git && cd qa-buddy-skills && npm ci && node build.js all && dist/claude/setup
 ```
 
 The caller says only how to run *your* app; the jobs, prompts, merge and preflight live in
@@ -96,7 +97,7 @@ QABuddy's reusable workflow, so a QABuddy release is a workflow release:
 ```yaml
 jobs:
   qabuddy:
-    uses: TimothyHan/qa-buddy-skills/.github/workflows/pr-coverage.yml@v0.9.0-poc.2
+    uses: TimothyHan/qa-buddy-skills/.github/workflows/pr-coverage.yml@v0.9.0
     with:
       app-start: "node server.js"
       app-url: "http://localhost:4173"
@@ -144,7 +145,7 @@ would otherwise get a "could not start" comment. `/qa-setup --pr` brings it back
 | `kb-turns` / `kb-budget` … | 80 / $5, 120 / $10, 300 / $25 | per-phase caps |
 | `model` | `claude-sonnet-5` | |
 | `extra-prompt` | `.github/qabuddy/extra.md` | optional project instructions appended to every phase |
-| `qabuddy-ref` | `v0.9.0-poc.2` | QABuddy ref installed on the runner — a pre-release tag cut from `poc/cloud-service` |
+| `qabuddy-ref` | `v0.9.0` | QABuddy release tag (or any ref) installed on the runner |
 
 ---
 

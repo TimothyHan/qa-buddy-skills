@@ -175,7 +175,7 @@ node build.js all --locale ko
 
 ---
 
-## CI에서 QABuddy (POC)
+## CI에서 QABuddy (실험적)
 
 QABuddy는 풀 리퀘스트마다 사람 없이 실행될 수도 있습니다. 재사용 GitHub 워크플로우가
 PR에서 하는 일:
@@ -203,9 +203,9 @@ PR마다 라벨이나 `/qabuddy` 코멘트로, 또는 리뷰된 동반 PR 뒤에
 `gh secret set CLAUDE_CODE_OAUTH_TOKEN`(그 Claude 구독에 과금), 또는 API 크레딧이 있는
 `ANTHROPIC_API_KEY`.
 
-**상태** -- 개념 증명, `poc/cloud-service`에서 자른 프리릴리스 태그 `v0.9.0-poc.2`. 호출자가
-그 태그를 고정하므로 러너는 아무것도 요구하지 않습니다; 마법사를 쓰려면 태그에서
-설치하세요. 가이드: [docs/pr-coverage.md](docs/pr-coverage.md), 설계:
+**상태** -- 0.9.0부터 실험적: 데모 저장소 하나에서 끝까지 증명했고, 대화형 스킬은
+그대로입니다. 호출자가 QABuddy 릴리스 태그를 고정하므로 러너는 여러분의 머신에서 아무것도
+요구하지 않습니다. 가이드: [docs/pr-coverage.md](docs/pr-coverage.md), 설계:
 [RFC 0004](docs/rfc/0004-headless-pr-coverage.md).
 
 ---

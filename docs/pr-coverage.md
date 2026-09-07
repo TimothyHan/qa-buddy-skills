@@ -1,7 +1,7 @@
 # CI에서 QABuddy
 
-**상태:** `poc/cloud-service` 브랜치의 개념 증명 -- 아래 내용은 모두 만들어지고 측정되었지만
-아직 `main`에는 없습니다. 설계 기록: [RFC 0004](rfc/0004-headless-pr-coverage.md).
+**상태:** 실험적, 0.9.0에 포함 -- 아래 내용은 모두 데모 저장소 하나에서 만들어지고
+측정되었으며, 대화형 스킬은 그대로입니다. 설계 기록: [RFC 0004](rfc/0004-headless-pr-coverage.md).
 
 English: [pr-coverage-en.md](pr-coverage-en.md)
 
@@ -80,13 +80,12 @@ automate는 kb 뒤에 **병렬로** 실행됩니다. 데모 앱에서 전체 실
 스캐폴더와 preflight가 그 기능들을 이름으로 알려줍니다; 호출자를 커밋하기 전에 딴
 브랜치는 베이스를 머지하기 전까지 동반 PR 머지에 체인이 이어지지 않습니다.
 
-**어느 QABuddy 빌드?** 아직 정식 릴리스에는 없습니다. 러너는 아무것도 요구하지 않습니다
--- 호출자가 프리릴리스 태그 `v0.9.0-poc.2`를 고정하고 직접 설치합니다. 로컬 설치는 마법사와
-스캐폴더에만 필요하며, 같은 태그를 받아 `node build.js all` 후 `dist/claude/setup`을 다시
-실행하면 됩니다:
+**어느 QABuddy 빌드?** 러너는 아무것도 요구하지 않습니다 -- 호출자가 릴리스 태그(`v0.9.0`
+이상)를 고정하고 직접 설치합니다. 로컬 설치는 마법사와 스캐폴더에만 필요하며 0.9.0 이상이어야
+합니다: `git pull`, `node build.js all`, `dist/claude/setup` 재실행 -- 또는 처음부터:
 
 ```bash
-git clone --branch v0.9.0-poc.2 https://github.com/TimothyHan/qa-buddy-skills.git && cd qa-buddy-skills && npm ci && node build.js all && dist/claude/setup
+git clone --branch v0.9.0 https://github.com/TimothyHan/qa-buddy-skills.git && cd qa-buddy-skills && npm ci && node build.js all && dist/claude/setup
 ```
 
 호출자는 *당신의* 앱을 어떻게 실행하는지만 말합니다; 잡, 프롬프트, 머지, 프리플라이트는
@@ -95,7 +94,7 @@ QABuddy의 재사용 워크플로우에 살기 때문에 QABuddy 릴리스가 �
 ```yaml
 jobs:
   qabuddy:
-    uses: TimothyHan/qa-buddy-skills/.github/workflows/pr-coverage.yml@v0.9.0-poc.2
+    uses: TimothyHan/qa-buddy-skills/.github/workflows/pr-coverage.yml@v0.9.0
     with:
       app-start: "node server.js"
       app-url: "http://localhost:4173"
@@ -141,7 +140,7 @@ jobs:
 | `kb-turns` / `kb-budget` … | 80 / $5, 120 / $10, 300 / $25 | 페이즈별 캡 |
 | `model` | `claude-sonnet-5` | |
 | `extra-prompt` | `.github/qabuddy/extra.md` | 모든 페이즈에 덧붙는 선택적 프로젝트 지침 |
-| `qabuddy-ref` | `v0.9.0-poc.2` | 러너에 설치되는 QABuddy ref -- `poc/cloud-service`에서 자른 프리릴리스 태그 |
+| `qabuddy-ref` | `v0.9.0` | 러너에 설치되는 QABuddy 릴리스 태그(또는 임의 ref) |
 
 ---
 
