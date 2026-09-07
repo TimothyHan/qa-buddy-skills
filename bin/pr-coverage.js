@@ -786,7 +786,7 @@ function cmdInit(o) {
   const withoutSources = keys.filter(k => !fs.existsSync(path.join(kbDir, k, 'sources.json')));
   if (!keys.length) next.push('no features in `features-kb/features` yet — run `/qa-test-plan` first');
   if (withoutSources.length) next.push(`add \`sources.json\` to: ${withoutSources.join(', ')}`);
-  process.stdout.write(JSON.stringify({ schema: 'pr-init/1', workflow: path.relative(root, wf), reusable: REUSABLE_WORKFLOW, ref: o.qabuddyRef || 'v0.9.0', labels, next }, null, 2) + '\n');
+  process.stdout.write(JSON.stringify({ schema: 'pr-init/1', workflow: path.relative(root, wf).split(path.sep).join("/"), reusable: REUSABLE_WORKFLOW, ref: o.qabuddyRef || 'v0.9.0', labels, next }, null, 2) + '\n');
 }
 
 // ─── summary — what a run produced, as a work list (companion PR body + announcement) ──
