@@ -197,6 +197,12 @@ issues. Nothing ever writes to the base branch.
 - Already configured: run `/qa-setup --pr`.
 - From a terminal: one `pr-coverage.js init` command.
 
+**Requires** -- Claude only: the workflow runs on `anthropics/claude-code-action`, whichever
+platform you use the skills on. It needs one repository secret that you set yourself, the
+wizard never handles the value: `claude setup-token` then
+`gh secret set CLAUDE_CODE_OAUTH_TOKEN` (bills that Claude subscription), or
+`ANTHROPIC_API_KEY` with API credit.
+
 **Status** -- proof of concept on branch `poc/cloud-service`, not in a release yet; build
 from that branch to use it. Guide: [docs/pr-coverage-en.md](docs/pr-coverage-en.md),
 design: [RFC 0004](docs/rfc/0004-headless-pr-coverage.md).

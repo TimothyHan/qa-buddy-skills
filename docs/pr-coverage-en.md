@@ -94,6 +94,11 @@ jobs:
     secrets: inherit
 ```
 
+**Claude only.** The workflow runs on `anthropics/claude-code-action`, whichever platform
+you use the skills on, and it spends against the token you store: a subscription token from
+`claude setup-token` bills the subscription of whoever minted it, so a team repo should use
+a dedicated account or an API key.
+
 **Prerequisites** — the `preflight` job checks all of these before any model spend and
 explains what is missing in the PR comment:
 

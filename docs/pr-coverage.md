@@ -94,6 +94,10 @@ jobs:
     secrets: inherit
 ```
 
+**Claude 전용.** 스킬을 어느 플랫폼에서 쓰든 워크플로우는 `anthropics/claude-code-action`에서
+돌고, 저장한 토큰으로 지출합니다: `claude setup-token`의 구독 토큰은 발급한 사람의 구독에
+과금되므로 팀 저장소는 전용 계정이나 API 키를 쓰는 편이 좋습니다.
+
 **전제 조건** -- `preflight` 잡이 모델 지출 전에 모두 검사하고 빠진 것을 PR 코멘트로
 설명합니다:
 

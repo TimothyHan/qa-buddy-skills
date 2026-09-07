@@ -195,6 +195,12 @@ PR에서 하는 일:
 - 이미 구성된 저장소라면 `/qa-setup --pr`을 실행합니다.
 - 터미널에서는 `pr-coverage.js init` 한 번이면 됩니다.
 
+**필요한 것** -- Claude 전용입니다: 스킬을 어느 플랫폼에서 쓰든 워크플로우는
+`anthropics/claude-code-action`에서 돕니다. 저장소 시크릿 하나가 필요하며 직접 설정합니다,
+마법사는 값을 절대 다루지 않습니다: `claude setup-token` 후
+`gh secret set CLAUDE_CODE_OAUTH_TOKEN`(그 Claude 구독에 과금), 또는 API 크레딧이 있는
+`ANTHROPIC_API_KEY`.
+
 **상태** -- `poc/cloud-service` 브랜치의 개념 증명이며, 아직 릴리스에는 없습니다. 쓰려면
 그 브랜치에서 빌드하세요. 가이드: [docs/pr-coverage.md](docs/pr-coverage.md), 설계:
 [RFC 0004](docs/rfc/0004-headless-pr-coverage.md).
