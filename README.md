@@ -184,8 +184,10 @@ the PR's diff to your features, writes test cases, optionally explores the runni
 and automates the gaps, then posts **one coverage-heatmap comment** and delivers the
 generated files as a **companion PR** against the PR's own branch. A reviewer merging that
 companion continues the chain; findings that need a human become issues; nothing writes
-to the base branch. Set it up with `/qa-setup` or one `pr-coverage.js init` command.
-Proof of concept on branch `poc/cloud-service` — guide: [docs/pr-coverage-en.md](docs/pr-coverage-en.md),
+to the base branch. Set it up with `/qa-setup` — already configured repos pick *Keep, and
+set up PR automation* or run `/qa-setup --pr` — or with one `pr-coverage.js init` command.
+Proof of concept on branch `poc/cloud-service`, not in a release yet: build from that
+branch to get it. Guide: [docs/pr-coverage-en.md](docs/pr-coverage-en.md),
 design: [RFC 0004](docs/rfc/0004-headless-pr-coverage.md).
 
 ---
