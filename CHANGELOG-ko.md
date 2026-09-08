@@ -9,6 +9,10 @@ English: [CHANGELOG.md](CHANGELOG.md)
 
 ## [Unreleased]
 
+아직 없음.
+
+## [0.9.1] — 2026-09-08
+
 ### 변경
 
 - 재사용 워크플로우가 `.github/workflows/qa-buddy-pr.yml`로 바뀜(이전 `pr-coverage.yml`),
