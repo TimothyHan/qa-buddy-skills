@@ -9,6 +9,10 @@ may remove a skill.
 
 ## [Unreleased]
 
+Nothing yet.
+
+## [0.9.1] — 2026-09-08
+
 ### Changed
 
 - The reusable workflow is now `.github/workflows/qa-buddy-pr.yml` (was `pr-coverage.yml`)
