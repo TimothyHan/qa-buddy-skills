@@ -1,6 +1,6 @@
 # QABuddy on CI — reusable workflow
 
-`.github/workflows/pr-coverage.yml` runs QABuddy headlessly on a consumer repository's pull
+`.github/workflows/qa-buddy-pr.yml` runs QABuddy headlessly on a consumer repository's pull
 requests: it maps the diff to features in that repo's `features-kb/`, writes or updates test
 cases, optionally explores the running app and automates the gaps with Playwright, posts one
 sticky coverage-heatmap comment on the PR, and opens a companion PR with the knowledge-base and

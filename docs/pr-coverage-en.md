@@ -68,7 +68,7 @@ Three ways to the same fifteen-line caller. The runner installs QABuddy itself f
 `qabuddy-ref`, so your locally installed version only matters for the last two:
 
 1. **By hand** — copy the caller below (or from
-   [`.github/pr-coverage/README.md`](../.github/pr-coverage/README.md)) into
+   [`.github/qa-buddy-pr/README.md`](../.github/qa-buddy-pr/README.md)) into
    `.github/workflows/qabuddy.yml`, set `app-start` and `app-url`, then go through the
    prerequisites table. Works from any installed QABuddy version.
 2. **The wizard** — `/qa-setup` offers a *PR Automation* step after saving the config,
@@ -93,7 +93,7 @@ the scaffolder, which need 0.9.0 or later: `git pull`, `node build.js all`, re-r
 `dist/claude/setup` — or from scratch:
 
 ```bash
-git clone --branch v0.9.0 https://github.com/TimothyHan/qa-buddy-skills.git && cd qa-buddy-skills && npm ci && node build.js all && dist/claude/setup
+git clone --branch v0.9.1 https://github.com/TimothyHan/qa-buddy-skills.git && cd qa-buddy-skills && npm ci && node build.js all && dist/claude/setup
 ```
 
 The caller says only how to run *your* app; the jobs, prompts, merge and preflight live in
@@ -102,7 +102,7 @@ QABuddy's reusable workflow, so a QABuddy release is a workflow release:
 ```yaml
 jobs:
   qabuddy:
-    uses: TimothyHan/qa-buddy-skills/.github/workflows/pr-coverage.yml@v0.9.0
+    uses: TimothyHan/qa-buddy-skills/.github/workflows/qa-buddy-pr.yml@v0.9.1
     with:
       app-start: "node server.js"
       app-url: "http://localhost:4173"
@@ -150,7 +150,7 @@ would otherwise get a "could not start" comment. `/qa-setup --pr` brings it back
 | `kb-turns` / `kb-budget` … | 80 / $5, 120 / $10, 300 / $25 | per-phase caps |
 | `model` | `claude-sonnet-5` | |
 | `extra-prompt` | `.github/qabuddy/extra.md` | optional project instructions appended to every phase |
-| `qabuddy-ref` | `v0.9.0` | QABuddy release tag (or any ref) installed on the runner |
+| `qabuddy-ref` | `v0.9.1` | QABuddy release tag (or any ref) installed on the runner |
 
 ---
 
@@ -182,9 +182,9 @@ lands.
   every skill: take the recommendation, log the auto-decision, close `BLOCKED` on an
   escalation, write only under `features-kb/`, `playwright/`, `.qa-reports/`. Interactive
   behaviour is unchanged.
-- **One reusable workflow**, `.github/workflows/pr-coverage.yml`: `resolve → preflight →
+- **One reusable workflow**, `.github/workflows/qa-buddy-pr.yml`: `resolve → preflight →
   kb → (explore ∥ automate) → deliver → gate`. Prompts, the renderer, the installer and the
-  MCP config ship beside it under `.github/pr-coverage/`.
+  MCP config ship beside it under `.github/qa-buddy-pr/`.
 
 Measured on the demo repository (`qabuddy-poc-acme`, a soft-delete refactor that leaves
 deleted rows listed): exploration found the bug in every run, the generated suite went red

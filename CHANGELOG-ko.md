@@ -9,6 +9,13 @@ English: [CHANGELOG.md](CHANGELOG.md)
 
 ## [Unreleased]
 
+### 변경
+
+- 재사용 워크플로우가 `.github/workflows/qa-buddy-pr.yml`로 바뀜(이전 `pr-coverage.yml`),
+  프롬프트·렌더러·설치 스크립트·MCP 설정은 `.github/qa-buddy-pr/` 아래. `pr-coverage.yml@v0.9.0`을
+  고정한 호출자는 계속 동작(태그는 불변); `pr-coverage.js init`이 쓰는 새 호출자는 새 경로와
+  `v0.9.1`을 고정. CLI `bin/pr-coverage.js` 이름은 그대로.
+
 ### 추가
 
 - RFC 0003, 0004, 0005의 비규범 전문 한국어 번역(`docs/rfc/*-ko.md`); 한국어 가이드와

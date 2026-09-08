@@ -1046,7 +1046,7 @@ if(a.includes('--paginate'))process.stdout.write(fs.readFileSync(${JSON.stringif
     const I = path.join(tmp, 'init'); fs.mkdirSync(I, { recursive: true });
     const init = JSON.parse(execFileSync(process.execPath, [src, 'init', '--app-start', 'node server.js', '--app-url', 'http://localhost:4173', '--qabuddy-ref', 'v9.9.9'], { cwd: I, encoding: 'utf8' }));
     const caller = fs.readFileSync(path.join(I, '.github', 'workflows', 'qabuddy.yml'), 'utf8');
-    check(init.workflow === '.github/workflows/qabuddy.yml' && /uses: TimothyHan\/qa-buddy-skills\/\.github\/workflows\/pr-coverage\.yml@v9\.9\.9/.test(caller), 'init: writes a caller that uses the reusable workflow at the requested ref');
+    check(init.workflow === '.github/workflows/qabuddy.yml' && /uses: TimothyHan\/qa-buddy-skills\/\.github\/workflows\/qa-buddy-pr\.yml@v9\.9\.9/.test(caller), 'init: writes a caller that uses the reusable workflow at the requested ref');
     check(/app-start: "node server\.js"/.test(caller) && /app-url: "http:\/\/localhost:4173"/.test(caller) && /secrets: inherit/.test(caller), 'init: caller carries app-start, app-url, secrets: inherit');
     check(/pull_request:/.test(caller) && /closed\]/.test(caller) && /issue_comment:/.test(caller) && /concurrency:/.test(caller) && /pull-requests: write/.test(caller), 'init: caller has the triggers (incl. closed for the companion chain), concurrency group, and permissions');
     check(init.next.some(s => /setup-token/.test(s)) && init.next.some(s => /qa-test-plan/.test(s)) && init.labels === 'skipped', 'init: next steps name the secret, the KB, and the labels');
@@ -1101,22 +1101,22 @@ const k=a[0]+' '+a[1];if(k==='issue list')process.stdout.write(fs.readFileSync($
     check(sm_ann.startsWith('QABuddy opened https://github.com/o/r/pull/9 with tests for this PR (phases: kb, explore)') && /\*\*To fix on this branch\*\*/.test(sm_ann) && /\*\*Needs a decision:\*\*/.test(sm_ann) && /issues\/42/.test(sm_ann), 'summary announcement: starts with the phrase the merge-marker looks for, lists fixes and decisions');
 
     // The reusable workflow and its support files ship in this repository
-    const wf = readFile(path.join(ROOT, '.github', 'workflows', 'pr-coverage.yml')) || '';
-    check(/^on:\n\s+workflow_call:/m.test(wf), '.github/workflows/pr-coverage.yml is a reusable workflow (workflow_call)');
-    for (const inp of ['app-start', 'app-url', 'qabuddy-ref', 'kb-budget', 'automate-turns', 'default-phases', 'test-user', 'after-companion-merge', 'gate-on', 'issues-for', 'delivery']) check(new RegExp(`^\\s+${inp}:`, 'm').test(wf), `pr-coverage.yml declares input ${inp}`);
-    for (const job of ['resolve', 'preflight', 'kb', 'explore', 'automate', 'deliver', 'gate']) check(new RegExp(`^  ${job}:`, 'm').test(wf), `pr-coverage.yml has job ${job}`);
-    check(/after-companion-merge: \{ type: string, default: "none"/.test(wf) && /none\|""\)\s+PH=heatmap/.test(wf), 'pr-coverage.yml: chaining is opt-in — a merged companion refreshes the heatmap by default');
-    check(/--token-kind "\$TOKEN_KIND"/.test(wf) && /--logs \.qa-reports\/pr-coverage --billing "\$BILLING"/.test(wf), 'pr-coverage.yml: preflight reports the billing source, the heatmap footer shows spend and who pays');
-    check(/qabuddy-ref:\s+\{ type: string, default: "v\d+\.\d+\.\d+[^"]*"/.test(wf), 'pr-coverage.yml: qabuddy-ref defaults to a version tag');
-    check(!/&[a-z-]+\n/.test(wf) && !/\*[a-z-]+\n/.test(wf), 'pr-coverage.yml uses no YAML anchors (GitHub Actions does not support them)');
-    check(/pr-coverage\.js"? merge/.test(wf) && /pr-coverage\.js"? preflight/.test(wf) && /include-hidden-files: true/.test(wf), 'pr-coverage.yml merges phase trees, runs preflight, and uploads dot-directories');
-    check(/pr-coverage\.js"? summary/.test(wf) && /pr-coverage\.js"? issues/.test(wf) && /--body-file \.qa-reports\/pr-coverage\/companion-body\.md/.test(wf) && /qabuddy:companion \$NUM/.test(wf), 'pr-coverage.yml: deliver writes the companion body from summary, opens issues, and posts a per-companion announcement');
-    check((wf.match(/continue-on-error: true/g) || []).length === 3, 'pr-coverage.yml: each of the three phase sessions is continue-on-error');
-    for (const f of ['prompts/header.md', 'prompts/kb.md', 'prompts/explore.md', 'prompts/automate.md', 'render.js', 'install.sh', 'mcp.json', 'README.md']) check(fs.existsSync(path.join(ROOT, '.github', 'pr-coverage', f)), `.github/pr-coverage/${f} ships`);
-    const rendered = execFileSync(process.execPath, [path.join(ROOT, '.github', 'pr-coverage', 'render.js'), 'explore', path.join(tmp, 'extra.md')], { env: { ...process.env, PR: '7', FEATURES: 'alpha', BASE_URL: 'http://x', BASE_SHA: 'abc' }, encoding: 'utf8' });
+    const wf = readFile(path.join(ROOT, '.github', 'workflows', 'qa-buddy-pr.yml')) || '';
+    check(/^on:\n\s+workflow_call:/m.test(wf), '.github/workflows/qa-buddy-pr.yml is a reusable workflow (workflow_call)');
+    for (const inp of ['app-start', 'app-url', 'qabuddy-ref', 'kb-budget', 'automate-turns', 'default-phases', 'test-user', 'after-companion-merge', 'gate-on', 'issues-for', 'delivery']) check(new RegExp(`^\\s+${inp}:`, 'm').test(wf), `qa-buddy-pr.yml declares input ${inp}`);
+    for (const job of ['resolve', 'preflight', 'kb', 'explore', 'automate', 'deliver', 'gate']) check(new RegExp(`^  ${job}:`, 'm').test(wf), `qa-buddy-pr.yml has job ${job}`);
+    check(/after-companion-merge: \{ type: string, default: "none"/.test(wf) && /none\|""\)\s+PH=heatmap/.test(wf), 'qa-buddy-pr.yml: chaining is opt-in — a merged companion refreshes the heatmap by default');
+    check(/--token-kind "\$TOKEN_KIND"/.test(wf) && /--logs \.qa-reports\/pr-coverage --billing "\$BILLING"/.test(wf), 'qa-buddy-pr.yml: preflight reports the billing source, the heatmap footer shows spend and who pays');
+    check(/qabuddy-ref:\s+\{ type: string, default: "v\d+\.\d+\.\d+[^"]*"/.test(wf), 'qa-buddy-pr.yml: qabuddy-ref defaults to a version tag');
+    check(!/&[a-z-]+\n/.test(wf) && !/\*[a-z-]+\n/.test(wf), 'qa-buddy-pr.yml uses no YAML anchors (GitHub Actions does not support them)');
+    check(/pr-coverage\.js"? merge/.test(wf) && /pr-coverage\.js"? preflight/.test(wf) && /include-hidden-files: true/.test(wf), 'qa-buddy-pr.yml merges phase trees, runs preflight, and uploads dot-directories');
+    check(/pr-coverage\.js"? summary/.test(wf) && /pr-coverage\.js"? issues/.test(wf) && /--body-file \.qa-reports\/pr-coverage\/companion-body\.md/.test(wf) && /qabuddy:companion \$NUM/.test(wf), 'qa-buddy-pr.yml: deliver writes the companion body from summary, opens issues, and posts a per-companion announcement');
+    check((wf.match(/continue-on-error: true/g) || []).length === 3, 'qa-buddy-pr.yml: each of the three phase sessions is continue-on-error');
+    for (const f of ['prompts/header.md', 'prompts/kb.md', 'prompts/explore.md', 'prompts/automate.md', 'render.js', 'install.sh', 'mcp.json', 'README.md']) check(fs.existsSync(path.join(ROOT, '.github', 'qa-buddy-pr', f)), `.github/qa-buddy-pr/${f} ships`);
+    const rendered = execFileSync(process.execPath, [path.join(ROOT, '.github', 'qa-buddy-pr', 'render.js'), 'explore', path.join(tmp, 'extra.md')], { env: { ...process.env, PR: '7', FEATURES: 'alpha', BASE_URL: 'http://x', BASE_SHA: 'abc' }, encoding: 'utf8' });
     check(/pull request #7/.test(rendered) && /\*\*explore\*\* phase/.test(rendered) && /qa-exploratory alpha/.test(rendered) && !/\{\{/.test(rendered), 'render.js fills every placeholder for a phase');
     w('extra.md', 'EXTRA-PROJECT-RULE\n');
-    const rendered2 = execFileSync(process.execPath, [path.join(ROOT, '.github', 'pr-coverage', 'render.js'), 'kb', path.join(tmp, 'extra.md')], { env: { ...process.env, PR: '7', FEATURES: 'alpha' }, encoding: 'utf8' });
+    const rendered2 = execFileSync(process.execPath, [path.join(ROOT, '.github', 'qa-buddy-pr', 'render.js'), 'kb', path.join(tmp, 'extra.md')], { env: { ...process.env, PR: '7', FEATURES: 'alpha' }, encoding: 'utf8' });
     check(/EXTRA-PROJECT-RULE/.test(rendered2) && rendered2.indexOf('EXTRA-PROJECT-RULE') < rendered2.indexOf('qa-test-cases'), 'render.js appends the consumer extra-prompt between header and phase body');
   } finally {
     fs.rmSync(tmp, { recursive: true, force: true });

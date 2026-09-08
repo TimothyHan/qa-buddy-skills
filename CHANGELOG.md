@@ -9,6 +9,14 @@ may remove a skill.
 
 ## [Unreleased]
 
+### Changed
+
+- The reusable workflow is now `.github/workflows/qa-buddy-pr.yml` (was `pr-coverage.yml`)
+  and its prompts, renderer, installer, and MCP config live under `.github/qa-buddy-pr/`.
+  Callers pinning `pr-coverage.yml@v0.9.0` keep working (the tag is immutable); new
+  callers from `pr-coverage.js init` use the new path and pin `v0.9.1`. The CLI
+  `bin/pr-coverage.js` keeps its name.
+
 ### Added
 
 - Non-normative full Korean translations of RFC 0003, 0004, and 0005
