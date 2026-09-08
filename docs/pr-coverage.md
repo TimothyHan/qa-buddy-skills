@@ -65,7 +65,7 @@ automate는 kb 뒤에 **병렬로** 실행됩니다. 데모 앱에서 전체 실
 같은 15줄 호출자에 이르는 세 가지 길. 러너가 `qabuddy-ref`에서 QABuddy를 직접 설치하므로
 로컬에 설치된 버전은 뒤의 두 가지에만 영향을 줍니다:
 
-1. **직접** -- 아래 호출자(또는 [`.github/pr-coverage/README.md`](../.github/pr-coverage/README.md)의
+1. **직접** -- 아래 호출자(또는 [`.github/qa-buddy-pr/README.md`](../.github/qa-buddy-pr/README.md)의
    것)를 `.github/workflows/qabuddy.yml`에 복사하고 `app-start`와 `app-url`을 채운 뒤 전제
    조건 표를 따라갑니다. 어느 QABuddy 버전이 설치돼 있든 됩니다.
 2. **마법사** -- `/qa-setup`이 설정 저장 후 *PR 자동화* 단계를 제안하고, 시작 명령과 URL을
@@ -89,7 +89,7 @@ automate는 kb 뒤에 **병렬로** 실행됩니다. 데모 앱에서 전체 실
 합니다: `git pull`, `node build.js all`, `dist/claude/setup` 재실행 -- 또는 처음부터:
 
 ```bash
-git clone --branch v0.9.0 https://github.com/TimothyHan/qa-buddy-skills.git && cd qa-buddy-skills && npm ci && node build.js all && dist/claude/setup
+git clone --branch v0.9.1 https://github.com/TimothyHan/qa-buddy-skills.git && cd qa-buddy-skills && npm ci && node build.js all && dist/claude/setup
 ```
 
 호출자는 *당신의* 앱을 어떻게 실행하는지만 말합니다; 잡, 프롬프트, 머지, 프리플라이트는
@@ -98,7 +98,7 @@ QABuddy의 재사용 워크플로우에 살기 때문에 QABuddy 릴리스가 �
 ```yaml
 jobs:
   qabuddy:
-    uses: TimothyHan/qa-buddy-skills/.github/workflows/pr-coverage.yml@v0.9.0
+    uses: TimothyHan/qa-buddy-skills/.github/workflows/qa-buddy-pr.yml@v0.9.1
     with:
       app-start: "node server.js"
       app-url: "http://localhost:4173"
@@ -144,7 +144,7 @@ jobs:
 | `kb-turns` / `kb-budget` … | 80 / $5, 120 / $10, 300 / $25 | 페이즈별 캡 |
 | `model` | `claude-sonnet-5` | |
 | `extra-prompt` | `.github/qabuddy/extra.md` | 모든 페이즈에 덧붙는 선택적 프로젝트 지침 |
-| `qabuddy-ref` | `v0.9.0` | 러너에 설치되는 QABuddy 릴리스 태그(또는 임의 ref) |
+| `qabuddy-ref` | `v0.9.1` | 러너에 설치되는 QABuddy 릴리스 태그(또는 임의 ref) |
 
 ---
 
@@ -173,9 +173,9 @@ jobs:
 - **헤드리스는 포크가 아니라 모드입니다.** Tier 1 프리앰블의 *헤드리스 모드*가 모든 스킬에
   적용됩니다: 권장안을 택하고, auto-decision을 기록하고, 에스컬레이션은 `BLOCKED`로 마치고,
   `features-kb/`, `playwright/`, `.qa-reports/` 아래에만 씁니다. 대화형 동작은 그대로입니다.
-- **재사용 워크플로우 하나**, `.github/workflows/pr-coverage.yml`: `resolve → preflight →
+- **재사용 워크플로우 하나**, `.github/workflows/qa-buddy-pr.yml`: `resolve → preflight →
   kb → (explore ∥ automate) → deliver → gate`. 프롬프트, 렌더러, 설치 스크립트, MCP 설정은
-  `.github/pr-coverage/`에 함께 있습니다.
+  `.github/qa-buddy-pr/`에 함께 있습니다.
 
 데모 저장소(`qabuddy-poc-acme`, 삭제된 행이 목록에 남는 소프트 삭제 리팩터)에서 측정:
 탐색은 매 실행 버그를 찾았고, 생성된 스위트는 정확히 삭제 의존 테스트만 빨갛게 됐으며,
