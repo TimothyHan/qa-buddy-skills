@@ -9,7 +9,10 @@ English: [CHANGELOG.md](CHANGELOG.md)
 
 ## [Unreleased]
 
-아직 없음.
+### 추가
+
+- RFC 0003, 0004, 0005의 비규범 전문 한국어 번역(`docs/rfc/*-ko.md`); 한국어 가이드와
+  README가 이를 링크. 규범 기록은 영문(RFC 0001 결정 7).
 
 ## [0.9.0] — 2026-09-07
 

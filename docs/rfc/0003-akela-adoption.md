@@ -6,7 +6,7 @@
 | **Author** | Timothy Han |
 | **Created** | 2026-08-28 |
 | **Supersedes** | the *implementation* of RFC 0001/0002 (`bin/qab.js`); their decisions remain binding |
-| **Locale** | English normative; Korean twin to follow (decision 7 of RFC 0001 stands) |
+| **Locale** | English normative; a non-normative full Korean translation is at [0003-akela-adoption-ko.md](0003-akela-adoption-ko.md) (decision 7 of RFC 0001 stands) |
 
 ## 1 · Problem
 

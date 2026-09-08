@@ -3,7 +3,7 @@
 **Status:** Accepted — PR1–PR5 built, both pilots calibrated (2026-09-06) | **Author:** Timothy Han (with Claude) | **Created:** 2026-09-05
 **Depends on:** RFC 0004 (headless runs, `claude -p`, the reusable workflow) · RFC 0001 (run directory, `events.jsonl`, `learnings-log.jsonl`)
 **Companion:** [0005-rubric-scored-evals-plan.md](0005-rubric-scored-evals-plan.md) — per-PR implementation plan
-**Locale:** English is the normative record; 한국어 요약 below.
+**Locale:** English is the normative record; 한국어 요약 below, and a non-normative full Korean translation is at [0005-rubric-scored-evals-ko.md](0005-rubric-scored-evals-ko.md).
 
 ## 한국어 요약
 

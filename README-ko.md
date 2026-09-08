@@ -25,7 +25,7 @@ QABuddy는 AI가 자동으로 인식하고 실행하는 `SKILL.md` 파일 모음
 
 [빠른 시작](#빠른-시작) · [스킬](#스킬) · [안내 워크플로우](#안내-워크플로우) · [셀프러닝 가이드](docs/self-learning-guide.md) · [스킬 평가](docs/skill-evals.md) · [CI에서 QABuddy](docs/pr-coverage.md) · [변경 이력](CHANGELOG-ko.md) · [기여하기](CONTRIBUTING.md)
 
-스킬 자체도 채점됩니다 — 지식만이 아니라: 대상 모델에서의 헤드리스 실행, 스킬 자신의 제약 조건에 대해 산출물을 채점하는 별도의 Opus 판정자, must 기준마다의 바닥값, 사람이 채점한 산출물에서 도출한 임계값 ([RFC 0005](docs/rfc/0005-rubric-scored-evals.md)).
+스킬 자체도 채점됩니다 — 지식만이 아니라: 대상 모델에서의 헤드리스 실행, 스킬 자신의 제약 조건에 대해 산출물을 채점하는 별도의 Opus 판정자, must 기준마다의 바닥값, 사람이 채점한 산출물에서 도출한 임계값 ([RFC 0005](docs/rfc/0005-rubric-scored-evals-ko.md)).
 
 </div>
 
@@ -214,7 +214,7 @@ PR마다 라벨이나 `/qabuddy` 코멘트로, 또는 리뷰된 동반 PR 뒤에
 **상태** -- 0.9.0부터 실험적: 데모 저장소 하나에서 끝까지 증명했고, 대화형 스킬은
 그대로입니다. 호출자가 QABuddy 릴리스 태그를 고정하므로 러너는 여러분의 머신에서 아무것도
 요구하지 않습니다. 가이드: [docs/pr-coverage.md](docs/pr-coverage.md), 설계:
-[RFC 0004](docs/rfc/0004-headless-pr-coverage.md).
+[RFC 0004](docs/rfc/0004-headless-pr-coverage-ko.md).
 
 ---
 

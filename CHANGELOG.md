@@ -9,7 +9,11 @@ may remove a skill.
 
 ## [Unreleased]
 
-Nothing yet.
+### Added
+
+- Non-normative full Korean translations of RFC 0003, 0004, and 0005
+  (`docs/rfc/*-ko.md`); the Korean guides and README link to them. English stays the
+  normative record (RFC 0001 decision 7).
 
 ## [0.9.0] — 2026-09-07
 
