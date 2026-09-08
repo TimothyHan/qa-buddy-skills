@@ -61,9 +61,22 @@ PR로 올라옵니다. 이 PR을 "동반 PR"이라고 부릅니다. 설명은 �
 
 ---
 
-## 5분 안에 첫 실행
+## 첫 실행
 
-1. `.github/workflows/qabuddy.yml`을 만들고 아래를 붙여 넣습니다. 앱을 어떻게 띄우는지만
+1. **먼저 지식 베이스를 만듭니다. 이 단계는 필수입니다.** PR에서 바뀐 코드를 기능과 인수
+   조건에 연결하려면 기능마다 `feature.md`와 `sources.json`이 있어야 하고, 그 파일은
+   `/qa-test-plan`이 씁니다. CI는 이 파일을 만들지 않습니다. 로컬에서 기능마다 한 번씩
+   실행하고, 결과인 `features-kb/`를 커밋해서 베이스 브랜치에 머지해 두세요.
+
+   ```
+   /qa-test-plan PROJ-123        # Jira 키, 또는 스펙 모드면 기능 슬러그
+   ```
+
+   지식 베이스가 비어 있으면 `preflight`가 모델을 부르지 않고 "시작할 수 없음" 코멘트를
+   남깁니다. `sources.json`이 없는 기능은 어떤 변경에도 매핑되지 않아 코멘트가 비어
+   나옵니다.
+
+2. `.github/workflows/qabuddy.yml`을 만들고 아래를 붙여 넣습니다. 앱을 어떻게 띄우는지만
    바꾸면 됩니다. 나머지는 QABuddy 쪽 워크플로우가 맡습니다.
 
    ```yaml
@@ -93,7 +106,7 @@ PR로 올라옵니다. 이 PR을 "동반 PR"이라고 부릅니다. 설명은 �
    node ~/.claude/skills/qa-references/bin/pr-coverage.js init --app-start "node server.js" --app-url http://localhost:4173 --labels true
    ```
 
-2. 토큰을 저장소 시크릿으로 넣습니다. 이 토큰으로 비용이 나갑니다. 누가 내는지는 아래
+3. 토큰을 저장소 시크릿으로 넣습니다. 이 토큰으로 비용이 나갑니다. 누가 내는지는 아래
    "비용과 계정"을 보세요.
 
    ```bash
@@ -106,13 +119,10 @@ PR로 올라옵니다. 이 PR을 "동반 PR"이라고 부릅니다. 설명은 �
 
    마법사를 포함해 QABuddy는 토큰 값을 받지 않습니다. `gh secret set`은 직접 실행합니다.
 
-3. 앱에 로그인이 있으면 `TEST_USER`와 `TEST_PASS`도 시크릿으로 넣습니다.
+4. 앱에 로그인이 있으면 `TEST_USER`와 `TEST_PASS`도 시크릿으로 넣습니다.
 
-4. 저장소 설정에서 Actions가 PR을 만들 수 있게 켭니다. Settings → Actions → General →
+5. 저장소 설정에서 Actions가 PR을 만들 수 있게 켭니다. Settings → Actions → General →
    "Allow GitHub Actions to create and approve pull requests".
-
-5. 기능마다 `sources.json`이 있어야 합니다. 이 파일이 없는 기능은 어떤 변경에도 매핑되지
-   않아 코멘트가 비어 나옵니다. `/qa-test-plan`이 써 줍니다.
 
 6. PR을 엽니다. 첫 잡 `preflight`가 위 다섯 가지를 모델을 부르기 전에 검사하고, 빠진 것이
    있으면 무엇을 어떻게 고칠지 코멘트로 알려 줍니다.
@@ -194,7 +204,8 @@ explore와 automate는 kb 뒤에 나란히 돕니다. 데모 앱에서 셋을 �
 `/qa-setup`을 다시 실행해도 "유지하고 PR 자동화 설정"을 고를 수 있습니다.
 
 오래된 저장소가 자주 만나는 일 두 가지가 있습니다. 예전에 만든 기능에는 `sources.json`이
-없습니다. 기능마다 `/qa-test-plan`을 한 번 돌려 주면 됩니다. 어떤 기능이 그런지는 `init`과
+없습니다. 기능마다 `/qa-test-plan`을 한 번 돌려 결과를 머지해야 합니다. 이건 선택이 아니라
+첫 실행의 1단계와 같은 필수 조건입니다. 어떤 기능이 그런지는 `init`과
 preflight가 알려 줍니다. 그리고 호출자를 커밋하기 전에 만든 브랜치는 베이스를 머지하기
 전까지 동반 PR 머지에 반응하지 않습니다. GitHub이 PR 워크플로우를 그 PR의 브랜치에서 읽기
 때문이고, preflight가 이것도 경고합니다.
