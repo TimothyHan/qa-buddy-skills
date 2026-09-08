@@ -9,7 +9,11 @@ English: [CHANGELOG.md](CHANGELOG.md)
 
 ## [Unreleased]
 
-아직 없음.
+### 변경
+
+- CI 가이드(`docs/pr-coverage.md`, `docs/pr-coverage-en.md`)를 처음 읽는 사람 기준으로 다시
+  씀: 실제 히트맵 코멘트와 동반 PR 설명의 일부로 PR에 무엇이 올라오는지부터, 여섯 단계의
+  첫 실행, 언제 돌고 언제 안 도는지 순서. 사실은 같고 문장은 짧게, 표는 찾아볼 때만.
 
 ## [0.9.1] — 2026-09-08
 

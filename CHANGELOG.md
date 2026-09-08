@@ -9,7 +9,12 @@ may remove a skill.
 
 ## [Unreleased]
 
-Nothing yet.
+### Changed
+
+- The CI guides (`docs/pr-coverage.md`, `docs/pr-coverage-en.md`) are rewritten for a
+  first-time reader: what lands on the PR first, with rows from a real heatmap comment and
+  a real companion description, then a six-step first run, then when it runs and when it
+  does not. Same facts, shorter sentences, tables only for lookups.
 
 ## [0.9.1] — 2026-09-08
 
