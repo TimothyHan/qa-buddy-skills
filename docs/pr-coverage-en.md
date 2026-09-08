@@ -64,9 +64,23 @@ with the fixes and decisions summarised. When the companion merges, it gets a ðŸ
 
 ---
 
-## First run in five minutes
+## First run
 
-1. Create `.github/workflows/qabuddy.yml` and paste this in. Change only how your app
+1. **Build the knowledge base first. This step is mandatory.** To connect a PR's changed
+   code to features and their acceptance criteria, every feature needs a `feature.md` and a
+   `sources.json`, and `/qa-test-plan` is what writes them. CI does not create them. Run it
+   locally once per feature, commit the resulting `features-kb/`, and merge it into the
+   base branch.
+
+   ```
+   /qa-test-plan PROJ-123        # a Jira key, or a feature slug in spec mode
+   ```
+
+   With an empty knowledge base, `preflight` leaves a "could not start" comment and never
+   calls the model. A feature without `sources.json` maps to no change at all, and the
+   comment comes out empty.
+
+2. Create `.github/workflows/qabuddy.yml` and paste this in. Change only how your app
    starts. Everything else lives in QABuddy's workflow.
 
    ```yaml
@@ -97,7 +111,7 @@ with the fixes and decisions summarised. When the companion merges, it gets a ðŸ
    node ~/.claude/skills/qa-references/bin/pr-coverage.js init --app-start "node server.js" --app-url http://localhost:4173 --labels true
    ```
 
-2. Store a token as a repository secret. This is the token that pays. Who pays is under
+3. Store a token as a repository secret. This is the token that pays. Who pays is under
    "Cost and accounts" below.
 
    ```bash
@@ -111,13 +125,10 @@ with the fixes and decisions summarised. When the companion merges, it gets a ðŸ
    QABuddy, the wizard included, never takes the token value. You run `gh secret set`
    yourself.
 
-3. If the app has a login, add `TEST_USER` and `TEST_PASS` as secrets too.
+4. If the app has a login, add `TEST_USER` and `TEST_PASS` as secrets too.
 
-4. Allow Actions to open pull requests in the repository settings: Settings â†’ Actions â†’
+5. Allow Actions to open pull requests in the repository settings: Settings â†’ Actions â†’
    General â†’ "Allow GitHub Actions to create and approve pull requests".
-
-5. Every feature needs a `sources.json`. A feature without one maps to no change at all,
-   and the comment comes out empty. `/qa-test-plan` writes it.
 
 6. Open a PR. The first job, `preflight`, checks the five items above before calling the
    model, and if anything is missing it says what and how to fix it in a comment.
@@ -206,8 +217,9 @@ Keep the config and add the caller. `/qa-setup --pr` is the quickest way. Re-run
 `/qa-setup` also offers "Keep, and set up PR automation".
 
 Two things older repositories tend to run into. Features created earlier have no
-`sources.json`; one `/qa-test-plan` per feature writes it, and both `init` and preflight
-tell you which features. And branches created before the caller was committed do not
+`sources.json`; one `/qa-test-plan` per feature writes it, and its output has to be merged
+before CI can map anything. That is not optional: it is the same requirement as step 1 of
+the first run. Both `init` and preflight tell you which features. And branches created before the caller was committed do not
 react to a companion merge until the base is merged in, because GitHub reads PR workflows
 from the PR's own branch. Preflight warns about that too.
 
