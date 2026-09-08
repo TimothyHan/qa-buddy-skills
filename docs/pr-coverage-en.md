@@ -1,192 +1,252 @@
 # QABuddy on CI
 
-**Status:** experimental, shipped in 0.9.0 — everything below is built and measured on one
-demo repository; the interactive skills are unchanged. Design record:
-[RFC 0004](rfc/0004-headless-pr-coverage.md).
-
+Experimental since 0.9.0. The interactive skills are unchanged, and everything below was
+checked on one demo repository. The design record is [RFC 0004](rfc/0004-headless-pr-coverage.md).
 한국어: [pr-coverage.md](pr-coverage.md)
 
-QABuddy turns a pull request into an evidence-backed QA plan, built from the project's own
-accumulated QA knowledge. On every PR, unattended, it answers three questions: *why test
-this* (the diff is mapped through `sources.json` to the features that own the changed code,
-and to their acceptance criteria), *what did the project already know* (the feature's test
-cases, past exploratory sessions, and captured learnings shape what is written next), and
-*can you prove the coverage* (the heatmap marks a criterion covered only with evidence on
-disk). Along the way it writes or updates test cases, optionally explores the running app
-and automates the gaps with Playwright, then posts **one coverage heatmap comment** and
-delivers the generated files as a **companion pull request**. A human stays in the loop at
-two points — reviewing the companion, and deciding what the exploratory session could
-not — and the bot never writes to the base branch.
+When you open a pull request, QABuddy looks at what it changed, finds the acceptance
+criteria of the features that own that code, and posts one comment showing which criteria
+have tests and which don't. Where criteria are empty it writes test cases, and if you ask,
+it runs the app, explores it, writes Playwright tests, and opens a separate PR with them.
+People make the calls. Whether to merge that PR, and what to do about what exploration
+found, is not QABuddy's decision.
+
+The model does not guess what to test. Each feature has a `sources.json` that says which
+code it owns, and the diff reaches the feature and its acceptance criteria through those
+files. The test cases the feature already has, its past exploratory sessions, and the
+learnings captured from earlier runs decide what gets written next. And "covered" is only
+said when there is evidence on disk.
 
 ---
 
-## What a PR gets
+## What lands on the PR
 
-| Artifact | Where | What it says |
-|---|---|---|
-| **Coverage heatmap** | one sticky comment on the PR, patched in place after every run | one row per acceptance criterion of every feature the diff touched; columns Unit / API / E2E / Manual / Exploratory; ✅ covered only with evidence on disk, 🟡 designed but not proven, 🔴 gap, ⚪ not run this time, ⚠️ a failing spec or an exploratory finding |
-| **Companion PR** | `qabuddy/pr-<n>` → the PR's own branch | the generated test cases, mapping, sessions, page objects and specs; its description is a work list — what it adds, findings, *fix on the source branch*, *decide*, *not automated yet* |
-| **Announcement** | one comment per companion | the fixes for the author, the decisions for the reviewer; gets 🚀 and a "merged into" line when the companion merges |
-| **Issues** | labelled `qabuddy` | one per finding that needs a human, de-duplicated so reruns update rather than duplicate |
-| **Run artifact** | Actions → the run | every phase's execution log, the heatmap JSON, the Playwright results |
+**One comment.** Every run updates the same comment in place. Three rows from a real
+comment on the demo repository:
 
-"Covered" is earned, not declared: a spec whose `test()` title carries the test-case id, a
-unit file that names the AC, a saved QA report that executed the case, or a persisted
-exploratory row that lists the AC. A test case without proof is *partial*. This is
-test-plan's "never claim coverage without a file path" rule applied per layer.
+| AC | Unit | API | E2E | Manual | Exploratory |
+|---|---|---|---|---|---|
+| **AC1** — A user can sign in with valid credentials … | 🔴 | 🔴 | ✅ TC-01 · PASS | 🟡 TC-01 | ⚪ |
+| ⚠️ **AC4** — A user can delete a project … no longer appears in the list. | 🟡 | 🔴 | ⚠️ ✅ TC-04 · FAIL | 🟡 TC-04 | ⚪ |
+| **AC6** — With zero projects, the page shows a "No projects yet" message … | 🔴 | 🔴 | ✅ TC-07 · not run | 🟡 TC-07 | ⚪ |
+
+Rows are acceptance criteria, columns are test layers. A cell means one of five things.
+
+- ✅ Covered. A file that verifies this criterion exists. For a spec, the run result is attached.
+- 🟡 Designed but not proven. There is a test case, but no file or report that executed it.
+- 🔴 Nothing.
+- ⚪ That layer did not run this time.
+- ⚠️ A failing spec or an exploratory finding on this criterion. AC4 above is one.
+
+A collapsed "Evidence" list under the table names the file behind every cell. The last
+line says what this run cost and which secret paid.
+
+**One PR.** The generated files go on a branch `qabuddy/pr-<number>`, opened as a PR
+against the original PR's branch. We call it the companion PR. Its description is a to-do
+list. Again from the demo repository:
+
+> **Fix on `demo/soft-delete-2` (author)**
+> - [ ] **BUG-001** (P1) — Deleted projects remain in the list after a reload
+> - [ ] **BUG-002** (Normal) — No error toast when Create is rejected for a soft-deleted project's name
+>
+> Then comment `/qabuddy heatmap` on #6 to re-verify. Keep the fix on the source branch — this PR carries the tests, and the failing spec should turn green there.
+>
+> **Decide (reviewer)**
+> - [ ] issues/10 — Escape does not close the delete-confirmation dialog
+
+Bugs get fixed by the author on the original branch. The companion carries the tests, so
+once the fix lands the red spec turns green there. Findings that need a person become
+GitHub issues, and a rerun updates the same issue instead of opening another.
+
+**One announcement.** The original PR gets a comment saying a PR with tests was opened,
+with the fixes and decisions summarised. When the companion merges, it gets a 🚀 and a
+"merged into" line.
 
 ---
 
-## Phases, and what triggers them
+## First run in five minutes
 
-| Phase | Session | Produces | Typical cost |
-|---|---|---|---|
-| `kb` | `/qa-test-cases --update` | test cases for every AC, the layered traceability mapping, gap analysis | ~$1, 3–6 min |
-| `explore` | `/qa-exploratory --quick` with Playwright MCP against the running app | a persisted session with an AC-keyed results table, screenshots, bug files | ~$1–2, 4–8 min |
-| `automate` | `/qa-e2e-setup` (once) → `/qa-e2e-pom` → `/qa-e2e-write` | page objects proven live, specs whose titles carry TC ids, the suite executed for results | ~$3–4, 12–17 min |
+1. Create `.github/workflows/qabuddy.yml` and paste this in. Change only how your app
+   starts. Everything else lives in QABuddy's workflow.
 
-Each phase is its own Claude session on its own runner with its own turn and budget cap;
-explore and automate run **in parallel** after kb. A full run on the demo app is about
-22 minutes and $6. No session ever asks a question: headless mode takes the stated
-recommendation at every pause and records it as an *Auto-decision*.
+   ```yaml
+   name: QABuddy
+   on:
+     pull_request:
+       types: [opened, ready_for_review, labeled, closed]
+     issue_comment:
+       types: [created]
+   permissions:
+     contents: write
+     pull-requests: write
+     issues: write
+   jobs:
+     qabuddy:
+       uses: TimothyHan/qa-buddy-skills/.github/workflows/qa-buddy-pr.yml@v0.9.1
+       with:
+         app-start: "node server.js"
+         app-url: "http://localhost:4173"
+       secrets: inherit
+   ```
 
-| Trigger | Runs |
-|---|---|
-| PR opened, or marked ready for review | the caller's `default-phases` (`kb` by default) |
-| labels `qa:explore` · `qa:automate` · `qa:full`, or comments `/qabuddy explore` · `automate` · `full` · `kb` | those phases, on that PR |
-| a reviewer **merges the companion PR** | by default only the free heatmap refresh on the merged branch; with `after-companion-merge: full` the rest of the chain on the source PR, stopping once a companion that carried automation has merged |
-| `/qabuddy heatmap`, or automatically when the chain completes | model-free refresh: re-map the diff, run the suite on the branch as it is, re-post the heatmap — about 90 seconds, $0 |
+   If you would rather not write it, run `/qa-setup --pr`. It finds the start command
+   and URL for you and walks through the steps below, checking each one. From a terminal,
+   this does the same:
 
-Never: on every push, on drafts, on forks, or on the companion PRs themselves. One run per
-PR at a time; a newer trigger cancels the older run.
-
----
-
-## Set it up in a repository
-
-Three ways to the same fifteen-line caller. The runner installs QABuddy itself from
-`qabuddy-ref`, so your locally installed version only matters for the last two:
-
-1. **By hand** — copy the caller below (or from
-   [`.github/qa-buddy-pr/README.md`](../.github/qa-buddy-pr/README.md)) into
-   `.github/workflows/qabuddy.yml`, set `app-start` and `app-url`, then go through the
-   prerequisites table. Works from any installed QABuddy version.
-2. **The wizard** — `/qa-setup` offers a *PR Automation* step after saving the config,
-   probes the start command and URL, runs the scaffolder, then walks you through the
-   prerequisites and verifies each one before it lets you go.
-3. **The scaffolder** —
    ```bash
    node ~/.claude/skills/qa-references/bin/pr-coverage.js init --app-start "node server.js" --app-url http://localhost:4173 --labels true
    ```
 
-**Already using QABuddy in this repository?** Your config stays; only the caller is
-added. Re-run `/qa-setup` and pick *Keep, and set up PR automation* (offered while the
-repo has no caller yet), go straight there with `/qa-setup --pr`, or run the scaffolder
-above. Two things older repositories tend to hit: features created before this work have
-no `sources.json`, so their code maps to nothing until one `/qa-test-plan` run per feature
-writes it — the scaffolder and preflight both name them; and branches cut before the
-caller was committed cannot chain on a merged companion until the base is merged in.
+2. Store a token as a repository secret. This is the token that pays. Who pays is under
+   "Cost and accounts" below.
 
-**Which QABuddy build?** The runner needs nothing from you — the caller pins a release tag
-(`v0.9.0` or later) and installs it. Your local install only matters for the wizard and
-the scaffolder, which need 0.9.0 or later: `git pull`, `node build.js all`, re-run
-`dist/claude/setup` — or from scratch:
+   ```bash
+   claude setup-token
+   ```
 
-```bash
-git clone --branch v0.9.1 https://github.com/TimothyHan/qa-buddy-skills.git && cd qa-buddy-skills && npm ci && node build.js all && dist/claude/setup
-```
+   ```bash
+   gh secret set CLAUDE_CODE_OAUTH_TOKEN
+   ```
 
-The caller says only how to run *your* app; the jobs, prompts, merge and preflight live in
-QABuddy's reusable workflow, so a QABuddy release is a workflow release:
+   QABuddy, the wizard included, never takes the token value. You run `gh secret set`
+   yourself.
 
-```yaml
-jobs:
-  qabuddy:
-    uses: TimothyHan/qa-buddy-skills/.github/workflows/qa-buddy-pr.yml@v0.9.1
-    with:
-      app-start: "node server.js"
-      app-url: "http://localhost:4173"
-    secrets: inherit
-```
+3. If the app has a login, add `TEST_USER` and `TEST_PASS` as secrets too.
 
-**Claude only, and who pays.** The workflow runs on `anthropics/claude-code-action`,
-whichever platform you use the skills on, and it spends against the token you store. A
-subscription token from `claude setup-token` bills the Claude subscription of whoever
-minted it, so a team repo should mint it from a dedicated account or use an API key with
-credit. Nothing hides this: the wizard says it before the token commands, the scaffolder
-repeats it, and every heatmap comment ends with the run's spend per phase and which secret
-paid.
+4. Allow Actions to open pull requests in the repository settings: Settings → Actions →
+   General → "Allow GitHub Actions to create and approve pull requests".
 
-**Prerequisites** — the `preflight` job checks all of these before any model spend and
-explains what is missing in the PR comment:
+5. Every feature needs a `sources.json`. A feature without one maps to no change at all,
+   and the comment comes out empty. `/qa-test-plan` writes it.
 
-| Need | How |
-|---|---|
-| `.qabuddy.json` | `/qa-setup` |
-| at least one feature with a `sources.json` (which code the feature owns; KB spec §6.8) | `/qa-test-plan` writes it |
-| one token secret | `claude setup-token` → `gh secret set CLAUDE_CODE_OAUTH_TOKEN` (bills the Claude subscription), or `ANTHROPIC_API_KEY` with API credit |
-| app login, if any | secrets `TEST_USER` / `TEST_PASS`, or plain `test-user` / `test-pass` inputs for a public demo account |
-| Actions may open pull requests | Settings → Actions → General |
-| a branch that carries the caller | any branch cut after adoption; older branches need the base merged in before the companion chain can trigger — preflight warns |
+6. Open a PR. The first job, `preflight`, checks the five items above before calling the
+   model, and if anything is missing it says what and how to fix it in a comment.
 
-Nobody, including the wizard, ever collects the token value: you run `gh secret set` yourself.
-
-**Changed your mind mid-setup** — no subscription, no API credit, not now? Say *stop* in the
-wizard, or run `pr-coverage.js init --remove`: it deletes the caller and the `qa:*` labels
-and touches nothing else. A caller without a token is never left behind, since every PR
-would otherwise get a "could not start" comment. `/qa-setup --pr` brings it back later.
+`qabuddy.yml` lives in your repository. The actual jobs live in QABuddy's repository at
+`qa-buddy-pr.yml@v0.9.1`. The runner installs QABuddy at that tag itself, so the version
+on your machine does not matter. Only `/qa-setup` and the `init` command need a local
+copy, and 0.9.0 or later is enough.
 
 ---
 
-## Tune it (caller inputs)
+## When it runs, and when it doesn't
+
+The default is quiet. Opening a PR, or marking it ready for review, runs the `kb` phase
+and nothing else. Writing the test cases and posting the comment and the companion takes
+about a dollar and a few minutes. That is all.
+
+Ask for more on the PR itself. Add a label `qa:explore`, `qa:automate`, or `qa:full`, or
+comment `/qabuddy explore`, `/qabuddy automate`, `/qabuddy full`, or `/qabuddy kb`.
+
+Merging the companion recomputes the comment. No model is involved, so it takes about
+ninety seconds and costs nothing. Commenting `/qabuddy heatmap` does the same. Use it
+after fixing a bug.
+
+If you want the next phases to follow a merge on their own, put
+`after-companion-merge: full` in the caller. Then reviewing and merging the kb companion
+runs exploration and automation, and their results arrive as a second companion. It stops
+once a companion that carried automation has merged.
+
+**When it does not run.** Not on every push. Not on draft PRs, not on PRs from forks, and
+not on companion PRs themselves. One run per PR at a time, and a new request cancels the
+one in progress.
+
+---
+
+## The three phases
+
+| Phase | What it does | About |
+|---|---|---|
+| `kb` | `/qa-test-cases --update`. A test case per acceptance criterion, the mapping per layer, the gap analysis | $1, 3–6 min |
+| `explore` | `/qa-exploratory --quick`. Explores the running app through Playwright MCP. A results table, screenshots, bug files | $1–2, 4–8 min |
+| `automate` | `/qa-e2e-setup` (first time only) → `/qa-e2e-pom` → `/qa-e2e-write`. Page objects and specs, then the suite is run | $3–4, 12–17 min |
+
+Each phase is its own Claude session on its own runner, with a cap on turns and on
+budget. explore and automate run side by side after kb. All three on the demo app take
+about 22 minutes and 6 dollars.
+
+No session asks a question. Wherever a skill would normally stop and ask, it takes the
+stated recommendation and records that choice as an *Auto-decision*. Anything that needs
+judgment ends as `BLOCKED` and goes to a person.
+
+---
+
+## When exploration finds something
+
+- **A bug** is listed under "fix" in the companion description and the announcement, and
+  its criterion gets a ⚠️. The author fixes it on the original branch and checks with
+  `/qabuddy heatmap`.
+- **A new scenario** becomes a test case on the next kb run and a spec on the next automate.
+- **A UX concern or a missing requirement** becomes a GitHub issue. A reviewer or product
+  decides.
+- **Something learned about the app** is kept as an `LRN-` entry, so the next run does not
+  find it again.
+
+---
+
+## Cost and accounts
+
+This workflow runs on Claude only. Even if you use the skills in Cursor or Copilot, the CI
+side is `anthropics/claude-code-action`.
+
+The cost goes to the secret you stored. A token from `claude setup-token` bills the Claude
+subscription of whoever made it. For a personal repository that is fine. For a team
+repository, make the token from a dedicated account, or use an `ANTHROPIC_API_KEY` with
+credit.
+
+None of this is hidden. `/qa-setup` says who pays before it shows the token commands,
+`init` prints the same, and every comment ends with what the run spent and which secret
+paid.
+
+---
+
+## Already using QABuddy in this repository
+
+Keep the config and add the caller. `/qa-setup --pr` is the quickest way. Re-running
+`/qa-setup` also offers "Keep, and set up PR automation".
+
+Two things older repositories tend to run into. Features created earlier have no
+`sources.json`; one `/qa-test-plan` per feature writes it, and both `init` and preflight
+tell you which features. And branches created before the caller was committed do not
+react to a companion merge until the base is merged in, because GitHub reads PR workflows
+from the PR's own branch. Preflight warns about that too.
+
+**If you change your mind mid-setup**, answer "stop" in `/qa-setup` or undo it like this:
+
+```bash
+node ~/.claude/skills/qa-references/bin/pr-coverage.js init --remove
+```
+
+That deletes the caller and the `qa:*` labels and leaves secrets and repository settings
+alone. A caller without a token would put a "could not start" comment on every PR, so
+QABuddy never leaves one behind.
+
+---
+
+## Settings
+
+These go under `with:` in the caller.
 
 | Input | Default | Meaning |
 |---|---|---|
-| `default-phases` | `kb` | what runs on open: `kb`, `kb,explore`, `kb,automate`, `kb,explore,automate` |
-| `after-companion-merge` | `none` | what a merged companion continues with: `none` (heatmap refresh only), `full`, `automate` |
-| `delivery` | `companion-pr` | `commit` pushes the generated files straight onto the PR's branch instead — one PR, no chain |
-| `issues-for` | `decisions` | which findings become issues: `decisions`, `all` (bugs too), `none` |
-| `gate-on` | `none` | verdict of the `qabuddy / gate` check: `at-risk`, `suite`, `gaps` — require it in branch protection to block merges; the bot never sets that rule |
-| `kb-turns` / `kb-budget` … | 80 / $5, 120 / $10, 300 / $25 | per-phase caps |
+| `app-start`, `app-url` | | How to start the app and where it answers. Required |
+| `health-path` | `/` | Path to poll until the app is up |
+| `install` | `npm ci` | How to install dependencies |
+| `default-phases` | `kb` | What runs on open: `kb,explore`, `kb,automate`, `kb,explore,automate` |
+| `after-companion-merge` | `none` | After a companion merges. `none` refreshes the comment only; `full` and `automate` run the remaining phases |
+| `delivery` | `companion-pr` | `commit` pushes straight onto the original branch, no companion |
+| `issues-for` | `decisions` | Which findings become issues. `all` includes bugs, `none` opens nothing |
+| `gate-on` | `none` | When the `qabuddy / gate` check fails: `at-risk`, `suite`, `gaps`. To block merges, require it in branch protection; that rule is the repository owner's to set |
+| `kb-turns` / `kb-budget` and the rest | 80 / $5, 120 / $10, 300 / $25 | Per-phase caps |
 | `model` | `claude-sonnet-5` | |
-| `extra-prompt` | `.github/qabuddy/extra.md` | optional project instructions appended to every phase |
-| `qabuddy-ref` | `v0.9.1` | QABuddy release tag (or any ref) installed on the runner |
+| `test-user`, `test-pass` | | Only for a public demo account. Real logins go in secrets |
+| `extra-prompt` | `.github/qabuddy/extra.md` | Project instructions added to every phase |
+| `qabuddy-ref` | `v0.9.1` | The QABuddy tag installed on the runner |
 
 ---
 
-## After an exploratory session
+## Further reading
 
-The session classifies each finding, and each kind has its own follow-up:
-
-| Finding | Follow-up | Who |
-|---|---|---|
-| bug | listed under *fix on the source branch* in the companion's description and the announcement; the AC shows ⚠️; once fixed, `/qabuddy heatmap` re-verifies | author |
-| new scenario | becomes a test case on the next kb run and a spec on the next automate | the chain |
-| UX concern, missing requirement | a GitHub issue, linked under *decide* | reviewer / product |
-| learning about the app | an `LRN-` entry, so later runs stop re-discovering it | automatic |
-
-The fix belongs on the source branch, not on the companion: the companion carries the
-tests, and the failing spec that documents the bug should turn green *there* once the fix
-lands.
-
----
-
-## How it is built
-
-- **Deterministic where it can be.** `bin/pr-coverage.js` does the diff→feature mapping
-  (`touched`), the heatmap and its evidence rules (`heatmap`), the sticky comment
-  (`comment`), the three-way union of parallel phase trees (`merge`), the prerequisite
-  check (`preflight`), the work list (`summary`), the issues (`issues`) and the scaffold
-  (`init`). The model only produces knowledge-base and Playwright artifacts.
-- **Headless is a mode, not a fork.** The Tier 1 preamble's *Headless Mode* applies to
-  every skill: take the recommendation, log the auto-decision, close `BLOCKED` on an
-  escalation, write only under `features-kb/`, `playwright/`, `.qa-reports/`. Interactive
-  behaviour is unchanged.
-- **One reusable workflow**, `.github/workflows/qa-buddy-pr.yml`: `resolve → preflight →
-  kb → (explore ∥ automate) → deliver → gate`. Prompts, the renderer, the installer and the
-  MCP config ship beside it under `.github/qa-buddy-pr/`.
-
-Measured on the demo repository (`qabuddy-poc-acme`, a soft-delete refactor that leaves
-deleted rows listed): exploration found the bug in every run, the generated suite went red
-on exactly the delete-dependent tests, and no session asked a question across more than a
-thousand turns. RFC 0004 §4 has the numbers and the kill criteria.
+- The workflow's internals and every input: [`.github/qa-buddy-pr/README.md`](../.github/qa-buddy-pr/README.md)
+- Why it is built this way, the measurements, the kill criteria: [RFC 0004](rfc/0004-headless-pr-coverage.md)
+- The format of `sources.json` and of exploratory session files: knowledge-base spec §6.8 and §6.9
