@@ -7,7 +7,7 @@
 | **Created** | 2026-09-04 |
 | **Depends on** | RFC 0001 (run protocol, evidence log), RFC 0003 (Akela engine); KB spec §6.5 |
 | **Supersedes** | nothing — interactive behaviour is unchanged; headless is opt-in |
-| **Locale** | English normative; Korean twin to follow |
+| **Locale** | English normative; a non-normative full Korean translation is at [0004-headless-pr-coverage-ko.md](0004-headless-pr-coverage-ko.md) |
 
 ## 1 · Problem
 

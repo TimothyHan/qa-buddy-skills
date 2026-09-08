@@ -1,6 +1,6 @@
 # 스킬 평가 — 스킬이 만든 것을 채점하기
 
-English: [skill-evals-en.md](skill-evals-en.md) · 설계: [RFC 0005](rfc/0005-rubric-scored-evals.md) · 스키마: [`core/skills/eval/tests/RUBRIC-SCHEMA.md`](../core/skills/eval/tests/RUBRIC-SCHEMA.md)
+English: [skill-evals-en.md](skill-evals-en.md) · 설계: [RFC 0005](rfc/0005-rubric-scored-evals-ko.md) · 스키마: [`core/skills/eval/tests/RUBRIC-SCHEMA.md`](../core/skills/eval/tests/RUBRIC-SCHEMA.md)
 
 QABuddy에는 두 종류의 평가가 있습니다. **픽스처**(`/qa-eval`, `tests/fixtures.json`)는 스킬
 출력의 *형태*를 검사합니다 — 헤딩이 있는지, 특정 문자열이 없는지 — 그리고 공짜입니다. **루브릭

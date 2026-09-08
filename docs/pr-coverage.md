@@ -1,7 +1,7 @@
 # CI에서 QABuddy
 
 **상태:** 실험적, 0.9.0에 포함 -- 아래 내용은 모두 데모 저장소 하나에서 만들어지고
-측정되었으며, 대화형 스킬은 그대로입니다. 설계 기록: [RFC 0004](rfc/0004-headless-pr-coverage.md).
+측정되었으며, 대화형 스킬은 그대로입니다. 설계 기록: [RFC 0004](rfc/0004-headless-pr-coverage-ko.md).
 
 English: [pr-coverage-en.md](pr-coverage-en.md)
 
