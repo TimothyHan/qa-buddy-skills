@@ -202,7 +202,9 @@ labels or `/qabuddy` comments per PR, or one caller input to chain explore and a
 after a reviewed companion. Findings that need a human become issues. Nothing ever writes
 to the base branch.
 
-**Set up** -- one of three:
+**Set up** -- first run `/qa-test-plan` locally for each feature and merge the resulting
+`features-kb/` into the base branch. That is mandatory: CI maps changes through the
+`sources.json` it writes and refuses to run on an empty knowledge base. Then one of three:
 
 - First time: `/qa-setup` offers a PR-automation step at the end.
 - Already configured: run `/qa-setup --pr`.
