@@ -907,6 +907,18 @@ function testPrCoverage() {
   w('playwright/AUTOMATION.md', '# decisions\n');
   w('files.txt', 'src/alpha/x.js\nsrc/alpha/notes.md\nREADME.md\nplaywright/tests/alpha.spec.ts\nplaywright/pom/alpha.page.ts\nplaywright.config.ts\nfeatures-kb/features/alpha/test-cases/alpha.md\n');
   w('none.txt', 'docs/x.md\n');
+  // delta shares alpha's id numbering (AC1 / TC-01). Its unit glob picks up a file that carries
+  // those ids but cites gamma's KB directory — evidence for gamma, never for delta or alpha.
+  w('features-kb/features/delta/feature.md', '# Feature: Delta\n\n## Acceptance Criteria\n- AC1: Delta works\n- AC2: Delta exports\n- AC3: Delta imports\n');
+  w('features-kb/features/delta/sources.json', JSON.stringify({ feature: 'delta', sources: ['src/delta/**'], tests: { unit: ['test/**'] } }));
+  w('features-kb/features/delta/test-cases/delta-mapping.json', JSON.stringify({ mappings: [
+    { ac: 'AC #1: Delta works', testCases: [{ id: 'TC-01', layer: 'unit' }], unitTests: [], coverage: 'full' },
+    { ac: 'AC #2: Delta exports', testCases: [{ id: 'TC-D2', layer: 'unit', specFile: 'test/delta.unit.js' }], unitTests: [], coverage: 'full' },
+    { ac: 'AC #3: Delta imports', testCases: [{ id: 'TC-D3', layer: 'unit', specFile: 'test/missing.unit.js' }], unitTests: [], coverage: 'partial' },
+  ] }));
+  w('test/collide.unit.js', "// Test cases: features-kb/features/gamma/test-cases/g.md\n// TC-01 AC1: sign in (gamma's ids, not delta's)\n");
+  w('test/delta.unit.js', "// declared as specFile by delta's mapping; its text names nothing\n");
+  w('delta-files.txt', 'src/delta/y.js\n');
 
   const run = (args, extraEnv) => execFileSync(process.execPath, [src, ...args], { cwd: tmp, env: { ...process.env, ...(extraEnv || {}) }, encoding: 'utf8', stdio: ['ignore', 'pipe', 'pipe'] });
   const exitCode = (args) => { try { run(args); return 0; } catch (e) { return e.status; } };
@@ -925,7 +937,7 @@ function testPrCoverage() {
     const none = JSON.parse(run(['touched', '--files', 'none.txt']));
     check(none.features.length === 0 && none.fallback === false, 'touched: nothing matched, --fallback none → empty');
     const all = JSON.parse(run(['touched', '--files', 'none.txt', '--fallback', 'all']));
-    check(all.fallback === true && all.features.map(f => f.key).join() === 'alpha,beta,gamma', 'touched: --fallback all lists every feature and flags it');
+    check(all.fallback === true && all.features.map(f => f.key).join() === 'alpha,beta,delta,gamma', 'touched: --fallback all lists every feature and flags it');
     check(exitCode(['touched']) === 2, 'touched: usage error exits 2');
     check(exitCode(['touched', '--files', 'files.txt', '--kb', 'nope']) === 3, 'touched: unreadable KB exits 3');
 
@@ -957,6 +969,20 @@ function testPrCoverage() {
     check(/<details><summary>Evidence<\/summary>/.test(md) && /`playwright\/tests\/alpha\.spec\.ts`/.test(md), 'heatmap: evidence paths listed under <details>');
     check(!/`playwright\/tests\/alpha\.spec\.ts`, `playwright\/tests\/alpha\.spec\.ts`/.test(md), 'heatmap: evidence paths are de-duplicated per cell');
     check(/README\.md/.test(md) && /`beta`, `gamma`/.test(md), 'heatmap: unmapped files and source-less features reported in the comment');
+
+    // unit evidence is scoped to the feature (0.1.1): shared id numbering across features must not leak
+    fs.writeFileSync(path.join(tmp, 'touched-delta.json'), run(['touched', '--files', 'delta-files.txt']));
+    run(['heatmap', '--touched', 'touched-delta.json', '--phases', 'kb', '--now', '2026-09-04T00:00:00Z', '--pr', '8', '--out', 'out/hd.json']);
+    const hd = JSON.parse(fs.readFileSync(path.join(tmp, 'out/hd.json'), 'utf8'));
+    const drows = Object.fromEntries((hd.features.find(x => x.key === 'delta') || { rows: [] }).rows.map(r => [r.ac, r]));
+    const dst = (ac, col) => drows[ac] && drows[ac].cells[col] && drows[ac].cells[col].state;
+    check(dst('AC1', 'unit') === 'partial', 'heatmap: a unit file carrying this AC/TC id but citing another feature\'s KB directory is not evidence (id collision)', JSON.stringify(drows.AC1 && drows.AC1.cells.unit));
+    check(dst('AC2', 'unit') === 'covered' && drows.AC2.cells.unit.evidence.join() === 'test/delta.unit.js', 'heatmap: a declared specFile that exists on disk is unit evidence without any text match', JSON.stringify(drows.AC2 && drows.AC2.cells.unit));
+    check(dst('AC3', 'unit') === 'partial', 'heatmap: a declared specFile that does not exist is partial, not covered');
+    run(['heatmap', '--touched', 'touched.json', '--phases', 'kb', '--now', '2026-09-04T00:00:00Z', '--pr', '7', '--out', 'out/h2.json']);
+    const h2 = JSON.parse(fs.readFileSync(path.join(tmp, 'out/h2.json'), 'utf8'));
+    const arows = Object.fromEntries(h2.features[0].rows.map(r => [r.ac, r]));
+    check(arows.AC1.cells.unit.state === 'partial', 'heatmap: the colliding file (cites gamma) does not become alpha evidence either');
 
     // Legacy mapping shapes + META rows, via --fallback all; not-run when explore did not run
     fs.writeFileSync(path.join(tmp, 'all.json'), JSON.stringify(all));
@@ -1038,7 +1064,7 @@ if(a.includes('--paginate'))process.stdout.write(fs.readFileSync(${JSON.stringif
     check(pfmd.startsWith('<!-- qabuddy:heatmap -->') && /could not start/.test(pfmd) && /PR #7/.test(pfmd), 'preflight: the note carries the sticky marker so it becomes the one PR comment');
     w('.qabuddy.json', '{"version":"1.0","contextSource":"spec","teamMode":"team"}');
     const p2 = pf(['--has-token', 'true', '--can-create-prs', 'true']);
-    check(p2.code === 0 && p2.out.ok === true && p2.out.features.join() === 'alpha,beta,gamma', 'preflight: passes with config + token, lists features');
+    check(p2.code === 0 && p2.out.ok === true && p2.out.features.join() === 'alpha,beta,delta,gamma', 'preflight: passes with config + token, lists features');
     w('bad/.qabuddy.json', '{not json'); const p3 = pf(['--root', 'bad', '--has-token', 'true']);
     check(p3.code === 6 && p3.out.problems.some(x => x.code === 'bad-config') && p3.out.problems.some(x => x.code === 'no-features'), 'preflight: invalid JSON and an empty KB are problems');
 

@@ -45,7 +45,7 @@ const fs = require('fs');
 const path = require('path');
 const { execFileSync } = require('child_process');
 
-const VERSION = '0.1.0';
+const VERSION = '0.1.1';
 const MARKER = '<!-- qabuddy:heatmap -->';
 const COLUMNS = ['unit', 'api', 'e2e', 'manual', 'exploratory'];
 const COLUMN_LABEL = { unit: 'Unit', api: 'API', e2e: 'E2E', manual: 'Manual', exploratory: 'Exploratory' };
@@ -187,10 +187,10 @@ function loadFeature(kb, key, titles) {
       const id = normalizeAc(row.ac || row.requirement || '') || String(row.ac || row.requirement || '').trim();
       if (!id) continue;
       const entry = feature.mapping.get(id) || { tcs: [], unit: [], coverage: row.coverage || null };
-      const push = (tc, layer) => { if (!entry.tcs.some(t => t.id === tc)) entry.tcs.push({ id: tc, layer }); };
+      const push = (tc, layer, specFile) => { if (!entry.tcs.some(t => t.id === tc)) entry.tcs.push(specFile ? { id: tc, layer, specFile } : { id: tc, layer }); };
       const meta = s => typeof s === 'string' && /^META\b/.test(s);
       if (Array.isArray(row.testCases)) {                       // KB spec §6.5 (canonical)
-        for (const tc of row.testCases) if (tc && tc.id) push(tc.id, tc.layer || feature.tcLayers.get(tc.id) || 'e2e');
+        for (const tc of row.testCases) if (tc && tc.id) push(tc.id, tc.layer || feature.tcLayers.get(tc.id) || 'e2e', typeof tc.specFile === 'string' ? tc.specFile : undefined);
         for (const u of row.unitTests || []) entry.unit.push(u);
       } else if (Array.isArray(row.e2e_tests) || Array.isArray(row.unit_tests)) {   // /qa-test-cases legacy
         for (const tc of row.e2e_tests || []) meta(tc) ? entry.unit.push(tc) : push(tc, feature.tcLayers.get(tc) || 'e2e');
@@ -388,13 +388,21 @@ function buildHeatmap(o) {
       let atRisk = false;
       const cell = (state, evidence, extra) => Object.assign({ state, evidence: evidence || [] }, extra || {});
 
-      // Unit — a unit file that mentions the AC or one of its TCs, or a META row
+      // Unit — declared evidence first: a `specFile` on one of this AC's test cases that exists on
+      // disk (KB spec §6.5, written by /qa-test-cases). Then a unit file that names the AC, one of
+      // its TCs, or a unitTests[] entry — but only when that file also cites this feature's KB
+      // directory. Every feature numbers from AC1 / TC-001, so a bare id inside a file that belongs
+      // to another feature is not evidence: on a live run an unbuilt feature showed unit-covered by
+      // a sibling feature's spec that merely contained "TC-001". META rows are unchanged.
       {
         const meta = map.unit.filter(u => /^META\b/.test(u));
-        const hits = unitFiles.filter(u => u.text.includes(ac + ':') || u.text.includes(ac + ' ') || map.tcs.some(tc => u.text.includes(tc.id)) || map.unit.some(name => !/^META\b/.test(name) && u.text.includes(name)));
-        if (hits.length) cells.unit = cell('covered', hits.map(h => h.rel));
+        const declared = [...new Set(map.tcs.map(tc => tc.specFile).filter(Boolean))].filter(rel => fs.existsSync(path.join(root, rel)));
+        const citesFeature = u => u.text.includes(`features/${f.key}/`);
+        const hits = unitFiles.filter(u => citesFeature(u) && (u.text.includes(ac + ':') || u.text.includes(ac + ' ') || map.tcs.some(tc => u.text.includes(tc.id)) || map.unit.some(name => !/^META\b/.test(name) && u.text.includes(name))));
+        const evidence = [...new Set([...declared, ...hits.map(h => h.rel)])];
+        if (evidence.length) cells.unit = cell('covered', evidence);
         else if (meta.length) cells.unit = cell('covered', ['META'], { note: meta[0] });
-        else if (map.unit.length || map.tcs.some(tc => tc.layer === 'unit')) cells.unit = cell('partial', [], { note: 'declared, no file found' });
+        else if (map.unit.length || map.tcs.some(tc => tc.layer === 'unit' || tc.specFile)) cells.unit = cell('partial', [], { note: 'declared, no file found' });
         else cells.unit = cell('gap');
       }
       // API / E2E — a spec whose test title carries the TC id; result from --results

@@ -66,8 +66,12 @@ that does everything the model should not.
    `tests[]`) and treats `META — …` strings as infrastructure evidence, never TC ids.
 6. **Evidence rule.** A heatmap cell is `covered` only with a resolved path: a spec
    whose `test()` title carries the TC id (with pass/fail from Playwright's JSON
-   reporter when present), a unit file that names the AC or TC, a saved QA report that
-   executed the TC, or an exploratory session row that lists the AC. A test case that
+   reporter when present), a unit file that names the AC or TC **and cites the feature's
+   KB directory (`features-kb/features/<key>/`)** — or is declared as the test case's
+   `specFile` and exists — a saved QA report that executed the TC, or an exploratory
+   session row that lists the AC. The citation requirement exists because every feature
+   numbers from AC1 / TC-001, so a bare id inside a sibling feature's spec is not evidence
+   (pr-coverage 0.1.1). A test case that
    exists without proof is `partial`; no test case is `gap`. This is test-plan's
    "never claim coverage without a file path" applied per layer.
 7. **Headless exploratory persists into the KB** at
