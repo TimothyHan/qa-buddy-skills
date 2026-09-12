@@ -101,8 +101,15 @@ function evalOp(text, op, value) {
   if (op === 'not_contains') return !text.includes(value);
   if (op === 'matches') return new RegExp(value, 'm').test(text);
   if (op === 'count_gte') return (text.match(new RegExp(value.pattern, 'gm')) || []).length >= value.min;
+  if (op === 'json_valid') { try { JSON.parse(text); return true; } catch { return false; } }
   throw new Error(`unknown op ${op}`);
 }
+// The last non-empty line the runner printed — the skill's closing `qa-<skill>: <STATUS> — …` when it
+// followed the headless prompt. Kept per run so a report can say what the runner said it did
+// when no artifact exists to grade (2026-09-12: four thin-ticket runs scored 0 everywhere and the
+// workspaces were gone before anyone could ask why).
+function lastLine(text) { const ls = String(text || '').split('\n').map(l => l.trim()).filter(Boolean); return (ls[ls.length - 1] || '').slice(0, 300); }
+function readJson(p) { try { return JSON.parse(fs.readFileSync(p, 'utf8')); } catch { return null; } }
 function latestRunDir(ws) {
   const runs = path.join(ws, '.qa-reports', 'runs');
   if (!fs.existsSync(runs)) return null;
@@ -122,7 +129,17 @@ function fieldText(field, ws, execFile) {
   throw new Error(`unknown field ${field}`);
 }
 function gradeDeterministic(criterion, ws, execFile) {
-  const { text, where } = fieldText(criterion.check.field, ws, execFile);
+  const { field, op } = criterion.check;
+  if (op === 'json_valid') {
+    // Per file, never on the joined text: every matched file must parse, and no file at all fails —
+    // the skill wrote nothing (2026-09-12: the defect PR #87 fixed in production is a check here).
+    const files = field.startsWith('files:') ? globFiles(ws, field.slice(6)) : [path.join(ws, field.slice(5))].filter(f => fs.existsSync(f));
+    const bad = files.filter(f => { try { JSON.parse(fs.readFileSync(f, 'utf8')); return false; } catch { return true; } });
+    const ok = files.length > 0 && bad.length === 0;
+    const where = files.length ? files.map(f => path.relative(ws, f)).join(', ') : '(no files matched)';
+    return { score: ok ? 3 : 0, evidence: `json_valid on ${where}: ${ok ? 'holds' : bad.length ? `fails — ${bad.map(f => path.relative(ws, f)).join(', ')} does not parse` : 'fails'}` };
+  }
+  const { text, where } = fieldText(field, ws, execFile);
   const ok = text.length > 0 && evalOp(text, criterion.check.op, criterion.check.value);
   return { score: ok ? 3 : 0, evidence: `${criterion.check.op} ${JSON.stringify(criterion.check.value)} on ${where}: ${ok ? 'holds' : 'fails'}` };
 }
@@ -295,7 +312,7 @@ function renderReport(s) {
   L.push('', '## Runs', '', '| case | run | total | floor breaches | cost | turns | wall |', '|---|---|---|---|---|---|---|');
   for (const k of s.cases) for (const r of k.runs) L.push(`| ${k.id} | ${r.n} | ${r.total} | ${r.floor_breaches.join(', ') || '—'} | $${(r.cost_usd || 0).toFixed(2)} | ${r.turns || '-'} | ${r.wall_s || '-'}s |`);
   L.push('', '## Evidence', '');
-  for (const k of s.cases) for (const r of k.runs) { L.push(`### ${k.id} · run ${r.n}`, ''); for (const [id, v] of Object.entries(r.criteria)) L.push(`- **${id}** = ${v.score}: ${String(v.evidence).replace(/\n/g, ' ').slice(0, 300)}`); L.push(''); }
+  for (const k of s.cases) for (const r of k.runs) { L.push(`### ${k.id} · run ${r.n}`, '', `runner: ${r.runner_status || '?'}${r.runner_final ? ' — ' + r.runner_final : ''}`, ''); for (const [id, v] of Object.entries(r.criteria)) L.push(`- **${id}** = ${v.score}: ${String(v.evidence).replace(/\n/g, ' ').slice(0, 300)}`); L.push(''); }
   return L.join('\n');
 }
 
@@ -338,50 +355,63 @@ async function cmdRun(skill, opts) {
   fs.mkdirSync(outDir, { recursive: true });
   const log = (m) => { console.log(m); fs.appendFileSync(path.join(outDir, 'eval.log'), m + '\n'); };
   log(`eval ${skill} v${rubric.skill_version} · runner ${model} · judge ${rubric.judge.model} · ${runs} run(s)/case · out ${outDir}`);
-  let cost = 0; let controls = {};
-  if (!opts['skip-controls']) {
+  // --resume: a scores.json already in outDir (partial or complete) supplies its finished runs and
+  // its controls; only the missing (case, run) pairs cost anything (2026-09-12: a crash after 8 of 9
+  // B runs left nothing to pick up).
+  const prior = opts.resume ? readJson(path.join(outDir, 'scores.json')) : null;
+  const priorRun = (id, n) => prior && (prior.cases || []).flatMap(c => c.id === id ? c.runs : []).find(r => r.n === n && r.criteria);
+  let cost = prior ? (prior.summary && prior.summary.cost_usd) || 0 : 0; let controls = {};
+  if (prior && prior.controls && Object.keys(prior.controls).length) { controls = prior.controls; log(`  controls resumed from ${path.relative(ROOT, outDir)}/scores.json`); }
+  else if (!opts['skip-controls']) {
     const c = cmdControls(skill, { passes: opts['control-passes'] || 3 }); controls = c.controls; cost += c.cost;
     if (c.vacuous.length) { log(`rubric vacuous: ${c.vacuous.join(', ')} — stopping before any runner spend`); process.exit(1); }
   }
   const cases = loadCases(skill, opts.cases);
   const scored = [];
+  const meta = () => ({ schema: 'eval-scores/1', skill, skill_version: rubric.skill_version, rubric_version: rubric.rubric_version,
+    ref: opts.ref || { name: gitRef(), sha: gitSha() }, models: { runner: model, judge: rubric.judge.model }, generated: new Date().toISOString(),
+    skills_path: (() => { try { return fs.readlinkSync(path.join(os.homedir(), '.claude', 'skills', 'qa-references')); } catch { return 'unknown'; } })(),
+    controls, criteria: rubric.criteria.map(c => ({ id: c.id, kind: c.kind, weight: c.weight, floor: c.floor })) });
+  // Written after every run, not only at the end — a crash leaves a resumable file.
+  const flush = (partial) => fs.writeFileSync(path.join(outDir, 'scores.json'), JSON.stringify({ ...meta(), partial, cases: scored, summary: summarize(rubric, scored, cost) }, null, 2));
   for (const cdef of cases) {
     const rec = { id: cdef.id, runs: [] };
+    scored.push(rec);
     let app = null;
     if (cdef.app) app = await startApp(cdef.app, cdef.port);
     try {
       for (let n = 1; n <= runs; n++) {
+        const done = priorRun(cdef.id, n);
+        if (done) { rec.runs.push(done); log(`↺ ${cdef.id} run ${n} — resumed (total ${done.total})`); continue; }
         if (cost >= evalBudget) { log(`eval budget $${evalBudget} reached — stopping (partial)`); break; }
         if (app) await httpPost(`http://localhost:${cdef.port}/api/reset`);
         const runDir = path.join(outDir, cdef.id, `run-${n}`); fs.mkdirSync(runDir, { recursive: true });
         const ws = fs.mkdtempSync(path.join(os.tmpdir(), `qab-eval-${skill}-${cdef.id}-`));
-        copyDir(path.join(cdef.dir, 'input'), ws);
-        const execFile = path.join(runDir, 'exec.jsonl');
-        log(`▶ ${cdef.id} run ${n} — workspace ${ws}`);
-        const r = await runSkill({ skill, caseDef: cdef, ws, model, turns, budget, execFile, log });
-        cost += r.cost;
-        log(`  runner: ${r.status}, ${r.turns} turns, ${r.tools} tool calls, ${r.questions} questions, $${r.cost.toFixed(2)}, ${r.wall_s}s`);
-        if (r.stderr && r.exit !== 0) log(`  stderr: ${r.stderr.slice(-400)}`);
-        copyDir(ws, path.join(runDir, 'workspace'));
-        const results = {};
-        for (const c of rubric.criteria) if (c.kind !== 'judge') results[c.id] = gradeDeterministic(c, ws, execFile);
-        const judged = rubric.criteria.filter(c => c.kind === 'judge');
-        if (judged.length) {
-          const j = judgeCriteria(rubric, judged, { inputText: caseInputText(cdef.dir), notes: readIf(path.join(cdef.dir, 'judge-notes.md')), artifacts: artifactsText(rubric, ws) });
-          Object.assign(results, j.results); cost += j.cost;
-        }
-        const sc = scoreRun(rubric, results);
-        rec.runs.push({ n, cost_usd: +r.cost.toFixed(3), turns: r.turns, wall_s: r.wall_s, tool_calls: r.tools, questions: r.questions, runner_status: r.status, run_dir: path.relative(ROOT, runDir), criteria: results, ...sc });
-        log(`  total ${sc.total}${sc.floor_breaches.length ? ' — floor breaches: ' + sc.floor_breaches.join(', ') : ''}`);
-        fs.rmSync(ws, { recursive: true, force: true });
+        try {
+          copyDir(path.join(cdef.dir, 'input'), ws);
+          const execFile = path.join(runDir, 'exec.jsonl');
+          log(`▶ ${cdef.id} run ${n} — workspace ${ws}`);
+          const r = await runSkill({ skill, caseDef: cdef, ws, model, turns, budget, execFile, log });
+          cost += r.cost;
+          log(`  runner: ${r.status}, ${r.turns} turns, ${r.tools} tool calls, ${r.questions} questions, $${r.cost.toFixed(2)}, ${r.wall_s}s`);
+          if (r.stderr && r.exit !== 0) log(`  stderr: ${r.stderr.slice(-400)}`);
+          copyDir(ws, path.join(runDir, 'workspace'));
+          const results = {};
+          for (const c of rubric.criteria) if (c.kind !== 'judge') results[c.id] = gradeDeterministic(c, ws, execFile);
+          const judged = rubric.criteria.filter(c => c.kind === 'judge');
+          if (judged.length) {
+            const j = judgeCriteria(rubric, judged, { inputText: caseInputText(cdef.dir), notes: readIf(path.join(cdef.dir, 'judge-notes.md')), artifacts: artifactsText(rubric, ws) });
+            Object.assign(results, j.results); cost += j.cost;
+          }
+          const sc = scoreRun(rubric, results);
+          rec.runs.push({ n, cost_usd: +r.cost.toFixed(3), turns: r.turns, wall_s: r.wall_s, tool_calls: r.tools, questions: r.questions, runner_status: r.status, runner_final: lastLine(r.final), run_dir: path.relative(ROOT, runDir), criteria: results, ...sc });
+          log(`  total ${sc.total}${sc.floor_breaches.length ? ' — floor breaches: ' + sc.floor_breaches.join(', ') : ''}`);
+          flush(true);
+        } finally { fs.rmSync(ws, { recursive: true, force: true }); }
       }
     } finally { if (app) app.kill(); }
-    scored.push(rec);
   }
-  const scores = { schema: 'eval-scores/1', skill, skill_version: rubric.skill_version, rubric_version: rubric.rubric_version,
-    ref: { name: gitRef(), sha: gitSha() }, models: { runner: model, judge: rubric.judge.model }, generated: new Date().toISOString(),
-    skills_path: (() => { try { return fs.readlinkSync(path.join(os.homedir(), '.claude', 'skills', 'qa-references')); } catch { return 'unknown'; } })(),
-    controls, criteria: rubric.criteria.map(c => ({ id: c.id, kind: c.kind, weight: c.weight, floor: c.floor })), cases: scored, summary: summarize(rubric, scored, cost) };
+  const scores = { ...meta(), partial: false, cases: scored, summary: summarize(rubric, scored, cost) };
   fs.writeFileSync(path.join(outDir, 'scores.json'), JSON.stringify(scores, null, 2));
   fs.writeFileSync(path.join(outDir, 'report.md'), renderReport(scores));
   log(`verdict ${scores.summary.verdict} · mean ${scores.summary.mean} · $${scores.summary.cost_usd} · ${path.join(outDir, 'report.md')}`);
@@ -592,7 +622,21 @@ function snapshotInstall() {
   return m;
 }
 function relink(name, target) { const p = path.join(globalSkillsDir(), name); try { fs.unlinkSync(p); } catch { /* absent */ } fs.symlinkSync(target, p); }
-function restoreInstall(snap) { for (const [name, target] of Object.entries(snap)) relink(name, target); }
+function lockPath() { return path.join(globalSkillsDir(), '.qab-eval-ab.lock'); }
+// Every link is attempted even when one fails (a full disk broke the loop halfway on 2026-09-12 and
+// left every qa-* link dangling); the lock file keeps the snapshot until the restore is complete.
+function restoreInstall(snap) {
+  const failed = [];
+  for (const [name, target] of Object.entries(snap)) { try { relink(name, target); } catch (e) { failed.push(`${name}: ${e.message}`); } }
+  if (failed.length) throw new Error(`restore incomplete — ${failed.join('; ')}. The snapshot stays in ${lockPath()}; run: node bin/eval.js ab --restore`);
+}
+function cmdRestore() {
+  const lock = readJson(lockPath());
+  if (!lock || !lock.snapshot) die(`no lock at ${lockPath()} — nothing to restore`);
+  restoreInstall(lock.snapshot); fs.unlinkSync(lockPath());
+  console.log(`global install restored from the snapshot taken ${lock.started} (pid ${lock.pid}): ${Object.keys(lock.snapshot).length} links`);
+}
+function pidAlive(pid) { try { process.kill(pid, 0); return true; } catch { return false; } }
 function detectLocale(snap) { return /\/dist\/ko\//.test(snap['qa-references'] || '') ? 'ko' : 'en'; }
 function sh(cmd, args, cwd, log) {
   const r = spawnSync(cmd, args, { cwd, encoding: 'utf8', stdio: ['ignore', 'pipe', 'pipe'] });
@@ -600,19 +644,26 @@ function sh(cmd, args, cwd, log) {
   if (log) log(`  $ ${cmd} ${args.join(' ')} — ok`);
   return r.stdout;
 }
-function buildVariant(ref, locale, log) {
+// A variant lives under the A/B's own directory (`<ab-dir>/install/<label>`), never $TMPDIR: a
+// crash leaves it where the log points, a --resume reuses it instead of paying `npm ci` and two
+// builds again, and cleaning temp cannot turn the global links into dangling ones.
+function buildVariant(ref, locale, log, installDir) {
   if (ref === 'HEAD' || ref === 'working') {
     sh(process.execPath, ['build.js', 'all'], ROOT, log);
     sh(process.execPath, ['build.js', 'all', '--locale', 'ko'], ROOT, log);
     return { dir: ROOT, worktree: null, sha: gitSha(), name: ref };
   }
-  const wt = fs.mkdtempSync(path.join(os.tmpdir(), 'qab-variant-'));
+  const wt = installDir || fs.mkdtempSync(path.join(os.tmpdir(), 'qab-variant-'));
+  const want = sh('git', ['rev-parse', `${ref}^{commit}`], ROOT).trim();
+  const have = fs.existsSync(path.join(wt, '.git')) ? (spawnSync('git', ['rev-parse', 'HEAD'], { cwd: wt, encoding: 'utf8' }).stdout || '').trim() : null;
+  if (have === want && fs.existsSync(path.join(wt, 'dist', locale === 'ko' ? 'ko' : 'claude'))) { log(`  reusing built variant ${ref} (${want.slice(0, 7)}) at ${wt}`); return { dir: wt, worktree: wt, sha: want, name: ref }; }
+  if (have) { try { sh('git', ['worktree', 'remove', '--force', wt], ROOT); } catch { fs.rmSync(wt, { recursive: true, force: true }); } }
+  fs.mkdirSync(path.dirname(wt), { recursive: true });
   sh('git', ['worktree', 'add', '--detach', wt, ref], ROOT, log);
-  sh('npm', ['ci', '--silent', '--ignore-scripts'], wt, log);
+  sh('npm', ['ci', '--silent', '--ignore-scripts', '--prefer-offline', '--no-audit', '--no-fund'], wt, log);
   sh(process.execPath, ['build.js', 'all'], wt, log);
   sh(process.execPath, ['build.js', 'all', '--locale', 'ko'], wt, log);
-  const sha = sh('git', ['rev-parse', 'HEAD'], wt).trim();
-  return { dir: wt, worktree: wt, sha, name: ref };
+  return { dir: wt, worktree: wt, sha: want, name: ref };
 }
 function installVariant(variant, locale, log) {
   const base = path.join(variant.dir, 'dist', ...(locale === 'ko' ? ['ko', 'claude'] : ['claude']));
@@ -628,6 +679,95 @@ function removeVariant(variant, log) {
   if (!variant.worktree) return;
   try { sh('git', ['worktree', 'remove', '--force', variant.worktree], ROOT); } catch (e) { log(`  worktree cleanup: ${e.message}`); }
 }
+// ─── change scope (2026-09-12) ──────────────────────────────────────────────
+// A criterion cites the constraint or self-check it grades. When the change between two refs
+// touches nothing any criterion cites, the A/B cannot measure it — the first real gate run (PR #87,
+// one Phase 4 bullet) spent $22 and three hours to say "not distinguishable". `scope` decides from
+// the diff; `ab` skips on "skip" unless --force.
+const RUNNER_VISIBLE = /^(core\/|locales\/|bin\/(akela|qab)\.js$|build\.js$|package(-lock)?\.json$)/;
+function sectionItems(md, headingRe) {
+  const lines = md.split('\n');
+  const start = lines.findIndex(l => headingRe.test(l));
+  if (start < 0) return {};
+  const items = {}; let n = 0;
+  for (let i = start + 1; i < lines.length; i++) {
+    const l = lines[i];
+    if (/^## /.test(l) || /^---\s*$/.test(l)) break;
+    const num = l.match(/^(\d+)\.\s+(.*)/); const box = l.match(/^-\s*\[ \]\s+(.*)/);
+    if (num) items[Number(num[1])] = num[2]; else if (box) items[++n] = box[1];
+  }
+  return items;
+}
+function sectionsOf(md) {
+  const out = {}; let cur = '(preamble)';
+  for (const l of md.split('\n')) { if (/^## /.test(l)) cur = l.replace(/^## /, '').trim(); out[cur] = (out[cur] || '') + l + '\n'; }
+  return out;
+}
+function isWorking(ref) { return ref === 'HEAD' || ref === 'working'; }
+function fileAt(ref, rel) {
+  if (isWorking(ref)) return readIf(path.join(ROOT, rel));
+  const r = spawnSync('git', ['show', `${ref}:${rel}`], { cwd: ROOT, encoding: 'utf8', maxBuffer: 16 * 1024 * 1024 });
+  return r.status === 0 ? r.stdout : null;
+}
+function changedFiles(refA, refB) {
+  const args = isWorking(refB) ? ['diff', '--name-only', refA] : ['diff', '--name-only', `${refA}..${refB}`];
+  const r = spawnSync('git', args, { cwd: ROOT, encoding: 'utf8' });
+  if (r.status !== 0) throw new Error(`git ${args.join(' ')} failed: ${(r.stderr || '').slice(-300)}`);
+  return r.stdout.split('\n').filter(Boolean);
+}
+const HEADINGS = {
+  en: { constraints: /^## Constraints/, selfCheck: /^## .*Self-[Ee]valuation/ },
+  ko: { constraints: /^## 제약 (조건|사항)/, selfCheck: /^## .*자체 (검증|평가)/ },
+};
+function changeScope(skill, rubric, refA, refB) {
+  const files = changedFiles(refA, refB);
+  const skillFiles = { [`core/skills/${skill}/SKILL.md`]: 'en', [`locales/ko/skills/${skill}/SKILL.md`]: 'ko' };
+  const visible = files.filter(f => RUNNER_VISIBLE.test(f) && !/^core\/skills\/[^/]+\/tests\//.test(f));
+  const other = visible.filter(f => !skillFiles[f]);
+  const reasons = []; const touched = {};
+  if (other.length) reasons.push(`runner-visible files outside the skill changed (cannot be scoped to a criterion): ${other.slice(0, 8).join(', ')}${other.length > 8 ? ', …' : ''}`);
+  for (const [rel, locale] of Object.entries(skillFiles)) {
+    if (!files.includes(rel)) continue;
+    const a = fileAt(refA, rel) || '', b = fileAt(refB, rel) || '';
+    const sa = sectionsOf(a), sb = sectionsOf(b);
+    const secs = [...new Set([...Object.keys(sa), ...Object.keys(sb)])].filter(k => sa[k] !== sb[k]);
+    touched[rel] = secs;
+    const h = HEADINGS[locale];
+    const ca = sectionItems(a, h.constraints), cb = sectionItems(b, h.constraints);
+    const ka = sectionItems(a, h.selfCheck), kb = sectionItems(b, h.selfCheck);
+    for (const c of rubric.criteria) {
+      const cit = c.cites || {};
+      if (cit.constraint !== undefined && ca[cit.constraint] !== cb[cit.constraint]) reasons.push(`${c.id} cites constraint ${cit.constraint}, which changed in ${rel}`);
+      if (cit.self_check !== undefined && ka[cit.self_check] !== kb[cit.self_check]) reasons.push(`${c.id} cites self-check ${cit.self_check}, which changed in ${rel}`);
+    }
+  }
+  const decision = reasons.length ? 'run' : 'skip';
+  const note = decision === 'skip'
+    ? (Object.keys(touched).length ? `no rubric criterion cites a section this change touches (${Object.entries(touched).map(([f, s]) => `${f}: ${s.join(', ') || 'no section'}`).join('; ')}) — the A/B cannot measure it; pass --force to run anyway`
+      : `no runner-visible file changed between ${refA} and ${refB} (${files.length} file(s), all docs/tests/harness) — nothing for the A/B to measure`)
+    : reasons.join('; ');
+  return { skill, a: refA, b: refB, files, visible, touched, decision, reasons, note };
+}
+function cmdScope(skill, opts) {
+  const sc = changeScope(skill, loadRubric(skill), opts.a || 'HEAD', opts.b || die('--b <ref> required'));
+  console.log(`scope ${skill}: ${sc.decision.toUpperCase()} — ${sc.note}`);
+  if (opts.json) console.log(JSON.stringify(sc, null, 2));
+  return sc;
+}
+// ─── relative gate (2026-09-12) ─────────────────────────────────────────────
+// The absolute PASS/FAIL against the calibrated threshold is information: the first real run put
+// main itself at 0.571 against 0.857, so "FAIL" printed on both sides and said nothing about the
+// change. The gate compares B with A: a criterion whose delta exceeds the run spread, or a floor
+// breached in B on a criterion A never breached, blocks. Everything else is "not distinguishable".
+function abGate(a, b, criteria) {
+  const regressions = criteria.filter(c => c.verdict === 'regression').map(c => c.id);
+  const breachesOf = (s, id) => s.cases.reduce((n, k) => n + k.runs.filter(r => r.floor_breaches.includes(id)).length, 0);
+  const newBreaches = criteria.filter(c => breachesOf(b, c.id) > 0 && breachesOf(a, c.id) === 0).map(c => c.id);
+  const reasons = [];
+  if (regressions.length) reasons.push(`regression outside the spread on ${regressions.join(', ')}`);
+  if (newBreaches.length) reasons.push(`floor breached in B only on ${newBreaches.join(', ')}`);
+  return { verdict: reasons.length ? 'BLOCKED' : 'PASS', regressions, new_floor_breaches: newBreaches, reasons };
+}
 function criterionStats(scores, id) {
   const v = scores.cases.flatMap(k => k.runs.map(r => (r.criteria[id] || { score: 0 }).score));
   if (!v.length) return { mean: null, min: null, max: null };
@@ -642,50 +782,81 @@ function abVerdict(a, b) {
   return 'not distinguishable at this n';
 }
 function renderAb(ab) {
+  if (ab.skipped) return [`# A/B — ${ab.skill} · A = ${ab.scope.a} · B = ${ab.scope.b}`, '', `**Skipped: ${ab.scope.note}**`, '', `Files changed: ${ab.scope.files.join(', ') || 'none'}`, ''].join('\n');
   const L = [`# A/B — ${ab.skill} · A = ${ab.a.ref.name} (${ab.a.ref.sha.slice(0, 7)}) · B = ${ab.b.ref.name} (${ab.b.ref.sha.slice(0, 7)})`, '',
     `runner \`${ab.a.models.runner}\` · judge \`${ab.a.models.judge}\` · ${ab.a.summary.runs} + ${ab.b.summary.runs} runs · $${(ab.a.summary.cost_usd + ab.b.summary.cost_usd).toFixed(2)}`, '',
-    `**Total: A ${ab.a.summary.mean} (spread ${ab.a.summary.spread}) → B ${ab.b.summary.mean} (spread ${ab.b.summary.spread}) — ${ab.total_verdict}**`,
-    `Floor breaches: A ${ab.a.summary.floor_breaches}, B ${ab.b.summary.floor_breaches}.`, '',
-    'A delta larger than the larger spread is a regression or improvement; anything inside the spread is reported as not distinguishable — n=3 detects large effects only.', '',
+    `**Gate: ${ab.gate.verdict}**${ab.gate.reasons.length ? ' — ' + ab.gate.reasons.join('; ') : ' — no regression outside the spread, no floor breached in B that A did not breach'}`, '',
+    `Total: A ${ab.a.summary.mean} (spread ${ab.a.summary.spread}) → B ${ab.b.summary.mean} (spread ${ab.b.summary.spread}) — ${ab.total_verdict}. Floor breaches: A ${ab.a.summary.floor_breaches}, B ${ab.b.summary.floor_breaches}.`,
+    `Absolute verdict against the calibrated threshold (information only, not the gate): A ${ab.a.summary.verdict}, B ${ab.b.summary.verdict}.`, '',
+    ab.scope ? `Scope: ${ab.scope.note}` : '', '',
+    'The gate is relative: a delta larger than the larger spread is a regression or improvement; anything inside the spread is not distinguishable — n=3 detects large effects only.', '',
     '| criterion | A mean | A min–max | B mean | B min–max | delta | verdict |', '|---|---|---|---|---|---|---|'];
   for (const row of ab.criteria) L.push(`| ${row.id} | ${row.a.mean ?? '—'} | ${row.a.min ?? '—'}–${row.a.max ?? '—'} | ${row.b.mean ?? '—'} | ${row.b.min ?? '—'}–${row.b.max ?? '—'} | ${row.delta ?? '—'} | ${row.verdict} |`);
   L.push('', `Reports: A → ${ab.a_report} · B → ${ab.b_report}`);
   return L.join('\n');
 }
 async function cmdAb(skill, opts) {
-  const refA = opts.a || 'HEAD', refB = opts.b || die('--b <ref> required');
+  if (opts.restore) { cmdRestore(); return { skipped: true, restored: true }; }
+  const resume = opts.resume ? path.resolve(String(opts.resume)) : null;
+  const prior = resume ? readJson(path.join(resume, 'ab.json')) || readJson(path.join(resume, 'ab-args.json')) : null;
+  if (resume && !prior) die(`--resume: ${resume} holds no ab-args.json / ab.json to resume from`);
+  const refA = opts.a || (prior && (prior.scope ? prior.scope.a : prior.a && prior.a.ref && prior.a.ref.name)) || 'HEAD';
+  const refB = opts.b || (prior && (prior.scope ? prior.scope.b : prior.b && prior.b.ref && prior.b.ref.name)) || die('--b <ref> required');
   const stamp = new Date().toISOString().replace(/[:.]/g, '-');
-  const outDir = path.resolve(opts.out || path.join(ROOT, '.qa-reports', 'evals', skill, `ab-${stamp}`));
+  const outDir = resume || path.resolve(opts.out || path.join(ROOT, '.qa-reports', 'evals', skill, `ab-${stamp}`));
   fs.mkdirSync(outDir, { recursive: true });
   const log = (m) => { console.log(m); fs.appendFileSync(path.join(outDir, 'ab.log'), m + '\n'); };
+  const rubric = loadRubric(skill);
+  fs.writeFileSync(path.join(outDir, 'ab-args.json'), JSON.stringify({ skill, a: refA, b: refB, cases: opts.cases || null, runs: opts.runs || 3, locale: opts.locale || null, started: new Date().toISOString() }, null, 2));
+  const scope = changeScope(skill, rubric, refA, refB);
+  log(`scope: ${scope.decision.toUpperCase()} — ${scope.note}`);
+  if (scope.decision === 'skip' && !opts.force) {
+    const ab = { schema: 'eval-ab/1', skill, skipped: true, scope, generated: new Date().toISOString() };
+    fs.writeFileSync(path.join(outDir, 'ab.json'), JSON.stringify(ab, null, 2));
+    fs.writeFileSync(path.join(outDir, 'ab-report.md'), renderAb(ab));
+    log(`A/B skipped — ${path.join(outDir, 'ab-report.md')}`);
+    return ab;
+  }
   const snap = snapshotInstall();
   if (!snap['qa-references']) die('no global QABuddy install (~/.claude/skills/qa-references) to snapshot');
-  const locale = opts.locale || detectLocale(snap);
-  log(`ab ${skill}: A=${refA} B=${refB} · locale ${locale} · restoring ${Object.keys(snap).length} symlinks afterwards`);
-  const lock = path.join(globalSkillsDir(), '.qab-eval-ab.lock');
-  if (fs.existsSync(lock)) die(`another ab is installing variants (${lock}); remove the lock if it is stale`);
+  const locale = opts.locale || (prior && prior.locale) || detectLocale(snap);
+  log(`ab ${skill}: A=${refA} B=${refB} · locale ${locale} · restoring ${Object.keys(snap).length} symlinks afterwards${resume ? ' · resuming ' + path.relative(ROOT, resume) : ''}`);
+  const lock = lockPath();
+  const stale = readJson(lock);
+  if (stale && stale.pid && pidAlive(stale.pid)) die(`another ab (pid ${stale.pid}, started ${stale.started}) is installing variants — wait for it`);
+  if (stale) die(`a lock from pid ${stale.pid} (${stale.started}) is left over and its snapshot was never restored — run: node bin/eval.js ab --restore, then retry`);
   fs.writeFileSync(lock, JSON.stringify({ pid: process.pid, started: new Date().toISOString(), snapshot: snap }, null, 2));
   const results = {}; const variants = [];
+  // A signal restores the install before the process dies; a crash restores it in the finally;
+  // a restore that itself fails leaves the lock (with the snapshot) for `ab --restore`.
+  let restored = false;
+  const restore = (why) => {
+    if (restored) return; restored = true;
+    try { restoreInstall(snap); try { fs.unlinkSync(lock); } catch { /* gone */ } log(`  global install restored (${why})`); }
+    catch (e) { log(`  ${e.message}`); }
+  };
+  const onSignal = (sig) => { log(`  ${sig} received`); restore(sig); process.exit(130); };
+  process.on('SIGINT', onSignal); process.on('SIGTERM', onSignal);
   try {
     for (const [label, ref] of [['a', refA], ['b', refB]]) {
-      const v = buildVariant(ref, locale, log); variants.push(v);
+      const v = buildVariant(ref, locale, log, path.join(outDir, 'install', label)); variants.push(v);
       installVariant(v, locale, log);
-      const sub = { ...opts, out: path.join(outDir, label), 'skip-controls': label === 'b' ? true : opts['skip-controls'] };
+      const sub = { ...opts, out: path.join(outDir, label), resume: !!resume, ref: { name: ref, sha: v.sha }, 'skip-controls': label === 'b' ? true : opts['skip-controls'] };
       results[label] = await cmdRun(skill, sub);
       results[label].ref = { name: ref, sha: v.sha };
     }
   } finally {
-    restoreInstall(snap); try { fs.unlinkSync(lock); } catch { /* gone */ }
-    for (const v of variants) removeVariant(v, log);
-    log('  global install restored');
+    process.off('SIGINT', onSignal); process.off('SIGTERM', onSignal);
+    restore('done');
+    if (!opts['keep-install']) for (const v of variants) removeVariant(v, log);
   }
-  const rubric = loadRubric(skill);
   const criteria = rubric.criteria.map(c => { const a = criterionStats(results.a, c.id), b = criterionStats(results.b, c.id); return { id: c.id, a, b, delta: a.mean !== null && b.mean !== null ? +(b.mean - a.mean).toFixed(2) : null, verdict: abVerdict(a, b) }; });
   const tot = (s) => ({ mean: s.summary.mean, min: s.summary.min, max: s.summary.max });
-  const ab = { schema: 'eval-ab/1', skill, a: results.a, b: results.b, criteria, total_verdict: abVerdict(tot(results.a), tot(results.b)), a_report: path.join(outDir, 'a', 'report.md'), b_report: path.join(outDir, 'b', 'report.md'), generated: new Date().toISOString() };
+  const gate = abGate(results.a, results.b, criteria);
+  const ab = { schema: 'eval-ab/2', skill, a: results.a, b: results.b, criteria, gate, total_verdict: abVerdict(tot(results.a), tot(results.b)), scope, a_report: path.join(outDir, 'a', 'report.md'), b_report: path.join(outDir, 'b', 'report.md'), generated: new Date().toISOString() };
   fs.writeFileSync(path.join(outDir, 'ab.json'), JSON.stringify(ab, null, 2));
   fs.writeFileSync(path.join(outDir, 'ab-report.md'), renderAb(ab));
-  log(`A/B: ${ab.total_verdict} — ${path.join(outDir, 'ab-report.md')}`);
+  log(`A/B gate ${gate.verdict}${gate.reasons.length ? ' — ' + gate.reasons.join('; ') : ''} · total ${ab.total_verdict} — ${path.join(outDir, 'ab-report.md')}`);
   return ab;
 }
 
@@ -699,7 +870,13 @@ function help() {
   calibrate <skill> --init [--extra f,g]  assemble tests/calibration/ from controls, eval runs and external files
   calibrate <skill> --init --refresh-sheets   regenerate scoring-sheet.md (context + anchors) for every entry
   calibrate <skill> [--passes 3] [--dry-run|--judge-only]   judge the set, compare with human.json, derive the threshold
-  ab <skill> --a <ref> --b <ref> [--cases] [--runs 3] [--locale ko]   install each ref globally in turn, run both, compare per criterion; restores the install
+  scope <skill> --a <ref> --b <ref> [--json]   say whether any rubric criterion cites what changed between the refs (ab runs this first)
+  ab <skill> --a <ref> --b <ref> [--cases] [--runs 3] [--locale ko] [--force] [--keep-install]
+                                          install each ref globally in turn, run both, gate B against A per criterion; restores the install.
+                                          Skips when scope says no criterion cites the change (--force runs anyway); --runs 1 is allowed for a cheap look.
+                                          Exit 1 when the gate is BLOCKED.
+  ab --resume <ab-dir>                    continue an A/B whose runs were cut short (finished runs and built variants are reused)
+  ab --restore                            put the global qa-* links back from the snapshot a crashed ab left in ~/.claude/skills/.qab-eval-ab.lock
 `);
 }
 
@@ -712,7 +889,8 @@ function help() {
     if (cmd === 'run') { await cmdRun(a._[1] || die('skill required'), a); process.exit(0); }
     if (cmd === 'judge') { cmdJudge(a._[1] || die('workspace dir required'), a); process.exit(0); }
     if (cmd === 'report') { cmdReport(a._[1] || die('eval dir required')); process.exit(0); }
-    if (cmd === 'ab') { await cmdAb(a._[1] || die('skill required'), a); process.exit(0); }
+    if (cmd === 'scope') { cmdScope(a._[1] || die('skill required'), a); process.exit(0); }
+    if (cmd === 'ab') { const ab = await cmdAb(a._[1] || (a.restore ? '' : die('skill required')), a); process.exit(ab.skipped || ab.gate.verdict === 'PASS' ? 0 : 1); }
     if (cmd === 'calibrate') { const sk = a._[1] || die('skill required'); if (a.init) cmdCalibrateInit(sk, a); else cmdCalibrate(sk, a); process.exit(0); }
     die(`unknown command ${cmd}`);
   } catch (e) { console.error(`eval.js: ${e.message}`); process.exit(1); }

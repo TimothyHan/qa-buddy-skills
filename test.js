@@ -644,7 +644,7 @@ function testEvalFixtures() {
 function testRubrics() {
   console.log('\n📏 Rubrics (RFC 0005)');
   const KINDS = ['judge', 'check', 'process'];
-  const OPS = ['contains', 'not_contains', 'matches', 'count_gte'];
+  const OPS = ['contains', 'not_contains', 'matches', 'count_gte', 'json_valid'];
   const FIELD_BY_KIND = { check: /^(files|file):/, process: /^(run|exec|log):/ };
   const stripHeader = (t) => t.replace(/^<!--\s*rubric-control:[^\n]*-->\n?/, '');
   const evalOp = (text, op, value) => {
@@ -652,12 +652,16 @@ function testRubrics() {
     if (op === 'not_contains') return !text.includes(value);
     if (op === 'matches') return new RegExp(value, 'm').test(text);
     if (op === 'count_gte') return (text.match(new RegExp(value.pattern, 'gm')) || []).length >= value.min;
+    if (op === 'json_valid') { try { JSON.parse(text); return true; } catch { return false; } }
     return false;
   };
+  // A directory control holds the one file its criterion's field points at: `run:`/`exec:`/`log:`
+  // by name; a `files:` glob by the control's only non-README file (a broken mapping, say).
   const controlFile = (dir, field) => {
     if (/^run:/.test(field)) return path.join(dir, field.slice(4));
     if (/^exec:/.test(field)) return path.join(dir, 'exec.jsonl');
     if (/^log:/.test(field)) return path.join(dir, 'learnings-log.jsonl');
+    if (/^files?:/.test(field) && fs.existsSync(dir)) { const f = fs.readdirSync(dir).filter(n => !/^README\.md$/i.test(n)); return f.length === 1 ? path.join(dir, f[0]) : null; }
     return null;
   };
   // Items under a heading until the next `## ` or `---`; numbered lists keep their number,
@@ -720,6 +724,7 @@ function testRubrics() {
         check(typeof ck.field === 'string' && FIELD_BY_KIND[c.kind].test(ck.field), `${tag}: ${c.kind} field prefix valid`, String(ck.field));
         check(OPS.includes(ck.op), `${tag}: op "${ck.op}" is valid`);
         check(ck.op === 'count_gte' ? (ck.value && ck.value.pattern && Number.isInteger(ck.value.min)) : typeof ck.value === 'string', `${tag}: check value shape matches op`);
+        if (ck.op === 'json_valid') check(/\.json$/.test(ck.field), `${tag}: json_valid grades a .json field`, String(ck.field));
         check(c.anchors === undefined, `${tag}: ${c.kind} criterion has no anchors`);
       }
       if (c.floor > 0) floored.push(c);
@@ -758,10 +763,13 @@ function testRubrics() {
         check(h && h[1] === c.id && caseIds.includes(h[2]), `${skill}/${c.id}: control header names the criterion and an existing case`, h ? `${h[1]} / ${h[2]}` : 'missing header');
         if (c.kind === 'check') check(!evalOp(stripHeader(text), c.check.op, c.check.value), `${skill}/${c.id}: control fails its check (detection power)`, 'the control passed — it does not break the graded thing');
       }
-      if (c.kind === 'process') {
+      if (c.kind === 'process' || (c.kind === 'check' && isDir && !fs.existsSync(md))) {
         const f = isDir ? controlFile(dir, c.check.field) : null;
-        check(f && fs.existsSync(f), `${skill}/${c.id}: process control holds ${c.check.field}`);
-        if (f && fs.existsSync(f)) check(!evalOp(stripHeader(fs.readFileSync(f, 'utf8')), c.check.op, c.check.value), `${skill}/${c.id}: process control fails its check (detection power)`);
+        check(f && fs.existsSync(f), `${skill}/${c.id}: ${c.kind} control holds ${c.check.field}`);
+        if (f && fs.existsSync(f)) check(!evalOp(stripHeader(fs.readFileSync(f, 'utf8')), c.check.op, c.check.value), `${skill}/${c.id}: ${c.kind} control fails its check (detection power)`);
+        const readme = readFile(path.join(dir, 'README.md')) || '';
+        const h = readme.match(/^<!--\s*rubric-control:\s*criterion=(\S+)\s+case=(\S+)\s+expect=below-floor\s*-->/);
+        if (c.kind === 'check') check(h && h[1] === c.id && caseIds.includes(h[2]), `${skill}/${c.id}: directory control's README names the criterion and an existing case`, h ? `${h[1]} / ${h[2]}` : 'missing header');
       }
     }
     for (const name of controlNames) {
@@ -803,6 +811,10 @@ function testRubrics() {
     const rep = spawnSync(process.execPath, [path.join(ROOT, 'bin', 'eval.js'), 'report', path.join(CORE_DIR, 'skills', 'eval', 'tests', 'sample-scores.json')], { encoding: 'utf8' });
     check(rep.status === 0 && /\| alpha \| judge \| 3 \| 2 \| 2\.00 \| 1 \| 3 \| 1 \|/.test(rep.stdout), 'eval.js report renders the per-criterion table (mean/min/max/breaches)', (rep.stdout || rep.stderr).slice(0, 200));
     check(/spread 0\.5/.test(rep.stdout) && /REPORT-ONLY/.test(rep.stdout) && /VACUOUS|✓/.test(rep.stdout), 'eval.js report carries the spread line, the verdict and the controls table');
+    // 2026-09-12: scope decides from the diff whether an A/B can measure a change; `ab --restore` is the recovery path for a crashed swap.
+    const scope = spawnSync(process.execPath, [path.join(ROOT, 'bin', 'eval.js'), 'scope', 'test-cases', '--a', 'HEAD', '--b', 'working'], { encoding: 'utf8' });
+    check(scope.status === 0 && /^scope test-cases: (RUN|SKIP) — /.test(scope.stdout), 'eval.js scope exits 0 and prints RUN or SKIP with a reason', (scope.stdout || scope.stderr).slice(0, 200));
+    check(/ab --resume <ab-dir>/.test(help.stdout) && /ab --restore/.test(help.stdout) && /scope <skill>/.test(help.stdout), 'eval.js --help lists scope, ab --resume and ab --restore');
     for (const f of ['judge.md', 'eval-headless.md', 'mcp.json']) check(fs.existsSync(path.join(CORE_DIR, 'skills', 'eval', f)), `core/skills/eval/${f} shipped for eval.js`);
     check(/JSON only/.test(readFile(path.join(CORE_DIR, 'skills', 'eval', 'judge.md')) || '') && !/SKILL\.md/.test(readFile(path.join(CORE_DIR, 'skills', 'eval', 'judge.md')) || ''), 'judge prompt demands JSON and never mentions SKILL.md (judge never sees the procedure)');
   }
