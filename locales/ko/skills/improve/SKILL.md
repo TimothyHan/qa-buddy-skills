@@ -1,6 +1,6 @@
 ---
 name: improve
-version: 0.8.0
+version: 0.8.1
 description: |
   실제 사용 실패를 기반으로 다른 스킬을 개선하는 메타 스킬입니다. SDT가
   스킬의 출력이 잘못되었거나 예상과 다르다고 보고하면, 근본 원인을 분석하고,
@@ -141,7 +141,7 @@ SDT가 승인하면:
    - `core/skills/<skill>/tests/fixtures.json`을 읽습니다
    - 각 fixture에 대해: fixture 입력으로 스킬을 시뮬레이션하고, 모든 assertion을 확인합니다
    - 결과를 보고합니다. fixture가 실패하면 수정이 회귀를 유발했을 수 있으므로 계속하기 전에 검토합니다.
-   - **루브릭 게이트 (RFC 0005).** 스킬에 `threshold`가 null이 아닌(캘리브레이션된) `tests/rubric.json`이 있으면, 수정을 브랜치에 커밋하고 `node bin/eval.js ab <skill> --a <기준 ref> --b <브랜치>`를 실행합니다; 어느 기준에서든 바닥값 위반이나 편차를 넘는 회귀가 있으면 전달을 막습니다 — 수정을 먼저 고치세요. report-only 루브릭(`threshold: null`)은 `node bin/eval.js run <skill>`을 실행하고 게이트 없이 보고서를 첨부합니다.
+   - **루브릭 게이트 (RFC 0005).** 스킬에 `threshold`가 null이 아닌(캘리브레이션된) `tests/rubric.json`이 있으면, 수정을 브랜치에 커밋하고 `node bin/eval.js ab <skill> --a <기준 ref> --b <브랜치>`를 실행합니다. 게이트는 기준 ref에 상대적입니다: 어느 기준에서든 편차를 넘는 회귀, 또는 수정 쪽에서만 깨진 바닥값이 있으면 전달을 막습니다 — 수정을 먼저 고치세요; 임계값에 대한 절대 판정은 정보입니다. `ab`는 먼저 `scope`를 돌려 **변경을 인용하는 기준이 없으면 건너뜁니다**(페이즈 불릿 하나, 문서 한 줄) — 표 대신 그 한 줄을 첨부하세요; `--force`는 그래도 실행하고, `--runs 1`은 게이트가 아니라 눈으로 보고 싶은 변경을 위한 싼 선택입니다. report-only 루브릭(`threshold: null`)은 `node bin/eval.js run <skill>`을 실행하고 게이트 없이 보고서를 첨부합니다.
 
 4. **해당 스킬에 한국어 로케일이 있는 경우**, `locales/ko/skills/<skill>/SKILL.md`도 업데이트가 필요하다는 점을 SDT에게 알립니다. 자동 번역하지 않습니다.
 

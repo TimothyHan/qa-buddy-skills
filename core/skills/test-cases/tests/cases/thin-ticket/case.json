@@ -1,7 +1,10 @@
 {
   "id": "thin-ticket",
-  "description": "A ticket whose ACs are placeholders — the honest output lists gaps and asks, it does not invent acceptance criteria",
+  "description": "A ticket whose ACs are placeholders — the honest output is a document with zero cases that names the gaps, asks, and closes NEEDS_CONTEXT; it never invents acceptance criteria and never closes in chat only",
   "app": null, "port": 4173,
   "runner_args": "tags --headless",
-  "tags": ["edge", "needs-context"]
+  "tags": [
+    "edge",
+    "needs-context"
+  ]
 }

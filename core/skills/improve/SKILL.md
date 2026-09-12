@@ -1,6 +1,6 @@
 ---
 name: improve
-version: 0.8.0
+version: 0.8.1
 description: |
   Meta-skill that improves other skills based on real usage failures. When an SDT
   reports a skill produced incorrect or unexpected output, this skill analyzes the
@@ -141,7 +141,7 @@ Once the SDT approves:
    - Read `core/skills/<skill>/tests/fixtures.json`
    - For each fixture: simulate the skill with the fixture input, check all assertions
    - Report pass/fail. If any fixture fails, the fix may have introduced a regression — review before continuing.
-   - **Rubric gate (RFC 0005).** If the skill has `tests/rubric.json` with a non-null `threshold` (calibrated), commit the fix on its branch and run `node bin/eval.js ab <skill> --a <base ref> --b <branch>`; a floor breach or a regression outside the spread on any criterion blocks delivery — revise the fix first. A report-only rubric (`threshold: null`) gets `node bin/eval.js run <skill>` and the report is attached without gating.
+   - **Rubric gate (RFC 0005).** If the skill has `tests/rubric.json` with a non-null `threshold` (calibrated), commit the fix on its branch and run `node bin/eval.js ab <skill> --a <base ref> --b <branch>`. The gate is relative to the base: a regression outside the spread on any criterion, or a floor breached only on the fix side, blocks delivery — revise the fix first; the absolute verdict against the threshold is information. `ab` first runs `scope` and **skips when no criterion cites what changed** (a phase bullet, a doc line) — attach that line instead of a table; `--force` runs it anyway, `--runs 1` is a cheap look for a change you want to see but not gate. A report-only rubric (`threshold: null`) gets `node bin/eval.js run <skill>` and the report is attached without gating.
 
 4. **If the skill has a Korean locale**, note that `locales/ko/skills/<skill>/SKILL.md` also needs updating. Flag this to the SDT rather than auto-translating.
 

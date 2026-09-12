@@ -1,6 +1,6 @@
 ---
 name: test-cases
-version: 0.6.1
+version: 0.6.2
 description: |
   Generate test cases from a Jira ticket's acceptance criteria. Produces e2e test
   scenarios (steps and expected results, no code) and a unit test checklist for
@@ -38,6 +38,7 @@ ACs from Jira, cross-reference the epic test plan, and produce:
 5. **Don't duplicate existing tests.** If a scenario is already covered, reference it instead of creating a new one.
 6. **Prioritize ruthlessly.** A ticket with 3 ACs doesn't need 30 test cases. Focus on what catches real bugs.
 7. **Observed beats assumed.** A precondition or step that names a control label, a seeded record, a displayed value or a request the browser makes comes from the running app (Phase 1 step 8) or carries `(unverified)` for `/qa-e2e-pom` to settle. Never assert the network behaviour of a page you have not watched.
+8. **A close is a file, not a message.** NEEDS_CONTEXT and BLOCKED still write the test cases document and the mapping (Phase 5) — zero cases, a `## Blocker` naming what is missing, and the status block. A close that lives only in the chat transcript is invisible to the KB, the PR pipeline and the eval.
 
 ---
 
@@ -65,6 +66,7 @@ ACs from Jira, cross-reference the epic test plan, and produce:
    - Parent epic key
    - UI mockups or design links (from attachments or comments)
    - Linked Confluence pages (design specs, PRDs, API docs)
+   - ACs that are placeholders (`TBD`, an unfilled `<role> / <feature>` template) or absent are not requirements: never invent them. Continue to Phase 5 with zero cases and close NEEDS_CONTEXT — the files are still written (constraint 8)
 
 4. **Pull linked Confluence pages** (if any):
    - Read linked pages for detailed specs, data models, API contracts, UI flows
@@ -191,6 +193,8 @@ Before saving, verify consistency across all three artifacts. Fix issues found. 
 
 ### Save traceability mapping:
 `features-kb/features/{EPIC-KEY}/test-cases/{TICKET-KEY}-mapping.json`
+
+**Closing early (constraint 8):** when the run ends NEEDS_CONTEXT or BLOCKED before any test case exists, write both files anyway — the document holds a `## Blocker` section naming each unusable AC and why, the questions for the SDT, and the status block; the mapping holds empty `mappings` with every AC under `unmappedACs`. Same paths, same names — a later run updates them.
 
 ### Present to SDT:
 - "Any scenarios missing?"
