@@ -919,6 +919,12 @@ function testPrCoverage() {
   w('test/collide.unit.js', "// Test cases: features-kb/features/gamma/test-cases/g.md\n// TC-01 AC1: sign in (gamma's ids, not delta's)\n");
   w('test/delta.unit.js', "// declared as specFile by delta's mapping; its text names nothing\n");
   w('delta-files.txt', 'src/delta/y.js\n');
+  // epsilon's mapping file is not JSON (a missing comma between rows — the defect seen live). The reader
+  // must report it on the feature and in the comment, never silently treat it as "no mapping".
+  w('features-kb/features/epsilon/feature.md', '# Feature: Epsilon\n\n## Acceptance Criteria\n- AC1: Epsilon works\n');
+  w('features-kb/features/epsilon/sources.json', JSON.stringify({ feature: 'epsilon', sources: ['src/epsilon/**'] }));
+  w('features-kb/features/epsilon/test-cases/epsilon-mapping.json', '{ "mappings": [\n  { "ac": "AC #1: Epsilon works", "testCases": [ { "id": "TC-E1", "layer": "unit" } ] }\n  { "ac": "AC #2: never parsed" }\n] }\n');
+  w('epsilon-files.txt', 'src/epsilon/z.js\n');
 
   const run = (args, extraEnv) => execFileSync(process.execPath, [src, ...args], { cwd: tmp, env: { ...process.env, ...(extraEnv || {}) }, encoding: 'utf8', stdio: ['ignore', 'pipe', 'pipe'] });
   const exitCode = (args) => { try { run(args); return 0; } catch (e) { return e.status; } };
@@ -937,7 +943,7 @@ function testPrCoverage() {
     const none = JSON.parse(run(['touched', '--files', 'none.txt']));
     check(none.features.length === 0 && none.fallback === false, 'touched: nothing matched, --fallback none → empty');
     const all = JSON.parse(run(['touched', '--files', 'none.txt', '--fallback', 'all']));
-    check(all.fallback === true && all.features.map(f => f.key).join() === 'alpha,beta,delta,gamma', 'touched: --fallback all lists every feature and flags it');
+    check(all.fallback === true && all.features.map(f => f.key).join() === 'alpha,beta,delta,epsilon,gamma', 'touched: --fallback all lists every feature and flags it');
     check(exitCode(['touched']) === 2, 'touched: usage error exits 2');
     check(exitCode(['touched', '--files', 'files.txt', '--kb', 'nope']) === 3, 'touched: unreadable KB exits 3');
 
@@ -983,6 +989,18 @@ function testPrCoverage() {
     const h2 = JSON.parse(fs.readFileSync(path.join(tmp, 'out/h2.json'), 'utf8'));
     const arows = Object.fromEntries(h2.features[0].rows.map(r => [r.ac, r]));
     check(arows.AC1.cells.unit.state === 'partial', 'heatmap: the colliding file (cites gamma) does not become alpha evidence either');
+
+    // a mapping file that does not parse is reported, never silently read as "no mapping" (0.1.2)
+    fs.writeFileSync(path.join(tmp, 'touched-epsilon.json'), run(['touched', '--files', 'epsilon-files.txt']));
+    run(['heatmap', '--touched', 'touched-epsilon.json', '--phases', 'kb', '--now', '2026-09-04T00:00:00Z', '--pr', '9', '--out', 'out/he.json', '--md', 'out/he.md']);
+    const he = JSON.parse(fs.readFileSync(path.join(tmp, 'out/he.json'), 'utf8'));
+    const ef = he.features.find(x => x.key === 'epsilon') || { mappingErrors: [], rows: [] };
+    check(ef.mappingErrors.length === 1 && /features\/epsilon\/test-cases\/epsilon-mapping\.json$/.test(ef.mappingErrors[0].file) && /JSON/.test(ef.mappingErrors[0].error), 'heatmap: an unparseable mapping file is reported on its feature with the parse error', JSON.stringify(ef.mappingErrors));
+    check(he.mappingErrors.length === 1 && he.mappingErrors[0].feature === 'epsilon' && he.summary.mappingErrors === 1, 'heatmap: broken mapping files are listed at top level and counted in the summary', JSON.stringify({ top: he.mappingErrors, summary: he.summary }));
+    check(ef.rows.length === 1 && ef.rows[0].ac === 'AC1' && ef.rows[0].cells.unit.state === 'gap', 'heatmap: the feature.md ACs of a feature with a broken mapping still row, as gaps', JSON.stringify(ef.rows));
+    const hemd = fs.readFileSync(path.join(tmp, 'out/he.md'), 'utf8');
+    check(/⚠️ \*\*Broken mapping file\*\*/.test(hemd) && /epsilon-mapping\.json/.test(hemd) && /broken mapping file/.test(hemd), 'heatmap: the comment names the broken mapping file per feature and in the summary line');
+    check(h.summary.mappingErrors === 0 && !/Broken mapping/.test(md), 'heatmap: healthy features report zero broken mapping files and no warning');
 
     // Legacy mapping shapes + META rows, via --fallback all; not-run when explore did not run
     fs.writeFileSync(path.join(tmp, 'all.json'), JSON.stringify(all));
@@ -1064,7 +1082,8 @@ if(a.includes('--paginate'))process.stdout.write(fs.readFileSync(${JSON.stringif
     check(pfmd.startsWith('<!-- qabuddy:heatmap -->') && /could not start/.test(pfmd) && /PR #7/.test(pfmd), 'preflight: the note carries the sticky marker so it becomes the one PR comment');
     w('.qabuddy.json', '{"version":"1.0","contextSource":"spec","teamMode":"team"}');
     const p2 = pf(['--has-token', 'true', '--can-create-prs', 'true']);
-    check(p2.code === 0 && p2.out.ok === true && p2.out.features.join() === 'alpha,beta,delta,gamma', 'preflight: passes with config + token, lists features');
+    check(p2.code === 0 && p2.out.ok === true && p2.out.features.join() === 'alpha,beta,delta,epsilon,gamma', 'preflight: passes with config + token, lists features');
+    check(p2.out.warnings.some(x => x.code === 'broken-mapping' && /epsilon\/test-cases\/epsilon-mapping\.json/.test(x.message)), 'preflight: warns about a mapping file that is not valid JSON, naming it', JSON.stringify(p2.out.warnings.map(x => x.code)));
     w('bad/.qabuddy.json', '{not json'); const p3 = pf(['--root', 'bad', '--has-token', 'true']);
     check(p3.code === 6 && p3.out.problems.some(x => x.code === 'bad-config') && p3.out.problems.some(x => x.code === 'no-features'), 'preflight: invalid JSON and an empty KB are problems');
 

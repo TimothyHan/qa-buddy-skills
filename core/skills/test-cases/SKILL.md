@@ -1,6 +1,6 @@
 ---
 name: test-cases
-version: 0.6.0
+version: 0.6.1
 description: |
   Generate test cases from a Jira ticket's acceptance criteria. Produces e2e test
   scenarios (steps and expected results, no code) and a unit test checklist for
@@ -180,6 +180,7 @@ Before saving, verify consistency across all three artifacts. Fix issues found. 
 5. P0/P1/P2 distribution: not >50% P0, and at least one P0 exists for the core happy path
 6. No code blocks in the test cases document; automation constraints a writer needs appear in Preconditions
 7. Every precondition or step naming a label, seeded record, displayed value or request is backed by an `Observed:` line in the scratchpad or marked `(unverified)`
+8. Every JSON file you wrote parses: run `node -e 'JSON.parse(require("fs").readFileSync(process.argv[1],"utf8"))' <path>` on each mapping and fix it before saving. A mapping that does not parse is reported by the PR heatmap as a broken file and its test cases are invisible until repaired (caught live: a missing comma written in headless mode)
 
 ---
 

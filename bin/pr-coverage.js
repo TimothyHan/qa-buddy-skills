@@ -45,7 +45,7 @@ const fs = require('fs');
 const path = require('path');
 const { execFileSync } = require('child_process');
 
-const VERSION = '0.1.1';
+const VERSION = '0.1.2';
 const MARKER = '<!-- qabuddy:heatmap -->';
 const COLUMNS = ['unit', 'api', 'e2e', 'manual', 'exploratory'];
 const COLUMN_LABEL = { unit: 'Unit', api: 'API', e2e: 'E2E', manual: 'Manual', exploratory: 'Exploratory' };
@@ -157,6 +157,7 @@ function loadFeature(kb, key, titles) {
     mapping: new Map(),      // AC id → { tcs:[{id,layer}], unit:[], coverage }
     tcLayers: new Map(),     // TC id → layer declared in the TC doc
     definedTCs: new Set(),
+    mappingErrors: [],       // { file, error } — mapping files that could not be read; reported, never silently skipped
   };
   // ACs from feature.md: table rows, bullets, sub-headings
   for (const line of md.split('\n')) {
@@ -181,8 +182,13 @@ function loadFeature(kb, key, titles) {
   }
   // Mapping files — three shapes, tolerated in order of preference
   for (const f of listDir(tcDir).filter(f => f.endsWith('-mapping.json'))) {
-    const m = readJson(path.join(tcDir, f), null);
-    if (!m || !Array.isArray(m.mappings)) continue;
+    // A mapping that does not parse is a defect to surface, not an absence: the kb phase writes
+    // these files by hand and a missing comma once turned a feature's coverage into silent gaps.
+    const rel = toPosix(path.join(kb, 'features', key, 'test-cases', f));
+    let m;
+    try { m = JSON.parse(fs.readFileSync(path.join(tcDir, f), 'utf8')); }
+    catch (e) { feature.mappingErrors.push({ file: rel, error: e.message }); continue; }
+    if (!m || !Array.isArray(m.mappings)) { feature.mappingErrors.push({ file: rel, error: 'no `mappings` array' }); continue; }
     for (const row of m.mappings) {
       const id = normalizeAc(row.ac || row.requirement || '') || String(row.ac || row.requirement || '').trim();
       if (!id) continue;
@@ -369,7 +375,7 @@ function buildHeatmap(o) {
   const results = playwrightResults(o.results);
   const inventory = inventoryTCs(root);
   const features = [];
-  const summary = { covered: 0, partial: 0, gap: 0, notRun: 0, atRisk: 0 };
+  const summary = { covered: 0, partial: 0, gap: 0, notRun: 0, atRisk: 0, mappingErrors: 0 };
 
   for (const t of touched.features || []) {
     const f = loadFeature(kb, t.key, titles);
@@ -442,7 +448,8 @@ function buildHeatmap(o) {
       if (atRisk) summary.atRisk++;
       rows.push({ ac, text: f.acs.get(ac) || '', coverage: map.coverage, cells, atRisk });
     }
-    features.push({ key: f.key, title: f.title, matchedFiles: t.matchedFiles || [], rows });
+    summary.mappingErrors += f.mappingErrors.length;
+    features.push({ key: f.key, title: f.title, matchedFiles: t.matchedFiles || [], rows, mappingErrors: f.mappingErrors });
   }
 
   return {
@@ -451,6 +458,7 @@ function buildHeatmap(o) {
     pr: o.pr ? Number(o.pr) : null, phases, fallback: !!touched.fallback,
     features, summary,
     unmapped: touched.unmapped || { files: [], featuresWithoutSources: [] },
+    mappingErrors: features.flatMap(f => f.mappingErrors.map(e => Object.assign({ feature: f.key }, e))),
     links: { companion: o.companionUrl || null, run: o.runUrl || null },
   };
 }
@@ -478,6 +486,7 @@ function renderMarkdown(h) {
   if (!h.features.length) L.push('_No knowledge-base feature owns the changed files. Add `features-kb/features/<key>/sources.json` to map them._', '');
   for (const f of h.features) {
     L.push(`### ${f.title} (\`${f.key}\`)`, '');
+    for (const e of f.mappingErrors || []) L.push(`⚠️ **Broken mapping file** \`${e.file}\` — ${e.error}. Its test cases are invisible below (rows show as gaps) until it is repaired.`, '');
     L.push(`| AC | ${COLUMNS.map(c => COLUMN_LABEL[c]).join(' | ')} |`);
     L.push(`|---|${COLUMNS.map(() => '---').join('|')}|`);
     for (const r of f.rows) {
@@ -487,7 +496,7 @@ function renderMarkdown(h) {
     L.push('');
   }
   const s = h.summary;
-  L.push(`**${s.covered}** covered · **${s.partial}** partial · **${s.gap}** gap · **${s.notRun}** not run · **${s.atRisk}** AC${s.atRisk === 1 ? '' : 's'} at risk`, '');
+  L.push(`**${s.covered}** covered · **${s.partial}** partial · **${s.gap}** gap · **${s.notRun}** not run · **${s.atRisk}** AC${s.atRisk === 1 ? '' : 's'} at risk${s.mappingErrors ? ` · ⚠️ **${s.mappingErrors}** broken mapping file${s.mappingErrors === 1 ? '' : 's'}` : ''}`, '');
   L.push('Legend: ✅ covered (evidence on disk) · 🟡 partial (designed, not proven) · 🔴 gap · ⚪ not run this time · ⚠️ failing or a finding', '');
   const evidence = [];
   for (const f of h.features) for (const r of f.rows) for (const c of COLUMNS) {
@@ -499,6 +508,7 @@ function renderMarkdown(h) {
   const u = h.unmapped || {};
   if ((u.files || []).length) L.push(`**Unmapped changed files** (no feature claims them): ${u.files.map(f => `\`${f}\``).join(', ')}`, '');
   if ((u.featuresWithoutSources || []).length) L.push(`**Features without \`sources.json\`:** ${u.featuresWithoutSources.map(f => `\`${f}\``).join(', ')}`, '');
+  if ((h.mappingErrors || []).length) L.push(`**Broken mapping files** (not valid JSON — read as no mapping at all): ${h.mappingErrors.map(e => `\`${e.file}\``).join(', ')}`, '');
   const links = [];
   if (h.links.companion) links.push(`Companion PR: ${h.links.companion}`);
   if (h.links.run) links.push(`Run: ${h.links.run}`);
@@ -675,6 +685,14 @@ function cmdPreflight(o) {
   const withoutSources = keys.filter(k => !fs.existsSync(path.join(featuresDir, k, 'sources.json')));
   if (keys.length && withoutSources.length === keys.length) problem('no-sources', 'no feature has a `sources.json`, so no diff can be mapped', 'add `features-kb/features/<key>/sources.json` (KB spec §6.8) — `/qa-test-plan` writes it');
   else if (withoutSources.length) warn('some-sources', `features without \`sources.json\`: ${withoutSources.join(', ')}`, 'add one per feature so changes to their code map to them');
+  // A mapping file that does not parse would be read by the heatmap as no mapping at all; say so before any
+  // model spend. A warning, not a blocker: the kb phase about to run may be the thing that repairs it.
+  const brokenMappings = [];
+  for (const k of keys) for (const f of listDir(path.join(featuresDir, k, 'test-cases')).filter(f => f.endsWith('-mapping.json'))) {
+    try { JSON.parse(fs.readFileSync(path.join(featuresDir, k, 'test-cases', f), 'utf8')); }
+    catch (e) { brokenMappings.push(`${k}/test-cases/${f} (${e.message})`); }
+  }
+  if (brokenMappings.length) warn('broken-mapping', `mapping files that are not valid JSON: ${brokenMappings.join('; ')}`, 'repair them — until then the heatmap reads them as no mapping and their test cases are invisible');
 
   if (o.hasToken === 'false') problem('no-token', 'neither `CLAUDE_CODE_OAUTH_TOKEN` nor `ANTHROPIC_API_KEY` is set', 'add one as a repository secret — `claude setup-token` then `gh secret set CLAUDE_CODE_OAUTH_TOKEN` bills the Claude subscription of whoever minted it; `gh secret set ANTHROPIC_API_KEY` bills API credit');
   const billing = o.tokenKind === 'subscription' ? 'the Claude subscription that minted `CLAUDE_CODE_OAUTH_TOKEN`' : o.tokenKind === 'api-key' ? '`ANTHROPIC_API_KEY` (API credit)' : null;
