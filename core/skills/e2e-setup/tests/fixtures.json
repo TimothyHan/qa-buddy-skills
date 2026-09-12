@@ -1,6 +1,6 @@
 {
   "skill": "e2e-setup",
-  "version": "0.1.2",
+  "version": "0.1.4",
   "note": "RED SUITE — written before the skill exists (eval-first). Execute fixtures run against core/skills/eval/tests/fixture-app/. Ground truth: ANSWER-KEY.md (never shown to the skill).",
   "fixtures": [
     {
@@ -188,6 +188,35 @@
       "tags": [
         "headless",
         "rfc-0004"
+      ]
+    },
+    {
+      "id": "fx-005",
+      "description": "Smoke spec asserts a named element, never a collection count; decisions record worker+repeat entropy",
+      "input": {
+        "app": "list page seeded with 7 rows, no auth",
+        "request": "e2e setup"
+      },
+      "assertions": [
+        {
+          "field": "output",
+          "op": "not_contains",
+          "value": "toHaveCount("
+        },
+        {
+          "field": "output",
+          "op": "matches",
+          "value": "getByRole\\(|getByTestId\\("
+        },
+        {
+          "field": "output",
+          "op": "contains",
+          "value": "workerIndex"
+        }
+      ],
+      "tags": [
+        "smoke",
+        "parallel-safe"
       ]
     }
   ]
