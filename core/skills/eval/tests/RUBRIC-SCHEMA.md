@@ -10,7 +10,7 @@ tests/
   cases/<id>/input/           # copied into the scratch workspace before the run
   cases/<id>/judge-notes.md   # facts only the judge sees (never in input/)
   controls/<criterion>.md     # a deliberately degraded artifact (judge / check criteria)
-  controls/<criterion>/       # a deliberately degraded run directory (process criteria)
+  controls/<criterion>/       # a deliberately degraded run directory (process criteria) or, with a README.md header, the one non-markdown file a check criterion reads (a mapping that does not parse)
 ```
 
 ## rubric.json
@@ -43,7 +43,7 @@ tests/
 
 `check.field` prefixes — `check` kind: `files:<glob>` (every produced file matching the glob), `file:<path>`; `process` kind: `run:<file>` (a file in `.qa-reports/runs/<run>/`), `exec:` (the headless execution file — tool calls by name), `log:` (this run's lines in `features-kb/learnings-log.jsonl`).
 
-`check.op` — `contains`, `not_contains`, `matches` (JavaScript regex, multiline), `count_gte` (`value` = `{ "pattern", "min" }`).
+`check.op` — `contains`, `not_contains`, `matches` (JavaScript regex, multiline), `count_gte` (`value` = `{ "pattern", "min" }`), `json_valid` (`value` = `""`; graded per file — every matched file must parse, and no matched file at all fails: nothing was written).
 
 **Score** = Σ(weight × score / 3) / Σ weight, on 0–1. `check`/`process` criteria score 3 when the check holds and 0 when it does not.
 
@@ -65,7 +65,9 @@ tests/
 Every criterion with `floor > 0` has one. Markdown controls start with
 `<!-- rubric-control: criterion=<id> case=<case-id> expect=below-floor -->` and are a realistic
 artifact for that case with exactly the graded thing broken. Directory controls hold the file the
-`process` check reads (`scratchpad.md`, `exec.jsonl`, `learnings-log.jsonl`).
+`process` check reads (`scratchpad.md`, `exec.jsonl`, `learnings-log.jsonl`) — or, for a `check`
+criterion whose field is not markdown (`json_valid` on a mapping), the single broken file plus a
+`README.md` carrying the same `rubric-control:` header.
 
 `test.js` evaluates `check` and `process` controls now: the check **must fail** on its control.
 `judge` controls are validated structurally here and judged in PR2 (`eval.js controls`), where a

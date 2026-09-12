@@ -1,0 +1,10 @@
+{
+  "ticket": "projects",
+  "epic": "projects",
+  "mappings": [
+    { "requirement": "AC1: a project can be created with a name", "testCases": ["TC-001", "TC-002"], "layer": "e2e", "coverage": "full" }
+    { "requirement": "AC2: a project can be deleted", "testCases": ["TC-003"], "layer": "e2e", "coverage": "partial" }
+  ],
+  "unmappedACs": [],
+  "testGaps": ["AC2: no negative case for deleting a project that has bookings"]
+}
