@@ -1,6 +1,6 @@
 ---
 name: e2e-setup
-version: 0.1.3
+version: 0.1.4
 description: |
   Set up Playwright e2e automation tailored to this team and app. Probes the
   running app (auth mechanism, API surface, spec availability), interviews with
@@ -156,7 +156,7 @@ playwright/
   AUTOMATION.md            # the decisions file (Phase 5 template)
   .auth/                   # storageState output (gitignored)
   global-setup.ts          # login via probed endpoint → save storageState
-  tests/smoke.spec.ts      # goto baseURL (authed) + one visible-element assert
+  tests/smoke.spec.ts      # goto baseURL (authed) + one NAMED element visible (never a count)
   .env.example             # BASE_URL, TEST_USER, TEST_PASS (real values → .env, gitignored)
 ```
 
@@ -164,7 +164,12 @@ The config lives at the repo root (test discovery ergonomics); everything
 else stays under `playwright/`. Config must set `baseURL`, `testDir:
 './playwright/tests'`, wire `globalSetup`, and default `storageState` to the
 saved file. The smoke spec uses only user-facing locators (`getByRole`/
-`getByTestId`) — it is subject to the same spec lint as every other spec.
+`getByTestId`) and asserts **one known entity by name or role** — never
+`toHaveCount(n)` over rows, items or cards. A collection count is on the
+patterns NEVER list: it goes red the moment another spec, worker or run adds
+data (caught live 2026-09-12 — a smoke asserting 8 rows broke on the first
+run after a mutating spec existed). It is subject to the same spec lint as
+every other spec.
 Install deps: `npm i -D @playwright/test` (+ browsers if missing:
 `npx playwright install chromium`).
 
@@ -189,7 +194,8 @@ Write `playwright/AUTOMATION.md`:
 - White-box: {repo path + propose|apply | black-box}
 - POM style: {functional|class|fixture-injected}
 - CI: {system}; retries/forbidOnly configured
-- Data hygiene: unique names required (`${prefix}-${Date.now()}`), cleanup via API
+- Data hygiene: unique names required (`${prefix}-${Date.now()}-w${workerIndex}r${repeatEachIndex}` —
+  `Date.now()` alone collides across workers), cleanup via API
 ```
 
 ## Self-evaluation before output
@@ -198,6 +204,7 @@ Write `playwright/AUTOMATION.md`:
 - [ ] Every question carried a recommendation
 - [ ] AUTOMATION.md records all decisions incl. parallelism constraint
 - [ ] Both execute gates ran and passed
+- [ ] Smoke spec asserts a named element; no collection count anywhere in it
 - [ ] No credentials in committed files
 
 **Status:** DONE | BLOCKED (gate red — say which command failed and why)
