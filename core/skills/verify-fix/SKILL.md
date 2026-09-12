@@ -1,6 +1,6 @@
 ---
 name: verify-fix
-version: 0.4.1
+version: 0.4.2
 description: |
   Re-test a bug fix after a developer resolves it. Pulls the original bug from Jira,
   re-executes the repro steps in the browser, checks for regressions, and updates
@@ -124,6 +124,13 @@ If the original bug links to a ticket with KB test cases:
 - Re-run test cases for the same AC the bug was filed against
 - Re-run test cases for adjacent ACs on the same ticket
 - All should still PASS
+- **Invert what encoded the bug.** Search the KB — `features-kb/features/*/test-cases/*.md`,
+  `*-mapping.json`, unit-test checklists — for the bug key AND its symptom. A test case whose
+  expected result describes the defect ("expected to FAIL today", a characterization of the
+  broken behaviour, a step annotated with the bug) now contradicts the fix. Rewrite that
+  expectation to the fixed behaviour under a dated `**UPDATED {YYYY-MM-DD}:**` note that names
+  the bug; remove the matching expected-fail marker from any automated spec. List every changed
+  case in the report. None found → say so. Never leave a case that still calls the bug expected.
 
 ### 3.2 Adjacent Page Check
 
@@ -149,6 +156,7 @@ Before issuing the verdict, verify:
 4. Console checked after both fix verification and regression checks
 5. If the bug did not reproduce: the run conditions reconstructed are **listed by name**, and the verdict is NOT REPRODUCED rather than VERIFIED
 6. **Format check:** report contains verdict, repro table, regression table, next steps
+7. Every KB test case whose expectation encoded the bug was inverted and is listed in the report — or the report states none exist
 
 Fix any gaps. One pass.
 
@@ -196,6 +204,7 @@ Write to both:
 | Adjacent pages | Clean / Issues | |
 | Console | Clean / Errors | |
 | Regression test exists | Yes / No | |
+| Test cases inverted | {TC ids} / none found | expectations that encoded the bug |
 
 ## Next Steps
 

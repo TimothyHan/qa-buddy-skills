@@ -1,6 +1,6 @@
 {
   "skill": "verify-fix",
-  "version": "0.4.0",
+  "version": "0.4.2",
   "fixtures": [
     {
       "id": "fx-001",
@@ -135,6 +135,39 @@
         "verify-fix",
         "not-reproducible",
         "conditions"
+      ]
+    },
+    {
+      "id": "fx-006",
+      "description": "Inverts KB test cases whose expected result encoded the bug",
+      "input": {
+        "bug": "BUG-002 (focus ring missing) verified fixed; KB test cases TC-010 and TC-011 still expect 'no visible focus ring' and 'expected to FAIL today on Create New'"
+      },
+      "assertions": [
+        {
+          "field": "output",
+          "op": "matches",
+          "value": "TC-010"
+        },
+        {
+          "field": "output",
+          "op": "matches",
+          "value": "TC-011"
+        },
+        {
+          "field": "output",
+          "op": "matches",
+          "value": "UPDATED|invert"
+        },
+        {
+          "field": "output",
+          "op": "not_contains",
+          "value": "expected to FAIL today"
+        }
+      ],
+      "tags": [
+        "stale-test-cases",
+        "inversion"
       ]
     }
   ]
