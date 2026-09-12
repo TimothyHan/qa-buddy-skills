@@ -126,7 +126,7 @@ constraint resets calibration.
 
 | skill | threshold | judge | agreement (lowest criterion) |
 |---|---|---|---|
-| test-cases | 0.857 | claude-opus-5 | 0.90 |
+| test-cases | 0.867 | claude-opus-5 | 0.93 |
 | exploratory | 0.709 | claude-opus-5 | 0.83 |
 
 The other skills have fixtures only. They get a rubric when they have enough logged runs to

@@ -123,7 +123,7 @@ node bin/eval.js run test-cases
 
 | 스킬 | 임계값 | 판정자 | 일치율(최저 기준) |
 |---|---|---|---|
-| test-cases | 0.857 | claude-opus-5 | 0.90 |
+| test-cases | 0.867 | claude-opus-5 | 0.93 |
 | exploratory | 0.709 | claude-opus-5 | 0.83 |
 
 나머지 스킬은 픽스처만 있습니다. 캘리브레이션할 만큼 실행 기록이 쌓이면 루브릭을 갖게

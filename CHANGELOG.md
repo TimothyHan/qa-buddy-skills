@@ -40,6 +40,8 @@ may remove a skill.
   what the skill thought it did.
 - `/qa-improve` 0.8.1: the rubric gate step names the relative gate, the `scope` skip and
   `--runs 1`.
+- test-cases rubric recalibrated for the new criterion: threshold 0.867 (was 0.857), lowest
+  agreement 0.93, pair agreement 0.95 — same ten entries and human scores.
 
 ### Changed
 

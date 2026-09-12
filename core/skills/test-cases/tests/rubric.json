@@ -11,9 +11,9 @@
     "features-kb/**/test-cases/*.md",
     "features-kb/**/test-cases/*-mapping.json"
   ],
-  "threshold": 0.857,
+  "threshold": 0.867,
   "calibration": {
-    "date": "2026-09-06",
+    "date": "2026-09-12",
     "artifacts": 10,
     "human_scored": 10,
     "passes": 3,
@@ -21,8 +21,8 @@
       "traceability": 1,
       "coverage-honesty": 1,
       "dedup-by-assertion": 1,
-      "prioritization": 0.97,
-      "observed-or-unverified": 0.9
+      "prioritization": 1,
+      "observed-or-unverified": 0.93
     },
     "floor_agreement": {
       "traceability": 1,
