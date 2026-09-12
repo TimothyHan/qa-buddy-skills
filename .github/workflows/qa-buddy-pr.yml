@@ -255,6 +255,19 @@ jobs:
             --disallowedTools AskUserQuestion
             --allowedTools "${{ env.QABUDDY_TOOLS }}"
             --mcp-config ${{ env.QAB_SRC }}/.github/qa-buddy-pr/mcp.json
+      - name: Every knowledge-base JSON file must parse
+        # The model edits mapping files by hand; one missing comma once made the heatmap read a
+        # feature as having no mapping at all. Refuse to deliver unparseable output.
+        run: |
+          node -e '
+            const fs = require("fs"), path = require("path"); const bad = [];
+            const walk = (d) => { for (const e of fs.readdirSync(d, { withFileTypes: true })) { const p = path.join(d, e.name);
+              if (e.isDirectory()) { if (e.name !== ".cache") walk(p); }
+              else if (p.endsWith(".json")) { try { JSON.parse(fs.readFileSync(p, "utf8")); } catch (err) { bad.push(p + ": " + err.message); } } } };
+            if (fs.existsSync("features-kb")) walk("features-kb");
+            if (bad.length) { console.error("::error::the kb phase left unparseable JSON — the heatmap would read it as no mapping:\n" + bad.join("\n")); process.exit(1); }
+            console.log("knowledge-base JSON: every file parses");
+          '
       - name: Pack the phase tree
         if: always()
         run: |
