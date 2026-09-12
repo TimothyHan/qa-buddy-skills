@@ -9,6 +9,38 @@ may remove a skill.
 
 ## [Unreleased]
 
+### Fixed
+
+- `/qa-test-cases` 0.6.2: a NEEDS_CONTEXT or BLOCKED close is a file, not a message (constraint 8)
+  — the document and mapping are written with zero cases, a `## Blocker` and the status block. The
+  first real `eval.js ab` run (2026-09-12, PR #87) found the thin-ticket case closing in chat only
+  in four runs of six, scoring 0 on every criterion; the calibration artifact for that case had
+  always written its file. The Korean twin also catches up on self-check 8 from #87 (parse every
+  JSON you wrote), which #87 left out.
+- `eval.js ab` restores the global `qa-*` links on Ctrl-C and after a crash, keeps trying every
+  link when one fails, and leaves its snapshot in the lock file for `ab --restore` when it cannot;
+  variants build under `<ab-dir>/install/<a|b>` instead of the system temp folder (a full disk on
+  2026-09-12 left every QABuddy skill on the machine dangling); `npm ci` runs offline-first without
+  audit or funding checks.
+
+### Added
+
+- `eval.js scope <skill> --a --b`: says whether any rubric criterion cites what changed between
+  two refs. `ab` runs it first and skips when nothing cited changed — the PR #87 run spent $22 and
+  three hours to say "not distinguishable" about one Phase 4 bullet no criterion graded.
+- `eval.js ab` gates **relative to A**: a regression outside the spread or a floor breached only in B
+  blocks (exit 1); the absolute PASS/FAIL against the threshold is printed as information. `main`
+  itself scored 0.571 against 0.857, so an absolute gate failed every PR and carried no signal.
+- `eval.js ab --resume <dir>`: per-run `scores.json` is written as each run lands, and a cut-short
+  A/B continues from the missing runs with the built variants reused.
+- `artifacts-parse` check criterion on the test-cases rubric (`json_valid`, floor 1): every mapping
+  the skill wrote must parse — the defect PR #87 fixed in production is now caught on the bench.
+  New `json_valid` op and directory controls for `check` criteria in `RUBRIC-SCHEMA.md`.
+- Every eval report carries the runner's closing line per run, so a run with no artifact says
+  what the skill thought it did.
+- `/qa-improve` 0.8.1: the rubric gate step names the relative gate, the `scope` skip and
+  `--runs 1`.
+
 ### Changed
 
 - The CI guides (`docs/pr-coverage.md`, `docs/pr-coverage-en.md`) are rewritten for a

@@ -37,19 +37,34 @@ Output: `.qa-reports/evals/<skill>/<timestamp>/{report.md, scores.json, eval.log
 |---|---|---|
 | `run <skill> [--cases a,b] [--runs 3] [--model id] [--eval-budget usd]` | the eval above | ≈ $3 test-cases, ≈ $8 exploratory |
 | `controls <skill> [--passes 3]` | judge the controls only | cents |
-| `ab <skill> --a <ref> --b <ref> [--cases] [--runs 3]` | build and install each ref in turn, run both, compare per criterion | ≈ 2× a run |
+| `scope <skill> --a <ref> --b <ref>` | say whether any rubric criterion cites what changed between the refs; `ab` runs it first | free |
+| `ab <skill> --a <ref> --b <ref> [--cases] [--runs 3] [--force]` | build and install each ref in turn, run both, gate B against A per criterion; skips when `scope` says no criterion cites the change | ≈ 2× a run |
+| `ab --resume <ab-dir>` | continue an A/B whose runs were cut short — finished runs and built variants are reused | the missing runs only |
+| `ab --restore` | put the global `qa-*` links back from the snapshot a crashed `ab` left behind | free |
 | `judge <workspace> --skill s --case id` | grade an existing artifact directory | cents |
 | `calibrate <skill> --init` / `calibrate <skill>` | assemble the calibration set / compare the judge with the human scores | cents |
 | `report <dir>` | re-render `report.md` | free |
 
 `ab` **swaps your global QABuddy install** (`~/.claude/skills/qa-*`) for each variant and restores
-the exact previous symlinks afterwards; do not run QABuddy skills on the same machine during an
-A/B. The same commands run in CI on demand via `.github/workflows/skill-eval.yml`.
+the exact previous symlinks afterwards — on a clean exit, on Ctrl-C, and after a crash; if even that
+fails, the snapshot stays in `~/.claude/skills/.qab-eval-ab.lock` and `ab --restore` finishes the
+job. Do not run QABuddy skills on the same machine during an A/B. Variants are built under the A/B's
+own directory (`<ab-dir>/install/<a|b>`), never in the system temp folder, and every run's scores are
+written as they land, so a crash after eight of nine runs costs one run to resume. `--runs 1` is a
+legitimate cheap look for a change you only want to see, not gate. The same commands run in CI on
+demand via `.github/workflows/skill-eval.yml`.
 
 ## Reading a report
 
+- **Gate** (A/B) — `PASS` or `BLOCKED`, decided **relative to A**: a criterion whose delta exceeds the
+  run spread, or a floor breached in B on a criterion A never breached, blocks. The absolute PASS/FAIL
+  against the calibrated threshold is printed as information only — the first real run (2026-09-12)
+  put `main` itself at 0.571 against 0.857, so an absolute gate would fail every PR and say nothing.
 - **Per criterion** — mean, min, max and floor breaches over all runs. Read this table, not the
   total: a rule that only feeds one criterion moves one row.
+- **Runner line** — under each run's evidence, what the runner said it did when it finished. When
+  every criterion is 0 and no artifact matched, this line tells you whether the skill closed in chat
+  instead of writing its file.
 - **Spread** — max − min of the run totals. In an A/B a delta larger than the larger spread is a
   regression or an improvement; anything smaller is "not distinguishable at this n". Three runs
   detect large effects only, and the report says so.
@@ -60,6 +75,8 @@ A/B. The same commands run in CI on demand via `.github/workflows/skill-eval.yml
 
 - **`/qa-improve` runs it for you** (0.8.0): a fix to a skill with a calibrated rubric is A/B'd
   against the base ref before delivery; a floor breach or a regression outside the spread blocks it.
+  Since 0.8.1 it first runs `scope`: a change no criterion cites (a phase bullet, a doc line) skips
+  the A/B and says so, because three runs cannot measure it anyway.
 - **Any hand edit** to a calibrated skill, the preamble, or a playbook section it reads — the
   CONTRIBUTING checklist asks for the `ab` table in the PR.
 - **Model upgrades** — same cases, `--model` on both sides.
@@ -114,3 +131,9 @@ constraint resets calibration.
 
 The other skills have fixtures only. They get a rubric when they have enough logged runs to
 calibrate against (RFC 0005 plan, PR6).
+
+The first real gate run (2026-09-12, PR #87) scored `main` at 0.571 on test-cases: the thin-ticket
+case closed in chat without writing its file in four runs of six, and the skill skips the app probe
+and claims coverage it did not verify in headless mode. The first is fixed (constraint 8); the second
+is an open `/qa-improve` item, and until it lands the absolute verdict on test-cases reads FAIL —
+which is why the gate is relative.
