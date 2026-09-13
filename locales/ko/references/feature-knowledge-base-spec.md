@@ -382,6 +382,11 @@ AC와 테스트 케이스 간의 추적성 매핑 파일입니다.
 }
 ```
 
+테스트 케이스 id는 **기능 단위로 고유**합니다: 한 기능의 모든 `test-cases/*.md`가 하나의
+`TC-NNN` 순번을 나눠 쓰므로 `EPIC-50/TC-001`은 정확히 하나의 케이스를 가리킵니다. 두 번째
+티켓은 번호를 이어 갑니다; 두 파일이 정의한 id는 히트맵이 충돌로 보고하고 그 id의 증거는
+세지 않습니다.
+
 ### 6.8 sources.json (기능별)
 
 기능이 소유한 코드 경로와 테스트 위치. `bin/pr-coverage.js touched`는 이 glob으로
@@ -423,6 +428,27 @@ Results** 표에 `ACs` 열이 있고, 스캐너는 이 표만 읽습니다:
 
 `Result` ∈ `clean` | `finding` | `unexplored`. `finding` 행은 해당 AC를 *위험*으로
 표시하고 셀을 `#Finding N`에 연결합니다; `unexplored`는 정직한 부분 커버리지입니다.
+
+발견은 세션을 가로질러 기능과 제목으로 식별됩니다. 나중 세션이 같은 제목으로 다시 나열하며
+`**Status:** resolved`나 `not reproduced`를 적으면 해결된 것이고, 버그 파일을 지명한
+발견(`same root cause as BUG-003`)은 그 파일의 상태를 따릅니다. 다시 나열되지 않은 이전
+발견은 열린 채로 남습니다.
+
+### 6.10 bugs/{BUG-NNN}.md (기능별)
+
+Jira 없이 등록한 버그(`/qa-qa` 4단계, `/qa-exploratory`의 "버그 등록" 조치). id는 기능
+단위이므로 두 기능의 `BUG-001`은 서로 다른 버그입니다. 필드는 `**이름:** 값` 줄이며 대소문자를
+가리지 않고 읽습니다; PR 파이프라인의 할 일 목록은 `Status`를 기준으로 합니다:
+
+```markdown
+# BUG-003: Deleted project stays listed
+**Severity:** Major | **Priority:** High | **AC:** AC3 | **Environment:** staging
+**Status:** open
+```
+
+`Status` ∈ `open` | `fixed` | `verified` | `reopened` | `wont-fix` | `duplicate`; 없으면
+`open`입니다. `/qa-verify-fix`가 `verified` 또는 `reopened`를 씁니다. `open`과 `reopened`
+버그만 작성자의 목록에 남습니다.
 
 ### 6.6 relations/feature-map.json
 

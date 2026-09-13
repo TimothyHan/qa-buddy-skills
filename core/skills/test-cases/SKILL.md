@@ -1,6 +1,6 @@
 ---
 name: test-cases
-version: 0.6.2
+version: 0.6.3
 description: |
   Generate test cases from a Jira ticket's acceptance criteria. Produces e2e test
   scenarios (steps and expected results, no code) and a unit test checklist for
@@ -167,7 +167,7 @@ Create a mapping from requirements to test cases:
 ```
 
 **Coverage values:** `full` (all aspects tested) | `partial` (gaps noted in `testGaps`) | `none` (flag clearly)
-**Layer values:** `unit` | `api` | `e2e` | `manual` (per `test-distribution.md`). This is the KB spec §6.5 shape; on `--update` keep existing TC ids and migrate an older `e2e_tests[]` file to this shape only if you touch it.
+**Layer values:** `unit` | `api` | `e2e` | `manual` (per `test-distribution.md`). This is the KB spec §6.5 shape; on `--update` keep existing TC ids and migrate an older `e2e_tests[]` file to this shape only if you touch it. **TC ids are unique per feature, not per ticket:** before numbering, read every file under `features-kb/features/{EPIC-KEY}/test-cases/` and continue from the highest `TC-NNN` in use — never restart at TC-001 for a second ticket. The PR heatmap resolves spec titles by bare id; two tickets sharing `TC-001` made one ticket's spec prove the other's rows.
 
 ---
 
@@ -183,6 +183,7 @@ Before saving, verify consistency across all three artifacts. Fix issues found. 
 6. No code blocks in the test cases document; automation constraints a writer needs appear in Preconditions
 7. Every precondition or step naming a label, seeded record, displayed value or request is backed by an `Observed:` line in the scratchpad or marked `(unverified)`
 8. Every JSON file you wrote parses: run `node -e 'JSON.parse(require("fs").readFileSync(process.argv[1],"utf8"))' <path>` on each mapping and fix it before saving. A mapping that does not parse is reported by the PR heatmap as a broken file and its test cases are invisible until repaired (caught live: a missing comma written in headless mode)
+9. No TC id in this document is already defined in another test-case file of the feature (`grep -rn '^### TC-' features-kb/features/{EPIC-KEY}/test-cases/`) — a duplicate id is reported by the heatmap as a collision and proves nothing until renumbered
 
 ---
 

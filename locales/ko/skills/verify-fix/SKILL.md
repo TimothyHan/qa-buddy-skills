@@ -1,6 +1,6 @@
 ---
 name: verify-fix
-version: 0.4.1
+version: 0.4.3
 description: |
   개발자가 수정한 버그를 재테스트합니다. Jira에서 원본 버그를 가져오고,
   브라우저에서 재현 단계를 다시 실행하며, 회귀 여부를 확인하고, 버그 상태를
@@ -212,8 +212,8 @@ Jira에서 원본 버그를 가져오고, 브라우저에서 재현 단계를 �
 - **REGRESSION:** 원본은 Verified로 유지하고, `/qa-qa` 버그 등록 워크플로우를 통해 새 버그를 등록합니다.
 
 **Jira가 없는 경우:**
-- `features-kb/features/{EPIC-KEY}/bugs/`의 버그 파일에 판정을 업데이트합니다.
-- REGRESSION인 경우: 새 버그 파일을 생성합니다. SDT가 직접 관리 도구에 등록합니다.
+- `features-kb/features/{EPIC-KEY}/bugs/`의 버그 파일을 업데이트합니다: `**Status:**` 줄을 `verified`(VERIFIED) 또는 `reopened`(FAILED)로 바꾸고, 보고서 경로를 담은 한 줄 판정을 덧붙입니다. PR 파이프라인이 그 줄을 읽습니다 — verified 버그는 작성자의 할 일 목록에서 빠지고, reopened 버그는 돌아옵니다.
+- REGRESSION인 경우: 새 버그 파일(`**Status:** open`)을 생성합니다. SDT가 직접 관리 도구에 등록합니다.
 
 ---
 

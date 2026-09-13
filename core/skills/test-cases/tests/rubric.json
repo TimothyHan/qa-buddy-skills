@@ -1,6 +1,6 @@
 {
   "skill": "test-cases",
-  "skill_version": "0.6.2",
+  "skill_version": "0.6.3",
   "rubric_version": 1,
   "judge": {
     "model": "claude-opus-5",
