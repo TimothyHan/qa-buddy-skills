@@ -1157,6 +1157,66 @@ const k=a[0]+' '+a[1];if(k==='issue list')process.stdout.write(fs.readFileSync($
     check(/### Not automated yet/.test(sm_body) && /TC-03 \(AC3\)/.test(sm_body) && /Concerns raised by the phases/.test(sm_body), 'summary sm_body: unautomated test cases and phase concerns');
     check(sm_ann.startsWith('QABuddy opened https://github.com/o/r/pull/9 with tests for this PR (phases: kb, explore)') && /\*\*To fix on this branch\*\*/.test(sm_ann) && /\*\*Needs a decision:\*\*/.test(sm_ann) && /issues\/42/.test(sm_ann), 'summary announcement: starts with the phrase the merge-marker looks for, lists fixes and decisions');
 
+    // 2026-09-12, four defects from the demo repo. (1) bug status is read case-insensitively and a resolved
+    // bug leaves the author's to-do list; (2) a later session that re-lists a finding with a status resolves
+    // it, and its issue is closed / reopened; (3) "also seen as" is scoped to the bug's own feature;
+    // (4) a TC id two tickets of one feature both define is a collision — no spec proves it.
+    w('features-kb/features/alpha/bugs/BUG-001.md', '# BUG-001: Deleted things remain listed\n**Feature:** alpha | **Severity:** P1\n**status:** fixed in #12\n');
+    w('features-kb/features/alpha/bugs/BUG-002.md', '# BUG-002: Search ignores case\n**Severity:** P2\n');
+    w('features-kb/features/alpha/exploratory/2026-09-08.md', '# Report\n## Focus Area Results\n| Focus Area | ACs | Time | Findings | Result |\n|---|---|---|---|---|\n| Delete | AC3 | 5m | Finding 1 | finding |\n\n## Detailed Findings\n### Finding 1: Should deleted names be reusable?\n**Category:** Missing requirement | **Severity:** Minor | **Priority:** Low | **Status:** not reproduced\n**Action:** discuss with product\n\n### Finding 2: Export button hidden on mobile\n**Category:** UX | **Severity:** Minor | **Priority:** Low\n**Action:** discuss\n');
+    w('features-kb/features/zeta/feature.md', '# Feature: Zeta\n\n## Acceptance Criteria\n- AC1: Zeta works\n');
+    w('features-kb/features/zeta/bugs/BUG-001.md', '# BUG-001: Zeta crashes on save\n**Severity:** P0\n**Status:** Open\n');
+    w('features-kb/features/zeta/exploratory/2026-09-08.md', '## Detailed Findings\n### Finding 1: Save crashes (same root cause as BUG-001)\n**Category:** Bug | **Severity:** Critical | **Priority:** High\n**Action:** file bug\n');
+    w('touched2.json', JSON.stringify({ schema: 'pr-touched/1', features: [{ key: 'alpha', title: 'Alpha feature', matchedFiles: [] }, { key: 'zeta', title: 'Zeta', matchedFiles: [] }], unmapped: { files: [], featuresWithoutSources: [] }, fallback: false }));
+    run(['summary', '--touched', 'touched2.json', '--heatmap', 'out/h.json', '--results', 'results.json', '--changed', 'changed.txt', '--pr', '7', '--source-ref', 'feat/x', '--phases', 'kb,explore', '--json', 'out/findings2.json', '--body', 'out/body2.md', '--announce', 'out/announce2.md']);
+    const fj2 = JSON.parse(fs.readFileSync(path.join(tmp, 'out', 'findings2.json'), 'utf8'));
+    const body2 = fs.readFileSync(path.join(tmp, 'out', 'body2.md'), 'utf8'), ann2 = fs.readFileSync(path.join(tmp, 'out', 'announce2.md'), 'utf8');
+    const bugA1 = fj2.bugs.find(b => b.feature === 'alpha' && b.id === 'BUG-001'), bugA2 = fj2.bugs.find(b => b.id === 'BUG-002');
+    check(bugA1 && bugA1.open === false && bugA1.status === 'fixed in #12' && bugA2.open === true && bugA2.status === 'open', 'summary: `**status:**` is read whatever its case, resolved vocabulary closes the bug, no status line means open', JSON.stringify(fj2.bugs));
+    check(!/- \[ \] \*\*BUG-001\*\* \(P1\)/.test(body2) && /- \[ \] \*\*BUG-002\*\*/.test(body2) && /### Resolved[\s\S]*✅ \*\*BUG-001\*\* \(P1\) — Deleted things remain listed — fixed in #12/.test(body2), 'summary body: a fixed bug leaves the author\'s to-do list and is listed under Resolved', body2.slice(0, 900));
+    const fA1 = fj2.findings.find(f => f.feature === 'alpha' && f.title === 'Deleted thing stays listed'), fA2 = fj2.findings.find(f => /reusable/.test(f.title)), fA3 = fj2.findings.find(f => /Export button/.test(f.title));
+    check(fA1 && fA1.open === false && /BUG-001 fixed/.test(fA1.status), 'summary: a finding that names a bug file follows the bug\'s status', JSON.stringify(fA1));
+    check(fA2 && fA2.open === false && fA2.status === 'not reproduced' && fA2.file.endsWith('2026-09-08.md') && fA2.firstSeen.endsWith('2026-09-06.md') && fA3 && fA3.open === true, 'summary: a later session that re-lists a finding with **Status:** resolves it and keeps where it was first seen; new findings stay open', JSON.stringify([fA2, fA3]));
+    check(/## Findings \(3 open, 2 resolved\)/.test(body2) && /✅ Finding 1 — Should deleted names be reusable\? — not reproduced/.test(body2) && !/- \[ \] .*Should deleted names/.test(body2) && /Resolved: BUG-001 \(fixed in #12\), Finding 1 \(not reproduced\)/.test(ann2), 'summary body + announcement: resolved findings are not to-dos; both name what was resolved', body2.slice(0, 1200) + ' | ' + ann2);
+    const zetaBug = body2.split('\n').find(l => /BUG-001\*\* \(P0\)/.test(l)); const zetaIdx = body2.indexOf('BUG-001** (P0)');
+    check(zetaBug && /also seen as Finding 1 — Save crashes/.test(body2.slice(zetaIdx, zetaIdx + 400)) && !/Deleted things remain listed[\s\S]{0,200}also seen as Finding 1 — Save crashes/.test(body2), 'summary body: "also seen as" links a finding to its own feature\'s bug only (two features, both BUG-001)', body2.slice(0, 1500));
+    // issues: a resolved decision closes its open issue; a closed issue whose finding is back is reopened
+    fs.writeFileSync(path.join(tmp, 'issues-existing.json'), JSON.stringify([
+      { number: 42, url: 'https://github.com/o/r/issues/42', title: 'x', state: 'OPEN', body: `<!-- qabuddy:finding ${fA2.hash} -->` },
+      { number: 43, url: 'https://github.com/o/r/issues/43', title: 'y', state: 'CLOSED', body: `<!-- qabuddy:finding ${fA3.hash} -->` },
+    ]));
+    fs.unlinkSync(issueLog);
+    const sm_res = JSON.parse(run(['issues', '--repo', 'o/r', '--pr', '7', '--findings', 'out/findings2.json'], ghEnv2));
+    const ilog2 = fs.readFileSync(issueLog, 'utf8');
+    check(/--state all/.test(ilog2) && sm_res.issues.some(i => i.number === 42 && i.action === 'closed') && /issue close 42 .*not reproduced/.test(ilog2), 'issues: a finding resolved on the companion closes the issue it opened', JSON.stringify(sm_res) + ' | ' + ilog2.slice(0, 400));
+    check(sm_res.issues.some(i => i.number === 43 && i.action === 'reopened') && /issue reopen 43/.test(ilog2) && /issue edit 43/.test(ilog2) && !/issue create/.test(ilog2), 'issues: a finding that comes back reopens its closed issue instead of opening a second one', ilog2.slice(0, 400));
+    // heatmap: TC-01 defined by two tickets of feature eta → collision; a spec titled TC-01 proves nothing for it
+    w('features-kb/features/eta/feature.md', '# Feature: Eta\n\n## Acceptance Criteria\n- AC1: Eta logs requests\n- AC2: Eta rotates logs\n');
+    w('features-kb/features/eta/sources.json', JSON.stringify({ feature: 'eta', sources: ['src/eta/**'], tests: { e2e: ['playwright/tests/**/*.spec.ts'] } }));
+    w('features-kb/features/eta/test-cases/ETA-1.md', '### TC-01: request is logged\n');
+    w('features-kb/features/eta/test-cases/ETA-2.md', '### TC-01: log rotates at midnight\n### TC-02: old logs are pruned\n');
+    w('features-kb/features/eta/test-cases/ETA-1-mapping.json', JSON.stringify({ mappings: [{ ac: 'AC #1: Eta logs requests', testCases: [{ id: 'TC-01', layer: 'e2e' }], coverage: 'full' }] }));
+    w('features-kb/features/eta/test-cases/ETA-2-mapping.json', JSON.stringify({ mappings: [{ ac: 'AC #2: Eta rotates logs', testCases: [{ id: 'TC-01', layer: 'e2e' }, { id: 'TC-02', layer: 'e2e' }], coverage: 'full' }] }));
+    w('playwright/tests/eta.spec.ts', "// Test cases: features-kb/features/eta/test-cases/ETA-2.md\ntest('TC-01: request is logged', async () => {});\ntest('TC-02: old logs are pruned', async () => {});\n");
+    w('touched-eta.json', JSON.stringify({ schema: 'pr-touched/1', features: [{ key: 'eta', title: 'Eta', matchedFiles: [] }], unmapped: { files: [], featuresWithoutSources: [] }, fallback: false }));
+    const hEta = JSON.parse(run(['heatmap', '--touched', 'touched-eta.json', '--phases', 'kb', '--now', '2026-09-12T00:00:00Z', '--out', 'out/eta.json', '--md', 'out/eta.md']).length ? fs.readFileSync(path.join(tmp, 'out', 'eta.json'), 'utf8') : '{}');
+    const etaMd = fs.readFileSync(path.join(tmp, 'out', 'eta.md'), 'utf8');
+    const etaRows = hEta.features[0].rows;
+    check(hEta.features[0].tcCollisions.length === 1 && hEta.features[0].tcCollisions[0].id === 'TC-01' && hEta.summary.tcCollisions === 1, 'heatmap: a TC id defined by two test-case files of one feature is reported as a collision', JSON.stringify(hEta.features[0].tcCollisions));
+    check(etaRows[0].cells.e2e.state === 'partial' && /defined by more than one ticket/.test(etaRows[0].cells.e2e.note) && etaRows[1].cells.e2e.state === 'covered' && etaRows[1].cells.e2e.tcs.join() === 'TC-02' && /TC-01 defined by more than one ticket/.test(etaRows[1].cells.e2e.note), 'heatmap: the colliding id proves nothing (the spec titled TC-01 could belong to either ticket); the unambiguous id on the same row still counts, with a note', JSON.stringify(etaRows.map(r => r.cells.e2e)));
+    check(/⚠️ \*\*Test case id `TC-01` is defined by 2 tickets\*\*/.test(etaMd) && /colliding test case id/.test(etaMd), 'heatmap comment: names the colliding id and the two files');
+    // a bare id another feature also defines (alpha's TC-01) is evidence for eta's rows only from a spec that cites eta
+    w('features-kb/features/eta/test-cases/ETA-2.md', '### TC-03: log rotates at midnight\n### TC-02: old logs are pruned\n');
+    w('features-kb/features/eta/test-cases/ETA-2-mapping.json', JSON.stringify({ mappings: [{ ac: 'AC #2: Eta rotates logs', testCases: [{ id: 'TC-03', layer: 'e2e' }, { id: 'TC-02', layer: 'e2e' }], coverage: 'full' }] }));
+    w('playwright/tests/eta.spec.ts', "test('TC-01: request is logged', async () => {});\ntest('TC-02: old logs are pruned', async () => {});\n");
+    run(['heatmap', '--touched', 'touched-eta.json', '--phases', 'kb', '--now', '2026-09-12T00:00:00Z', '--out', 'out/eta2.json']);
+    const hEta2 = JSON.parse(fs.readFileSync(path.join(tmp, 'out', 'eta2.json'), 'utf8'));
+    check(hEta2.summary.tcCollisions === 0 && hEta2.features[0].rows.every(r => r.cells.e2e.state === 'partial'), 'heatmap: ids another feature also defines (alpha has TC-01..03 too) need a spec that cites this feature — a bare title proves nothing for eta', JSON.stringify(hEta2.features[0].rows.map(r => r.cells.e2e)));
+    w('playwright/tests/eta.spec.ts', "// Test cases: features-kb/features/eta/test-cases/ETA-1.md\ntest('TC-01: request is logged', async () => {});\ntest('TC-02: old logs are pruned', async () => {});\n");
+    run(['heatmap', '--touched', 'touched-eta.json', '--phases', 'kb', '--now', '2026-09-12T00:00:00Z', '--out', 'out/eta3.json']);
+    const hEta3 = JSON.parse(fs.readFileSync(path.join(tmp, 'out', 'eta3.json'), 'utf8'));
+    check(hEta3.features[0].rows.every(r => r.cells.e2e.state === 'covered' && r.cells.e2e.evidence.join() === 'playwright/tests/eta.spec.ts'), 'heatmap: the same spec proves eta once it cites eta\'s test-case file', JSON.stringify(hEta3.features[0].rows.map(r => r.cells.e2e)));
+
     // The reusable workflow and its support files ship in this repository
     const wf = readFile(path.join(ROOT, '.github', 'workflows', 'qa-buddy-pr.yml')) || '';
     check(/^on:\n\s+workflow_call:/m.test(wf), '.github/workflows/qa-buddy-pr.yml is a reusable workflow (workflow_call)');
