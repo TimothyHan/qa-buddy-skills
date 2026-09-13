@@ -11,6 +11,23 @@ may remove a skill.
 
 ### Fixed
 
+- PR coverage 0.2.0 — four defects from the demo repo (2026-09-12):
+  - the author's to-do list ignored bug status: `**status:**` was read case-sensitively and never
+    consulted. Bug files now carry a `**Status:**` line (KB spec §6.10; `/qa-qa` 0.3.8 writes it,
+    `/qa-verify-fix` 0.4.3 sets `verified` / `reopened`), read whatever its case; `fixed`,
+    `verified`, `wont-fix`, `duplicate` move a bug under "Resolved" instead of "Fix";
+  - findings were never checked for resolution: only the latest session was read and every finding
+    was open for ever. Findings are keyed by feature + title across sessions; `/qa-exploratory`
+    0.4.7 re-checks earlier findings and re-lists them with a `**Status:**`; a finding that names a
+    bug file follows the file's status; `issues` closes the issue of a resolved finding and reopens
+    the closed issue of one that comes back (`--state all`);
+  - "also seen as" linked a finding to any feature's bug of the same number — now its own feature's;
+  - test case ids were not separated per ticket: two tickets restarting at `TC-001` let one ticket's
+    spec prove the other's rows (the mixed request-logging heatmap). Ids are unique per feature
+    (`/qa-test-cases` 0.6.3 continues the feature's numbering; self-check 9), the heatmap reports a
+    collision and counts no evidence for it, and an id another feature also defines is evidence only
+    from a spec that cites the feature — the rule the unit column already had.
+  - The Korean finding block (`### 발견 N:`, `**상태:**`) is parsed too.
 - `/qa-test-cases` 0.6.2: a NEEDS_CONTEXT or BLOCKED close is a file, not a message (constraint 8)
   — the document and mapping are written with zero cases, a `## Blocker` and the status block. The
   first real `eval.js ab` run (2026-09-12, PR #87) found the thin-ticket case closing in chat only

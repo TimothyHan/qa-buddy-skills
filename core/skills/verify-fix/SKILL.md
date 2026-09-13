@@ -1,6 +1,6 @@
 ---
 name: verify-fix
-version: 0.4.2
+version: 0.4.3
 description: |
   Re-test a bug fix after a developer resolves it. Pulls the original bug from Jira,
   re-executes the repro steps in the browser, checks for regressions, and updates
@@ -223,8 +223,8 @@ Present to the SDT before making changes:
 - **REGRESSION:** keep original as Verified, file new bug via `/qa-qa` bug filing workflow.
 
 **Without Jira:**
-- Update the bug file in `features-kb/features/{EPIC-KEY}/bugs/` with the verdict.
-- For REGRESSION: create a new bug file. The SDT files it manually in their tool.
+- Update the bug file in `features-kb/features/{EPIC-KEY}/bugs/`: set its `**Status:**` line to `verified` (VERIFIED) or `reopened` (FAILED) and add a one-line verdict with the report path. The PR pipeline reads that line — a verified bug leaves the author's to-do list, a reopened one returns to it.
+- For REGRESSION: create a new bug file (`**Status:** open`). The SDT files it manually in their tool.
 
 ---
 

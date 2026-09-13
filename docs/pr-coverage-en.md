@@ -186,7 +186,11 @@ judgment ends as `BLOCKED` and goes to a person.
 
 - **A bug** is listed under "fix" in the companion description and the announcement, and
   its criterion gets a ⚠️. The author fixes it on the original branch and checks with
-  `/qabuddy heatmap`.
+  `/qabuddy heatmap`. The bug file's `**Status:**` line decides whether it stays on the list:
+  `fixed`, `verified`, `wont-fix` or `duplicate` moves it under "Resolved".
+- **A finding from an earlier run** is re-checked by the next exploration and re-listed with a
+  status; `resolved` or `not reproduced` takes it off the list and closes the issue it opened.
+  A finding that comes back reopens its issue instead of opening a second one.
 - **A new scenario** becomes a test case on the next kb run and a spec on the next automate.
 - **A UX concern or a missing requirement** becomes a GitHub issue. A reviewer or product
   decides.

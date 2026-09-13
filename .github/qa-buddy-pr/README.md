@@ -63,6 +63,10 @@ branch** (author; then `/qabuddy heatmap` re-verifies), **decide** (reviewer), *
 yet**. Findings that need a human become GitHub issues (`issues-for`: `decisions` by default,
 `all` to include bugs, `none`), labelled `qabuddy`, de-duplicated by a hidden marker so a rerun
 updates rather than duplicates, and linked from both the PR body and the announcement comment.
+A finding the next exploration marks `resolved` or `not reproduced` closes its issue; one that
+comes back after the issue was closed reopens it. Bug files carry a `**Status:**` line (KB spec
+§6.10): only `open` and `reopened` bugs stay on the author's list, the rest are listed as resolved.
+"Also seen as" links a finding to a bug of its own feature only — bug ids restart per feature.
 The fix belongs on the source branch, not the companion: the companion carries the tests, and
 the failing spec that documents the bug should turn green there once the fix lands.
 

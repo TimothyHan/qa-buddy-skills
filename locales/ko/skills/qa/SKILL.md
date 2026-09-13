@@ -1,6 +1,6 @@
 ---
 name: qa
-version: 0.3.7
+version: 0.3.8
 description: |
   SDT 테스트 실행 스킬. 지식 베이스(KB)의 테스트 케이스를 실행하고, 브라우저에서
   인수 조건(AC)을 검증하며, 실패 항목은 Jira에 버그로 등록하고, KB에 결과를
@@ -183,7 +183,7 @@ FAIL 결과마다 Jira 버그를 작성합니다.
 - **기대 결과:** AC #{N} 기준
 - **실제 결과:** 실제로 발생한 현상
 - **증거:** 스크린샷, 콘솔 오류, 테스트 케이스 참조
-- **Severity / Priority / AC / 환경**
+- **Severity / Priority / AC / 환경**, 그리고 한 줄 `**Status:** open` — 정확히 이 철자로. 생명주기: `open` → `fixed`(개발자) → `verified` 또는 `reopened`(`/qa-verify-fix`), 또는 `wont-fix` / `duplicate`. PR 파이프라인의 할 일 목록이 이 줄을 읽습니다: 없으면 open으로 세고, `open` / `reopened`인 버그만 작성자의 목록에 남습니다.
 
 ### 등록 워크플로우:
 

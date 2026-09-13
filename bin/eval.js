@@ -719,12 +719,33 @@ const HEADINGS = {
   en: { constraints: /^## Constraints/, selfCheck: /^## .*Self-[Ee]valuation/ },
   ko: { constraints: /^## 제약 (조건|사항)/, selfCheck: /^## .*자체 (검증|평가)/ },
 };
+// Which sections of a reference file changed, by their `<!-- qab: id=… -->` id, and which skills
+// the built index scopes each of them to. A section scoped to another skill is not visible to
+// this runner; one scoped to it (or to `all`) is.
+function refSections(md) {
+  const out = {}; let cur = null;
+  for (const l of md.split('\n')) { const m = l.match(/<!--\s*qab:\s*id=([^\s]+)/); if (m) cur = m[1]; if (cur) out[cur] = (out[cur] || '') + l + '\n'; }
+  return out;
+}
+function refScopeIndex() { return readJson(path.join(ROOT, 'dist', 'claude', 'references', 'index.json')) || null; }
 function changeScope(skill, rubric, refA, refB) {
   const files = changedFiles(refA, refB);
   const skillFiles = { [`core/skills/${skill}/SKILL.md`]: 'en', [`locales/ko/skills/${skill}/SKILL.md`]: 'ko' };
-  const visible = files.filter(f => RUNNER_VISIBLE.test(f) && !/^core\/skills\/[^/]+\/tests\//.test(f));
-  const other = visible.filter(f => !skillFiles[f]);
-  const reasons = []; const touched = {};
+  const otherSkill = f => /^(core|locales\/ko)\/skills\/([^/]+)\//.test(f) && !skillFiles[f];   // another skill's files: never loaded by this runner
+  const refFile = f => f.match(/^(?:core|locales\/ko)\/references\/((?:playbook\/)?[^/]+)\.md$/);
+  const visible = files.filter(f => RUNNER_VISIBLE.test(f) && !/^core\/skills\/[^/]+\/tests\//.test(f) && !otherSkill(f));
+  const reasons = []; const touched = {}; const index = refScopeIndex();
+  const other = [];
+  for (const f of visible.filter(f => !skillFiles[f])) {
+    const r = refFile(f);
+    if (!r || !index) { other.push(f); continue; }
+    const a = refSections(fileAt(refA, f) || ''), b = refSections(fileAt(refB, f) || '');
+    const stem = r[1];
+    const changed = [...new Set([...Object.keys(a), ...Object.keys(b)])].filter(id => a[id] !== b[id]);
+    const hits = changed.filter(id => { const e = index[`REF-${stem}#${id}`]; return !e || (e.scope || []).some(x => x === 'all' || x === skill); });
+    touched[f] = changed;
+    if (hits.length) reasons.push(`${f}: section${hits.length > 1 ? 's' : ''} ${hits.join(', ')} scoped to this skill changed`);
+  }
   if (other.length) reasons.push(`runner-visible files outside the skill changed (cannot be scoped to a criterion): ${other.slice(0, 8).join(', ')}${other.length > 8 ? ', …' : ''}`);
   for (const [rel, locale] of Object.entries(skillFiles)) {
     if (!files.includes(rel)) continue;

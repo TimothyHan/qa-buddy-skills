@@ -1,6 +1,6 @@
 ---
 name: exploratory
-version: 0.4.6
+version: 0.4.7
 description: |
   Generate and guide exploratory testing sessions. Produces a session charter,
   executes time-boxed unscripted testing using heuristic techniques, captures
@@ -107,6 +107,8 @@ Work through focus areas in priority order. For each:
 
 Read technique checklists from `exploratory-heuristics.md` for the specific heuristic category.
 
+**Earlier findings first.** If `features-kb/features/{KEY}/exploratory/` holds earlier sessions, re-check each of their findings before new exploration and re-list every one in this report with the **same title** and a `**Status:**` of `still open`, `resolved`, or `not reproduced` (one line under Actual on what you saw). The PR pipeline keys findings by feature and title across sessions: an unlisted earlier finding stays open for ever, a re-listed one carries your status.
+
 **During exploration:** Screenshot frequently, check console after every interaction, inspect network requests after suspicious behavior (status codes; compare request parameters against what the UI displays), note "expected X but saw Y", track time per area, follow surprises.
 
 ---
@@ -118,7 +120,7 @@ Document immediately. Read finding categories from `exploratory-heuristics.md`.
 **Finding format:**
 ```markdown
 ### Finding {N}: {title}
-**Category:** {category} | **Severity:** {level} | **Priority:** {level}
+**Category:** {category} | **Severity:** {level} | **Priority:** {level} | **Status:** {open | still open | resolved | not reproduced}
 **Focus area:** {area} | **Found via:** {heuristic}
 **What I did:** {steps} | **Expected:** {expected} | **Actual:** {actual}
 **Evidence:** {screenshot path, or a described observation if no file-save tool is available} | **Console/Network:** {errors, decisive request-log entries, or clean}

@@ -382,6 +382,11 @@ AC-to-test-case traceability mapping.
 }
 ```
 
+Test case ids are **unique per feature**: every `test-cases/*.md` of a feature draws from one
+`TC-NNN` sequence, so `EPIC-50/TC-001` names exactly one case. A second ticket continues the
+numbering; the heatmap reports an id defined by two files as a collision and counts no evidence
+for it.
+
 ### 6.8 sources.json (per feature)
 
 Which code paths a feature owns and where its tests live. `bin/pr-coverage.js touched`
@@ -423,6 +428,27 @@ that the Exploratory column of a coverage heatmap has evidence on disk. The repo
 
 `Result` ∈ `clean` | `finding` | `unexplored`. A `finding` row marks its ACs *at risk*
 and links the cell to `#Finding N`; `unexplored` is honest partial coverage.
+
+Findings are keyed by feature and title across sessions. A later session that re-lists a finding
+under the same title with `**Status:** resolved` or `not reproduced` resolves it; one that names
+a bug file (`same root cause as BUG-003`) follows that file's status. An earlier finding never
+re-listed stays open.
+
+### 6.10 bugs/{BUG-NNN}.md (per feature)
+
+A bug filed without Jira (`/qa-qa` Phase 4, `/qa-exploratory` action "file bug"). Ids are per
+feature, so `BUG-001` in two features are two bugs. Fields are `**Name:** value` lines, read
+case-insensitively; the PR pipeline's to-do list keys on `Status`:
+
+```markdown
+# BUG-003: Deleted project stays listed
+**Severity:** Major | **Priority:** High | **AC:** AC3 | **Environment:** staging
+**Status:** open
+```
+
+`Status` ∈ `open` | `fixed` | `verified` | `reopened` | `wont-fix` | `duplicate`; absent means
+`open`. `/qa-verify-fix` writes `verified` or `reopened`. Only `open` and `reopened` bugs stay on
+the author's list.
 
 ### 6.6 relations/feature-map.json
 

@@ -1,6 +1,6 @@
 ---
 name: qa
-version: 0.3.7
+version: 0.3.8
 description: |
   SDT test execution skill. Executes test cases from the knowledge base, verifies
   acceptance criteria in the browser, files bugs in Jira for failures, and updates
@@ -185,7 +185,7 @@ For each FAIL result, draft a Jira bug.
 - **Expected result:** per AC #{N}
 - **Actual result:** what actually happens
 - **Evidence:** screenshot, console errors, test case reference
-- **Severity / Priority / AC / Environment**
+- **Severity / Priority / AC / Environment**, then one line `**Status:** open` — exactly that spelling. Lifecycle: `open` → `fixed` (developer) → `verified` or `reopened` (`/qa-verify-fix`), or `wont-fix` / `duplicate`. The PR pipeline's to-do list reads this line: absent counts as open, and only `open` / `reopened` bugs stay on the author's list.
 
 ### Filing workflow:
 
