@@ -9,6 +9,10 @@ English: [CHANGELOG.md](CHANGELOG.md)
 
 ## [Unreleased]
 
+아직 없음.
+
+## [0.10.0] — 2026-09-25
+
 ### 제거
 
 - **PR 트리거 커버리지 워크플로우**(RFC 0004의 후반부, 0.9.0부터 실험적): 재사용
