@@ -9,6 +9,10 @@ may remove a skill.
 
 ## [Unreleased]
 
+Nothing yet.
+
+## [0.10.0] — 2026-09-25
+
 ### Removed
 
 - **The PR-triggered coverage workflow** (RFC 0004's second half, experimental since 0.9.0):
