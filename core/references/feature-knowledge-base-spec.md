@@ -21,7 +21,8 @@ mind rather than as a description of what exists.
 `test-plan.md` · `test-cases/{TICKET}.md` + `{TICKET}-mapping.json` · `reviews/` ·
 `qa-reports/` · `bugs/` — plus the learnings layer added by RFC 0001 (`LEARNINGS.md`,
 `learnings-log.jsonl`, `fingerprints.jsonl`, `.cache/scoreboard.json`) — and, since RFC 0004,
-`sources.json` (§6.8) and `exploratory/{date}.md` (§6.9), read by `bin/pr-coverage.js`.
+`sources.json` (§6.8) and `exploratory/{date}.md` (§6.9); the latter is what the RFC 0005 eval
+bench grades for `/qa-exploratory`.
 
 **Specified but not built** — no skill reads or writes any of these:
 
@@ -348,8 +349,8 @@ AC-to-test-case traceability mapping.
 
 > **Canonical shape** (RFC 0004): `/qa-test-cases` writes this shape — one entry per
 > test case with its `layer` (`unit` | `api` | `e2e` | `manual`) — so a coverage scan can
-> place each case in a test layer. Two older shapes stay *read-compatible* and are
-> parsed by `bin/pr-coverage.js`: `e2e_tests[]` / `unit_tests[]` (earlier
+> place each case in a test layer. Two older shapes stay *read-compatible* for any
+> reader: `e2e_tests[]` / `unit_tests[]` (earlier
 > `/qa-test-cases`) and a flat `tests[]` (hand-written). `META — …` strings in any
 > array are infrastructure evidence, never test-case ids (LRN-20260808-05 convention).
 
@@ -384,10 +385,10 @@ AC-to-test-case traceability mapping.
 
 ### 6.8 sources.json (per feature)
 
-Which code paths a feature owns and where its tests live. `bin/pr-coverage.js touched`
-maps a diff to features through these globs; `heatmap` scans the `tests` globs for
-evidence. Written by `/qa-test-plan` (step 4b), proposed-and-confirmed interactively,
-mandatory in headless runs. Globs are anchored to the repo root; `exclude` wins.
+Which code paths a feature owns and where its tests live — the data a diff-to-feature
+mapping needs. Written by `/qa-test-plan` (step 4b), proposed-and-confirmed interactively.
+Since 0.10.0 no shipped tool consumes it (the PR-coverage workflow was withdrawn); the
+shape is kept for the next consumer. Globs are anchored to the repo root; `exclude` wins.
 
 ```json
 {
@@ -402,15 +403,15 @@ mandatory in headless runs. Globs are anchored to the repo root; `exclude` wins.
 }
 ```
 
-A feature without `sources.json` never matches a diff; the heatmap comment lists it
-under "features without sources.json" so the gap is visible rather than silent.
+A feature without `sources.json` can never be matched to a diff; a future consumer must
+list such features rather than skip them silently.
 
 ### 6.9 exploratory/{YYYY-MM-DD}.md (per feature)
 
 A persisted exploratory session — the same report `/qa-exploratory` saves under
 `.qa-reports/`, written into the KB when the run is headless (RFC 0004 decision 7) so
-that the Exploratory column of a coverage heatmap has evidence on disk. The report's
-**Focus Area Results** table carries an `ACs` column; the scanner reads only that table:
+that a coverage scan — today the RFC 0005 eval bench — has evidence on disk. The report's
+**Focus Area Results** table carries an `ACs` column; a scanner reads only that table:
 
 ```markdown
 ## Focus Area Results

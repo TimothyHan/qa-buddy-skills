@@ -9,6 +9,18 @@ may remove a skill.
 
 ## [Unreleased]
 
+### Removed
+
+- **The PR-triggered coverage workflow** (RFC 0004's second half, experimental since 0.9.0):
+  the reusable workflow `qa-buddy-pr.yml` and its prompts, renderer and installer, the
+  `pr-coverage.js` helper (touched → heatmap → companion PR → summary → issues), the
+  `/qa-setup` PR-automation step and `--pr` (0.6.0), the two CI guides and the README
+  section. It was released too soon: one demo repository is not enough evidence to put a
+  bot on other people's pull requests. Callers pinned to the `v0.9.0` / `v0.9.1` tags keep
+  working — tags are immutable — but nothing on `main` runs on a PR any more. **Headless
+  mode stays**: the preamble section, `--headless`, and the `claude -p` runner are what the
+  RFC 0005 eval bench runs on. RFC 0004 is kept as the record, status Withdrawn.
+
 ### Fixed
 
 - `/qa-test-cases` 0.6.2: a NEEDS_CONTEXT or BLOCKED close is a file, not a message (constraint 8)

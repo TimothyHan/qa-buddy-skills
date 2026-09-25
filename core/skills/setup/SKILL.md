@@ -1,11 +1,10 @@
 ---
 name: setup
-version: 0.5.3
+version: 0.6.0
 description: |
   First-run configuration wizard for QABuddy. Sets up context source (Jira, spec
   docs, chat, custom), team mode (solo vs PR-based), and project preferences.
-  Writes .qabuddy.json to the project root. Optionally wires QABuddy to run on
-  pull requests (the reusable PR-coverage workflow). Re-run to reconfigure.
+  Writes .qabuddy.json to the project root. Re-run to reconfigure.
   Use when: "setup", "configure", "first time setup", "change settings".
   Do NOT use when: asking about QABuddy features, asking how to use a skill, mid-workflow.
 tool-groups:
@@ -40,10 +39,6 @@ cat .qabuddy.json 2>/dev/null
 - **If config exists:** Show it and ask: "Want to reconfigure or keep current settings?"
   - (A) Reconfigure — proceed to Phase 2
   - (B) Keep — show summary and exit
-  - (C) Keep, and set up PR automation — jump to Phase 5b (offer this only when the
-    repository has no `.github/workflows/qabuddy.yml` yet)
-- **`/qa-setup --pr`:** skip straight to Phase 5b, whether or not a config exists
-  (if none exists, run Phases 2–4 first — the workflow needs `.qabuddy.json`).
 - **If no config:** Proceed to Phase 2
 
 ---
@@ -199,67 +194,6 @@ mkdir -p features-kb/team-practices
 | CI/CD pipeline | `features-kb/team-practices/ci-cd-pipeline.md` | `/qa-qa`, `/qa-test-plan` |
 
 **If "none":** "That's fine. Skills will ask you case-by-case when these come up. You can add team practices later by running `/qa-setup` again."
-
----
-
-## Phase 5b: PR Automation (optional)
-
-Only when the repository is on GitHub (`git remote get-url origin` names github.com)
-and `gh` is available; skip silently otherwise, and always skip in headless mode.
-
-"Want QABuddy to run on pull requests? Each PR gets its diff mapped to your features,
-test cases written, optionally the running app explored and the gaps automated, then one
-coverage-heatmap comment and a companion PR carrying the tests."
-- **(A) Yes, set it up** (Recommended when team mode is `team`)
-- **(B) Not now** — run `/qa-setup` again later, or the scaffolder by hand
-
-**If Yes:**
-1. **Probe, don't ask.** `package.json` `scripts.start` / `dev` → the start command; a port
-   in that script, `.env.example`, or the README → the app URL. Present both as a
-   recommendation: "Start with `npm start` on http://localhost:3000 — correct?"
-2. **Scaffold:**
-   ```bash
-   node {{REFERENCE_PATH}}/bin/pr-coverage.js init --app-start "{cmd}" --app-url "{url}" --labels true
-   ```
-   It writes `.github/workflows/qabuddy.yml` (a caller of QABuddy's reusable workflow),
-   creates the `qa:*` labels, and prints what is still missing.
-3. **Walk the SDT through what only they can do, one item at a time, and verify each
-   before moving on.** **Never collect a token or key yourself — never ask the SDT to
-   paste one into the chat.** Before the token commands, say who pays: a token from
-   `claude setup-token` bills the Claude subscription of whoever minted it — fine for a
-   personal repo; a team repo should mint it from a dedicated account or use an API key.
-   - **Token** — `claude setup-token`, then `gh secret set CLAUDE_CODE_OAUTH_TOKEN`
-     (subscription) — or `gh secret set ANTHROPIC_API_KEY` (API credit). Verify:
-     `gh secret list` shows one of the two names (names only, never values).
-   - **App login, if any** — secrets `TEST_USER` / `TEST_PASS` (verify with
-     `gh secret list`), or plain `test-user` / `test-pass` inputs in the caller for a
-     public demo account.
-   - **Actions may open pull requests** — check with
-     `gh api repos/{owner}/{repo}/actions/permissions/workflow --jq .can_approve_pull_request_reviews`;
-     if `false`, offer to enable it (`gh api -X PUT` on the same path with
-     `-F can_approve_pull_request_reviews=true`) and run that only on an explicit yes — it
-     is a repository setting.
-   - **`sources.json` for every feature** — the scaffolder lists the features without one.
-     This is crucial: a feature without it maps to nothing and its heatmap stays empty.
-     Offer to run `/qa-test-plan {feature}` now for each; if declined, say the first PR's
-     preflight will name them.
-   At every item the SDT may answer **stop** — e.g. they realise they have neither a Claude
-   subscription nor API credit. Then undo the scaffold, nothing else:
-   ```bash
-   node {{REFERENCE_PATH}}/bin/pr-coverage.js init --remove
-   ```
-   (deletes the caller and the `qa:*` labels; secrets and repo settings are theirs). Say
-   what was removed and that `/qa-setup --pr` brings it back. Never leave the caller in
-   place without a token: every PR would get a "could not start" comment. So *defer* is
-   only for items other than the token; an unset token means stop or finish. Do not close
-   this step with an unverified item unless it is deferred; deferred items go in Phase 6.
-4. **Explain the default in one paragraph:** `kb` on every PR open → one heatmap comment
-   and a companion PR with the tests; merging the companion only refreshes the heatmap.
-   Nothing more runs unless asked — labels `qa:explore` / `qa:automate` / `qa:full` or
-   `/qabuddy …` comments per PR, or `after-companion-merge: full` in the caller to chain
-   explore ∥ automate after a reviewed companion. Offer `default-phases`,
-   `after-companion-merge`, `issues-for`, `gate-on` if the SDT wants different behaviour.
-5. Suggest committing the caller together with `.qabuddy.json`.
 
 ---
 

@@ -2,7 +2,7 @@
 
 | | |
 |---|---|
-| **Status** | Accepted — shipped in 0.9.0 as experimental (§4 criteria all met on the demo repository) |
+| **Status** | **Withdrawn** (2026-09-25) for the PR-triggered workflow half: shipped in 0.9.0 as experimental, removed in 0.10.0 as premature — one demo repository was not enough evidence to run a bot on other teams' pull requests. Callers pinned to `v0.9.0` / `v0.9.1` keep working. The headless-mode half (§2, `--headless`, the `claude -p` runner) stays in force and is what RFC 0005 runs on. |
 | **Author** | Timothy Han (with Claude) |
 | **Created** | 2026-09-04 |
 | **Depends on** | RFC 0001 (run protocol, evidence log), RFC 0003 (Akela engine); KB spec §6.5 |
