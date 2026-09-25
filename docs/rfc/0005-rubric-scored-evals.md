@@ -1,7 +1,7 @@
 # RFC 0005 — Rubric-scored skill evals: grading performance, not shape
 
 **Status:** Accepted — PR1–PR5 built, both pilots calibrated (2026-09-06) | **Author:** Timothy Han (with Claude) | **Created:** 2026-09-05
-**Depends on:** RFC 0004 (headless runs, `claude -p`, the reusable workflow) · RFC 0001 (run directory, `events.jsonl`, `learnings-log.jsonl`)
+**Depends on:** RFC 0004 (headless runs, `claude -p`; its PR-triggered workflow was withdrawn in 0.10.0) · RFC 0001 (run directory, `events.jsonl`, `learnings-log.jsonl`)
 **Companion:** [0005-rubric-scored-evals-plan.md](0005-rubric-scored-evals-plan.md) — per-PR implementation plan
 **Locale:** English is the normative record; 한국어 요약 below, and a non-normative full Korean translation is at [0005-rubric-scored-evals-ko.md](0005-rubric-scored-evals-ko.md).
 
@@ -54,7 +54,7 @@ quality, which requires a way to score quality that is not the runner grading it
 
 | Role | What it is | Sees | Never sees |
 |---|---|---|---|
-| **Runner** | the skill, executed headless on the target model against a case (RFC 0004 `claude -p` path; the reusable workflow in CI) | the installed skill, the case input, the app | the rubric, the judge notes |
+| **Runner** | the skill, executed headless on the target model against a case (RFC 0004 `claude -p` path; `skill-eval.yml` in CI) | the installed skill, the case input, the app | the rubric, the judge notes |
 | **Judge** | one separate call per artifact to a **different model than the runner** — Opus judging Sonnet runs (decision 15) — pinned, temperature 0 | the case input, the artifact(s), judge-only notes, the rubric's `judge` criteria with anchors | `SKILL.md`, the runner's transcript, other runs' scores |
 | **Checks** | deterministic assertions: the existing execute-mode operators, greps, exit codes, and process checks over the run directory (`events.jsonl`, `scratchpad.md`, the execution file) | run artifacts | — |
 
