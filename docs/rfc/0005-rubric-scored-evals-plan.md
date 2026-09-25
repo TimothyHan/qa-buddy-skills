@@ -185,7 +185,7 @@ criteria.
 ### Model attribution
 
 `eval.js` records both models. In parallel, a small Akela PR: the launcher forwards `QAB_MODEL`
-as `AKELA_MODEL` and compile stamps `profile.model`; the RFC 0004 workflow sets it from
+as `AKELA_MODEL` and compile stamps `profile.model`; `skill-eval.yml` sets it from
 `inputs.model`. Interactive Claude Code sessions cannot set it reliably; those runs stay
 unattributed and `stats` says so.
 
@@ -252,9 +252,9 @@ stops and says so.
 ### `skill-eval.yml`
 
 Manual dispatch: `skill`, `ref-a`, `ref-b` (optional), `model`, `runs`, `budget-usd`. Installs
-QABuddy at each ref the RFC 0004 way, runs `eval.js ab` (or `run`), uploads
+QABuddy at each ref from its own `dist/` (the RFC 0004 install step, kept after the workflow was withdrawn), runs `eval.js ab` (or `run`), uploads
 `.qa-reports/evals/` with `include-hidden-files: true`, posts the delta table as the job summary.
-Stops at `budget-usd` and reports partial. Secrets as in RFC 0004.
+Stops at `budget-usd` and reports partial. Secrets: `CLAUDE_CODE_OAUTH_TOKEN` or `ANTHROPIC_API_KEY`, set by the maintainer.
 
 ### The four ablations (each an A/B on the relevant pilot skill)
 
