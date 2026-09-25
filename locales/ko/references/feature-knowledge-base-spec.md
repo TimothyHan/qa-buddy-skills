@@ -21,7 +21,8 @@
 `test-plan.md` · `test-cases/{TICKET}.md` + `{TICKET}-mapping.json` · `reviews/` ·
 `qa-reports/` · `bugs/` — 그리고 RFC 0001이 추가한 학습 레이어(`LEARNINGS.md`,
 `learnings-log.jsonl`, `fingerprints.jsonl`, `.cache/scoreboard.json`) — 그리고 RFC 0004부터
-`sources.json`(§6.8)과 `exploratory/{date}.md`(§6.9), `bin/pr-coverage.js`가 읽습니다.
+`sources.json`(§6.8)과 `exploratory/{date}.md`(§6.9); 후자는 RFC 0005 eval 벤치가
+`/qa-exploratory`를 채점할 때 읽습니다.
 
 **명세되었지만 만들어지지 않은 것** — 어떤 스킬도 읽거나 쓰지 않습니다:
 
@@ -348,8 +349,8 @@ AC와 테스트 케이스 간의 추적성 매핑 파일입니다.
 
 > **정본 형태** (RFC 0004): `/qa-test-cases`는 이 형태로 씁니다 — 테스트 케이스마다
 > `layer`(`unit` | `api` | `e2e` | `manual`)를 붙여, 커버리지 스캔이 각 케이스를 테스트
-> 계층에 놓을 수 있게 합니다. 예전 두 형태는 *읽기 호환*으로 남고 `bin/pr-coverage.js`가
-> 파싱합니다: `e2e_tests[]` / `unit_tests[]`(이전 `/qa-test-cases`)와 평평한 `tests[]`
+> 계층에 놓을 수 있게 합니다. 예전 두 형태는 어떤 리더에게든 *읽기 호환*으로
+> 남습니다: `e2e_tests[]` / `unit_tests[]`(이전 `/qa-test-cases`)와 평평한 `tests[]`
 > (수작성). 어느 배열이든 `META — …` 문자열은 인프라 증거이지 테스트 케이스 id가
 > 아닙니다(LRN-20260808-05 관례).
 
@@ -384,10 +385,10 @@ AC와 테스트 케이스 간의 추적성 매핑 파일입니다.
 
 ### 6.8 sources.json (기능별)
 
-기능이 소유한 코드 경로와 테스트 위치. `bin/pr-coverage.js touched`는 이 glob으로
-diff를 기능에 매핑하고, `heatmap`은 `tests` glob에서 증거를 스캔합니다.
-`/qa-test-plan`(4b 단계)이 씁니다 — 대화형에서는 제안 후 확인, 헤드리스 실행에서는
-필수. glob은 저장소 루트 기준이며 `exclude`가 우선합니다.
+기능이 소유한 코드 경로와 테스트 위치 — diff를 기능에 매핑할 때 필요한 데이터.
+`/qa-test-plan`(4b 단계)이 씁니다 — 대화형에서는 제안 후 확인. 0.10.0부터는 이를 읽는
+배포 도구가 없습니다(PR 커버리지 워크플로우 철회); 형태는 다음 소비자를 위해 남깁니다.
+glob은 저장소 루트 기준이며 `exclude`가 우선합니다.
 
 ```json
 {
@@ -402,15 +403,15 @@ diff를 기능에 매핑하고, `heatmap`은 `tests` glob에서 증거를 스캔
 }
 ```
 
-`sources.json`이 없는 기능은 어떤 diff에도 매칭되지 않습니다; 히트맵 코멘트가
-"sources.json 없는 기능"으로 나열해 갭이 조용히 묻히지 않게 합니다.
+`sources.json`이 없는 기능은 diff에 매핑될 수 없습니다; 미래의 소비자는 그런 기능을
+조용히 건너뛰지 말고 나열해야 합니다.
 
 ### 6.9 exploratory/{YYYY-MM-DD}.md (기능별)
 
 영속화된 탐색적 테스트 세션 — `/qa-exploratory`가 `.qa-reports/`에 저장하는 것과
-같은 보고서를, 헤드리스 실행이면 KB에도 씁니다(RFC 0004 결정 7). 커버리지 히트맵의
-Exploratory 열이 디스크 위의 증거를 갖게 하기 위함입니다. 보고서의 **Focus Area
-Results** 표에 `ACs` 열이 있고, 스캐너는 이 표만 읽습니다:
+같은 보고서를, 헤드리스 실행이면 KB에도 씁니다(RFC 0004 결정 7). 커버리지 스캔 —
+지금은 RFC 0005 eval 벤치 — 이 디스크 위의 증거를 갖게 하기 위함입니다. 보고서의
+**Focus Area Results** 표에 `ACs` 열이 있고, 스캐너는 이 표만 읽습니다:
 
 ```markdown
 ## Focus Area Results

@@ -9,6 +9,17 @@ English: [CHANGELOG.md](CHANGELOG.md)
 
 ## [Unreleased]
 
+### 제거
+
+- **PR 트리거 커버리지 워크플로우**(RFC 0004의 후반부, 0.9.0부터 실험적): 재사용
+  워크플로우 `qa-buddy-pr.yml`과 프롬프트·렌더러·인스톨러, `pr-coverage.js` 헬퍼(touched →
+  히트맵 → 동반 PR → 요약 → 이슈), `/qa-setup`의 PR 자동화 단계와 `--pr`(0.6.0), CI 가이드
+  둘과 README 섹션. 너무 이른 릴리스였습니다: 데모 저장소 하나는 다른 사람들의 풀 리퀘스트에
+  봇을 올릴 근거로 부족합니다. `v0.9.0` / `v0.9.1` 태그를 고정한 호출자는 계속 동작하지만
+  — 태그는 불변 — `main`에는 이제 PR에서 도는 것이 없습니다. **헤드리스 모드는 남습니다**:
+  프리앰블 섹션, `--headless`, `claude -p` 러너는 RFC 0005 eval 벤치가 도는 바탕입니다.
+  RFC 0004는 기록으로 남기고 상태를 Withdrawn으로 바꿉니다.
+
 ### 수정
 
 - `/qa-test-cases` 0.6.2: NEEDS_CONTEXT나 BLOCKED 종료는 메시지가 아니라 파일입니다(제약 조건 8)
